@@ -44,7 +44,7 @@ Finally, the distinction between space heat and domestic hot water, inside a sin
 As Pyomo supports non-linear modeling, the only update will have to be in the choice of the solver, inside the main class. Pyomo advises to use **ipopt**.
 
 ## Limits we might have to change
-- Every component is defined and added to the model by hand.
-- For now, it seems that the clusterization of the whole horizon by typical days is imposed.
+- Every component is defined and added to the model by hand
+- For now, it seems that the clusterization of the whole horizon by typical days is imposed
 - Operation color maps are only available for a one year horizon
 - No title on the graphs plotted
