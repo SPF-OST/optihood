@@ -26,4 +26,25 @@ Other subclasses can be defined, for a more complex development of the problem.
 8. The energy system model is optimized
 9. Selected optimization results are presented
 
-## Comparison to OPTIM-EASE project
+## Comparison with OPTIM-EASE project
+- **No multi-objective optimization**
+
+Currently, a CO2 function is calculated, summing every emission of CO2 defined. Then, this function is contrained not to exceed a certain yearly limit. To have a real multi-objective optimization, the sigma-constraint method should be used, as Pyomo does not know how to do it by itself. For that, every class should be updated, as the contribution of every component to the actual cost objective function is defined inside each xModel class.
+
+- **Technologies models are quite simple**
+
+In the examples provided by the platform, models are quite simple, with constant efficiencies for conversion components. However, it seems to be easy to update efficiencies.
+
+Other issue is about hot water storage : no complex model is defined, all storages considered seem to have the same state of charge model.
+
+Finally, the distinction between space heat and domestic hot water, inside a single technology producing heat, is not made in any of the examples. The prioritization of one among the other will also have to be made by hand.
+
+- **Possibility to switch to non-linear problem**
+
+As Pyomo supports non-linear modeling, the only update will have to be in the choice of the solver, inside the main class. Pyomo advises to use **ipopt**.
+
+## Limits we might have to change
+- Every component is defined and added to the model by hand.
+- For now, it seems that the clusterization of the whole horizon by typical days is imposed.
+- Operation color maps are only available for a one year horizon
+- No title on the graphs plotted
