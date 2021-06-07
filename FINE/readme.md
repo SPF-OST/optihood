@@ -36,14 +36,13 @@ In the examples provided by the platform, models are quite simple, with constant
 
 Other issue is about hot water storage : no complex model is defined, all storages considered seem to have the same state of charge model.
 
-Finally, the distinction between space heat and domestic hot water, inside a single technology producing heat, is not made in any of the examples. The prioritization of one among the other will also have to be made by hand.
+Finally, the distinction between space heat and domestic hot water, inside a single technology producing heat, is not made in any of the examples. It is not possible to offer a choice between two outputs. The prioritization of one among the other will also have to be made by hand.
 
 - **Possibility to switch to non-linear problem**
 
 As Pyomo supports non-linear modeling, the only update will have to be in the choice of the solver, inside the main class. Pyomo advises to use **ipopt**.
 
 ## Limits we might have to change
-- Every component is defined and added to the model by hand
 - For now, it seems that the clusterization of the whole horizon by typical days is imposed
 - Operation color maps are only available for a one year horizon
 - No title on the graphs plotted
