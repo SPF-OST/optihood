@@ -6,5 +6,5 @@ The current file test.py does not have clear costs or CO2 emissions taken into a
 - 2 buildings so far
 - Electricity grid and natural gas as inputs
 - CHP/cogeneration and heat pump as converters
-- Battery and hot wtaer storage as storages
+- Battery as storage
 - 3 of the same technology max per building
