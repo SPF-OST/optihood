@@ -9,18 +9,18 @@ def getData():
     data = {}
 
     ## Primary data
-    globall = pd.read_excel(os.path.join(inputDataPath, 'SpatialDataTest', 'data.xlsx'),
+    globall = pd.read_excel(os.path.join(inputDataPath, 'SpatialDataTest', 'data_group.xlsx'),
                             sheet_name="Global", index_col=0, header=None, engine='openpyxl')
     numberOfTimeSteps = globall.loc["Time range"]
 
     data.update({'Global, numberOfTimeSteps': numberOfTimeSteps})
 
     ## Demand data
-    operationRateFix_elec = pd.read_excel(os.path.join(inputDataPath, 'SpatialDataTest', 'data.xlsx'),
+    operationRateFix_elec = pd.read_excel(os.path.join(inputDataPath, 'SpatialDataTest', 'data_group.xlsx'),
                                           sheet_name="ElecDemand", index_col=0, header=0, engine='openpyxl')
-    operationRateFix_sh = pd.read_excel(os.path.join(inputDataPath, 'SpatialDataTest', 'data.xlsx'),
+    operationRateFix_sh = pd.read_excel(os.path.join(inputDataPath, 'SpatialDataTest', 'data_group.xlsx'),
                                         sheet_name="SHDemand", index_col=0, header=0, engine='openpyxl')
-    operationRateFix_dhw = pd.read_excel(os.path.join(inputDataPath, 'SpatialDataTest', 'data.xlsx'),
+    operationRateFix_dhw = pd.read_excel(os.path.join(inputDataPath, 'SpatialDataTest', 'data_group.xlsx'),
                                          sheet_name="DHWDemand", index_col=0, header=0, engine='openpyxl')
 
     data.update({'Electricity demand, operationRateFix': operationRateFix_elec})
@@ -28,13 +28,12 @@ def getData():
     data.update({'Domestic hot water demand, operationRateFix': operationRateFix_dhw})
 
     ## Weather data
-    T_amb = pd.read_excel(os.path.join(inputDataPath, 'SpatialDataTest', 'data.xlsx'),
+    T_amb = pd.read_excel(os.path.join(inputDataPath, 'SpatialDataTest', 'data_group.xlsx'),
                           sheet_name="Weather", index_col=0, header=None, engine='openpyxl')
-
     data.update({'T_amb': T_amb})
 
     ## Input data
-    Inputs = pd.read_excel(os.path.join(inputDataPath, 'SpatialDataTest', 'data.xlsx'),
+    Inputs = pd.read_excel(os.path.join(inputDataPath, 'SpatialDataTest', 'data_group.xlsx'),
                            sheet_name="Inputs", index_col=0, engine='openpyxl', usecols="B:AA")
 
     # Electricity grid
@@ -56,7 +55,7 @@ def getData():
     data.update({'Natural gas, operationGWP': operationGWP})
 
     ## Converters data
-    Converters = pd.read_excel(os.path.join(inputDataPath, 'SpatialDataTest', 'data.xlsx'),
+    Converters = pd.read_excel(os.path.join(inputDataPath, 'SpatialDataTest', 'data_group.xlsx'),
                                sheet_name="Converters", index_col=0, engine='openpyxl', usecols="B:AA")
 
     # CHP
@@ -98,7 +97,7 @@ def getData():
     data.update({'HP, operationGWP': operationGWP})
 
     ## Storage data
-    Storage = pd.read_excel(os.path.join(inputDataPath, 'SpatialDataTest', 'data.xlsx'),
+    Storage = pd.read_excel(os.path.join(inputDataPath, 'SpatialDataTest', 'data_group.xlsx'),
                             sheet_name="Storage", index_col=0, engine='openpyxl', usecols="B:AA")
 
     #Battery
@@ -150,5 +149,10 @@ def getData():
     data.update({'HW, investmentCost': investmentCost})
     data.update({'HW, investmentBaseCost': investmentBaseCost})
     data.update({'HW, operationGWP': operationGWP})
+
+    ## Transmission data
+    eligibility = pd.read_excel(os.path.join(inputDataPath, 'SpatialDataTest', 'data_group.xlsx'),
+                                sheet_name="Transmissions", index_col=0, header=0, engine='openpyxl')
+    data.update({'Transmissions': eligibility})
 
     return data

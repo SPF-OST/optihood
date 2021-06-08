@@ -1,20 +1,5 @@
 # -*- coding: utf-8 -*-
-# ---
-# jupyter:
-#   jupytext:
-#     formats: ipynb,py:percent
-#     text_representation:
-#       extension: .py
-#       format_name: percent
-#       format_version: '1.3'
-#       jupytext_version: 1.6.0
-#   kernelspec:
-#     display_name: Python 3
-#     language: python
-#     name: python3
-# ---
 
-# %% [markdown]
 # # Workflow for a multi-regional energy system
 #
 # In this application of the FINE framework, a multi-regional energy system is modeled and optimized.
@@ -39,7 +24,7 @@
 
 import FINE as fn
 import matplotlib.pyplot as plt
-from getData import getData
+from getData_group import getData
 import pandas as pd
 import os
 
@@ -172,7 +157,11 @@ for battery in Battery :
 #                    ))
 
 # # 6. Add commodity transmission components to the energy system model
-
+esM.add(fn.Transmission(esM=esM, name='Cables', commodity='electricity',
+                        hasCapacityVariable=True, hasIsBuiltBinaryVariable=True, bigM=300,
+                        locationalEligibility=data['Transmissions'],
+                        capacityMax=data['Transmissions']*20,
+                        investIfBuilt=20))
 
 # # 7. Add commodity sinks to the energy system model
 esM.add(fn.Sink(esM=esM, name='Electricity demand', commodity='electricity',
@@ -221,16 +210,11 @@ fig12, ax = fn.plotOperation(esM, 'Natural gas', 'building_2', color='g')
 dfss = esM.getOptimizationSummary("SourceSinkModel", outputLevel=2)
 dfconv = esM.getOptimizationSummary("ConversionModel", outputLevel=2)
 dfstor = esM.getOptimizationSummary("StorageModel", outputLevel=2)
-with pd.ExcelWriter("Resultats.xlsx") as writer:
+dftrans = esM.getOptimizationSummary("TransmissionModel", outputLevel=2)
+with pd.ExcelWriter("Resultats_group.xlsx") as writer:
     dfss.to_excel(writer, sheet_name="SourceSink")
     dfconv.to_excel(writer, sheet_name="Conversion")
     dfstor.to_excel(writer, sheet_name="Storage")
-
-# %% tags=["nbval-skip"]
-#fig, ax = fn.plotOperationColorMap(esM, 'CHP1', 'building_1')
-
-# # %% tags=["nbval-skip"]
-# fig, ax = fn.plotOperationColorMap(esM, 'Li-ion batteries', 'cluster_2',
-#                                    variableName='stateOfChargeOperationVariablesOptimum')
+    dftrans.to_excel(writer, sheet_name="Transmission")
 
 #plt.show()
