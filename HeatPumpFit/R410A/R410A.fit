@@ -1,0 +1,26 @@
+The coefficients are fitted using Inlet/Outlet Temperature model and equation quadraticLinearSource
+Date: Fri May 28 10:03:26 2021
+Author: neha.dimri
+
+CoefQCond
+ 13.8603
+120.2178
+ -7.9046
+-164.1900
+-17.9805
+
+CoefCOP
+ 12.4896
+ 64.0652
+-83.0217
+-230.1195
+173.2122
+
+CoefQCond    CoefCOP
+ 13.8603	 12.4896
+120.2178	 64.0652
+ -7.9046	-83.0217
+-164.1900	-230.1195
+-17.9805	173.2122
+CoefQCond = [13.8603,120.2178,-7.9046,-164.1900,-17.9805]
+CoefQCop = [12.4896,64.0652,-83.0217,-230.1195,173.2122]
