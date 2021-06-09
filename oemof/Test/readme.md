@@ -12,6 +12,8 @@ A combined cycle extraction turbine CHP has been implemented using the oemof.sol
 
 At present, only the operation costs have been integrated to the model. The investment mode of oemof.solph package still needs to be tested.
 
+Two identical storage units have been implemented (one for space heating and the other for domestic hot water).
+
 ## Next steps 
 - To implement the energy system with three CHPs and three heat pumps
 - Use of investment mode of the oemof.solph package
