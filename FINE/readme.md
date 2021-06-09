@@ -41,6 +41,7 @@ Finally, the distinction between space heat and domestic hot water, inside a sin
 - **Possibility to switch to non-linear problem**
 
 As Pyomo supports non-linear modeling, the only update will have to be in the choice of the solver, inside the main class. Pyomo advises to use **ipopt**.
+Moreover, the platform offers the possibility to introduce non-linear part-load modeling.
 
 ## Limits we might have to change
 - For now, it seems that the clusterization of the whole horizon by typical days is imposed
