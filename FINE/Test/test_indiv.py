@@ -92,14 +92,18 @@ HP = ['HP1', 'HP2', 'HP3']
 
 COPdhw = []
 COPsh = []
+coefW = [12.4896, 64.0652, -83.0217, -230.1195, 173.2122]
+coefQ = [13.8603, 120.2178, -7.9046, -164.1900, -17.9805]
+Tconddhw = 55/273.15
 for i in range(1, int(numberOfTimeSteps)+1):
-    efficaciteqdhw = (3 + 3 * data['T_amb'][1][i] + 3 * 55 + 3 * data['T_amb'][1][i] * 55 + 3 * (data['T_amb'][1][i] ^ 2) + 3 * (55 ^ 2))
-    efficacitewdhw = (1 + 1 * data['T_amb'][1][i] + 1 * 55 + 1 * data['T_amb'][1][i] * 55 + 1 * (data['T_amb'][1][i] ^ 2) + 1 * (55 ^ 2))
+    efficaciteqdhw = coefQ[0] + coefQ[1] * data['T_amb'][1][i] + coefQ[2] * Tconddhw + coefQ[3] * data['T_amb'][1][i] * Tconddhw + coefQ[4] * (Tconddhw ** 2)
+    efficacitewdhw = coefW[0] + coefW[1] * data['T_amb'][1][i] + coefW[2] * Tconddhw + coefW[3] * data['T_amb'][1][i] * Tconddhw + coefW[4] * (Tconddhw ** 2)
     COPdhw.append(efficaciteqdhw / efficacitewdhw)
 
     Tcond = 25 * (data['T_amb'][1][i] > 15) + (32.5 - 1 / 2 * data['T_amb'][1][i]) * (data['T_amb'][1][i] <= 15)
-    efficaciteqsh = (3 + 3 * data['T_amb'][1][i] + 3 * Tcond + 3 * data['T_amb'][1][i] * Tcond + 3 * (data['T_amb'][1][i] ^ 2) + 3 * (Tcond ** 2))
-    efficacitewsh = (1 + 1 * data['T_amb'][1][i] + 1 * Tcond + 1 * data['T_amb'][1][i] * Tcond + 1 * (data['T_amb'][1][i] ^ 2) + 1 * (Tcond ** 2))
+    Tcondsh = Tcond/273.15
+    efficaciteqsh = coefQ[0] + coefQ[1] * data['T_amb'][1][i] + coefQ[2] * Tcondsh + coefQ[3] * data['T_amb'][1][i] * Tcondsh + coefQ[4] * (Tcondsh ** 2)
+    efficacitewsh = coefW[0] + coefW[1] * data['T_amb'][1][i] + coefW[2] * Tcondsh + coefW[3] * data['T_amb'][1][i] * Tcondsh + coefW[4] * (Tcondsh ** 2)
     COPsh.append(efficaciteqsh / efficacitewsh)
 
 COPsh = pd.DataFrame(COPsh)
