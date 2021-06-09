@@ -52,17 +52,19 @@ if __name__ == '__main__':
             "demand": data.parse("demand"),
             "storages": data.parse("storages"),
             "timeseries": data.parse("time_series"),
+            "actual_data": data.parse("actual_data"),
+            "stratified_storage": data.parse("stratified_storage")
         }
 
         # set datetime index
         nodesData["timeseries"].set_index("timestamp", inplace=True)
         nodesData["timeseries"].index = pd.to_datetime(
-            nodes_data["timeseries"].index
+            nodesData["timeseries"].index
         )
 
         print("Data from Excel file {} imported.".format(filePath))
 
-        return nodes_data
+        return nodesData
 
     def create_nodes(nd=None):
         """Create nodes (oemof objects) from node dict
@@ -132,7 +134,7 @@ if __name__ == '__main__':
         for i, de in nd["demand"].iterrows():
             if de["active"]:
                 # set static inflow values
-                inflow_args = {"nominal_value": de["nominal value"], "fixed": de["fixed"]}
+                inflow_args = {"nominal_value": de["nominal value"]}
                 # get time series for node and parameter
                 for col in nd["timeseries"].columns.values:
                     if col.split(".")[0] == de["label"]:
@@ -153,6 +155,7 @@ if __name__ == '__main__':
                     coefCOP = [12.4896, 64.0652, -83.0217, -230.1195, 173.2122]
                     coefQ = [13.8603,120.2178,-7.9046,-164.1900,-17.9805]
                     Temperature_a = np.array(nd["actual_data"]["temperature.actual"])
+                    print(Temperature_a)
                     Temperature_sh = 35/273.15
                     Temperature_dhw = 55/273.15
                     QCondenser_sh = coefQ[0]+(coefQ[1]*Temperature_a)+(coefQ[2]*Temperature_sh)+(coefQ[3]*Temperature_a*Temperature_sh)+(coefQ[4]*Temperature_sh*Temperature_sh)
@@ -237,32 +240,32 @@ if __name__ == '__main__':
                             outflow_conversion_factor=s["efficiency outflow"],
                         )
                     )
-                elif s["label"] == "thermalStorage":
+                elif s["label"] == "thermalStorage1":
 
                     # Pre-calculation
 
                     u_value = calculate_storage_u_value(
-                        nd["stratified_storage"]['s_iso'],
-                        nd["stratified_storage"]['lamb_iso'],
-                        nd["stratified_storage"]['alpha_inside'],
-                        nd["stratified_storage"]['alpha_outside'])
+                        float(nd["stratified_storage"]['s_iso']),
+                        float(nd["stratified_storage"]['lamb_iso']),
+                        float(nd["stratified_storage"]['alpha_inside']),
+                        float(nd["stratified_storage"]['alpha_outside']))
 
                     volume, surface = calculate_storage_dimensions(
-                        nd["stratified_storage"]['height'],
-                        nd["stratified_storage"]['diameter']
+                        float(nd["stratified_storage"]['height']),
+                        float(nd["stratified_storage"]['diameter'])
                     )
 
                     nominal_storage_capacity = calculate_capacities(
                         volume,
-                        nd["stratified_storage"]['temp_h'],
-                        nd["stratified_storage"]['temp_c'])
+                        float(nd["stratified_storage"]['temp_h']),
+                        float(nd["stratified_storage"]['temp_c']))
 
                     loss_rate, fixed_losses_relative, fixed_losses_absolute = calculate_losses(
                         u_value,
-                        nd["stratified_storage"]['diameter'],
-                        nd["stratified_storage"]['temp_h'],
-                        nd["stratified_storage"]['temp_c'],
-                        nd["stratified_storage"]['temp_env'])
+                        float(nd["stratified_storage"]['diameter']),
+                        float(nd["stratified_storage"]['temp_h']),
+                        float(nd["stratified_storage"]['temp_c']),
+                        float(nd["stratified_storage"]['temp_env']))
 
                     def print_parameters():
                         parameter = {
@@ -276,7 +279,7 @@ if __name__ == '__main__':
                         }
 
                         dash = '-' * 50
-
+                        print('Parameters for the stratified tank #1')
                         print(dash)
                         print('{:>32s}{:>15s}'.format('Parameter name', 'Value'))
                         print(dash)
@@ -292,21 +295,91 @@ if __name__ == '__main__':
                         solph.components.GenericStorage(
                             label=s["label"],
                             inputs={
-                                busd[s["bus"].split(",")[0]]: Flow(nominal_value=nd["stratified_storage"]['maximum_heat_flow_charging']),
-                                busd[s["bus"].split(",")[1]]: Flow(nominal_value=nd["stratified_storage"]['maximum_heat_flow_charging'])
-                            },
+                                busd[s["bus"]]: solph.Flow(nominal_value=float(nd["stratified_storage"]['maximum_heat_flow_charging'])),
+                              },
                             outputs={
-                                busd[s["bus"].split(",")[0]]: Flow(nominal_value=nd["stratified_storage"]['maximum_heat_flow_discharging'], variable_costs=s["variable output costs"].split(",")[0]),
-                                busd[s["bus"].split(",")[1]]: Flow(nominal_value=nd["stratified_storage"]['maximum_heat_flow_discharging'], variable_costs=s["variable output costs"].split(",")[1])
+                                busd[s["bus"]]: solph.Flow(nominal_value=float(nd["stratified_storage"]['maximum_heat_flow_discharging']), variable_costs=float(s["variable output costs"])),
                             },
                             nominal_storage_capacity=nominal_storage_capacity,
                             loss_rate=loss_rate,
                             fixed_losses_relative=fixed_losses_relative,
                             fixed_losses_absolute=fixed_losses_absolute,
-                            max_storage_level=nd["stratified_storage"]['max_storage_level'],
-                            min_storage_level=nd["stratified_storage"]['min_storage_level'],
-                            inflow_conversion_factor=nd["stratified_storage"]['inflow_conversion_factor'],
-                            outflow_conversion_factor=nd["stratified_storage"]['outflow_conversion_factor'],
+                            max_storage_level=float(nd["stratified_storage"]['max_storage_level']),
+                            min_storage_level=float(nd["stratified_storage"]['min_storage_level']),
+                            inflow_conversion_factor=float(nd["stratified_storage"]['inflow_conversion_factor']),
+                            outflow_conversion_factor=float(nd["stratified_storage"]['outflow_conversion_factor']),
+                        )
+                    )
+                elif s["label"] == "thermalStorage2":
+                    # Pre-calculation
+
+                    u_value = calculate_storage_u_value(
+                        float(nd["stratified_storage"]['s_iso']),
+                        float(nd["stratified_storage"]['lamb_iso']),
+                        float(nd["stratified_storage"]['alpha_inside']),
+                        float(nd["stratified_storage"]['alpha_outside']))
+
+                    volume, surface = calculate_storage_dimensions(
+                        float(nd["stratified_storage"]['height']),
+                        float(nd["stratified_storage"]['diameter'])
+                    )
+
+                    nominal_storage_capacity = calculate_capacities(
+                        volume,
+                        float(nd["stratified_storage"]['temp_h']),
+                        float(nd["stratified_storage"]['temp_c']))
+
+                    loss_rate, fixed_losses_relative, fixed_losses_absolute = calculate_losses(
+                        u_value,
+                        float(nd["stratified_storage"]['diameter']),
+                        float(nd["stratified_storage"]['temp_h']),
+                        float(nd["stratified_storage"]['temp_c']),
+                        float(nd["stratified_storage"]['temp_env']))
+
+                    def print_parameters():
+                        parameter = {
+                            'U-value [W/(m2*K)]': u_value,
+                            'Volume [m3]': volume,
+                            'Surface [m2]': surface,
+                            'Nominal storage capacity [MWh]': nominal_storage_capacity,
+                            'Loss rate [-]': loss_rate,
+                            'Fixed relative losses [-]': fixed_losses_relative,
+                            'Fixed absolute losses [MWh]': fixed_losses_absolute,
+                        }
+
+                        dash = '-' * 50
+                        print('Parameters for the stratified tank #2')
+                        print(dash)
+                        print('{:>32s}{:>15s}'.format('Parameter name', 'Value'))
+                        print(dash)
+
+                        for name, param in parameter.items():
+                            print('{:>32s}{:>15.5f}'.format(name, param))
+
+                        print(dash)
+
+                    print_parameters()
+
+                    nodes.append(
+                        solph.components.GenericStorage(
+                            label=s["label"],
+                            inputs={
+                                busd[s["bus"]]: solph.Flow(
+                                    nominal_value=float(nd["stratified_storage"]['maximum_heat_flow_charging'])),
+                            },
+                            outputs={
+                                busd[s["bus"]]: solph.Flow(
+                                    nominal_value=float(nd["stratified_storage"]['maximum_heat_flow_discharging']),
+                                    variable_costs=float(s["variable output costs"])),
+                            },
+                            nominal_storage_capacity=nominal_storage_capacity,
+                            loss_rate=loss_rate,
+                            fixed_losses_relative=fixed_losses_relative,
+                            fixed_losses_absolute=fixed_losses_absolute,
+                            max_storage_level=float(nd["stratified_storage"]['max_storage_level']),
+                            min_storage_level=float(nd["stratified_storage"]['min_storage_level']),
+                            inflow_conversion_factor=float(nd["stratified_storage"]['inflow_conversion_factor']),
+                            outflow_conversion_factor=float(nd["stratified_storage"]['outflow_conversion_factor']),
                         )
                     )
                 else:
@@ -396,7 +469,7 @@ if __name__ == '__main__':
     esys = solph.EnergySystem(timeindex=datetime_index)
 
     # read node data from Excel sheet
-    excel_nodes = nodes_from_excel(os.path.join(os.getcwd(), "scenario.xlsx", ))
+    excel_nodes = nodes_from_excel(os.path.join(os.getcwd(), "scenario.xls", ))
 
     # create nodes from Excel sheet data
     my_nodes = create_nodes(nd=excel_nodes)
@@ -452,16 +525,6 @@ if __name__ == '__main__':
     plt.show()
     logging.info("Done!")
 
-    #filePath = os.path.join(os.getcwd(), "data.xlsx")
-    #naturalGasBus = solph.Bus(label='natural gas')
-    #ambientTemperatureBus = solph.Bus(label='ambient temperature')
-    #electricityBus = solph.Bus(label='electricity')
-    #shBus = solph.Bus(label='space heating')
-    #dhwBus = solph.Bus(label='domestic hot water')
-
-    #busList = [naturalGasBus, ambientTemperatureBus, electricityBus, shBus, dhwBus]
-
-    #basicEnergySystem.add(*busList)
 
 
 
