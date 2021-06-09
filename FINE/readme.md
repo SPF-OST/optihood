@@ -32,7 +32,7 @@ Currently, a CO2 function is calculated, summing every emission of CO2 defined. 
 
 - **Technologies models are quite simple**
 
-In the examples provided by the platform, models are quite simple, with constant efficiencies for conversion components. However, it seems to be easy to update efficiencies.
+In the examples provided by the platform, models are quite simple, with constant efficiencies per timstep imposed for conversion components.
 
 Other issue is about hot water storage : no complex model is defined, all storages considered seem to have the same state of charge model.
 
@@ -44,6 +44,6 @@ As Pyomo supports non-linear modeling, the only update will have to be in the ch
 Moreover, the platform offers the possibility to introduce non-linear part-load modeling.
 
 ## Limits we might have to change
-- For now, it seems that the clusterization of the whole horizon by typical days is imposed
+- For now, it seems that the clusterization of the whole horizon by typical days is imposed (can be fixed to no clusterization)
 - Operation color maps are only available for a one year horizon
 - No title on the graphs plotted
