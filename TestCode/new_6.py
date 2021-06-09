@@ -394,12 +394,17 @@ model.respect_capacity_hw_dhw = pyo.Constraint(model.Building, model.Time, model
 # every temperature must be in Celsius degrees
 # ones will be modified when model parameters are defined
 def hp_rule(model, b, t, hp):
-    efficaciteqdhw = (3 + 3 * model.Tamb[t] + 3 * 55 + 3 * model.Tamb[t] * 55 + 3 * (model.Tamb[t] ^ 2) + 3 * (55 ^ 2))
-    efficacitewdhw = (1 + 1 * model.Tamb[t] + 1 * 55 + 1 * model.Tamb[t] * 55 + 1 * (model.Tamb[t] ^ 2) + 1 * (55 ^ 2))
+    coefW = [12.4896, 64.0652, -83.0217, -230.1195, 173.2122]
+    coefQ = [13.8603, 120.2178, -7.9046, -164.1900, -17.9805]
+    Tconddhw = 55 / 273.15
+    efficaciteqdhw = coefQ[0] + coefQ[1] * model.Tamb[t] + coefQ[2] * Tconddhw + coefQ[3] * model.Tamb[t] * Tconddhw + coefQ[4] * (Tconddhw ** 2)
+    efficacitewdhw = coefW[0] + coefW[1] * model.Tamb[t] + coefW[2] * Tconddhw + coefW[3] * model.Tamb[t] * Tconddhw + coefW[4] * (Tconddhw ** 2)
     COPdhw = efficaciteqdhw / efficacitewdhw
+
     Tcond = 25 * (model.Tamb[t] > 15) + (32.5 - 1 / 2 * model.Tamb[t]) * (model.Tamb[t] <= 15)
-    efficaciteqsh = (3 + 3 * model.Tamb[t] + 3 * Tcond + 3 * model.Tamb[t] * Tcond + 3 * (model.Tamb[t] ^ 2) + 3 * (Tcond ** 2))
-    efficacitewsh = (1 + 1 * model.Tamb[t] + 1 * Tcond + 1 * model.Tamb[t] * Tcond + 1 * (model.Tamb[t] ^ 2) + 1 * (Tcond ** 2))
+    Tcondsh = Tcond / 273.15
+    efficaciteqsh = coefQ[0] + coefQ[1] * model.Tamb[t] + coefQ[2] * Tcondsh + coefQ[3] * model.Tamb[t] * Tcondsh + coefQ[4] * (Tcondsh ** 2)
+    efficacitewsh = coefW[0] + coefW[1] * model.Tamb[t] + coefW[2] * Tcondsh + coefW[3] * model.Tamb[t] * Tcondsh + coefW[4] * (Tcondsh ** 2)
     COPsh = efficaciteqsh / efficacitewsh
     return model.TechIn[b, t, hp] == model.TechHeatOutG[b, t, hp, "dhw"] * COPdhw + model.TechHeatOutG[b, t, hp, "sh"] * COPsh
 
@@ -613,7 +618,7 @@ plt.xlabel('Costs')
 plt.ylabel('Emissions')
 plt.title('GLPK Pareto-front')
 plt.grid(True);
-plt.savefig("bon.png")
+plt.savefig("ParetoFront.png")
 print("Costs : ")
 print(f1_l)
 print("Emissions : ")
