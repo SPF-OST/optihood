@@ -23,7 +23,7 @@ oemof.thermal | includes tools for modelling thermal energy components (such as 
 
 **oemof.solph** package contains several classes such as oemof.solph.Bus, oemof.solph.Flow, oemof.solph.Source, oemof.solph.Sink, oemof.solph.Transformer, oemof.solph.GenericStorage, oemof.solph.GenericCHP, etc. to model an energy system. It supports LP/MILP based on pyomo.
 
-A detailed information on oemof.solph is available at https://oemof-solph.readthedocs.io/en/latest/readme.html
+A detailed information on oemof.solph is available at https://oemof-solph.readthedocs.io/en/latest/usage.html
 
 **oemof.thermal** package offers an extension to oemof.solph by including a collection of functions focusing on thermal energy technologies. It bundles functions for stratified thermal storage, solar thermal collectors, concentrating solar power, compression heat pump and chiller, cogeneration and absorption chiller.
 
