@@ -47,3 +47,4 @@ Moreover, the platform offers the possibility to introduce non-linear part-load 
 - For now, it seems that the clusterization of the whole horizon by typical days is imposed (can be fixed to no clusterization)
 - Operation color maps are only available for a one year horizon
 - No title on the graphs plotted
+- No visualization possible of the storages operation
