@@ -144,21 +144,37 @@ for battery in Battery :
                        investIfBuilt=data['Battery, investmentBaseCost']))
 
 
-# # ### Hot water storage
-# HW = ['HW1', HW2', 'HW3']
-# for hw in HW :
-# esM.add(fn.Storage(esM=esM, name=hw, commodity='domestic_hot_water',
-#                    hasCapacityVariable=True, hasIsBuiltBinaryVariable=True, bigM=300,
-#                    chargeEfficiency=data['HW, effCharge'],
-#                    dischargeEfficiency=data['HW, effDischarge'],
-#                    capacityMin=data['HW, minCapa'],
-#                    capacityMax=data['HW, maxCapa'],
-#                    stateOfChargeMin=data['HW, minSOC'],
-#                    stateOfChargeMax=data['HW, maxSOC'],
-#                    opexPerCapacity=data['HW, investmentCost'] * (data['HW, installationCost'] + data['HW, planificationCost']),
-#                    investPerCapacity=data['HW, investmentCost'],
-#                    investIfBuilt=data['HW, investmentBaseCost']
-#                    ))
+# ### Hot water storage 1
+HW1 = ['HW11', 'HW12', 'HW13']
+for hw in HW1 :
+    esM.add(fn.Storage(esM=esM, name=hw, commodity='domestic_hot_water',
+                       hasCapacityVariable=True, hasIsBuiltBinaryVariable=True, bigM=300,
+                       chargeEfficiency=data['HW, effCharge'],
+                       dischargeEfficiency=data['HW, effDischarge'],
+                       capacityMin=data['HW, minCapa'],
+                       capacityMax=data['HW, maxCapa'],
+                       stateOfChargeMin=data['HW, minSOC'],
+                       stateOfChargeMax=data['HW, maxSOC'],
+                       opexPerCapacity=data['HW, investmentCost'] * (data['HW, installationCost'] + data['HW, planificationCost']),
+                       investPerCapacity=data['HW, investmentCost'],
+                       investIfBuilt=data['HW, investmentBaseCost']
+                       ))
+
+# ### Hot water storage 2
+HW2 = ['HW21', 'HW22', 'HW23']
+for hw in HW2 :
+    esM.add(fn.Storage(esM=esM, name=hw, commodity='space_heat',
+                       hasCapacityVariable=True, hasIsBuiltBinaryVariable=True, bigM=300,
+                       chargeEfficiency=data['HW, effCharge'],
+                       dischargeEfficiency=data['HW, effDischarge'],
+                       capacityMin=data['HW, minCapa'],
+                       capacityMax=data['HW, maxCapa'],
+                       stateOfChargeMin=data['HW, minSOC'],
+                       stateOfChargeMax=data['HW, maxSOC'],
+                       opexPerCapacity=data['HW, investmentCost'] * (data['HW, installationCost'] + data['HW, planificationCost']),
+                       investPerCapacity=data['HW, investmentCost'],
+                       investIfBuilt=data['HW, investmentBaseCost']
+                       ))
 
 # # 6. Add commodity transmission components to the energy system model
 
