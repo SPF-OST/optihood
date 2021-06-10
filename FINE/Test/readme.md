@@ -11,5 +11,5 @@ Missing:
 - 2 buildings so far
 - Electricity grid and natural gas as inputs
 - CHP/cogeneration and heat pump as converters
-- Battery as storage
+- Battery and hot water tank as storages
 - 3 of the same technology max per building
