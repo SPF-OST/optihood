@@ -41,7 +41,7 @@ A detailed information on oemof.thermal is available at https://oemof-thermal.re
 
 * Optimizes the use of the sources (or capacity of components in 'investment mode') to satisfy the demand with minimum costs. The **costs do not have to be monetary costs** but could represent emissions or other variable units.
 
-* Available functions for **data extraction and visualization** allow for simplification of the code. 
+* Available functions for **data extraction and visualization** allow for simplification of the code. oemof_visio package offers a variety of plotting functions.
 
 ## Limitations of oemof.solph
 
