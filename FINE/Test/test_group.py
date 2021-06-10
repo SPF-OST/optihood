@@ -77,7 +77,7 @@ for chp in CHP :
     esM.add(fn.Conversion(esM=esM, name=chp, physicalUnit=r'kW$_{CH4}$',
                           commodityConversionFactors={'electricity' : 1, 'natural_gas' : -1,
                                                       'CO2' : data['Natural gas, operationGWP'] + data['CHP, operationGWP'],
-                                                      'space_heat' : 1},
+                                                      'space_heat' : 1, 'domestic_hot_water' : 1},
                           hasCapacityVariable=True, hasIsBuiltBinaryVariable=True, bigM=300,
                           capacityMin=data['CHP, minCapa'], capacityMax=data['CHP, maxCapa'],
                           opexPerCapacity=data['CHP, investmentCost'] * (data['CHP, maintenanceCost']
@@ -115,7 +115,7 @@ COPdhw['building_2'] = COPdhw['building_1']
 
 for hp in HP :
     esM.add(fn.Conversion(esM=esM, name=hp, physicalUnit=r'kW$_{el}$',
-                          commodityConversionFactors={'electricity' : -1, 'domestic_hot_water' : COPdhw,
+                          commodityConversionFactors={'electricity' : -1, 'domestic_hot_water' : COPdhw, 'space_heat' : COPsh,
                                                       'CO2' : data['Electricity grid, operationGWP'] + data['HP, operationGWP']},
                           hasCapacityVariable=True, hasIsBuiltBinaryVariable=True, bigM=300,
                           capacityMin=data['HP, minCapa'], capacityMax=data['HP, maxCapa'],
