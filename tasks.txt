@@ -1,0 +1,6 @@
+1. Testing the investment mode                               Neha
+2. Testing links/ElectricalLine                              Agnès
+3. How to separate DHW and SH outputs from a heat pump?      Both
+4. Implementation of MOO
+5. Plotting the results (oemof.visio)
+6. Writing: Review
