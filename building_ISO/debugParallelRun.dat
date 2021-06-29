@@ -1,0 +1,14 @@
+============PARALLEL PROCESSING STARTED==============
+Number of simulated cases =4
+Number of CPU used =4
+Estimated time =0.330000 hours, assuming :0.330000 hour per simulation
+============CASES TO BE SIMULATED====================
+Case 1 to be simulated runBuildingFit-mfb30_2020-AHU0-realUser0.dck /N
+Case 2 to be simulated runBuildingFit-mfb30_2020-AHU1-realUser0.dck /N
+Case 3 to be simulated runBuildingFit-mfb30_2020-AHU0-realUser1.dck /N
+Case 4 to be simulated runBuildingFit-mfb30_2020-AHU1-realUser1.dck /N
+============ALREADY SIMULATED CASES====================
+Finished simulated case 3 at 14:57:39 of day 28-06-21
+Finished simulated case 4 at 14:57:39 of day 28-06-21
+Finished simulated case 2 at 14:57:41 of day 28-06-21
+Finished simulated case 1 at 14:57:42 of day 28-06-21

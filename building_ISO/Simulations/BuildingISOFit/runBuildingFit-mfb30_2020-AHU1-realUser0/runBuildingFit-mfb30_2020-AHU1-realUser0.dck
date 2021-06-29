@@ -1,0 +1,1109 @@
+ **********************************************************************
+ ** head.ddck from C:\Daten\GIT\pytrnsys\data\ddcks\generic 
+ **********************************************************************
+*******************************
+**BEGIN Head.ddck
+*******************************
+VERSION 18  
+CONSTANTS 3
+START=0.0 ! value changed from original by executeTrnsys.py
+STOP=8760.0 ! value changed from original by executeTrnsys.py
+dtSim=1/30 ! value changed from original by executeTrnsys.py
+CONSTANTS 13
+nIteTrnsys = 30      ! TRNSYS Limit of iterations
+nWarnTrnsys = 12000  ! TRNSYS Limit of warnings
+nCallTraceTrnys = 31 ! TRNSYS limit of calls to a component before it will be traced
+FrInte_Tol = 0.003   ! TRNSYS solver tolerances      
+FrConv_Tol = 0.0005  ! TRNSYS solver tolerances    
+nan_check_bool = 1   ! TRNSYS nan check boolean
+time_report = 1      ! TRNSYS time report
+solver_equation = 0  ! TRNSYS EQUATION SOLVER statement
+debug_statement = 0  ! TRNSYS Overwrite DEBUG statement
+solver_statement = 0 ! TRNSYS Solver statement
+min_relax_factor = 1 ! TRNSYS Minimum relaxation factor
+max_relac_factor = 1 ! TRNSYS Maximum relaxation factor 
+solver_integration = 1    ! TRNSYS numerical integration solver method
+SIMULATION START STOP dtSim     
+TOLERANCES    FrInte_Tol  FrConv_Tol     
+LIMITS nIteTrnsys nWarnTrnsys nCallTraceTrnys ! Limit of Iterations, limit of warnings, limit of calls to a component before it will be traced
+DFQ solver_integration                        ! TRNSYS numerical integration solver method
+WIDTH 132                                     ! TRNSYS output file width, number of characters
+LIST                                          ! NOLIST statement
+SOLVER solver_statement min_relax_factor max_relac_factor      ! Solver statement, Minimum relaxation factor, Maximum relaxation factor
+NAN_CHECK nan_check_bool  ! Nan DEBUG statement
+OVERWRITE_CHECK debug_statement     ! Overwrite DEBUG statement
+EQSOLVER solver_equation           ! EQUATION SOLVER statement
+TIME_REPORT time_report
+CONSTANTS 3    
+tStrtUser = START     ! START start time of user defined printer
+tEndUser  = STOP      ! END time of user defined printer
+dtPrUser  = dtSim     ! timestep of user defined printer
+CONSTANTS 6 
+versionDeck = 1 !can be changed from config file to adapt processes and so on
+PI   = 3.1415926     
+Zero = 0
+Nix  = 0
+notused  = 0
+nPlotsPerSim=1.0 ! value changed from original by executeTrnsys.py
+CONSTANTS 7 
+CPBRI = 3.8160   ! spec. heat of Glycol  [kJ/kgK]; Value for an average pipe temperature with 55 캜 Tyfocor LS
+RHOBRI = 1016.0  ! density Glycol [kg/m�]; Value for an average pipe temperature with 55 캜 Tyfocor L
+CPWAT = 4.19     ! spec. heat of Water [kJ/kgK] at 20 캜
+RHOWAT = 998.0   ! density of Water  [kg/m�] at20 캜
+LAMWAT = 0.58    ! heat conductivity W/(mK) 
+CPWAT_SI = CPWAT*1000 ! J/(kgK)    
+CPBRI_SI = CPBRI*1000 ! J/(kgK)    
+ **********************************************************************
+ ** weather_data_base.ddck from C:\Daten\GIT\pytrnsys\data\ddcks\weather 
+ **********************************************************************
+*******************************
+**BEGIN WeatherData.dck
+*******************************
+EQUATIONS 11
+tAmbDry = [11,1]       !Changed automatically
+relHum  = [11,2]	   !Changed automatically
+vWind   = [11,3]       !Changed automatically
+dirWind = [11,4]       !Changed automatically
+pAmb_Pa = [11,5]       !Changed automatically
+AISZ = [11,10]         !Changed automatically
+AISA = [11,11]         !Changed automatically
+IT_H = Max([11,12],0)  !Changed automatically
+IB_H = Max([11,13],0)  !Changed automatically
+ID_H = [11,14]         !Changed automatically
+AI_H = [11,16]         !Changed automatically
+EQUATIONS 39
+IT_N = [11,18]      !Changed automatically
+AI_N = [11,22]      !Changed automatically
+IB_N = [11,19] * LT(AI_N,90)      !Changed automatically
+IT_S = [11,24]      !Changed automatically
+IB_S = [11,25]      !Changed automatically
+ID_S = [11,26]+[11,27]       !Changed automatically
+AI_S = [11,28]      !Changed automatically
+IT_E = [11,30]     !Changed automatically
+IB_E = [11,31]      !Changed automatically
+ID_E = [11,32]+[11,33]  !Changed automatically
+AI_E = [11,34]     !Changed automatically
+IT_W = [11,36]     !Changed automatically
+IB_W = [11,37]      !Changed automatically
+ID_W = [11,38]+[11,39]  !Changed automatically
+AI_W = [11,40]      !Changed automatically
+IT_surfUser_1 = [11,42]     !Changed automatically
+IB_surfUser_1 = [11,43]      !Changed automatically
+ID_surfUser_1 = [11,44] +[11,45]  !Changed automatically
+IDS_surfUser_1 = [11,44]  !Changed automatically
+IDG_surfUser_1 = [11,45]  !Changed automatically
+AI_surfUser_1 = [11,46]      !Changed automatically
+IT_surfUser_2 = [11,48]      !Changed automatically
+IB_surfUser_2 = [11,49]      !Changed automatically
+ID_surfUser_2 = [11,50] +[11,51]  !Changed automatically
+IDS_surfUser_2 = [11,50]  !Changed automatically
+IDG_surfUser_2 = [11,51]  !Changed automatically
+AI_surfUser_2 = [11,52]      !Changed automatically
+IT_surfUser_3 = [11,54]      !Changed automatically
+IB_surfUser_3 = [11,55]   !Changed automatically
+ID_surfUser_3 = [11,56] +[11,57]   !Changed automatically
+IDS_surfUser_3 = [11,56]  !Changed automatically
+IDG_surfUser_3 = [11,57]   !Changed automatically
+AI_surfUser_3 = [11,58] !Changed automatically
+IT_surfUser_4 = [11,60]      !Changed automatically
+IB_surfUser_4 = [11,61]   !Changed automatically
+ID_surfUser_4 = [11,62] +[11,63] !Changed automatically
+IDS_surfUser_4 = [11,62]  !Changed automatically
+IDG_surfUser_4 = [11,63]      !Changed automatically
+AI_surfUser_4 = [11,64] !Changed automatically
+EQUATIONS 8
+IT_surfUser_4_Wm2 = IT_surfUser_4/3.6
+IT_surfUser_3_Wm2 = IT_surfUser_3/3.6
+IT_surfUser_2_Wm2 = IT_surfUser_2/3.6
+IT_surfUser_1_Wm2 = IT_surfUser_1/3.6
+IT_S_Wm2 =IT_S/3.6
+IT_N_Wm2 =IT_N/3.6
+IT_W_Wm2 =IT_W/3.6
+IT_E_Wm2 =IT_E/3.6
+EQUATIONS 4
+IT_H_kW = IT_H/3600  
+IB_H_kW = IB_H/3600  
+IT_S_kW = IT_S/3600     ! Irradiation on south plane in kW/m2
+IB_S_kW = IB_S/3600     ! Direct Irradiation on south plane in kW/m3
+EQUATIONS 2
+IT_H_Wm2 = IT_H_kW*100  
+IB_H_Wm2 = IB_H_KW*100  
+EQUATIONS 3    ! pressure conversions
+pamb_kPa = pamb_Pa/1000     ! ambient pressure [kPa]
+pamb_atm = pamb_kPa/101.325     ! Ambient pressure [atm]
+pamb_bar = pamb_kPa/100     ! Ambient pressure [bar]
+EQUATIONS 2     
+Tsky = [10,1]      !Changed automatically
+dTsky = Tsky-Tamb     ! delta-T from sky to ambient (K)
+CONSTANTS 8    ! Turn the North,South,East and West orientations with "TURN"
+TcwAvg = TambAvg     
+TURN = 0.0     
+AA_N = 180.0 + TURN     
+AA_S = TURN     
+AA_E = 270.0      
+AA_W = 90.0 + TURN     
+groundRef = 0.2
+slope90 = 90.0
+CONSTANTS 2
+myUnitWeatherData   = unitWeatherData   !from the specific weatherFile
+myFormatWeatherData = formatWeatherData   !formatWeatherData from the specific weatherFile
+CONSTANTS 8  ! Values to be filled up by GUI
+slopeSurfUser_1 = 45. ! Slope of surface-5
+aziSurfUser_1 = 0.    ! Azimuth of surface-5
+slopeSurfUser_2 = 10. ! Slope of surface-6
+aziSurfUser_2 = 110.    ! Azimuth of surface-6
+slopeSurfUser_3 = 10. ! Slope of surface-7
+aziSurfUser_3 = 70.    ! Azimuth of surface-7
+slopeSurfUser_4 = 10. ! Slope of surface-8
+aziSurfUser_4 = 70.    ! Azimuth of surface-8
+UNIT 11 TYPE 109  !Changed automatically
+PARAMETERS 4
+myFormatWeatherData  ! 1 = user format, 2 = Standard weather file in the TMY2 format  FROM CITY...
+myUnitWeatherData    ! 2 Logical unit 
+4     ! 3 Sky model for diffuse radiation: 1: Isotropic sky model; 2: Hay and Davies model; 3: Reindl model; 4: Perez model
+1     ! 4 Tracking mode: 1: Fixed surface; 2: single-axis tracking,vertical axis (fixed slope); 3: single-axis tracking in the plane of the surface; 4 two axis tracking
+INPUTS 17 ! these inputs don't accept numbers but variables
+0,0
+0,0
+0,0
+0,0
+0,0
+0,0
+0,0
+0,0
+0,0
+0,0
+0,0
+0,0
+0,0
+0,0
+0,0
+0,0
+0,0
+groundRef ! ground reflectance
+slope90   ! Slope of surface-1
+AA_N      ! Azimuth of surface-1
+slope90   ! Slope of surface-2
+AA_S      ! Azimuth of surface-2
+slope90   ! Slope of surface-3
+AA_E      ! Azimuth of surface-3
+slope90   ! Slope of surface-4
+AA_W      ! Azimuth of surface-4
+slopeSurfUser_1 ! Slope of surface-5
+aziSurfUser_1   ! Azimuth of surface-5
+slopeSurfUser_2 ! Slope of surface-6
+aziSurfUser_2   ! Azimuth of surface-6
+slopeSurfUser_3 ! Slope of surface-7
+aziSurfUser_3   ! Azimuth of surface-7
+slopeSurfUser_4 ! Slope of surface-8
+aziSurfUser_4   ! Azimuth of surface-8
+UNIT 12 TYPE 33      !Changed automatically
+PARAMETERS 3     
+2     ! 1 Psychrometrics mode 2: dry bulb and relative humidity known
+1     ! 2 Wet bulb mode 1: calculate wet bulb temperature; 0: do not calculate wet bulb temperature
+1     ! 3 Error mode 1: only one warning will be printed for the whole simulation; 2: all warnings will be printed
+INPUTS 3     
+tAmbDry ! Ambient dry bulb temperature [째C]
+relHum  ! Relative humidity [0..100]
+pamb_atm     ! Ambient pressure [atm]
+20 50 1      
+EQUATIONS 6     
+tAmb_Met = [12,7]       !Changed automatically
+tAmbDewPoint = [12,8]      !Changed automatically
+RHamb_100 = [12,6]       !Changed automatically
+tAmb = Tamb_Met     ! Psychrometrics:Dry bulb temperature
+RHamb_1 = RHamb_100/100     
+Tcw = MAX(TcwAvg,0.1)     !  Temperature shift cold water, K . We avoid below 0 째C
+UNIT 10 TYPE 69      !Changed automatically
+PARAMETERS 2     
+0     ! 1 mode for cloudiness factor
+altid     ! 2 height over sea level
+INPUTS 4     
+tamb_Met        ! Psychrometrics:Dry bulb temperature ->Ambient temperature
+tambDewPoint        ! Psychrometrics:Dew point temperature. ->Dew point temperature at ambient conditions
+IB_H       ! Weather data:beam radiation on horizontal ->Beam radiation on the horizontal
+ID_H      ! Weather data:sky diffuse radiation on horizontal ->Diffuse radiation on the horizontal
+0 20 0 0     
+CONSTANTS 1
+unitPrinterWeather = 14
+ EQUATIONS 1
+one = 1 ! this is needed to get the total hours per month
+ASSIGN temp\WEATHER_BASE_MO.Prt unitPrinterWeather 
+UNIT 13 Type 46      !Changed automatically
+PARAMETERS 6   
+unitPrinterWeather    ! 1: Logical unit number, -
+-1     ! 2: Logical unit for monthly summaries, -
+1     ! 3: Relative or absolute start time. 0: print at time intervals relative to the simulation start time. 1: print at absolute time intervals. No effect for monthly integrations
+-1     ! 4: Printing & integrating interval, h. -1 for monthly integration
+1     ! 5: Number of inputs to avoid integration, -
+1     ! 6: Output number to avoid integration
+INPUTS 6  
+Time Tamb one IT_H_KW IB_H_kW IT_surfUser_1_Wm2
+Time Tamb hoursInMonth IT_H_KW IB_H_kW IT_surfUser_1_Wm2
+ **********************************************************************
+ ** CitySMA_dryN.ddck from C:\Daten\GIT\ddck_trihp\weather\SIA\Normal 
+ **********************************************************************
+*******************************
+**BEGIN City.dck
+*******************************
+CONSTANTS 7     
+Lat = 47.38     ! Latitude, 째
+TambD = -10     ! ambient design temperature of heating system, 째C
+TambAvg = 9.33    ! average outdoor temperature, 째C
+dTambAmpl = 9.3     ! amplitude of outside temperature, K
+tTambShift = 488     ! Offset of outside air temperature minimum , h
+ddTcwOffset = 40     ! time shift of minimum cold water temperature, d
+altid = 556   
+CONSTANTS 4
+formatWeatherData = 1! 1 = user format, 2 = Standard weather file in the TMY2 format
+unitWeatherData = 15
+ unitWeatherData2 = 16
+ unitWeatherData3 = 17
+ ASSIGN "C:\Daten\GIT\ddck_trihp\weather\SIA\Normal\SMA_dryN_hourly.99" unitWeatherData 
+ASSIGN "C:\Daten\GIT\ddck_trihp\weather\SIA\Normal\SMA_dryN_hourly.99" unitWeatherData2 
+ASSIGN "C:\Daten\GIT\ddck_trihp\weather\SIA\Normal\SMA_dryN_hourly.99" unitWeatherData3 
+ **********************************************************************
+ ** Control-BoHS.ddck from C:\Daten\GIT\ddck_trihp\control 
+ **********************************************************************
+*******************************
+**BEGIN Control heating system Type888
+*******************************
+CONSTANTS 1
+tavgTamb = 96  ! time for averaging of outdoor temperature for the evaluation of heating season or no heating season, h
+CONSTANTS 2   ! Building
+TambHS=10.0 ! value changed from original by executeTrnsys.py
+m_Rd   = 1.0     ! heating curve exponent 1:linear 1.4 getting flatter at low T
+EQUATIONS 4
+BoHS = LT(Tamb24,15) !*NOT(isSummer)     ! Boolean for heating season on, 0/1
+CoolingSeason = GE(Tamb24,15) !*NOT(isSummer)     ! Boolean for heating season on, 0/1
+PPiCircLoss_kW = 0
+CoolingOn=0.0 ! value changed from original by executeTrnsys.py
+UNIT 18 Type 816      !Changed automatically
+PARAMETERS 2     
+1     !  1: number of values for input
+tavgTamb     !  2: time of averaging (dt in hours)
+INPUTS 1     
+Tamb     ! T_ambient
+21     
+EQUATIONS 1     
+Tamb24 = [18,1]       !Changed automatically
+ **********************************************************************
+ ** internal_gains.ddck from C:\Daten\GIT\pytrnsys\data\ddcks\building 
+ **********************************************************************
+*******************************
+**BEGIN internal_gains.ddck 
+*******************************
+EQUATIONS 3
+qSysOut_CiBuiSH = PBuiGainCircLoss_KW*HeatingSeasonOn
+qSysOut_CiBui = PBuiGainCircLoss_KW*Not(HeatingSeasonOn)
+qSysOut_CiLoss = CircLoss-qSysOut_CiBuiSH-qSysOut_CiBui
+EQUATIONS 3
+CircLoss = PPiCircLoss_kW
+HeatingSeasonOn = BoHS
+scaleBuiSize = scaleBuilding
+EQUATIONS 1
+PbuiIntGain = scaleBuiSize*(PBuiLight_kW+PbuiGainPers_KW+PBuiGainEq_KW+PBuiGainCircLoss_KW)*3600     ! Internal Gains [kJ/h]
+CONSTANTS 1
+factorCircToSh = 0.5 !How much of circulation losses go to SH
+CONSTANTS 1
+unitReadIntGain = 20
+ ASSIGN "C:\Daten\GIT\pytrnsys\data\ddcks\building\profiles\int_gains_mfb_2019.txt" unitReadIntGain 
+UNIT 19 TYPE 9      !Changed automatically
+PARAMETERS 22     
+5     ! 1 Mode
+1     ! 2 Header Lines to Skip
+4     ! 3 No. of values to read
+1     ! 4 Time interval of data
+ -1 1 0 0     ! 1st Data to read: 1: Interpolate (+) or not? (-); 2: Multiplication factor; 3: Addition factor; 4: average (0) or instantaneous (1)
+ -1 1 0 0     ! 1st Data to read: 1: Interpolate (+) or not? (-); 2: Multiplication factor; 3: Addition factor; 4: average (0) or instantaneous (1)
+  -1 1 0 0     ! 1st Data to read: 1: Interpolate (+) or not? (-); 2: Multiplication factor; 3: Addition factor; 4: average (0) or instantaneous (1)
+ -1 1 0 0     ! 1st Data to read: 1: Interpolate (+) or not? (-); 2: Multiplication factor; 3: Addition factor; 4: average (0) or instantaneous (1)
+unitReadIntGain     ! 9 Logical unit for input file (vorher 18)
+-1     ! 10 Free format mode     
+EQUATIONS 4    ! Internal Gains
+PBuiLight_kW = scaleBuiSize*[19,4]/1000*PGainLight      !Changed automatically
+PbuiGainPers_KW = scaleBuiSize*[19,3]/1000*PGainPer      !Changed automatically
+PBuiGainEq_KW = scaleBuiSize*[19,2]/1000*PGainEquip      !Changed automatically
+PBuiGainCircLoss_KW=0.0 ! value changed from original by executeTrnsys.py
+ **********************************************************************
+ ** type5998_2020.ddck from C:\Daten\GIT\pytrnsys\data\ddcks\building\type5998 
+ **********************************************************************
+**************************************
+**BEGIN type5998.ddck 
+**************************************
+EQUATIONS 2
+myPheatBui = PheatBui
+myPBuiIntGain = PBuiIntGain !from internal gains calculation 
+EQUATIONS 1
+TroomRc = [31,1] !Changed automatically
+CONSTANTS 3
+TroomSet   = 23*realUserBehaviour + 21*NOT(realUserBehaviour)     ! Setpoint for Room temperature, 째C
+TroomSetCool   = 24.00     ! Setpoint for Room temperature for cooling, 째C
+dTCool = 1
+EQUATIONS 1
+CoolingNeeded = OR(AND(GE(TroomRc,TroomSetCool-dTCool),CoolingNeededRc),GE(TroomRc,TroomSetCool))*GT(Tamb24,17) !Deadband
+CONSTANTS 6
+realUserBehaviour=0.0 ! value changed from original by executeTrnsys.py
+useAHU=1.0 ! value changed from original by executeTrnsys.py
+VentilationMode=1 !1 Weber, 2 Hall Radiatiors, 3 Hall floor
+upperShadeT = 21*realUserBehaviour + 24*NOT(realUserBehaviour)
+lowerShadeT = 20*realUserBehaviour + 22*NOT(realUserBehaviour)
+ShadeTinit = (upperShadeT+lowerShadeT)/2
+UNIT 21 TYPE 2	 !Changed automatically
+PARAMETERS 2	
+5	! 1 No. of oscillations
+5000	! 2 High limit cut-out
+INPUTS 6	
+IT_N	! Radiation:IT_H ->Upper input value
+0,0       	! Lower input value
+0,0       	! Monitoring value
+shadingControlN     	! Output control function ->Input control function
+0,0       	! Upper dead band
+0,0       	! Lower dead band
+15 0 0 0 720.0 540.0	
+EQUATIONS 1
+shadingControlN=[21,1] !Changed automatically
+UNIT 24 TYPE 2	 !Changed automatically
+PARAMETERS 2	
+5	! 1 No. of oscillations
+5000	! 2 High limit cut-out
+INPUTS 6	
+IT_S	! Radiation:IT_H ->Upper input value
+0,0       	! Lower input value
+0,0       	! Monitoring value
+shadingControlS     	! Output control function ->Input control function
+0,0       	! Upper dead band
+0,0       	! Lower dead band
+15 0 0 0 720.0 540.0	
+EQUATIONS 1
+shadingControlS=[24,1] !Changed automatically
+UNIT 22 TYPE 2	 !Changed automatically
+PARAMETERS 2	
+5	! 1 No. of oscillations
+5000	! 2 High limit cut-out
+INPUTS 6	
+IT_E	! Radiation:IT_H ->Upper input value
+0,0       	! Lower input value
+0,0       	! Monitoring value
+shadingControlE     	! Output control function ->Input control function
+0,0       	! Upper dead band
+0,0       	! Lower dead band
+15 0 0 0 720.0 540.0	
+EQUATIONS 1
+shadingControlE=[22,1] !Changed automatically
+UNIT 23 TYPE 2	 !Changed automatically
+PARAMETERS 2	
+5	! 1 No. of oscillations
+5000	! 2 High limit cut-out
+INPUTS 6	
+IT_W	! Radiation:IT_H ->Upper input value
+0,0       	! Lower input value
+0,0       	! Monitoring value
+shadingControlW     	! Output control function ->Input control function
+0,0       	! Upper dead band
+0,0       	! Lower dead band
+15 0 0 0 720.0 540.0	
+EQUATIONS 1	
+shadingControlW=[23,1] !Changed automatically
+UNIT 25 TYPE 2	 !Changed automatically
+PARAMETERS 2	
+5	! 1 No. of oscillations
+95	! 2 High limit cut-out
+INPUTS 6	
+Troom	! Building:    1- (air temperature of zone)  TAIR   1 ->Upper input value
+0,0      	! Lower input value
+0,0      	! Monitoring value
+shadingConTemp    	! Output control function ->Input control function 49,1
+0,0      	! Upper dead band
+0,0      	! Lower dead band
+ShadeTinit 0 0 0 upperShadeT lowerShadeT 	
+EQUATIONS 1	
+shadingConTemp=[25,1] !Changed automatically
+UNIT 29 TYPE 2	 !Changed automatically
+PARAMETERS 2	
+5	! 1 No. of oscillations
+95	! 2 High limit cut-out
+INPUTS 6	
+vWind	! Building:    1- (air temperature of zone)  TAIR   1 ->Upper input value
+0,0      	! Lower input value
+0,0      	! Monitoring value
+vWindAbove10    	! Output control function ->Input control function 49,1
+0,0      	! Upper dead band
+0,0      	! Lower dead band
+10 0 0 0 11 9 	
+EQUATIONS 1	
+vWindAbove10=[25,1] !Changed automatically
+EQUATIONS 4	! Variable Shading
+Fsh_N = shd_fix_N * (AND(shadingConTemp,shadingControlN)*win_g_shd+NOT(AND(shadingConTemp,shadingControlN))*win_g)
+Fsh_S = shd_fix_S * (AND(shadingConTemp,shadingControlS)*win_g_shd+NOT(AND(shadingConTemp,shadingControlS))*win_g)	! Wird Fenster g-Value im Model ber체cksichtigt??? Entsprechend dann XX ausf체llen bei ideal sind die H채lfte der Fenster geschlossen
+Fsh_E = shd_fix_E * (AND(shadingConTemp,shadingControlE)*win_g_shd+NOT(AND(shadingConTemp,shadingControlE))*win_g)
+Fsh_W = shd_fix_W * (AND(shadingConTemp,shadingControlW)*win_g_shd+NOT(AND(shadingConTemp,shadingControlW))*win_g)
+CONSTANTS 13
+g_earth = 9.81
+s_Hall= 0.1 ! distance of window from wall to frame when tilted [m] (Hall: 0.1 m)
+y_Hall=0.01 !distance between the blind frame and sash [m] (0.01 m) [Hall]
+d_Hall=0.05 !frame size of window [m] (0.05 m)
+m_Hall=0.6 !air flow exponent [-] (0.6)
+C_dWeber = 0.0147*alphaWindow-0.0928*heightWindow*widthWindow^(-1)+0.4116
+C_dHallF = 0.93*s_Hall^(0.2)
+C_dHallR = 0.532*s_Hall^(0.07)
+C_k = 2.6*(10)^(-7)*alphaWindow^3-1.19*(10)^(-4)*alphaWindow^2+1.86*(10)^(-2)*alphaWindow
+h_Hall=heightWindow*(1+d_Hall/s_Hall)^(-1)
+Z_Hall=((widthWindow-s_Hall)/heightWindow)^(0.5)
+x_Hall=heightWindow-h_Hall
+Aeff_Hall=s_Hall*Z_Hall*(h_Hall-heightWindow*(1-Z_Hall))+2*x_Hall*y_Hall
+UNIT 26 TYPE 2	 !Changed automatically
+PARAMETERS 2	
+5	! 1 No. of oscillations
+95	! 2 High limit cut-out
+INPUTS 6	
+Tamb24	! Building:    1- (air temperature of zone)  TAIR   1 ->Upper input value
+0,0      	! Lower input value
+0,0      	! Monitoring value
+Tamb24above18    	! Output control function ->Input control function 49,1
+0,0      	! Upper dead band
+0,0      	! Lower dead band
+18 0 0 0 18.5 17.5 	
+EQUATIONS 1	
+Tamb24above18=[26,1] !Changed automatically
+UNIT 27 TYPE 2	 !Changed automatically
+PARAMETERS 2	
+5	! 1 No. of oscillations
+95	! 2 High limit cut-out
+INPUTS 6	
+Troom	! Building:    1- (air temperature of zone)  TAIR   1 ->Upper input value
+0,0      	! Lower input value
+0,0      	! Monitoring value
+TroomAbove24    	! Output control function ->Input control function 49,1
+0,0      	! Upper dead band
+0,0      	! Lower dead band
+24 0 0 0 25 23 	
+EQUATIONS 1	
+TroomAbove24=[27,1] !Changed automatically
+EQUATIONS 1
+dTroomAmb = Troom-Tamb ! difference from indoor to outdoor temperature
+UNIT 28 TYPE 2	 !Changed automatically
+PARAMETERS 2	
+5	! 1 No. of oscillations
+95	! 2 High limit cut-out
+INPUTS 6	
+dTroomAmb	! Building:    1- (air temperature of zone)  TAIR   1 ->Upper input value
+0,0      	! Lower input value
+0,0      	! Monitoring value
+dTroomAmbAbove2    	! Output control function ->Input control function 49,1
+0,0      	! Upper dead band
+0,0      	! Lower dead band
+2 0 0 0 3 1 	
+EQUATIONS 1	
+dTroomAmbAbove2=[28,1] !Changed automatically
+EQUATIONS 13
+f_win_ideal = 0 !ideal user behaviour -> no window opening
+f_win_withAHU = (-8E-07*Tamb24^4+ 9E-6*Tamb24^3+0.0007*Tamb24^2+0.0078*Tamb24+0.0551)*1
+f_win_withoutAHU = (-9E-07*Tamb24^4+ 6E-6*Tamb24^3+0.0008*Tamb24^2+0.0103*Tamb24+0.0713)*1
+f_win_summer = 1
+summerVentOn = OR(GT(MOD(time,24),21),LT(MOD(time,24),8))*Tamb24above18*TroomAbove24*dTroomAmbAbove2
+f_win = (f_win_ideal*NOT(realUserBehaviour) + (useAHU*f_win_withAHU + NOT(useAHU)*f_win_withoutAHU)*realUserBehaviour)*NOT(summerVentOn) + summerVentOn*f_win_summer
+VfrWindowWeber = numberWindows*f_win*C_dWeber*C_k*widthWindow/3*(ABS(Troom-Tamb)/((Troom+Tamb)/2+273)*g_earth*heightWindow^3)^(0.5)	! Infiltration due window opening [m3/s] (Readout Textfile!) SCJ: what is scaleVfrWindow?
+VfrWindowHallFloor = numberWindows*f_win*C_dHallF*Aeff_Hall*(2*g_earth*heightWindow*Z_Hall*ABS(Troom-Tamb)/(Troom+273))^(m_Hall)	! Infiltration due window opening [m3/s] (Readout Textfile!) SCJ: what is scaleVfrWindow?
+VfrWindowHallRad = numberWindows*f_win*C_dHallR*Aeff_Hall*(2*g_earth*heightWindow*Z_Hall*ABS(Troom-Tamb)/((Troom+Tamb)/2+273))^(m_Hall)	! Infiltration due window opening [m3/s] (Readout Textfile!) SCJ: what is scaleVfrWindow?
+VfrWindow = LT(VentilationMode,2)*VfrWindowWeber+LT(VentilationMode,3)*GT(VentilationMode,1)*VfrWindowHallFloor+GT(VentilationMode,2)*VfrWindowHallRad
+etaHeatRec = 0.8*NOT(summerVentOn)	! Heatrecovery efficiency of the ventilation system
+VfrInf=realUserBehaviour*(useAHU*VfrInfRealAHU+NOT(useAHU)*VfrInfRealnoAHU)+NOT(realUserBehaviour)*(useAHU*VfrInfIdealAHU+NOT(useAHU)*VfrInfIdealnoAHU)
+VfrAirExTot = VfrInf + VfrVent*useAHU + VfrWindow	! Air exchange of the building [m3/s]
+EQUATIONS 3	! Ventilation and Infiltration
+TairSup = NOT(useAHU)*Tamb+useAHU*((Tamb+(Troom-Tamb)*etaHeatRec)*VfrVent+Tamb*(VfrInf+VfrWindow))/VfrAirExTot	! Temperature of the air coming into the building (infiltration and ventilation)
+Ua_vent = CPAIR * 1000 * (VfrAirExTot) *RHOAIR	! Thermal transmission coefficient due ventilation and infiltration [W/K]
+HveISO = Ua_vent*scaleBuilding ! ventilation heat loss coefficient 300 ; m3/day *day/s * kg/m3 * J/kg K = W/K
+CONSTANTS 1
+UaBui = Htr_op
+CONSTANTS 14
+rhoAir = 1.002 ! kg/m3
+cpAir = 1.2041 ! kJ/kgK
+freeMode  = 1 ! 
+powerMode = 0 !
+heatEmmitter = 0
+his = 3.45	   ! Heat transfer coefficient between the air node Tair and the star node W/m2K
+hms = 9.1      ! Heat transfer coefficient between the mass-related node Tm and the star node W/m2K
+xat = 5.4      ! Ratio between the internal surfaces area and the floor area
+Nsurf = 4
+Cair = volBui*rhoAir*cpAir*1000 !3128 !J/K
+Tinitial = 21
+Tint_Hset = 21
+Tint_Cset = 26
+EpsilonWindow = 0.9
+EQUATIONS 5
+PGainISO = myPbuiIntGain   ! Internal Gains [kJ/h] 
+PlossInfr_N = 0!.67*10^-8*((TroomRc+273.15)^4-(Tamb+273.15)^4)*AsolN
+PlossInfr_S = 0!5.67*10^-8*((TroomRc+273.15)^4-(Tamb+273.15)^4)*AsolS
+PlossInfr_W = 0!5.67*10^-8*((TroomRc+273.15)^4-(Tamb+273.15)^4)*AsolW
+PlossInfr_E = 0!5.67*10^-8*((TroomRc+273.15)^4-(Tamb+273.15)^4)*AsolE
+UNIT 30 TYPE 5998	  !Changed automatically
+PARAMETERS 13
+Cm		! 1 J/K, thermal capacitance of zone (voir ISO 13790-2008 : 12.3)
+Am		! 2 m2, surface of the effective thermal mass  (voir ISO 13790-2008 : 12.2.2)
+AreaBui	! 3 m2, surface of the heated floor area (voir ISO 13790-2008 : 6.4)
+UaWin	! 4 W/K, window heat transfer coefficient (voir ISO 13790-2008 : ANNEXE A)
+his		! 5 W/m2K, Heat transfer coefficient between the inner air and the star-node / wall surface (3.45 W/m짼.K according to the standard)
+hms		! 6 W/m2K, heat transfer coefficient between the thermal capacity and the inner surface / star-node (9.1 W/m짼.K according to the standard)
+xat		! 7 ratio between the surface of the inner walls and the heated floor (4.5 according to the standard)
+Nsurf		! 8 Nsurf
+heatEmmitter		! 9 Heat emitter type
+freeMode		! 10 "True" : Calculation of the building temperatures given Phc_nd as an input [Temperatures in outputs 1 to 4 correspond then to this kind of model)
+powerMode		! 11 "AC"   : "True" = Calculation of the required power for heating or cooling the building according to set point temp. Tint_Hset and Tint_Cset (PAR(14) and PAR(15)) [Temperatures in outputs 1 to 4 correspond to this kind of model only if "Free" mode PAR(10) is <False>]
+Cair		! 12 C_air
+Tinitial
+INPUTS 23
+Tamb		! EQU_Weather:Tamb ->Text
+TairSup		! EQU_Weather:Tamb ->Tsup
+myPheatBui		! kJ/h, heating power from heating system
+PGainISO		! kJ/h, internal heat gains (voir ISO 13790-2008 : 10.2)
+HveISO		! W/K, ventilation heat loss coefficient (voir ISO 13790-2008 : ANNEXE A)
+Htr_op		! [unconnected] W/K, overall heat transfer coefficient of outside walls and roof (voir ISO 13790-2008 : ANNEXE 
+0,0      !not used
+IT_N		! kJ/hm2, total solar irradiation on surface 
+Fsh_N		! non-shading factor for surface 1
+AsolN		! m2, effective reception area of surface 1 (voir ISO 13790-2008 : 11.3.3 et 11.3.4)
+PlossInfr_N	! kJ/h, long wave losses of surface 1  (voir ISO 13790-2008 : 11.3.5 et 11.4.6)
+IT_S		! EQ_Radiation:IT_S_ISO ->Isol-2
+Fsh_S		! [equation] Fsh_ob-2
+AsolS		! [unconnected] Asol-2
+PlossInfr_S		! [unconnected] Ploss_GLO-2
+IT_E		! EQ_Radiation:IT_E_ISO ->Isol-3
+Fsh_E		! [equation] Fsh_ob-3
+AsolE		! [unconnected] Asol-3
+PlossInfr_E		! [unconnected] Ploss_GLO-3
+IT_W		! EQ_Radiation:IT_W_ISO ->Isol-4
+Fsh_W		! [equation] Fsh_ob-4
+AsolW		! [unconnected] Asol-4
+PlossInfr_W		! [unconnected] Ploss_GLO-4
+10 10 0 0 1 67.55 0 0 Fsh_N 1.43 20 0 Fsh_S 5.71 80 0 Fsh_E 1.9 27 0 Fsh_W 1.9 27 
+EQUATIONS 11
+Troom = [30,1] !Changed automatically
+TMass = [30,2] !Changed automatically
+PBuiUAstatic_kW = [30,11]/3600 !Changed automatically
+PbuiVent_kW = [30,12]/3600 !Changed automatically
+PAcumBui_kW = [30,13]/3600 !Changed automatically
+PBuiSol_kW = [30,5]/3600 !Changed automatically
+PBuiGains_kW = ([30,6]+[30,7]+[30,8]-[30,5]+[30,9])/3600 !Changed automatically
+TroomStar = [30,3] !Changed automatically
+TroomOp = [30,4] !Changed automatically
+PBuiIntGain_kW = myPBuiIntGain/3600
+PBuiGrd_kW  = 0
+UNIT 31 TYPE 993  !Changed automatically
+PARAMETERS 1     
+3     ! 1: number of variables to be remembered
+INPUTS 3    
+Troom TRoomStar CoolingNeeded
+20 20 0
+EQUATIONS 2    ! outputs of Input Value Recall   
+TRoomStarRc = [31,2]      !Changed automatically
+CoolingNeededRc = [31,3] !Changed automatically
+EQUATIONS 7     ! penalty calculation for space haeting / cooling according to Task 26 and Task 32
+X = 2     ! exponent for penalty calculation
+NightPen = GT(MOD(time,24),23)+LT(MOD(time,24),6)        
+DayPen = Not(NightPen)       
+dTsh = MAX(0,19.5-Troom)*DayPen+MAX(0,19.5-Troom)*NightPen      ! delta-T for room heating not met JS: Change night penalty to 19.5 because we don't heat less during night
+PpenSH_kW = UaBui*(dTsh+(dTsh+1)^X-1)/1000.0     ! penalty function for room-temperature below 19.5째C [kW]
+dTsc = MAX(0,(Troom-TroomSetCool))     ! delta-T for room cooling not met
+PpenSC_kW = UaBui*(dTsc+(dTsc+1)^X-1)/1000.0     ! penalty function for room-temperatures above limits of DIN 1946-2 [kW]
+CONSTANTS 1 !The ISO model does not provide these ones
+PbuiInf_kW = 0
+**IGNORE ONLINE PLOTTER - 1** IGNORE ONLINE PLOTTER - UNIT 32 TYPE 65      !Changed automatically
+**IGNORE ONLINE PLOTTER - 1PARAMETERS 12     
+**IGNORE ONLINE PLOTTER - 14     ! 1 Nb. of left-axis variables
+**IGNORE ONLINE PLOTTER - 17     ! 2 Nb. of right-axis variables
+**IGNORE ONLINE PLOTTER - 1-5     ! 3 Left axis minimum
+**IGNORE ONLINE PLOTTER - 160     ! 4 Left axis maximum
+**IGNORE ONLINE PLOTTER - 1-10     ! 5 Right axis minimum
+**IGNORE ONLINE PLOTTER - 150     ! 6 Right axis maximum
+**IGNORE ONLINE PLOTTER - 1nPlotsPerSim     ! 7 Number of plots per simulation
+**IGNORE ONLINE PLOTTER - 112     ! 8 X-axis gridpoints
+**IGNORE ONLINE PLOTTER - 10     ! 9 Shut off Online w/o removing
+**IGNORE ONLINE PLOTTER - 1-1     ! 10 Logical unit for output file
+**IGNORE ONLINE PLOTTER - 10     ! 11 Output file units
+**IGNORE ONLINE PLOTTER - 10     ! 12 Output file delimiter
+**IGNORE ONLINE PLOTTER - 1INPUTS 11     
+**IGNORE ONLINE PLOTTER - 1Tamb Tamb24 myTroomRc vWind  
+**IGNORE ONLINE PLOTTER - 1BoHS shadingConTemp f_win  Tamb24above18  VfrWindowWeber VfrWindowHallFloor VfrWindowHallRad
+**IGNORE ONLINE PLOTTER - 1Tamb Tamb24 myTroomRc vWind  
+**IGNORE ONLINE PLOTTER - 1BoHS shadingConTemp f_win  Tamb24above18  VfrWindowWeber VfrWindowHallFloor VfrWindowHallRad
+**IGNORE ONLINE PLOTTER - 1LABELS  3     
+**IGNORE ONLINE PLOTTER - 1Temperatures     
+**IGNORE ONLINE PLOTTER - 1Control     
+**IGNORE ONLINE PLOTTER - 1Building
+CONSTANTS 1
+unitPrinterBui = 35
+ASSIGN temp\BUILDING_MO.Prt unitPrinterBui 
+UNIT 33 Type 46  !Changed automatically
+PARAMETERS 6    
+unitPrinterBui ! 1: Logical unit number, -
+-1             ! 2: Logical unit for monthly summaries, -
+1              ! 3: Relative or absolute start time. 0: print at time intervals relative to the simulation start time. 1: print at absolute time intervals. No effect for monthly integrations
+-1             ! 4: Printing & integrating interval, h. -1 for monthly integration
+1              ! 5: Number of inputs to avoid integration, -
+1              ! 6: Output number to avoid integration
+INPUTS 8
+Time  PBuiSol_kW PBuiGains_KW PpenSH_kW  
+PBuiUAstatic_kW PbuiInf_kW PbuiVent_kW PAcumBui_kW dTsc
+Time  PBuiSol_kW PBuiGains_KW PpenSH_kW 
+PBuiUAstatic_kW PbuiInf_kW PbuiVent_kW PAcumBui_kW dTsc
+CONSTANTS 1
+unitPrintHouVar = 36
+ASSIGN temp\Building_HR.hr unitPrintHouVar 
+UNIT 34 Type 46      !Changed automatically
+PARAMETERS 6    
+unitPrintHouVar   ! 1: Logical unit number, -
+-1     ! 2: Logical unit for monthly summaries, -
+1     ! 3: Relative or absolute start time. 0: print at time intervals relative to the simulation start time. 1: print at absolute time intervals. No effect for monthly integrations
+1     ! 4: Printing & integrating interval, h. -1 for monthly integration
+1     ! 5: Number of inputs to avoid integration, -
+1 ! 6: Output number to avoid integration
+INPUTS 11
+Time Tamb Tamb24  Troom  PBuiSol_kW PBuiGains_KW PpenSH_kW  
+PBuiUAstatic_kW PbuiInf_kW PbuiVent_kW PAcumBui_kW
+Time Tamb Tamb24  Troom  PBuiSol_kW PBuiGains_KW PpenSH_kW  
+PBuiUAstatic_kW PbuiInf_kW PbuiVent_kW PAcumBui_kW
+ **********************************************************************
+ ** mfb30_2020.ddck from C:\Daten\GIT\pytrnsys\data\ddcks\building\type5998\database 
+ **********************************************************************
+*******************************
+**BEGIN mfb30.ddck
+*******************************
+CONSTANTS 5   
+scaleBuilding = 1
+TBuiFlNom = 30 ! 35     ! Design flow temp. heating syst. [째C]
+TBuiRtNom = 25 ! 30     ! Design return temp. heating syst. [째C]
+Precond = NIX      ! Extracted mean ground preconditioning power
+PheatBuiD = 15*3600
+EQUATIONS 6	! Shading Factor (Blinds, other Buildings etc.)
+win_g = 0.45	! g-value windows
+win_g_shd = 0.063	! g-value of the window when shaded with blinds
+shd_fix_N = 0.89	! Ber체cksichtigt Fensterleibung, andere Geb채ude, Balkone etc. (kann direkt aus Lesosai oder SIA380/1 체bernommen werden)
+shd_fix_S = 0.43	! Ber체cksichtigt Fensterleibung, andere Geb채ude, Balkone etc. (kann direkt aus Lesosai oder SIA380/1 체bernommen werden)
+shd_fix_E = 0.86	! Ber체cksichtigt Fensterleibung, andere Geb채ude, Balkone etc. (kann direkt aus Lesosai oder SIA380/1 체bernommen werden)
+shd_fix_W = 0.82	! Ber체cksichtigt Fensterleibung, andere Geb채ude, Balkone etc. (kann direkt aus Lesosai oder SIA380/1 체bernommen werden)
+CONSTANTS 13
+Cm = 814754369.89*scaleBuilding ! J/K Internal capacity of the building J/K, 165000*(floor surface), "moyen" / mittlere therm. Kapazit채t
+Am = 5446*scaleBuilding      ! m2 effective mass area, 2.5*(floor surface), "moyen" / mittlere therm. Kapazit채t
+UaWin = 264.8*scaleBuilding    !  Igor Thermal transmission coefficient of doors, windows, curtains walls and glazed walls W/K
+Htr_op = 306.1*scaleBuilding ! Igor W/K, UA value of walls 
+PGainPer = 1478*scaleBuilding	! Maximale W채rmeeintrag durch Personen [W] Mattia:1440
+PGainEquip = 7852*scaleBuilding	! Maximaler W채rmeeintrag durch Ger채te [W] Mattia:7649.2
+PGainLight = 0!  7649.2*0.75	Maximaler W채rmeeintrag durch Beleuchtung [W]
+ScaleVfrVent = 0.6542
+VfrInfRealAHU=0* AreaBui / 3600			! Infiltration  [m3/s](from m3/hm2) for real user behavior and AHU 
+VfrInfRealnoAHU=0.15 * AreaBui / 3600	! Infiltration  [m3/s](from m3/hm2) for real user behavior and no AHU
+VfrInfIdealAHU=0.165* AreaBui / 3600	! Infiltration  [m3/s](from m3/hm2) for ideal user behavior and AHU
+VfrInfIdealnoAHU=0.7*0.94* AreaBui / 3600	! Infiltration  [m3/s](from m3/hm2)for ideal user behavior and no AHU
+VfrVent = 0.25	! Ventilation  [m3/s]
+CONSTANTS 4
+alphaWindow = 7.5
+heightWindow = 1.43
+widthWindow = 0.88
+numberWindows = 33
+CONSTANTS 6
+AreaBui = 1205*scaleBuilding ! Conditioned floor area m2
+volBui = 2902*scaleBuilding  ! m2
+AsolN = 54.21*scaleBuilding  ! effective reception areas of the windows of the north
+AsolS = 172.53*scaleBuilding
+AsolE = 43.81*scaleBuilding
+AsolW = 26.32*scaleBuilding
+ **********************************************************************
+ ** type1792.ddck from C:\Daten\GIT\pytrnsys\data\ddcks\heating_distribution\type1792 
+ **********************************************************************
+**************************************
+**BEGIN type1792.ddck 
+**************************************
+EQUATIONS 1
+TRdFl=55-15*CoolingOn ! value changed from original by executeTrnsys.py
+EQUATIONS 1
+TRdRt = [38,1]   !Changed automatically
+EQUATIONS 3
+qSysOut_BuiDemand 	= PheatBui_kW ! Total heat (without cooling) Heat to Building from Radiator: W --> kW
+qSysIn_BuiDemand  	= PcoolBui_kW !   
+elSysOut_PuShDemand	= PelPuSh_kW  ! To be moved and generated automatically to hydraulic GUI export JS: uncommented, because if it's calculated it should be included here...
+EQUATIONS 6
+myTrdSet=0.0 ! value changed from original by executeTrnsys.py
+myCoolingOn = CoolingOn
+myAreaBui = AreaBui
+myTroomRc = TroomRc
+myTroomSetCool = TroomSetCool
+myTroomSet = TroomSet
+EQUATIONS 2     
+T_Set_d       = MAX(TRdRt,myTrdSet)      ! TrdSet output from TYPE 888. Temperature set point for tempering valve used in hydraulic. 
+PheatBui    = [38,3]*3.6       !Changed automatically
+EQUATIONS 1
+MfrBuiRd  = MfrBuiHeatRd + MfrBuiCoolRd
+CONSTANTS 4    
+MfrBuiRdNom = 200*nParallelPipe !20*nParallelPipe !PheatRadNom/(CPWAT*(TBuiFlNom-TBuiRtNom))     ! Nominal mass flow of heat distribution system [kg/h] !JS: Divide by factor of 4 to have more realistic values
+PheatRadNom = MfrBuiRdNom*CPWAT*(TBuiFlNom-TBuiRtNom)
+pGainRad = 0.6     
+iGainRad = 0.05     
+UNIT 37 TYPE 320      !Changed automatically
+PARAMETERS 7     
+3     ! 1 Temperature width of PID band
+pGainRad     ! 2 Proportional gain PID band
+iGainRad     ! 3 Integral gain PID band
+0     ! 4 Differential gain PID band
+0.5     ! 5 Proportional gain P-band
+0     ! 6 Saturation mode
+0     ! 7 Minimum value controller action in saturation mode
+INPUTS 3     
+myTroomSet        !  Set temperature
+myTroomRc         !  Building: 1- (air temperature of zone)  TAIR   1 ->Feedback room temperature
+0,0          !  Control inversion option 1: increasing, 2: decreasing action
+22 18 2      
+EQUATIONS 3    
+PIDRadBuiMin = 0.15  !  0.05    !0.01 
+PIDBuiOut =  [37,1] !Changed automatically
+PIDRadBui = MIN(GT(PIDBuiOut,PIDRadBuiMin)*PIDBuiOut,1) ![41,1]*BoHS     
+UNIT 39 TYPE 320      !Changed automatically
+PARAMETERS 7     
+3     ! 1 Temperature width of PID band
+pGainRad     ! 2 Proportional gain PID band
+iGainRad     ! 3 Integral gain PID band
+0     ! 4 Differential gain PID band
+0.5     ! 5 Proportional gain P-band
+0     ! 6 Saturation mode
+0     ! 7 Minimum value controller action in saturation mode
+INPUTS 3     
+myTroomSetCool        !  Set temperature
+myTroomRc         !  Building: 1- (air temperature of zone)  TAIR   1 ->Feedback room temperature
+0,0          !  Control inversion option 1: increasing, 2: decreasing action
+24 22 1      
+EQUATIONS 4    
+PIDRadCoolBuiMin = 0.15  !  0.05    !0.01   
+PIDRaCooldBui = MIN(MAX([39,1],PIDRadCoolBuiMin),1)  !Changed automatically
+MfrBuiCoolRd  = MfrBuiRdNom*myCoolingOn  ! JS: cooling no longer uses PID, but instead a deadband
+MfrBuiHeatRd  = MfrBuiRdNom*NOT(myCoolingOn)*PIDRadBui*BoHS !DC otherwise is keeps running in summer
+CONSTANTS 17
+AFloor     =  myAreaBui ! m2 !JS it is 120, was added on config level
+dxBetweenTubes = 0.144
+LFloorPipe = 200 ! 50 m/pipe
+LFloorPipeTotal = 7*AFloor!6.95*AFloor !
+dFloorPipe      = 0.015 
+nParallelPipe   = LFloorPipeTotal/LFloorPipe+1 ! usually distance 10-15 cm
+indexPipeLayer  = 2 !from bottom !!!! IT SHOULD BE CHANGED !!!!!
+pipeFloorWallThick   = 0.002 ! 2 mm thickness
+lambdaFloorPipe  = 0.4 ! W/mK multi layer tube (pastic PE-RT +  aluminium (oxygen tight) + PE-HD)
+alphaMode    = 0 ! calculated internally -1 alpha for all Cv, 1 using tin, 0 fixed
+accelerator  = 0
+nCvFloorPipe = 100
+TiniFloor    = 30
+epsilonWood  = 0.9 
+nMatType1792 = 4 !LAYERS FROM TOP TO BOTTOM : (1) wood, (2) beton, (3) pipe, (4) insulation
+nParType1792 = 15+nMatType1792*5
+bocoDown = 0 ! U and T below the floor
+CONSTANTS 18
+thickInsFloor  = 0.042 !
+lambdaInsFloor = 0.037
+cpInsFloor     = 2.1 ! kJ/kgK
+rhoInsFloor    = 280
+nCvInsFloor    = 1
+thickBetonPipe = dFloorPipe
+nCvBetonPipe = 1
+thickBeton  = 0.04 -  thickBetonPipe
+lambdaBeton = 2
+cpBeton     = 0.950 ! kJ/kgK
+rhoBeton    = 250 
+nCvBeton    = 1 
+thickWood   = 0.01
+lambdaWood  = 0.1
+cpWood      = 2.3
+rhoWood     = 600
+nCvWood     = 1
+epsilonDown = 0
+EQUATIONS 6		!TRY WITH RC to see if It problems are solved
+TfloorUp    = myTroomRc
+TBelowFloor = myTroomRc     !To avoid bot losses we use U=0 (adiabatic) since losses has been already included in the building model
+TviewUp     = myTroomRc
+TviewDown = 0
+UBelowFloor = 0.0 ! adiabatic
+UconvUp = -1
+UNIT 38 TYPE 1792      !Changed automatically
+PARAMETERS nParType1792     
+AFloor   	![m^2]        total area of floor
+dxBetweenTubes       ![m]    total length of heating pipe 
+dFloorPipe       ![m]     diameter of heating pipe
+nParallelPipe    ![-]     number of parallel pipes
+indexPipeLayer   ![-]     index pipe layer from the bottom
+pipeFloorWallThick   ![m]     thickness of pipe wall
+lambdaFloorPipe  ![W/m/K] heat conductivity pipe wall
+alphaMode        ![-]     Mode of forced heat transfer coefficient computation
+accelerator		 ! calculation acceleration		
+CPWAT            ![kJ/K/kg]           specific heat of fluid
+nCvFloorPipe     ![-]                    number of control volumes (cells) in fluid model
+TiniFloor        ![째C]                   initial floor temperature
+epsilonWood      ![-]                    emissivity of layer at the interface to the room
+epsilonDown     ![-]                    number of different materials
+nMatType1792
+thickWood 
+lambdaWood
+cpWood    		    
+rhoWood           
+nCvWood   
+thickBeton     ![m]                    thickness of material
+lambdaBeton    ![W/m/K]                heat conduction coefficient of material
+cpBeton        ![kJ/K/kg] -> [J/K/kg]  specific heat of material
+rhoBeton       ![kg/m^3]
+nCvBeton       ![-]                    number of control volumes for this material
+thickBetonPipe    ![m]                    thickness of material
+lambdaBeton    ![W/m/K]                heat conduction coefficient of material
+cpBeton        ![kJ/K/kg] -> [J/K/kg]  specific heat of material
+rhoBeton       ![kg/m^3]
+nCvBetonPipe   ![-]                    number of control volumes for this material
+thickInsFloor    ![m]                    thickness of material
+lambdaInsFloor   ![W/m/K]                heat conduction coefficient of material
+cpInsFLoor       ![kJ/K/kg] -> [J/K/kg]  specific heat of material
+rhoInsFloor      ![kg/m^3]
+nCvInsFloor      ![-]                    number of control volumes for this material
+INPUTS 8
+TRdFl     ! supply Temperature
+MfrBuiRd  ! mass flow rate    [kg/h
+TfloorUp   ! room air temperature  Top    [째C]
+TBelowFloor  ! ground temperature at 1 m depth    [째C] 
+TviewUp    ! room field temperature    [째C]
+TviewDown	! lower room field temperature
+UconvUp		! upper room U value (if set to negtive value-->internal calculation)
+UBelowFloor   ! room field temperature below if bocoDown=1, if bocoDown=0 UA between floor and ground (TfloorBot)   [째C]
+35 MfrBuiRdNom 21 21 21 21 -1 0
+EQUATIONS 19
+mFlowPerRadFloorTube = [38,2]  !Changed automatically
+PRdIn_kW    = [38,4]/1000  !Changed automatically
+PtotBui_kW = [38,3]/1000       !Changed automatically
+PheatBui_kW = PRdIn_kW*GT(PRdIn_kW,0)  ! total heat (without cooling)  Heat to Building from Radiator: W --> kW
+PcoolBui_kW = -PRdIn_kW*LE(PRdIn_kW,0)  ! total cooling     
+QAcumRadiator = -[38,5]/1000      !Changed automatically
+RadFloorLoss_kW  =  [38,6]/1000 !Changed automatically
+TWood = [38,7] !Changed automatically
+PheatBuiRad_kW  = [38,9]/1000   !Changed automatically
+PheatBuiConv_kW = [38,10]/1000  !Changed automatically
+PheatBuiRadBot_kW  = [38,11]/1000   !Changed automatically
+PheatBuiConvBot_kW = [38,12]/1000  !Changed automatically
+PheatBuiBot_KW = PheatBuiRadBot_kW+PheatBuiConvBot_kW ! we assume losses below are inputs to lower flat. 
+MfrSh = MfrBuiRd     
+BoPumpShOn = GT(MfrSh,0.0001)     ! actual pressure-drop of space heat distribution in Pascal, Pa
+ImbRad=PRdIn_KW+QAcumRadiator-PtotBui_kW     
+RadInImb = PRdIn_kW-CPWat*MfrBuiRd*(TRdFl-TRDRt)/3600        
+ratioRad = GT(PtotBui_kW,0.)*(PheatBuiRad_kW/(0.00001+PheatBuiConv_kW))
+TfloorLayerBot = [38,13]	 !Changed automatically
+EQUATIONS 2
+PheatBuiRad  = [38,9]*3.6     !Changed automatically
+PheatBuiConv = [38,10]*3.6    !Changed automatically
+EQUATIONS 7     ! Electric pump power for space heat distribution
+MfrShNom = MfrBuiRdNom     ! nominal mass flow rate, kg/h
+dpShNom_bar = 0.25     ! pressure-drop of loop at nominal mass flow, bar     
+frMfrSh= MfrSh/MfrShNom     ! Flow rate fraction of nominal flow rate    
+dpSh_bar = (frMfrSh)^2*dpShNom_bar     ! pressure drop at actual mass flow rate, bar
+PflowSh_W = ((MfrShNom/3600)/RhoWat)*dpShNom_bar*100000     ! required power to drive the flow, W
+etaPuSh = 0.3-0.00*(1-frMfrSh)     ! pump efficiency equation dependent on fractional mass flow rate of nominal mass flow rate
+PelPuSh_kW = GT(MfrSh,1)*0.015     ! required pump electric power, kW
+CONSTANTS 1
+unitPrinterHeat = 42
+ASSIGN temp\HEATING_DISTR_MO.Prt unitPrinterHeat 
+UNIT 40 Type 46  !Changed automatically
+PARAMETERS 6    
+unitPrinterHeat ! 1: Logical unit number, -
+-1             ! 2: Logical unit for monthly summaries, -
+1              ! 3: Relative or absolute start time. 0: print at time intervals relative to the simulation start time. 1: print at absolute time intervals. No effect for monthly integrations
+-1             ! 4: Printing & integrating interval, h. -1 for monthly integration
+1              ! 5: Number of inputs to avoid integration, -
+1              ! 6: Output number to avoid integration
+INPUTS 5
+Time  PheatBui_kW  PRdIn_kW  PcoolBui_kW QAcumRadiator
+Time  PheatBui_kW  PRdIn_kW  PcoolBui_kW QAcumRadiatorc
+CONSTANTS 1
+unitPrinterHeatHr = 43
+ASSIGN temp\HEATING_DISTR_HR.hr unitPrinterHeatHr 
+UNIT 41 Type 46      !Changed automatically
+PARAMETERS 6    
+unitPrinterHeatHr   ! 1: Logical unit number, -
+-1     ! 2: Logical unit for monthly summaries, -
+1     ! 3: Relative or absolute start time. 0: print at time intervals relative to the simulation start time. 1: print at absolute time intervals. No effect for monthly integrations
+1     ! 4: Printing & integrating interval, h. -1 for monthly integration
+1     ! 5: Number of inputs to avoid integration, -
+1 ! 6: Output number to avoid integration
+INPUTS 7
+Time TRdFl TrdRt ImbRad 
+MfrBuiRd PRdIn_KW  PheatBui_kW
+Time TRdFl TrdRt ImbRad 
+MfrBuiRd PRdIn_KW  PheatBui_kW
+ **********************************************************************
+ ** custom.ddck from C:\Daten\OngoingProject\OptimEase\building_ISO\Simulations\BuildingISOFit\ddck 
+ **********************************************************************
+*******************************
+**BEGIN custom.ddck
+*******************************
+CONSTANTS 1
+TdhwSet = TdhwSetProfile 
+ **********************************************************************
+ ** dhw_mfh_v1.ddck from C:\Daten\GIT\pytrnsys\data\ddcks\demands\dhw 
+ **********************************************************************
+*******************************
+**BEGIN dhw_mfh.ddck 
+*******************************
+EQUATIONS 2
+Tdhw=55.0 ! value changed from original by executeTrnsys.py
+MfrDhw=MfrDHWreal ! value changed from original by executeTrnsys.py
+EQUATIONS 1
+qSysOut_DhwDemand = Pdhw_kW
+CONSTANTS 1
+TcwStd = TcwAvg   ! Standard cold water temperature (占폚)   TcwAvg  from weatherData
+EQUATIONS 1
+MfrDHWset = dtDhwCorrect*MfrDHWreal
+CONSTANTS 1
+unitReadDhw = 48
+ ASSIGN "C:\Daten\GIT\pytrnsys\data\ddcks\demands\dhw\profiles\DhwForMFH6appartments_2min_tset55.dat" unitReadDhw 
+CONSTANTS 2
+scaleDHW = 1
+dtDHWdata = 1/30.     ! timestep of DHW data-file
+EQUATIONS 2
+Pdhw_kW = MfrDhw*(Tdhw-Tcw)*CPWAT/3600                ! DHW-consumption power [kW]
+PdhwTheoretic_kW = MfrDhw*(TdhwSet-Tcw)*CPWAT/3600    ! DHW-consumption power [kW]
+UNIT 44 TYPE 9      !Changed automatically
+PARAMETERS 26     !
+6     ! 1 Mode
+2     ! 2 Header Lines to Skip
+5     ! 3 No. of values to read
+dtDHWdata    ! 4 Time interval of data
+-1  1  0  0  ! 5 Interpolate (+) or not (-)? 6: Multuplication factor, 7: Addition factor, 8: Average (0) or instantaneous (1) value
+-1  1  0  0  ! 5 Interpolate (+) or not (-)? 6: Multuplication factor, 7: Addition factor, 8: Average (0) or instantaneous (1) value
+-1  1  0  0  ! 5 Interpolate (+) or not (-)? 6: Multuplication factor, 7: Addition factor, 8: Average (0) or instantaneous (1) value
+-1  1  0  0  ! 5 Interpolate (+) or not (-)? 6: Multuplication factor, 7: Addition factor, 8: Average (0) or instantaneous (1) value
+-1  1  0  0  ! 5 Interpolate (+) or not (-)? 6: Multuplication factor, 7: Addition factor, 8: Average (0) or instantaneous (1) value
+unitReadDhw           ! 9 Logical unit for input file
+-1           ! 10 Free format mode
+EQUATIONS 3     
+QDHWstd = [44,3]*scaleDHW      !Changed automatically
+MfrDHWreal = [44,4]*scaleDHW   !Changed automatically
+TdhwSetProfile = [44,5]      !Changed automatically
+EQUATIONS 3
+dtDhwCorrect = (TdhwSet-TcwStd)/(TdhwSet-Tcw)
+TdhwHxSet = TdhwSet+ 0.1               ! Setpoint for heat exchanger control (if present), 占폚
+PdhwIdeal_kW = QDHWstd*dtDhwCorrect/dtDHWdata  ! ideal draw off power, kW
+EQUATIONS 5     ! post calculations of DHW loop
+dTdhwFlow = GT(MfrDHWset,0)*(TdhwSet-Tdhw)     ! missed temperature of warm water, K
+TDHWBkp = Tdhw
+dTdhwAux = MAX(0,(TdhwSet-TDHWBkp))     
+PpenDHW_kW = 1.5*MfrDHWset*CPWAT*dTdhwFlow/3600
+PhxDloss_kW = 0     ! losses of external DHW module, kW
+CONSTANTS 1
+unitPrinterDHW = 49
+ASSIGN temp\DHW_MO.Prt unitPrinterDHW 
+UNIT 46 TYPE 46      !Changed automatically
+PARAMETERS 5     
+unitPrinterDHW     ! 1: Logical unit number, -
+-1     ! 2: Logical unit for monthly summaries, -
+1     ! 3: Relative or absolute start time. 0: print at time intervals relative to the simulation start time. 1: print at absolute time intervals. No effect for monthly integrations
+-1     ! 4: Printing & integrating interval, h. -1 for monthly integration
+0     ! 5: Number of inputs to avoid integration, -
+INPUTS 4
+Time  Pdhw_kW  PpenDHW_kW  PdhwIdeal_kW        
+Time  Pdhw_kW  PpenDHW_kW  PdhwIdeal_kW 
+CONSTANTS 1
+unitHourlyDHW = 50
+ASSIGN temp\DHW_HR.Prt unitHourlyDHW 
+UNIT 47 TYPE 46      !Changed automatically
+PARAMETERS 6   
+unitHourlyDHW    ! 1: Logical unit number, -
+-1     ! 2: Logical unit for monthly summaries, -
+1     ! 3: Relative or absolute start time. 0: print at time intervals relative to the simulation start time. 1: print at absolute time intervals. No effect for monthly integrations
+1     ! 4: Printing & integrating interval, h. -1 for monthly integration
+1     ! 5: Number of inputs to avoid integration, -
+1		! 6: Output number to avoid integration
+INPUTS 4
+Tdhw Pdhw_kW  PpenDHW_kW  PdhwIdeal_kW          
+Tdhw Pdhw_kW  PpenDHW_kW  PdhwIdeal_kW
+**IGNORE ONLINE PLOTTER - 1** IGNORE ONLINE PLOTTER - UNIT 45 TYPE 65      !Changed automatically
+**IGNORE ONLINE PLOTTER - 1PARAMETERS 12     
+**IGNORE ONLINE PLOTTER - 11     ! 1 Nb. of left-axis variables
+**IGNORE ONLINE PLOTTER - 11     ! 2 Nb. of right-axis variables
+**IGNORE ONLINE PLOTTER - 10     ! 3 Left axis minimum
+**IGNORE ONLINE PLOTTER - 1300     ! 4 Left axis maximum
+**IGNORE ONLINE PLOTTER - 10     ! 5 Right axis minimum
+**IGNORE ONLINE PLOTTER - 160     ! 6 Right axis maximum
+**IGNORE ONLINE PLOTTER - 1nPlotsPerSim     ! 7 Number of plots per simulation
+**IGNORE ONLINE PLOTTER - 112     ! 8 X-axis gridpoints
+**IGNORE ONLINE PLOTTER - 11     ! 9 Shut off Online w/o removing
+**IGNORE ONLINE PLOTTER - 1-1     ! 10 Logical unit for output file
+**IGNORE ONLINE PLOTTER - 10     ! 11 Output file units
+**IGNORE ONLINE PLOTTER - 10     ! 12 Output file delimiter
+**IGNORE ONLINE PLOTTER - 1INPUTS 2    
+**IGNORE ONLINE PLOTTER - 1MfrDhw  
+**IGNORE ONLINE PLOTTER - 1Tdhw 
+**IGNORE ONLINE PLOTTER - 1MfrDhw  
+**IGNORE ONLINE PLOTTER - 1Tdhw 
+**IGNORE ONLINE PLOTTER - 1LABELS  3     
+**IGNORE ONLINE PLOTTER - 1massFlow
+**IGNORE ONLINE PLOTTER - 1Temperatures     
+**IGNORE ONLINE PLOTTER - 1DHW-Hyd
+ **********************************************************************
+ ** elDemand.ddck from C:\Daten\GIT\pytrnsys\data\ddcks\demands\electricity 
+ **********************************************************************
+*******************************
+**BEGIN elDemand.ddck 
+*******************************
+EQUATIONS 1
+elSysOut_HHDemand = PelHH_kW
+EQUATIONS 1
+PelHH_kW = frPelHH*PelHhDr_kW    !kW, um Faktor fr korrigierter HH-Strom
+CONSTANTS 1
+unitReadEl_3 = 52
+ ASSIGN "C:\Daten\GIT\pytrnsys\data\ddcks\demands\electricity\profiles\MFH30\20191107_MFH_30_electricity_profile_2min.txt" unitReadEl_3 
+UNIT 51 TYPE 9     !Changed automatically
+PARAMETERS 10
+6    !-, 1, Mode
+0    !-, 2, Header Lines to Skip
+1    !-, 3, No. of values to read
+dtSim    !h, 4, Time interval of data
+-1  30  0  0    !----, 5-8, Interpolate (+) or not (-)? 6: Multuplication factor, 7: Addition factor, 8: Average (0) or instantaneous (1) value
+unitReadEl_3    !-, 9, Logical unit for input file
+-1    !-, 10, Free format mode
+EQUATIONS 2    !, Output of PVT HH el. Data reader
+PelHhDr_kW = [51,1]  !Changed automatically
+frPelHH = 1.0    !-, Korrekturfaktor f체r HH-Strom
+ **********************************************************************
+ ** end.ddck from C:\Daten\GIT\pytrnsys\data\ddcks\generic 
+ **********************************************************************
+***************************************************************
+**BEGIN Monthly Energy Balance printer automatically generated from DDck files
+***************************************************************
+EQUATIONS 1
+qImb =  - qSysOut_CiBuiSH - qSysOut_CiBui - qSysOut_CiLoss - qSysOut_BuiDemand	 + qSysIn_BuiDemand	 - qSysOut_DhwDemand
+CONSTANTS 1
+unitPrintEBal=53
+ASSIGN temp\ENERGY_BALANCE_MO.Prt unitPrintEBal 
+UNIT 53 Type 46
+PARAMETERS 6
+unitPrintEBal !1: Logical unit number
+-1 !2: for monthly summaries
+1  !3: 1:print at absolute times
+-1 !4 -1: monthly integration
+1  !5 number of outputs to avoid integration
+1  !6 output number to avoid integration
+INPUTS 10
+TIME qSysOut_CiBuiSH qSysOut_CiBui qSysOut_CiLoss qSysOut_BuiDemand	 qSysIn_BuiDemand	 elSysOut_PuShDemand	 qSysOut_DhwDemand elSysOut_HHDemand qImb
+*******************************
+TIME qSysOut_CiBuiSH qSysOut_CiBui qSysOut_CiLoss qSysOut_BuiDemand	 qSysIn_BuiDemand	 elSysOut_PuShDemand	 qSysOut_DhwDemand elSysOut_HHDemand qImb
+***************************************************************
+**BEGIN Hourly Energy Balance printer automatically generated from DDck files
+***************************************************************
+CONSTANTS 1
+unitPrintEBal_h=54
+ASSIGN temp\ENERGY_BALANCE_HR.Prt unitPrintEBal_h 
+UNIT 54 Type 46
+PARAMETERS 6
+unitPrintEBal_h !1: Logical unit number
+-1 !2: for monthly summaries
+1  !3: 1:print at absolute times
+1 !4 1: hourly integration
+1  !5 number of outputs to avoid integration
+1  !6 output number to avoid integration
+INPUTS 10
+TIME qSysOut_CiBuiSH qSysOut_CiBui qSysOut_CiLoss qSysOut_BuiDemand	 qSysIn_BuiDemand	 elSysOut_PuShDemand	 qSysOut_DhwDemand elSysOut_HHDemand qImb
+*******************************
+TIME qSysOut_CiBuiSH qSysOut_CiBui qSysOut_CiLoss qSysOut_BuiDemand	 qSysIn_BuiDemand	 elSysOut_PuShDemand	 qSysOut_DhwDemand elSysOut_HHDemand qImb
+*******************************
+**BEGIN Head.ddck
+*******************************
+END

@@ -1,0 +1,12 @@
+oemof.solph
+oemof.thermal
+oemof.tools
+oemof.network
+oemof
+Cython
+pandas
+numpy
+matplotlib
+xlrd
+Pyomo
+networkx

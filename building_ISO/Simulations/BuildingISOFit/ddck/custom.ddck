@@ -1,0 +1,6 @@
+*******************************
+**BEGIN custom.ddck
+*******************************
+
+CONSTANTS 1
+TdhwSet = TdhwSetProfile 

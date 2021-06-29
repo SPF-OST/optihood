@@ -1,0 +1,18 @@
+size 14 8
+set texlabels 1
+begin graph
+size 12 8
+ytitle "$Q_{cumulative}/Q_{demand}$" 
+xtitle "$T$ [$^oC$]" 
+!yaxis min 0 max 35.0 dticks 5.0
+ylabels on
+yticks color grey20
+xticks on
+yticks color grey20
+myFile$ = "QvsT.dat"
+ data   myFile$ d1 = c2,c3 
+ data   myFile$ d2 = c4,c5 
+d1 lstyle 1 line lwidth 0.020000 color #d62728 key "$PRdInKW$"  
+d2 lstyle 1 line lwidth 0.020000 color #1f77b4 key "$PRdInKW$"  
+ key pos tr hei 0.2 offset -1 0
+end graph
