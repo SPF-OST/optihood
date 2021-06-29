@@ -1,6 +1,7 @@
-1. Testing the investment mode                               Neha
-2. Testing links/ElectricalLine                              Agnès
+1. Testing the investment mode                               Neha (Transformers), Agnès (Storage)
+2. Testing links/ElectricalLine                              Both
 3. How to separate DHW and SH outputs from a heat pump?      Both
+4. Adding new components in a separate script                Paula
 4. Take into account startup time ?
 5. Implementation of MOO
 6. Plotting the results (oemof.visio)
