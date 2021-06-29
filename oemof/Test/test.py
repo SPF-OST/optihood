@@ -22,9 +22,6 @@ try:
 except ImportError:
     plt = None
 
-#import oemof_visio as oev
-
-
 def read_excel(filePath):
     """Read node data from Excel sheet
             Parameters
