@@ -50,4 +50,3 @@ dependencies:
     - six==1.16.0
     - urllib3==1.26.6
     - xlrd==2.0.1
-prefix: C:\Users\agnes.francois\Anaconda3\envs\envoemof
