@@ -17,6 +17,8 @@ from oemof.thermal.stratified_thermal_storage import (
     calculate_losses,
 )
 
+import oemof_visio as oev
+
 try:
     import matplotlib.pyplot as plt
 except ImportError:
@@ -84,6 +86,7 @@ def convert_nodes(data):
             nodesList.append(bus)
             busDict[b["label"]] = bus
 
+
     # Create excess components for the elec/heat bus to allow overproduction
 
 
@@ -103,7 +106,7 @@ def convert_nodes(data):
     for i, de in data["demand"].iterrows():
         if de["active"]:
             # set static inflow values, if any
-            inflow_args = {}
+            inflow_args = {"nominal_value": de["nominal value"]}
             # get time series for node and parameter
             for col in data["timeseries"].columns.values:
                 if col.split(".")[0] == de["label"]:
@@ -206,6 +209,7 @@ def convert_nodes(data):
                             },
                             nominal_storage_capacity=nominal_storage_capacity,
                             loss_rate=loss_rate,
+                            initial_storage_level=s["initial capacity"],
                             fixed_losses_relative=fixed_losses_relative,
                             fixed_losses_absolute=fixed_losses_absolute,
                             inflow_conversion_factor=data["stratified_storage"].at[0, 'inflow_conversion_factor'],
@@ -221,7 +225,7 @@ def calculate_cop(TemperatureH, TemperatureL):
     coefCOP = [12.4896, 64.0652, -83.0217, -230.1195, 173.2122]
     coefQ = [13.8603, 120.2178, -7.9046, -164.1900, -17.9805]
     QCondenser = coefQ[0] + (coefQ[1] * TemperatureL/273.15) + (coefQ[2] * TemperatureH/273.15) + (
-                coefQ[3] * TemperatureL/273.15 * TemperatureH/273.15) + (coefQ[4] * TemperatureH * TemperatureH)
+                coefQ[3] * TemperatureL/273.15 * TemperatureH/273.15) + (coefQ[4] * TemperatureH/273.15 * TemperatureH/273.15)
     WCompressor = coefCOP[0] + (coefCOP[1] * TemperatureL/273.15) + (coefCOP[2] * TemperatureH/273.15) + (
                 coefCOP[3] * TemperatureL/273.15 * TemperatureH/273.15) + (coefCOP[4] * TemperatureH/273.15 * TemperatureH/273.15)
     COP = np.divide(QCondenser, WCompressor)
