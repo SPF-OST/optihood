@@ -1,8 +1,9 @@
 1. Testing the investment mode                               Neha (Transformers), Agnès (Storage)
-2. Testing links/ElectricalLine                              Both
-3. How to separate DHW and SH outputs from a heat pump?      Both
-4. Adding new components in a separate script                Paula
-4. Take into account startup time ?
-5. Implementation of MOO
-6. Plotting the results (oemof.visio)
-7. Writing: Review
+2. Object oriented programmation: add a new class for buildings Neha
+3. Testing links/ElectricalLine                              Both
+4. Implementation of MOO                                     Both
+5. How to separate DHW and SH outputs from a heat pump?      Both
+6. Adding new components in a separate script                Paula
+7. Take into account startup time ?
+8. Plotting the results (oemof.visio)
+9. Writing: Review
