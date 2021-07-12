@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/OptimEase.iml" filepath="$PROJECT_DIR$/.idea/OptimEase.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../trenddatenekz/.idea/trenddatenekz.iml" filepath="$PROJECT_DIR$/../trenddatenekz/.idea/trenddatenekz.iml" />
     </modules>
   </component>
 </project>

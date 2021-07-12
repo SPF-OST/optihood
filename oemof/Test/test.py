@@ -200,7 +200,7 @@ def convert_nodes(data, time):
                             )
                         },
                         heat_output={busDict[t["to"].split(",")[1]]: solph.Flow(Q_CW_min=[0 for p in range(0, time)],
-                                     investment = solph.Investment(ep_costs=economics.annuity(830, 20, 0.05),
+                                     investment=solph.Investment(ep_costs=economics.annuity(830, 20, 0.05),
                                                                    maximum=50,
                                                                    nonconvex=True,
                                                                    offset=20700)
@@ -332,7 +332,7 @@ if __name__ == '__main__':
     ###################################################
 
     datetime_index = pd.date_range(
-        "2018-01-01 01:00:00", "2018-01-08 00:00:00", freq="60min"
+        "2018-01-01 01:00:00", "2019-01-01 00:00:00", freq="60min"
     )
     # model creation and solving
     logging.info("Starting optimization")
@@ -396,6 +396,40 @@ if __name__ == '__main__':
         results[(shStorage, None)]["sequences"]
     )
     print("")
+
+    # Investment capacities selected
+    investSH = solph.views.node(results, "spaceHeatingBus")["scalars"][
+        (("HP_SH", "spaceHeatingBus"), "invest")
+    ]
+
+    investDHW = solph.views.node(results, "domesticHotWaterBus")["scalars"][
+        (("HP_DHW", "domesticHotWaterBus"), "invest")
+    ]
+
+    print("Invested in {} :SH and {} :DHW HP.".format(investSH, investDHW))
+
+    investCHP = solph.views.node(results, "spaceHeatingBus")["scalars"][
+        (("CHP", "spaceHeatingBus"), "invest")
+    ] + solph.views.node(results, "electricityBus")["scalars"][
+        (("CHP", "electricityBus"), "invest")
+    ]
+
+    print("Invested in {} CHP.".format(investCHP))
+
+    investStore = solph.views.node(results, "electricityBus")["scalars"][
+        (("electricalStorage", "electricityBus"), "invest")
+    ]
+    print("Invested in {} Battery.".format(investStore))
+
+    investStore = solph.views.node(results, "domesticHotWaterBus")["scalars"][
+        (("dhwStorage", "domesticHotWaterBus"), "invest")
+    ]
+    print("Invested in {} DHW Storage Tank.".format(investStore))
+
+    investStore = solph.views.node(results, "spaceHeatingBus")["scalars"][
+        (("shStorage", "spaceHeatingBus"), "invest")
+    ]
+    print("Invested in {} SH Storage Tank.".format(investStore))
 
     # Plotting time-series of electricity, DHW and SH buses
     elBus = solph.views.node(results, "electricityBus")
