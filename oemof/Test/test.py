@@ -18,13 +18,14 @@ from oemof.thermal.stratified_thermal_storage import (
 )
 
 import oemof_visio as oev
+from ttictoc import tic,toc
 
 try:
     import matplotlib.pyplot as plt
 except ImportError:
     plt = None
 
-def read_excel(filePath):
+def read_excel(filePath, time):
     """Read node data from Excel sheet
             Parameters
             ----------
@@ -59,11 +60,11 @@ def read_excel(filePath):
 
     print("Data from Excel file {} imported.".format(filePath))
 
-    nodesList = convert_nodes(nodesData)
+    nodesList = convert_nodes(nodesData, time)
     return nodesList
 
 
-def convert_nodes(data):
+def convert_nodes(data, time):
     """Converts node dict to oemof nodes (oemof objects)
                 Parameters
                 ----------
@@ -86,6 +87,17 @@ def convert_nodes(data):
             nodesList.append(bus)
             busDict[b["label"]] = bus
 
+            if b["excess"]:
+                nodesList.append(
+                    solph.Sink(
+                        label=b["label"] + "_excess",
+                        inputs={
+                            busDict[b["label"]]: solph.Flow(
+                                variable_costs=b["excess costs"]
+                            )
+                        },
+                    )
+                )
 
     # Create excess components for the elec/heat bus to allow overproduction
 
@@ -128,17 +140,39 @@ def convert_nodes(data):
     for i, t in data["transformers"].iterrows():
         if t["active"]:
             if t["label"] == "HP":
-                copSH = calculate_cop(Temperature_sh,Temperature_a)
-                copDHW = calculate_cop(Temperature_dhw,Temperature_a)
+                copSH = calculate_cop(Temperature_sh, Temperature_a)
+                copDHW = calculate_cop(Temperature_dhw, Temperature_a)
                 nodesList.append(
                     solph.Transformer(
-                        label=t["label"],
+                        label=t["label"] + "_SH",
                         inputs={busDict[t["from"]]: solph.Flow()},
                         outputs={
-                            busDict[t["to"].split(",")[0]]: solph.Flow(),
-                            busDict[t["to"].split(",")[1]]: solph.Flow()},
-                        conversion_factors={busDict[t["to"].split(",")[0]]: copSH,
-                                            busDict[t["to"].split(",")[1]]: copDHW},
+                            busDict[t["to"].split(",")[0]]: solph.Flow(
+                                investment=solph.Investment(
+                                    ep_costs=economics.annuity(980, 20, 0.05),
+                                    maximum=50,
+                                    nonconvex=True,
+                                    offset=6950
+                                )
+                            )},
+                        conversion_factors={busDict[t["to"].split(",")[0]]: copSH},
+                    )
+                )
+
+                nodesList.append(
+                    solph.Transformer(
+                        label=t["label"] + "_DHW",
+                        inputs={busDict[t["from"]]: solph.Flow()},
+                        outputs={
+                            busDict[t["to"].split(",")[1]]: solph.Flow(
+                                investment=solph.Investment(
+                                    ep_costs=economics.annuity(980, 20, 0.05),
+                                    maximum=50,
+                                    nonconvex=True,
+                                    offset=6950
+                                )
+                            )},
+                        conversion_factors={busDict[t["to"].split(",")[1]]: copDHW},
                     )
                 )
             elif t["label"] == "CHP":
@@ -148,20 +182,31 @@ def convert_nodes(data):
                         label=t["label"],
                         fuel_input={
                             busDict[t["from"]]: solph.Flow(
-                                H_L_FG_share_max=[0.18 for p in range(0, 24)],
-                                H_L_FG_share_min=[0.41 for p in range(0, 24)])
+                                H_L_FG_share_max=[0.18 for p in range(0, time)],
+                                H_L_FG_share_min=[0.41 for p in range(0, time)])
                         },
                         electrical_output={
                             busDict[t["to"].split(",")[0]]: solph.Flow(
-                                P_max_woDH=[200 for p in range(0, 24)],
-                                P_min_woDH=[100 for p in range(0, 24)],
-                                Eta_el_max_woDH=[0.44 for p in range(0, 24)],
-                                Eta_el_min_woDH=[0.40 for p in range(0, 24)],
+                                P_max_woDH=[200 for p in range(0, time)],
+                                P_min_woDH=[100 for p in range(0, time)],
+                                Eta_el_max_woDH=[0.44 for p in range(0, time)],
+                                Eta_el_min_woDH=[0.40 for p in range(0, time)],
+                                investment=solph.Investment(
+                                    ep_costs=economics.annuity(830, 20, 0.05),
+                                    maximum=50,
+                                    nonconvex=True,
+                                    offset=20700
+                                )
                             )
                         },
-                        heat_output={busDict[t["to"].split(",")[1]]: solph.Flow(Q_CW_min=[0 for p in range(0, 24)]),
+                        heat_output={busDict[t["to"].split(",")[1]]: solph.Flow(Q_CW_min=[0 for p in range(0, time)],
+                                     investment = solph.Investment(ep_costs=economics.annuity(830, 20, 0.05),
+                                                                   maximum=50,
+                                                                   nonconvex=True,
+                                                                   offset=20700)
+                ),
                                     },
-                        Beta=[0 for p in range(0, 24)],
+                        Beta=[0 for p in range(0, time)],
                         back_pressure=False,
                     )
                 )
@@ -181,12 +226,21 @@ def convert_nodes(data):
                         outputs={
                             busDict[s["bus"]]: solph.Flow()
                         },
-                        nominal_storage_capacity=s["nominal capacity"],
+                        #nominal_storage_capacity=s["nominal capacity"],
                         loss_rate=s["capacity loss"],
                         initial_storage_level=s["initial capacity"],
                         inflow_conversion_factor=s["efficiency inflow"],
                         outflow_conversion_factor=s["efficiency outflow"],
-                        Balanced=False
+                        Balanced=False,
+                        invest_relation_input_capacity=s["efficiency inflow"],
+                        invest_relation_output_capacity=s["efficiency outflow"],
+                        investment=solph.Investment(
+                            minimum=s["capacity min"],
+                            maximum=s["capacity max"],
+                            existing=0,
+                            nonconvex=True,
+                            offset=1000,
+                        ),
                     )
                 )
             else:
@@ -207,14 +261,24 @@ def convert_nodes(data):
                             outputs={
                                 busDict[s["bus"]]: solph.Flow()
                             },
-                            nominal_storage_capacity=nominal_storage_capacity,
+                            #nominal_storage_capacity=2000,
                             loss_rate=loss_rate,
                             initial_storage_level=s["initial capacity"],
                             fixed_losses_relative=fixed_losses_relative,
                             fixed_losses_absolute=fixed_losses_absolute,
                             inflow_conversion_factor=data["stratified_storage"].at[0, 'inflow_conversion_factor'],
                             outflow_conversion_factor=data["stratified_storage"].at[0, 'outflow_conversion_factor'],
-                            balanced=False
+                            balanced=False,
+                            invest_relation_input_capacity=data["stratified_storage"].at[0, 'inflow_conversion_factor'],
+                            invest_relation_output_capacity=data["stratified_storage"].at[0, 'outflow_conversion_factor'],
+                            investment=solph.Investment(
+                                minimum=s["capacity min"],
+                                maximum=s["capacity max"],
+                                ep_costs=0,
+                                existing=0,
+                                nonconvex=True,
+                                offset=0,
+                            ),
                         )
                     )
 
@@ -268,16 +332,16 @@ if __name__ == '__main__':
     ###################################################
 
     datetime_index = pd.date_range(
-        "2016-01-01 00:00:00", "2016-01-01 23:00:00", freq="60min"
+        "2018-01-01 01:00:00", "2018-01-08 00:00:00", freq="60min"
     )
     # model creation and solving
     logging.info("Starting optimization")
-
+    tic()
     # initialisation of the energy system
     esys = solph.EnergySystem(timeindex=datetime_index)
 
     # read node data from Excel sheet
-    nodes = read_excel(os.path.join(os.getcwd(), "scenario.xls", ))
+    nodes = read_excel(os.path.join(os.getcwd(), "scenario.xls", ), time=len(datetime_index))
 
     # add nodes to energy system
     esys.add(*nodes)
@@ -292,7 +356,8 @@ if __name__ == '__main__':
     om = solph.Model(esys)
 
     om.solve(solver="gurobi")
-
+    print("Calculation time")
+    print(toc())
     ######################################
     # Processing and Plotting the Results
     ######################################
