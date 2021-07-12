@@ -397,7 +397,7 @@ if __name__ == '__main__':
     )
     print("")
 
-    # Investment capacities selected
+    # Print the selected investment capacities
     investSH = solph.views.node(results, "spaceHeatingBus")["scalars"][
         (("HP_SH", "spaceHeatingBus"), "invest")
     ]
