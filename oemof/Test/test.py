@@ -470,4 +470,9 @@ if __name__ == '__main__':
         fig.subplots_adjust(top=0.8)
         plt.show()
 
+    flows = [x for x in results.keys() if x[1] is not None]
+    for flow in flows:
+        print(flow)
+        print(results[flow]['scalars'])
+        print(results[flow]['sequences'])
     logging.info("Done!")
