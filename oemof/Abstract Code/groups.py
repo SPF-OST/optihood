@@ -300,7 +300,7 @@ class EnergyNetwork(solph.EnergySystem):
 
     def printStateofCharge(self, type, building):
         storage = self.groups[type+'__'+building]
-        print(f"""********* State of Charge ({type}) *********""")
+        print(f"""********* State of Charge ({type},{building}) *********""")
         print(
             self.__optimizationResults[(storage, None)]["sequences"]
         )
@@ -330,8 +330,8 @@ class EnergyNetwork(solph.EnergySystem):
         print("Invested in {} kW SH Storage Tank.".format(invest))
 
     def printCosts(self):
-        print("CAPEX: {} CHF".format(self.__capex))
-        print("OPEX: : {} CHF".format(self.__opex))
+        print("Investment Cost: {} CHF".format(self.__capex))
+        print("Operation Cost: : {} CHF".format(self.__opex))
         print("Feed In Cost: {} CHF".format(self.__feedIn))
         print("Total Cost: : {} CHF".format(self.__capex + self.__opex - self.__feedIn))
 
