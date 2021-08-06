@@ -198,11 +198,11 @@ class EnergyNetwork(solph.EnergySystem):
         self.__technologies = []
         self.__costParam = {}
         self.__envParam = {}
-        self.__capex = 0
-        self.__opex = 0
-        self.__feedIn = 0
-        self.__envImpactInputs = 0
-        self.__envImpactTechnologies = 0
+        self.__capex = {}
+        self.__opex = {}
+        self.__feedIn = {}
+        self.__envImpactInputs = {}
+        self.__envImpactTechnologies = {}
         logger.define_logging(logpath=os.getcwd())
         logging.info("Initializing the energy network")
         super(EnergyNetwork, self).__init__(timeindex=timestamp)
@@ -272,26 +272,35 @@ class EnergyNetwork(solph.EnergySystem):
         self.__optimizationResults = solph.processing.results(optimizationModel)
         self.__metaResults = solph.processing.meta_results(optimizationModel)
         logging.info("Optimization successful and results collected")
-        self.__capex = sum(solph.views.node(self.__optimizationResults, i[0])["scalars"][((i[1], i[0]), "invest")]
+        for b in self.__buildings:
+            n_techno = []
+            n_inputs = []
+            for i in range(len(self.__technologies)):
+                if b.getBuildingLabel() in self.__technologies[i][0]:
+                    n_techno.append(self.__technologies[i])
+            for i in range(len(self.__inputs)):
+                if b.getBuildingLabel() in self.__inputs[i][0]:
+                    n_inputs.append(self.__inputs[i])
+            self.__capex[b.getBuildingLabel()] = sum(solph.views.node(self.__optimizationResults, i[0])["scalars"][((i[1], i[0]), "invest")]
                            * self.__costParam[i[1]][0] + self.__costParam[i[1]][1] *
                            (int(solph.views.node(self.__optimizationResults, i[0])["scalars"][((i[1], i[0]), "invest")])
-                            > 0) for i in self.__technologies)
-        self.__opex = sum(sum(solph.views.node(self.__optimizationResults, i[0])["sequences"][(i[1], i[0]), "flow"])
-                          * self.__costParam[i[1]] for i in self.__inputs)
-        self.__feedIn = sum(sum(solph.views.node(self.__optimizationResults, "electricityBus"+'__'+b.getBuildingLabel())
+                            > 0) for i in n_techno)
+            self.__opex[b.getBuildingLabel()] = sum(sum(solph.views.node(self.__optimizationResults, i[0])["sequences"][(i[1], i[0]), "flow"])
+                          * self.__costParam[i[1]] for i in n_inputs)
+            self.__feedIn[b.getBuildingLabel()] = sum(solph.views.node(self.__optimizationResults, "electricityBus"+'__'+b.getBuildingLabel())
                                 ["sequences"][("electricityBus"+'__'+b.getBuildingLabel(), "excesselectricityBus"
                                                +'__'+b.getBuildingLabel()), "flow"]) * self.__costParam[
-                                            "excesselectricityBus"+'__'+b.getBuildingLabel()] for b in self.__buildings)
-        self.__envImpactInputs = sum(sum(solph.views.node(self.__optimizationResults, i[0])
-                                 ["sequences"][(i[1], i[0]), "flow"]) * self.__envParam[i[1]] for i in self.__inputs)
-        self.__envImpactTechnologies = sum(solph.views.node(self.__optimizationResults, i[0])
+                                            "excesselectricityBus"+'__'+b.getBuildingLabel()]
+            self.__envImpactInputs[b.getBuildingLabel()] = sum(sum(solph.views.node(self.__optimizationResults, i[0])
+                                 ["sequences"][(i[1], i[0]), "flow"]) * self.__envParam[i[1]] for i in n_inputs)
+            self.__envImpactTechnologies[b.getBuildingLabel()] = sum(solph.views.node(self.__optimizationResults, i[0])
                                            ["scalars"][((i[1], i[0]),"invest")] * self.__envParam[i[1]][2]
-                                           for i in self.__technologies) + \
+                                           for i in n_techno) + \
                                        sum(sum(solph.views.node(self.__optimizationResults, i[0])["sequences"]
                                                [((i[1], i[0]), "flow")] * self.__envParam[i[1]][1] *
                                                ('electricityBus' in i[0]) + solph.views.node(self.__optimizationResults, i[0])
                                                ["sequences"][((i[1], i[0]), "flow")] * self.__envParam[i[1]][0] *
-                                               ('electricityBus' not in i[0]) for i in self.__technologies))
+                                               ('electricityBus' not in i[0]) for i in n_techno))
 
     def printMetaresults(self):
         print("Meta Results:")
@@ -330,43 +339,53 @@ class EnergyNetwork(solph.EnergySystem):
         print("Invested in {} kW SH Storage Tank.".format(invest))
 
     def printCosts(self):
-        print("Investment Cost: {} CHF".format(self.__capex))
-        print("Operation Cost: : {} CHF".format(self.__opex))
-        print("Feed In Cost: {} CHF".format(self.__feedIn))
-        print("Total Cost: : {} CHF".format(self.__capex + self.__opex - self.__feedIn))
+        print(self.__buildings)
+        print(len(self.__buildings))
+        print("Investment Costs for the system: {} CHF".format(sum(self.__capex["Building"+b] for b in range(1, len(self.__buildings)))))
+        print("Operation Costs for the system: {} CHF".format(sum(self.__opex["Building"+b] for b in range(1, len(self.__buildings)))))
+        print("Feed In Costs for the system: {} CHF".format(sum(self.__feedIn["Building"+b] for b in range(1, len(self.__buildings)))))
+        print("Total Costs for the system: {} CHF".format(sum(self.__capex["Building"+b] + self.__opex["Building"+b] - self.__feedIn["Building"+b] for b in range(1, len(self.__buildings)))))
 
     def printEnvImpacts(self):
-        print("Environmental impact from input resources: {}".format(self.__envImpactInputs))
-        print("Environmental impact from energy conversion technologies: {}".format(self.__envImpactTechnologies))
+        print("Environmental impact from input resources for the system: {}".format(sum(self.__envImpactInputs["Building"+b] for b in range(1, len(self.__buildings)))))
+        print("Environmental impact from energy conversion technologies for the system: {}".format(sum(self.__envImpactTechnologies["Building"+b] for b in range(1, len(self.__buildings)))))
 
     def exportToExcel(self, file_name):
-        costs = {"Operation": self.__opex,
-                 "Investment": self.__capex,
-                 "Feed-in": self.__feedIn,
-                 }
-        env_impact = {}
-        list = []
-
-        for i in self.nodes:
-            if str(type(i)).replace("<class 'oemof.solph.", "").replace("'>", "") == "network.bus.Bus":
-                list.append(i.label)
-
-        for i in self.__inputs:
-            env_impact[i[1]] = sum(solph.views.node(self.__optimizationResults, i[0])["sequences"][(i[1], i[0]), "flow"]) * self.__envParam[i[1]]
-        for i in self.__technologies:
-            env_impact[i[1]] = solph.views.node(self.__optimizationResults, i[0])["scalars"][((i[1], i[0]), "invest")] * self.__envParam[i[1]][2] + \
-            sum(solph.views.node(self.__optimizationResults, i[0])["sequences"]
-                [((i[1], i[0]), "flow")] * self.__envParam[i[1]][1] *
-                ('electricityBus' in i[0]) + solph.views.node(self.__optimizationResults, i[0])
-                ["sequences"][((i[1], i[0]), "flow")] * self.__envParam[i[1]][0] *
-                ('electricityBus' not in i[0]))
-            
-        costs_n = pd.DataFrame.from_dict(costs, orient='index')
-        env_n = pd.DataFrame.from_dict(env_impact, orient='index')
-
         with pd.ExcelWriter(file_name) as writer:
+            list = []
+            for i in self.nodes:
+                if str(type(i)).replace("<class 'oemof.solph.", "").replace("'>", "") == "network.bus.Bus":
+                    list.append(i.label)
             for i in list:
                 a = pd.DataFrame.from_dict(solph.views.node(self.__optimizationResults, i)["sequences"])
                 a.to_excel(writer, sheet_name=i)
-            costs_n.to_excel(writer, sheet_name="costs")
-            env_n.to_excel(writer, sheet_name="env_impacts")
+            for b in self.__buildings:
+                costs = {"Operation": self.__opex[b.getBuildingLabel()],
+                         "Investment": self.__capex[b.getBuildingLabel()],
+                         "Feed-in": self.__feedIn[b.getBuildingLabel()],
+                         }
+                costs_n = pd.DataFrame.from_dict(costs, orient='index')
+                costs_n.to_excel(writer, sheet_name="costs__"+b.getBuildingLabel())
+
+                env_impact = {}
+                for i in range(len(self.__inputs)):
+                    if b.getBuildingLabel() in self.__inputs[i][0]:
+                        A = self.__inputs[i][0]
+                        B = self.__inputs[i][1]
+                        env_impact[A] = sum(
+                            solph.views.node(self.__optimizationResults, A)["sequences"][(B, A), "flow"]) * self.__envParam[B]
+                for i in range(len(self.__technologies)):
+                    if b.getBuildingLabel() in self.__technologies[i][0]:
+                        A = self.__technologies[i][0]
+                        B = self.__technologies[i][1]
+                        env_impact[B] = solph.views.node(self.__optimizationResults, A)["scalars"][
+                                           ((B, A), "invest")] * self.__envParam[B][2] + \
+                                       sum(solph.views.node(self.__optimizationResults, A)["sequences"]
+                                           [((B, A), "flow")] * self.__envParam[B][1] *
+                                           ('electricityBus' in A) +
+                                           solph.views.node(self.__optimizationResults, A)
+                                           ["sequences"][((B, A), "flow")] * self.__envParam[B][0] *
+                                           ('electricityBus' not in A))
+
+                env_n = pd.DataFrame.from_dict(env_impact, orient='index')
+                env_n.to_excel(writer, sheet_name="env_impacts__"+b.getBuildingLabel())

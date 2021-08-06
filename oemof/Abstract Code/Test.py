@@ -24,4 +24,4 @@ if __name__ == '__main__':
     network.printMetaresults()
     network.printCosts()
     network.printEnvImpacts()
-    network.exportToExcel('results.xls')
+    network.exportToExcel('results.xlsx')
