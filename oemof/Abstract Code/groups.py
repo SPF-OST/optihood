@@ -338,3 +338,36 @@ class EnergyNetwork(solph.EnergySystem):
     def printEnvImpacts(self):
         print("Environmental impact from input resources: {}".format(self.__envImpactInputs))
         print("Environmental impact from energy conversion technologies: {}".format(self.__envImpactTechnologies))
+
+    def exportToExcel(self, file_name):
+        costs = {"Operation": self.__opex,
+                 "Investment": self.__capex,
+                 "Feed-in": self.__feedIn,
+                 }
+        env_impact = {}
+        list = []
+
+        for i in self.nodes:
+            if str(type(i)).replace("<class 'oemof.solph.", "").replace("'>", "") == "network.bus.Bus":
+                list.append(i.label)
+
+        for i in self.__inputs:
+            env_impact[i[1]] = sum(solph.views.node(self.__optimizationResults, i[0])["sequences"][(i[1], i[0]), "flow"]) * self.__envParam[i[1]]
+        for i in self.__technologies:
+            env_impact[i[1]] = solph.views.node(self.__optimizationResults, i[0])["scalars"][((i[1], i[0]), "invest")] * self.__envParam[i[1]][2] + \
+            sum(solph.views.node(self.__optimizationResults, i[0])["sequences"]
+                [((i[1], i[0]), "flow")] * self.__envParam[i[1]][1] *
+                ('electricityBus' in i[0]) + solph.views.node(self.__optimizationResults, i[0])
+                ["sequences"][((i[1], i[0]), "flow")] * self.__envParam[i[1]][0] *
+                ('electricityBus' not in i[0]))
+            print(env_impact)
+
+        costs_n = pd.DataFrame.from_dict(costs, orient='index')
+        env_n = pd.DataFrame.from_dict(env_impact, orient='index')
+
+        with pd.ExcelWriter(file_name) as writer:
+            for i in list:
+                a = pd.DataFrame.from_dict(solph.views.node(self.__optimizationResults, i)["sequences"])
+                a.to_excel(writer, sheet_name=i)
+            costs_n.to_excel(writer, sheet_name="costs")
+            env_n.to_excel(writer, sheet_name="env_impacts")
