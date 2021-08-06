@@ -360,8 +360,7 @@ class EnergyNetwork(solph.EnergySystem):
                 ('electricityBus' in i[0]) + solph.views.node(self.__optimizationResults, i[0])
                 ["sequences"][((i[1], i[0]), "flow")] * self.__envParam[i[1]][0] *
                 ('electricityBus' not in i[0]))
-            print(env_impact)
-
+            
         costs_n = pd.DataFrame.from_dict(costs, orient='index')
         env_n = pd.DataFrame.from_dict(env_impact, orient='index')
 
