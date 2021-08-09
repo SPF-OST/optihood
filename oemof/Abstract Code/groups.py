@@ -345,8 +345,8 @@ class EnergyNetwork(solph.EnergySystem):
         print("Total Costs for the system: {} CHF".format(sum(self.__capex["Building"+str(b+1)] + self.__opex["Building"+str(b+1)] - self.__feedIn["Building"+str(b+1)] for b in range(len(self.__buildings)))))
 
     def printEnvImpacts(self):
-        print("Environmental impact from input resources for the system: {}".format(sum(self.__envImpactInputs["Building"+str(b+1)] for b in range(len(self.__buildings)))))
-        print("Environmental impact from energy conversion technologies for the system: {}".format(sum(self.__envImpactTechnologies["Building"+str(b+1)] for b in range(len(self.__buildings)))))
+        print("Environmental impact from input resources for the system: {} kg CO2 eq".format(sum(self.__envImpactInputs["Building"+str(b+1)] for b in range(len(self.__buildings)))))
+        print("Environmental impact from energy conversion technologies for the system: {} kg CO2 eq".format(sum(self.__envImpactTechnologies["Building"+str(b+1)] for b in range(len(self.__buildings)))))
 
     def exportToExcel(self, file_name):
         with pd.ExcelWriter(file_name) as writer:
