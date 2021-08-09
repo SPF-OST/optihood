@@ -245,11 +245,11 @@ class EnergyNetwork(solph.EnergySystem):
         for b in self.__buildings:
             i = int(b.getBuildingLabel()[8:])
             b.addBus(data["buses"][data["buses"]["building"] == i])
-            b.addSource(data["commodity_sources"][data["buses"]["building"] == i])
-            b.addSink(data["demand"][data["buses"]["building"] == i], data["timeseries"].filter(regex=str(i)))
-            b.addTransformer(data["transformers"][data["buses"]["building"] == i], self.__temperatureDHW,
+            b.addSource(data["commodity_sources"][data["commodity_sources"]["building"] == i])
+            b.addSink(data["demand"][data["demand"]["building"] == i], data["timeseries"].filter(regex=str(i)))
+            b.addTransformer(data["transformers"][data["transformers"]["building"] == i], self.__temperatureDHW,
                              self.__temperatureSH, self.__temperatureAmb)
-            b.addStorage(data["storages"][data["buses"]["building"] == i], data["stratified_storage"],
+            b.addStorage(data["storages"][data["storages"]["building"] == i], data["stratified_storage"],
                          self.__temperatureDHW, self.__temperatureSH)
             self.__nodesList.extend(b.getNodesList())
             self.__inputs.extend(b.getInputs())

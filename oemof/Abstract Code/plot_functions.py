@@ -682,18 +682,18 @@ if __name__ == '__main__':
         for k in i:
             l.append(k)
         building = l[-1]  # in the case of a maximum of 9 buildings
-        for j in buses.keys():
-            ll = []
-            for n in j:
-                ll.append(n)
-            building_a = ll[-1]  # in the case of a maximum of 9 buildings
-            if building_a == building and ("electricityBus" in j or "spaceHeatingBus" in j or "domesticHotWaterBus" in j):
+        beta_bis = beta.copy()
+        for j in beta:
+            if j.endswith(building) and ("electricityBus" in j or "spaceHeatingBus" in j or "domesticHotWaterBus" in j):
                 alpha.append(j)
                 alpha_a.append(buses[j])
-            beta.remove(j)
-        buildings_dict.append(alpha_a)
-        buildings_names.append(alpha)
-        buildings_number.append(building)
+                beta_bis.remove(j)
+        if alpha != []:
+            buildings_dict.append(alpha_a)
+            buildings_names.append(alpha)
+            buildings_number.append(building)
+        for a in alpha:
+            beta.remove(a)
 
     for i in buses.keys():
         if "electricityBus" in i:
@@ -712,15 +712,15 @@ if __name__ == '__main__':
             env_names.append(i)
             env_dict.append(buses[i])
 
-    # for i in elec_buses + sh_buses + dhw_buses:
-    #     monthly_balance(buses[i], i, new_legends)
+    for i in elec_names + sh_names + dhw_names:
+        monthly_balance(buses[i], i, new_legends)
 
-    # hourly_daily_plot(elec_dict, elec_names, Category10_8, new_legends)
-    # hourly_daily_plot(sh_dict, sh_names, Category10_8, new_legends)
-    # hourly_daily_plot(dhw_dict, dhw_names, Category10_8, new_legends)
+    hourly_daily_plot(elec_dict, elec_names, Category10_8, new_legends)
+    hourly_daily_plot(sh_dict, sh_names, Category10_8, new_legends)
+    hourly_daily_plot(dhw_dict, dhw_names, Category10_8, new_legends)
 
-    # for i in range(len(buildings_names)):
-    #     hourly_daily_plot(buildings_dict[i], buildings_names[i], Category10_8, new_legends)
+    for i in range(len(buildings_names)):
+        hourly_daily_plot(buildings_dict[i], buildings_names[i], Category10_8, new_legends)
 
     #####################################
     ## Summary of the whole experiment ##
@@ -750,13 +750,13 @@ if __name__ == '__main__':
     for name, color in my_colors.items():
         COLORS[name] = color
 
-    # for i in range(len(buildings_names)):
-        # fig1 = resulting_data_diagram(elec_dict[i], sh_dict[i], dhw_dict[i], costs_dict[i], env_dict[i], COLORS, buildings_number[i])[0]
-        # fig2 = resulting_data_demand_diagram(elec_dict[i], sh_dict[i], dhw_dict[i], COLORS, buildings_number[i])[0]
+    for i in range(len(buildings_names)):
+        fig1 = resulting_data_diagram(elec_dict[i], sh_dict[i], dhw_dict[i], costs_dict[i], env_dict[i], COLORS, buildings_number[i])[0]
+        fig2 = resulting_data_demand_diagram(elec_dict[i], sh_dict[i], dhw_dict[i], COLORS, buildings_number[i])[0]
 
     fig3 = resulting_data_diagram_loop(elec_dict, sh_dict, dhw_dict, costs_dict, env_dict, COLORS, buildings_number)
 
-    #fig4 = resulting_data_demand_diagram_loop(elec_dict, sh_dict, dhw_dict, COLORS, buildings_number)
+    fig4 = resulting_data_demand_diagram_loop(elec_dict, sh_dict, dhw_dict, COLORS, buildings_number)
 
     plt.show()
 
