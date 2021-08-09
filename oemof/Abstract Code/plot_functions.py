@@ -9,13 +9,13 @@ from bokeh.palettes import *
 from bokeh.embed import file_html
 from bokeh.resources import CDN
 
+from openpyxl import load_workbook
+
 import itertools
 import pandas as pd
 
 # This file defines different functions for the plotting of the results of the optimization.
-# When adding new components, the _loop functions will need updating.
 # The plots are made at the end of this file, introducing a .xls file previously created during the optimization.
-# The get_data function will also need updating when new buses will be added. This is a first draft.
 
 def monthly_balance(data, bus, new_legends):
     """
@@ -25,6 +25,13 @@ def monthly_balance(data, bus, new_legends):
     :param new_legends: dict type, new legends to plot on the graph
     :return:
     """
+    l = []
+    for i in bus:
+        l.append(i)
+    l.reverse()
+    l = l[0:11]  # in the case of a maximum of 9 buildings
+    l.reverse()
+    building = ''.join([str(item) for item in l])
 
     data_month = data.resample('1m').sum()
     monthShortNames = ['Jan', 'Fev', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -44,11 +51,11 @@ def monthly_balance(data, bus, new_legends):
     plt.figure()
     mark = []
     for i in neg_flow:
-        plt.bar(monthShortNames, -data_month[i], label=new_legends[i], bottom=sum(mark))
+        plt.bar(monthShortNames, -data_month[i], label=new_legends[i.replace(building, "")], bottom=sum(mark))
         mark.append(-data_month[i])
     mark = []
     for i in pos_flow:
-        plt.bar(monthShortNames, data_month[i], label=new_legends[i], bottom=sum(mark))
+        plt.bar(monthShortNames, data_month[i], label=new_legends[i.replace(building, "")], bottom=sum(mark))
         mark.append(data_month[i])
 
     ax = plt.gca()
@@ -59,12 +66,12 @@ def monthly_balance(data, bus, new_legends):
     # Put a legend to the right of the current axis
     ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     plt.grid(axis='y')
-    if bus == "electricityBus":
-        plt.title("Monthly electricity balance")
-    elif bus == "spaceHeatingBus":
-        plt.title("Monthly space heating balance")
+    if "electricityBus" in bus:
+        plt.title("Monthly electricity balance for " + building.replace("__", ""))
+    elif "spaceHeatingBus" in bus:
+        plt.title("Monthly space heating balance for " + building.replace("__", ""))
     else:
-        plt.title("Monthly domestic hot water balance")
+        plt.title("Monthly domestic hot water balance for " + building.replace("__", ""))
     plt.show()
 
 
@@ -80,45 +87,64 @@ def hourly_daily_plot(data, bus, palette, new_legends):
     For example, Category10_8
     :return:
     """
-    for i in range(len(data)):
-        if bus[i] == "electricityBus":
-            dt = data[i]
-            data_day = dt.resample('1d').sum()
-            p1 = figure(title="Hourly electricity flows", x_axis_label="Date", y_axis_label="Power (kWh)", sizing_mode="scale_both")
-            p2 = figure(title="Daily electricity flows", x_axis_label="Date", y_axis_label="Power (kWh)", sizing_mode="scale_both")
-            colors = itertools.cycle(palette)
-            for j, color in zip(dt.columns, colors):
-                p1.line(dt.index, dt[j], legend_label=new_legends[j], color=color)
-                p2.line(data_day.index, data_day[j], legend_label=new_legends[j], color=color)
+    p_figs = []
+    p_plots = []
+    a = []
+    b = 1
 
-        elif bus[i] == "spaceHeatingBus":
+    for i in range(0, len(data)):
+        l = []
+        for j in bus[i]:
+            l.append(j)
+        l.reverse()
+        l = l[0:11]  # in the case of a maximum of 9 buildings
+        l.reverse()
+        building = ''.join([str(item) for item in l])
+
+        if "electricityBus" in bus[i]:
             dt = data[i]
             data_day = dt.resample('1d').sum()
-            p3 = figure(title="Hourly space heating flows", x_axis_label="Date", y_axis_label="Power (kWh)", sizing_mode="scale_both")
-            p4 = figure(title="Daily space heating flows", x_axis_label="Date", y_axis_label="Power (kWh)", sizing_mode="scale_both")
+            p1 = figure(title="Hourly electricity flows for " + building.replace("__", ""), x_axis_label="Date", y_axis_label="Power (kWh)", sizing_mode="scale_both")
+            p2 = figure(title="Daily electricity flows for " + building.replace("__", ""), x_axis_label="Date", y_axis_label="Power (kWh)", sizing_mode="scale_both")
             colors = itertools.cycle(palette)
             for j, color in zip(dt.columns, colors):
-                p3.line(dt.index, dt[j], legend_label=new_legends[j], color=color)
-                p4.line(data_day.index, data_day[j], legend_label=new_legends[j], color=color)
+                p1.line(dt.index, dt[j], legend_label=new_legends[j.replace(building, "")], color=color)
+                p2.line(data_day.index, data_day[j], legend_label=new_legends[j.replace(building, "")], color=color)
+            p_figs.append([p1, p2])
+            p_plots.append(p1)
+            p_plots.append(p2)
+
+        elif "spaceHeatingBus" in bus[i]:
+            dt = data[i]
+            data_day = dt.resample('1d').sum()
+            p3 = figure(title="Hourly space heating flows for " + building.replace("__", ""), x_axis_label="Date", y_axis_label="Power (kWh)", sizing_mode="scale_both")
+            p4 = figure(title="Daily space heating flows for " + building.replace("__", ""), x_axis_label="Date", y_axis_label="Power (kWh)", sizing_mode="scale_both")
+            colors = itertools.cycle(palette)
+            for j, color in zip(dt.columns, colors):
+                p3.line(dt.index, dt[j], legend_label=new_legends[j.replace(building, "")], color=color)
+                p4.line(data_day.index, data_day[j], legend_label=new_legends[j.replace(building, "")], color=color)
+            p_figs.append([p3, p4])
+            p_plots.append(p3)
+            p_plots.append(p4)
+
         else:
             dt = data[i]
             data_day = dt.resample('1d').sum()
 
-            p5 = figure(title="Hourly domestic hot water flows", x_axis_label="Date", y_axis_label="Power (kWh)", sizing_mode="scale_both")
-            p6 = figure(title="Daily domestic hot water flows", x_axis_label="Date", y_axis_label="Power (kWh)", sizing_mode="scale_both")
+            p5 = figure(title="Hourly domestic hot water flows for " + building.replace("__", ""), x_axis_label="Date", y_axis_label="Power (kWh)", sizing_mode="scale_both")
+            p6 = figure(title="Daily domestic hot water flows for "  + building.replace("__", ""), x_axis_label="Date", y_axis_label="Power (kWh)", sizing_mode="scale_both")
             colors = itertools.cycle(palette)
             for j, color in zip(dt.columns, colors):
-                p5.line(dt.index, dt[j], legend_label=new_legends[j], color=color)
-                p6.line(data_day.index, data_day[j], legend_label=new_legends[j], color=color)
+                p5.line(dt.index, dt[j], legend_label=new_legends[j.replace(building, "")], color=color)
+                p6.line(data_day.index, data_day[j], legend_label=new_legends[j.replace(building, "")], color=color)
+            p_figs.append([p5, p6])
+            p_plots.append(p5)
+            p_plots.append(p6)
 
-    for p in [p1, p2, p3, p4, p5, p6]:
+    for p in p_plots:
         p.xaxis[0].formatter = DatetimeTickFormatter(months="%d %b")
         p.legend.click_policy = "hide"
-    graph = layout([
-        [p1, p2],
-        [p3, p4],
-        [p5, p6],
-    ])
+    graph = layout(p_figs)
 
     html = file_html(graph, CDN, "bokeh_plots")
     file = open("bokeh_plots.html", 'w')
@@ -207,26 +233,42 @@ def resulting_data_diagram(elBus, shBus, dhwBus, costs, env, COLORS, building):
     :param building: str type, name of the building
     :return: Four bar plots and the costs, environmental impacts, production and storage dict created
     """
+    production = {}
+    storage = {}
+    alpha = 0
 
-    production = {"CHP_elec": [0, 0, sum(elBus["(('CHP', 'electricityBus'), 'flow')"])],
-                  "CHP_SH": [0, sum(shBus["(('CHP', 'spaceHeatingBus'), 'flow')"]), 0],
-                  "CHP_DHW": [sum(dhwBus["(('CHP', 'domesticHotWaterBus'), 'flow')"]), 0, 0],
-                  "HP_DHW": [sum(dhwBus["(('HP_DHW', 'domesticHotWaterBus'), 'flow')"]), 0,
-                             - sum(elBus["(('electricityBus', 'HP_DHW'), 'flow')"])
-                             - sum(elBus["(('electricityBus', 'HP_SH'), 'flow')"])],
-                  "HP_SH": [0, sum(shBus["(('HP_SH', 'spaceHeatingBus'), 'flow')"]), 0],
-                  "Feed-in": [0, 0, - sum(elBus["(('electricityBus', 'excesselectricityBus'), 'flow')"])],
-                  "Purchase": [0, 0, sum(elBus["(('electricityResource', 'electricityBus'), 'flow')"])],
-                  }
-    storage = {"Battery": [0, 0, sum(elBus["(('electricalStorage', 'electricityBus'), 'flow')"])],
-               "SH_stor": [0, sum(shBus["(('shStorage', 'spaceHeatingBus'), 'flow')"]), 0],
-               "DHW_stor": [sum(dhwBus["(('dhwStorage', 'domesticHotWaterBus'), 'flow')"]), 0, 0],
-               }
+    for flow in elBus.keys():
+        if "Storage" in flow and "out" in new_legends[flow.replace("__Building"+str(building), "")]:
+            storage[new_legends[flow.replace("__Building"+str(building), "")]] = [0, 0, sum(elBus[flow])]
+        elif "Storage" not in flow and "Demand" not in flow:
+            production[new_legends[flow.replace("__Building"+str(building), "")]] = [0, 0, sum(elBus[flow])]
+
+            # specific for negative flows
+            if "HP_SH" in flow or "HP_DHW" in flow:
+                alpha += sum(elBus[flow])
+
+    production["HP"] = [0, 0, -alpha]
+
+    for flow in shBus.keys():
+        if "Storage" in flow and "out" in new_legends[flow.replace("__Building"+str(building), "")]:
+            storage[new_legends[flow.replace("__Building"+str(building), "")]] = [0, sum(shBus[flow]), 0]
+        elif "Storage" not in flow and "Demand" not in flow:
+            production[new_legends[flow.replace("__Building"+str(building), "")]] = [0, sum(shBus[flow]), 0]
+
+    for flow in dhwBus.keys():
+        if "Storage" in flow and "out" in new_legends[flow.replace("__Building"+str(building), "")]:
+            storage[new_legends[flow.replace("__Building"+str(building), "")]] = [sum(dhwBus[flow]), 0, 0]
+        elif "Storage" not in flow and "Demand" not in flow:
+            production[new_legends[flow.replace("__Building"+str(building), "")]] = [sum(dhwBus[flow]), 0, 0]
 
     costs = costs.transpose()
     costs = costs.rename(index={0: building})
 
     env = env.transpose()
+    for i in env.columns:
+        for j in new_legends.keys():
+            if i.replace("__Building"+str(building), "") in j:
+                env = env.rename(columns={i: new_legends[j]})
 
     production = pd.DataFrame.from_dict(production, orient='index')
     production = production.transpose()
@@ -235,7 +277,7 @@ def resulting_data_diagram(elBus, shBus, dhwBus, costs, env, COLORS, building):
     storage = storage.transpose()
 
     fig = plt.figure(figsize=(18, 8))
-    gs = gridspec.GridSpec(1, 4, width_ratios=[4, 3, 8, 3], wspace=0.03)
+    gs = gridspec.GridSpec(1, 4, width_ratios=[3, 4, 8, 3], wspace=0.03)
 
     ax0 = plt.subplot(gs[0])
     costs_colors = [to_color(COLORS, x) for x in costs.columns]
@@ -393,21 +435,38 @@ def resulting_data_demand_diagram(elBus, shBus, dhwBus, COLORS, building):
     :param building: str type, name of the building
     :return: Three bar plots and the elec, sh and dhw dict created
     """
+    elec = {}
+    sh = {}
+    dhw = {}
+    for flow in elBus.keys():
+        if "Demand" in flow:
+            elec[new_legends[flow.replace("__Building"+str(building), "")]] = [0, sum(elBus[flow])]
+        else:
+            elec[new_legends[flow.replace("__Building"+str(building), "")]] = [sum(elBus[flow]), 0]
 
-    elec = {"elecDemand": [0, sum(elBus["(('electricityBus', 'electricityDemand'), 'flow')"])],
-            "CHP_elec": [sum(elBus["(('CHP', 'electricityBus'), 'flow')"]), 0],
-            "Battery": [sum(elBus["(('electricalStorage', 'electricityBus'), 'flow')"]), 0],
-            }
-    sh = {"shDemand": [0, sum(shBus["(('spaceHeatingBus', 'spaceHeatingDemand'), 'flow')"])],
-          "CHP_SH": [sum(shBus["(('CHP', 'spaceHeatingBus'), 'flow')"]), 0],
-          "HP_SH": [sum(shBus["(('HP_SH', 'spaceHeatingBus'), 'flow')"]), 0],
-          "SH_stor": [sum(shBus["(('shStorage', 'spaceHeatingBus'), 'flow')"]), 0],
-          }
-    dhw = {"dhwDemand": [0, sum(dhwBus["(('domesticHotWaterBus', 'domesticHotWaterDemand'), 'flow')"])],
-           "CHP_DHW": [sum(dhwBus["(('CHP', 'domesticHotWaterBus'), 'flow')"]), 0],
-           "HP_DHW": [sum(dhwBus["(('HP_DHW', 'domesticHotWaterBus'), 'flow')"]), 0],
-           "DHW_stor": [sum(dhwBus["(('dhwStorage', 'domesticHotWaterBus'), 'flow')"]), 0],
-           }
+        if "Storage" in flow and "in" in new_legends[flow.replace("__Building"+str(building), "")]:
+            del elec[new_legends[flow.replace("__Building"+str(building), "")]]
+        elif "electricityBus" not in flow[5:] and "Demand" not in flow:
+            del elec[new_legends[flow.replace("__Building" + str(building), "")]]
+        elif "Resource" in flow or "excess" in flow:
+            del elec[new_legends[flow.replace("__Building" + str(building), "")]]
+
+    for flow in shBus.keys():
+        if "Demand" in flow:
+            sh[new_legends[flow.replace("__Building" + str(building), "")]] = [0, sum(shBus[flow])]
+        else:
+            sh[new_legends[flow.replace("__Building" + str(building), "")]] = [sum(shBus[flow]), 0]
+        if "Storage" in flow and "in" in new_legends[flow.replace("__Building"+str(building), "")]:
+            del sh[new_legends[flow.replace("__Building"+str(building), "")]]
+
+    for flow in dhwBus.keys():
+        if "Demand" in flow:
+            dhw[new_legends[flow.replace("__Building" + str(building), "")]] = [0, sum(dhwBus[flow])]
+        else:
+            dhw[new_legends[flow.replace("__Building" + str(building), "")]] = [sum(dhwBus[flow]), 0]
+
+        if "Storage" in flow and "in" in new_legends[flow.replace("__Building"+str(building), "")]:
+            del dhw[new_legends[flow.replace("__Building"+str(building), "")]]
 
     elec = pd.DataFrame.from_dict(elec, orient='index')
     elec = elec.transpose()
@@ -488,7 +547,7 @@ def resulting_data_demand_diagram_loop(elec, sh, dhw, colors, buildings):
     :param buildings: list of str type, name of the different buildings
     :return: figure created
     """
-    n_elec, n_sh, n_dhw = resulting_data_demand_diagram(elec[0], sh[0], dhw[0], colors, buildings[0])[1:]
+    n_elec, n_sh, n_dhw = resulting_data_demand_diagram(elec[0], sh[0], dhw[0], colors, int(buildings[0]))[1:]
     for i in range(1, len(elec)):
         a, b, c = resulting_data_demand_diagram(elec[i], sh[i], dhw[i], colors, buildings[i])[1:]
         n_elec = pd.concat([n_elec, a])
@@ -559,24 +618,18 @@ def resulting_data_demand_diagram_loop(elec, sh, dhw, colors, buildings):
     return fig
 
 
-def get_data(data):
+def get_data(filepath):
     """
     Function for the results recovery from an Excel file
-    :param data: path to the Excel containing the results of the optimization
+    :param filepath: path to the Excel containing the results of the optimization
     :return: the different dicts created during the optimization
     """
-    elBus = pd.read_excel(data, sheet_name="electricityBus", index_col=0)
-    elBus.to_dict()
-    dhwBus = pd.read_excel(data, sheet_name="domesticHotWaterBus", index_col=0)
-    dhwBus.to_dict()
-    shBus = pd.read_excel(data, sheet_name="spaceHeatingBus", index_col=0)
-    shBus.to_dict()
-    NGBus = pd.read_excel(data, sheet_name="naturalGasBus", index_col=0)
-    NGBus.to_dict()
-    costs = pd.read_excel(data, sheet_name="costs", index_col=0, header=0)
-    env_impacts = pd.read_excel(data, sheet_name="env_impacts", index_col=0, header=0)
+    wb = load_workbook(filepath, read_only=True, keep_links=False)
+    dict_sheet = {}
+    for sheet in wb.sheetnames:
+        dict_sheet[sheet] = pd.read_excel(filepath, sheet_name=sheet, index_col=0, engine='openpyxl')
 
-    return elBus, dhwBus, shBus, NGBus, costs, env_impacts
+    return dict_sheet
 
 
 if __name__ == '__main__':
@@ -585,6 +638,7 @@ if __name__ == '__main__':
     #####################################
 
     new_legends = {
+        "(('naturalGasResource', 'naturalGasBus'), 'flow')": "NaturalGas",
         "(('electricityBus', 'excesselectricityBus'), 'flow')": "Feed-in",
         "(('electricityBus', 'electricalStorage'), 'flow')": "Battery_in",
         "(('electricityBus', 'electricityDemand'), 'flow')": "Demand_elec",
@@ -593,60 +647,117 @@ if __name__ == '__main__':
         "(('CHP', 'electricityBus'), 'flow')": "CHP_elec",
         "(('electricalStorage', 'electricityBus'), 'flow')": "Battery_out",
         "(('electricityResource', 'electricityBus'), 'flow')": "Grid_purchase",
+        "(('dhwStorage', 'domesticHotWaterBus'), 'flow')": "Storage_dhw_out",
         "(('domesticHotWaterBus', 'dhwStorage'), 'flow')": "Storage_dhw_in",
         "(('domesticHotWaterBus', 'domesticHotWaterDemand'), 'flow')": "Demand_dhw",
         "(('HP_DHW', 'domesticHotWaterBus'), 'flow')": "HP_dhw",
         "(('CHP', 'domesticHotWaterBus'), 'flow')": "CHP_dhw",
-        "(('dhwStorage', 'domesticHotWaterBus'), 'flow')": "Storage_dhw_out",
+        "(('shStorage', 'spaceHeatingBus'), 'flow')": "Storage_sh_out",
         "(('spaceHeatingBus', 'shStorage'), 'flow')": "Storage_sh_in",
         "(('spaceHeatingBus', 'spaceHeatingDemand'), 'flow')": "Demand_sh",
         "(('CHP', 'spaceHeatingBus'), 'flow')": "CHP_sh",
         "(('HP_SH', 'spaceHeatingBus'), 'flow')": "HP_sh",
-        "(('shStorage', 'spaceHeatingBus'), 'flow')": "Storage_sh_out",
     }
 
-    elBus, dhwBus, shBus, NGBus, costs, env_impacts = get_data("results.xls")
+    buses = get_data("results.xlsx")
+    elec_names = []
+    elec_dict = []
+    sh_names = []
+    sh_dict = []
+    dhw_names = []
+    dhw_dict = []
+    costs_names = []
+    costs_dict = []
+    env_names = []
+    env_dict = []
 
-    monthly_balance(elBus, "electricityBus", new_legends)
-    monthly_balance(shBus, "spaceHeatingBus", new_legends)
-    monthly_balance(dhwBus, "domesticHotWaterBus", new_legends)
-    hourly_daily_plot([elBus, shBus, dhwBus], ["electricityBus", "spaceHeatingBus", "domesticHotWaterBus"],
-                      Category10_8, new_legends)
+    buildings_dict = []
+    buildings_names = []
+    buildings_number = []
+    beta = list(buses.keys())
+    for i in beta:
+        alpha = []
+        alpha_a = []
+        l = []
+        for k in i:
+            l.append(k)
+        building = l[-1]  # in the case of a maximum of 9 buildings
+        for j in buses.keys():
+            ll = []
+            for n in j:
+                ll.append(n)
+            building_a = ll[-1]  # in the case of a maximum of 9 buildings
+            if building_a == building and ("electricityBus" in j or "spaceHeatingBus" in j or "domesticHotWaterBus" in j):
+                alpha.append(j)
+                alpha_a.append(buses[j])
+            beta.remove(j)
+        buildings_dict.append(alpha_a)
+        buildings_names.append(alpha)
+        buildings_number.append(building)
+
+    for i in buses.keys():
+        if "electricityBus" in i:
+            elec_names.append(i)
+            elec_dict.append(buses[i])
+        if "spaceHeatingBus" in i:
+            sh_names.append(i)
+            sh_dict.append(buses[i])
+        if "domesticHotWater" in i:
+            dhw_names.append(i)
+            dhw_dict.append(buses[i])
+        if "costs" in i:
+            costs_names.append(i)
+            costs_dict.append(buses[i])
+        if "env_impacts" in i:
+            env_names.append(i)
+            env_dict.append(buses[i])
+
+    # for i in elec_buses + sh_buses + dhw_buses:
+    #     monthly_balance(buses[i], i, new_legends)
+
+    # hourly_daily_plot(elec_dict, elec_names, Category10_8, new_legends)
+    # hourly_daily_plot(sh_dict, sh_names, Category10_8, new_legends)
+    # hourly_daily_plot(dhw_dict, dhw_names, Category10_8, new_legends)
+
+    # for i in range(len(buildings_names)):
+    #     hourly_daily_plot(buildings_dict[i], buildings_names[i], Category10_8, new_legends)
 
     #####################################
     ## Summary of the whole experiment ##
     #####################################
 
     my_colors = {
-        'Battery': (100, 160, 200),
-        'SH_stor': (196, 7, 27),
-        'DHW_stor': (196, 7, 27),
-        'HP_DHW': (62, 173, 0),
-        'HP_SH': (62, 173, 0),
+        'Battery_out': (100, 160, 200),
+        'Storage_sh_out': (196, 7, 27),
+        'Storage_dhw_out': (196, 7, 27),
+        'HP_dhw': (62, 173, 0),
+        'HP_sh': (62, 173, 0),
         'HP': (62, 173, 0),
         'CHP_elec': (0, 101, 189),
-        'CHP_SH': (0, 101, 189),
-        'CHP_DHW': (0, 101, 189),
+        'CHP_sh': (0, 101, 189),
+        'CHP_dhw': (0, 101, 189),
         'CHP': (0, 101, 189),
-        'Input': (218, 215, 203),
-        'Investments': (0, 119, 138),
+        'Inputs': (252, 93, 93),
+        'Operation': (252, 93, 93),
+        'Investment': (0, 119, 138),
         'Feed-in': (218, 215, 203),
-        'elecDemand': (131, 166, 151),
-        'shDemand': (131, 166, 151),
-        'dhwDemand': (131, 166, 151),
-        'Purchase': (237, 127, 16),
+        'Demand_elec': (131, 166, 151),
+        'Demand_sh': (131, 166, 151),
+        'Demand_dhw': (131, 166, 151),
+        'Grid_purchase': (237, 127, 16),
     }
     COLORS = {}
     for name, color in my_colors.items():
         COLORS[name] = color
 
-    fig1 = resulting_data_diagram(elBus, shBus, dhwBus, costs, env_impacts, COLORS, "building 1")[0]
-    fig2 = resulting_data_demand_diagram(elBus, shBus, dhwBus, COLORS, "building 1")[0]
-    fig3 = resulting_data_diagram_loop([elBus, elBus, elBus, elBus], [shBus, shBus, shBus, shBus],
-                                       [dhwBus, dhwBus, dhwBus, dhwBus], [costs, costs, costs, costs],
-                                       [env_impacts, env_impacts, env_impacts, env_impacts], COLORS, ["b1", "b2", "b3", "b4"])
-    fig4 = resulting_data_demand_diagram_loop([elBus, elBus, elBus, elBus], [shBus, shBus, shBus, shBus],
-                                              [dhwBus, dhwBus, dhwBus, dhwBus], COLORS, ["b1", "b2", "b3", "b4"])
+    # for i in range(len(buildings_names)):
+        # fig1 = resulting_data_diagram(elec_dict[i], sh_dict[i], dhw_dict[i], costs_dict[i], env_dict[i], COLORS, buildings_number[i])[0]
+        # fig2 = resulting_data_demand_diagram(elec_dict[i], sh_dict[i], dhw_dict[i], COLORS, buildings_number[i])[0]
+
+    fig3 = resulting_data_diagram_loop(elec_dict, sh_dict, dhw_dict, costs_dict, env_dict, COLORS, buildings_number)
+
+    #fig4 = resulting_data_demand_diagram_loop(elec_dict, sh_dict, dhw_dict, COLORS, buildings_number)
+
     plt.show()
 
 logging.info("Done!")
