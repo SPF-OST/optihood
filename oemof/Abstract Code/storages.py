@@ -10,21 +10,21 @@ from oemof.tools import economics
 
 
 class ElectricalStorage(solph.components.GenericStorage):
-    def __init__(self, buildingLabel, ioBus, loss_rate, initial_storage, efficiency_in, efficiency_out, capacity_min, capacity_max, epc, base):
+    def __init__(self, buildingLabel, input, output, loss_rate, initial_storage, efficiency_in, efficiency_out, capacity_min, capacity_max, epc, base):
         super(ElectricalStorage, self).__init__(
             label="electricalStorage"+'__'+buildingLabel,
             inputs={
-                ioBus: solph.Flow()
+                input: solph.Flow()
             },
             outputs={
-                ioBus: solph.Flow()
+                output: solph.Flow()
             },
             # nominal_storage_capacity=s["nominal capacity"],
             loss_rate=loss_rate,
             initial_storage_level=initial_storage,
             inflow_conversion_factor=efficiency_in,
             outflow_conversion_factor=efficiency_out,
-            Balanced=False,
+            Balanced=True,
             invest_relation_input_capacity=efficiency_in,
             invest_relation_output_capacity=efficiency_out,
             investment=solph.Investment(
@@ -38,16 +38,16 @@ class ElectricalStorage(solph.components.GenericStorage):
         )
 
 class ThermalStorage(solph.components.GenericStorage):
-    def __init__(self, label, stratifiedStorageParams, Temperature_h, iobus, initial_storage, capacity_min, capacity_max, epc, base):
+    def __init__(self, label, stratifiedStorageParams, Temperature_h, input, output, initial_storage, capacity_min, capacity_max, epc, base):
         u_value, volume, surface, nominal_storage_capacity, loss_rate, fixed_losses_relative, \
         fixed_losses_absolute = self._precalculate(stratifiedStorageParams, Temperature_h)
         super(ThermalStorage, self).__init__(
             label=label,
             inputs={
-                iobus: solph.Flow(),
+                input: solph.Flow(),
             },
             outputs={
-                iobus: solph.Flow()
+                output: solph.Flow()
             },
             # nominal_storage_capacity=2000,
             loss_rate=loss_rate,
@@ -56,7 +56,7 @@ class ThermalStorage(solph.components.GenericStorage):
             fixed_losses_absolute=fixed_losses_absolute,
             inflow_conversion_factor=stratifiedStorageParams.at[0, 'inflow_conversion_factor'],
             outflow_conversion_factor=stratifiedStorageParams.at[0, 'outflow_conversion_factor'],
-            balanced=False,
+            balanced=True,
             invest_relation_input_capacity=stratifiedStorageParams.at[0, 'inflow_conversion_factor'],
             invest_relation_output_capacity=stratifiedStorageParams.at[0, 'outflow_conversion_factor'],
             investment=solph.Investment(

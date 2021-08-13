@@ -657,6 +657,8 @@ if __name__ == '__main__':
         "(('spaceHeatingBus', 'spaceHeatingDemand'), 'flow')": "Demand_sh",
         "(('CHP', 'spaceHeatingBus'), 'flow')": "CHP_sh",
         "(('HP_SH', 'spaceHeatingBus'), 'flow')": "HP_sh",
+        "(('electricityBus', 'electricityLink1_2'), 'flow')": "electricityLink_in",
+        "(('electricityLink1_2', 'electricityBus'), 'flow')": "electricityLink_out"
     }
 
     buses = get_data("results.xlsx")

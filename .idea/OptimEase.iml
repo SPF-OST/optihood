@@ -5,6 +5,7 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="trenddatenekz" />
+    <orderEntry type="module" module-name="VentSol" />
   </component>
   <component name="PyDocumentationSettings">
     <option name="format" value="PLAIN" />
