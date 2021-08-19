@@ -1,8 +1,4 @@
-1. Object oriented programmation: add a new class for buildings Neha
-2. Plotting the results (oemof.visio)                        Agnès
-3. Testing links/ElectricalLine                              Both
-4. Implementation of MOO                                     Both
-5. How to separate DHW and SH outputs from a heat pump?      Both
-6. Adding new components in a separate script                Paula
-7. Take into account startup time 
-8. Writing: Review
+1. Implementation of MOO
+2. Adding new components in a separate script
+3. Take into account startup time
+4. Writing: Review
