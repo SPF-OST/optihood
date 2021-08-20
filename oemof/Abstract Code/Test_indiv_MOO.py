@@ -18,14 +18,16 @@ if __name__ == '__main__':
     print("******************")
     network = EnergyNetwork(pd.date_range("2018-01-01 01:00:00", "2019-01-01 00:00:00", freq="60min"), tSH=35, tDHW=55)
     network.setFromExcel(os.path.join(os.getcwd(), "scenario4.xls"), opt="costs")
-    #network.printNodes()
+    network.printNodes()
     limit, capas = network.optimize(solver='gurobi', e=1000000)
-    network.printInvestedCapacities(capas)
+    network.printInvestedCapacities(capas, "Building1")
+    network.printInvestedCapacities(capas, "Building2")
     meta = network.printMetaresults()
     network.printCosts()
     network.printEnvImpacts()
     max_env = limit
-    network.exportToExcel('results4_1.xlsx')
+    print(limit)
+    network.exportToExcel('results2_1.xlsx')
 
     # -----------------------------------------------------------------------------#
     ## Second optimization ##
@@ -37,11 +39,13 @@ if __name__ == '__main__':
     network.setFromExcel(os.path.join(os.getcwd(), "scenario4.xls"), opt="env")
     #network.printNodes()
     limit, capas = network.optimize(solver='gurobi', e=1000000)
-    network.printInvestedCapacities(capas)
+    network.printInvestedCapacities(capas, "Building1")
+    network.printInvestedCapacities(capas, "Building2")
     network.printCosts()
     network.printEnvImpacts()
     min_env = limit
-    network.exportToExcel('results4_2.xlsx')
+    print(limit)
+    network.exportToExcel('results2_2.xlsx')
     print('Each iteration will keep femissions lower than some values between femissions_min and femissions_max, so [' + str(min_env) + ', ' + str(max_env) + ']')
 
     # -----------------------------------------------------------------------------#

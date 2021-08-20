@@ -403,7 +403,6 @@ class EnergyNetwork(solph.EnergySystem):
         logging.info("Initiating optimization using {} solver".format(solver))
         optimizationModel = solph.Model(self)
         optimizationModel, flows, capa, capa_s = moo_limit(optimizationModel, keyword1="env_per_flow", keyword2="env_per_capa", limit=e)
-
         optimizationModel.solve(solver=solver)
         limit = optimizationModel.integral_limit_env_per_flow_env_per_capa()
 
@@ -426,6 +425,10 @@ class EnergyNetwork(solph.EnergySystem):
         self.__metaResults = solph.processing.meta_results(optimizationModel)
         logging.info("Optimization successful and results collected")
         for b in self.__buildings:
+            cap_building = {}
+            for i in capacities_invested:
+                if b.getBuildingLabel() in i:
+                    cap_building[i] = capacities_invested[i]
             n_techno = []
             n_inputs = []
             for i in range(len(self.__technologies)):
@@ -435,8 +438,8 @@ class EnergyNetwork(solph.EnergySystem):
                 if b.getBuildingLabel() in self.__inputs[i][0]:
                     n_inputs.append(self.__inputs[i])
 
-            self.__capex[b.getBuildingLabel()] = sum(self.__costParam[x][1] * (capacities_invested[x] > 1) for x in capacities_invested) +\
-                sum(capacities_invested[x] * self.__costParam[x][0] for x in capacities_invested)
+            self.__capex[b.getBuildingLabel()] = sum(self.__costParam[x][1] * (cap_building[x] > 1) for x in cap_building) +\
+                sum(cap_building[x] * self.__costParam[x][0] for x in cap_building)
             self.__opex[b.getBuildingLabel()] = sum(sum(solph.views.node(self.__optimizationResults, i[1])["sequences"][(i[0], i[1]), "flow"])
                           * self.__costParam[i[0]] for i in n_inputs + [["electricityResource"+'__'+b.getBuildingLabel(), "electricityBus"+'__'+b.getBuildingLabel()]])
             self.__feedIn[b.getBuildingLabel()] = sum(solph.views.node(self.__optimizationResults, "electricityBus"+'__'+b.getBuildingLabel())
@@ -453,7 +456,7 @@ class EnergyNetwork(solph.EnergySystem):
             B.reset_index(inplace=True, drop=True)
 
             self.__envImpactInputs[b.getBuildingLabel()] += (A*B).sum()
-            self.__envImpactTechnologies[b.getBuildingLabel()] = sum(capacities_invested[x] * self.__envParam[x][2] for x in capacities_invested) +\
+            self.__envImpactTechnologies[b.getBuildingLabel()] = sum(cap_building[x] * self.__envParam[x][2] for x in cap_building) +\
                                                                  sum(sum(
                                                                      solph.views.node(self.__optimizationResults, i[0])[
                                                                          "sequences"]
@@ -481,19 +484,20 @@ class EnergyNetwork(solph.EnergySystem):
         )
         print("")
 
-    def printInvestedCapacities(self, capacities_invested):
-        investSH = capacities_invested["HP_SH__Building1"]
-        investDHW = capacities_invested["HP_DHW__Building1"]
+    def printInvestedCapacities(self, capacities_invested, building):
+        print("************** Optimized Capacities for {} **************".format(building))
+        investSH = capacities_invested["HP_SH__" + building]
+        investDHW = capacities_invested["HP_DHW__" + building]
         print("Invested in {}kW :SH and {}kW :DHW HP.".format(investSH, investDHW))
 
-        invest = capacities_invested["CHP__Building1"]
+        invest = capacities_invested["CHP__" + building]
         print("Invested in {} kW CHP.".format(invest))
 
-        invest = capacities_invested["electricalStorage__Building1"]
+        invest = capacities_invested["electricalStorage__" + building]
         print("Invested in {} kWh Electrical Storage.".format(invest))
-        invest = capacities_invested["dhwStorage__Building1"]
+        invest = capacities_invested["dhwStorage__" + building]
         print("Invested in {} kWh DHW Storage Tank.".format(invest))
-        invest = capacities_invested["shStorage__Building1"]
+        invest = capacities_invested["shStorage__" + building]
         print("Invested in {} kWh SH Storage Tank.".format(invest))
 
     def printCosts(self):
@@ -542,6 +546,15 @@ class EnergyNetwork(solph.EnergySystem):
                         B = self.__inputs[i][1]
                         env_impact[A] = sum(
                             solph.views.node(self.__optimizationResults, B)["sequences"][(A, B), "flow"]) * self.__envParam[A]
+
+                A = self.__envParam["electricityResource" + '__' + b.getBuildingLabel()].copy()
+                A.reset_index(inplace=True, drop=True)
+                B = solph.views.node(self.__optimizationResults, "electricityBus" + '__' + b.getBuildingLabel())[
+                    "sequences"][("electricityResource" + '__' + b.getBuildingLabel(),
+                                  "electricityBus" + '__' + b.getBuildingLabel()), "flow"]
+                B.reset_index(inplace=True, drop=True)
+                env_impact["electricityResource" + '__' + b.getBuildingLabel()] = (A * B).sum()
+
                 for i in range(len(self.__technologies)):
                     if b.getBuildingLabel() in self.__technologies[i][0]:
                         A = self.__technologies[i][0]
