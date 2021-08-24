@@ -531,7 +531,7 @@ def resultingDataDemandDiagram(elBus, shBus, dhwBus, COLORS, building):
         plt.setp(lg.get_patches(), linewidth=0)
 
     ax0.set_xlabel('Demand and energy produced\n for electricity (kWh)')
-    ax1.set_xlabel('Demand and energy produced\n for space heat (kWh)')
+    ax1.set_xlabel('Demand and energy produced\n for space heating (kWh)')
     ax2.set_xlabel('Demand and energy produced\n for domestic hot water (kWh)')
 
     return fig, elec, sh, dhw
@@ -612,7 +612,7 @@ def resultingDataDemandDiagramLoop(elec, sh, dhw, colors, buildings):
         plt.setp(lg.get_patches(), linewidth=0)
 
     ax0.set_xlabel('Demand and energy produced\n for electricity (kWh)')
-    ax1.set_xlabel('Demand and energy produced\n for space heat (kWh)')
+    ax1.set_xlabel('Demand and energy produced\n for space heating (kWh)')
     ax2.set_xlabel('Demand and energy produced\n for domestic hot water (kWh)')
 
     return fig
