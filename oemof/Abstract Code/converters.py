@@ -57,11 +57,11 @@ class HeatPumpLinear:
             return []
 
 
-class CHP(solph.Transformer):
+class CHP:
     def __init__(self, buildingLabel, input, outputEl, outputSH, outputDHW, efficiencyEl, efficiencySH, efficiencyDHW,
-                 capacityMin, CapacityEl, capacitySH, capacityDHW, epc, base, varc1, varc2, env_flow1, env_flow2, env_capa):
-        super(CHP, self).__init__(
-                        label='CHP'+'__'+buildingLabel,
+                 capacityMin, capacityEl, capacitySH, capacityDHW, epc, base, varc1, varc2, env_flow1, env_flow2, env_capa):
+        self.__CHPSH = solph.Transformer(
+                        label='CHP_SH'+'__'+buildingLabel,
                         inputs={
                             input: solph.Flow()
                         },
@@ -69,8 +69,8 @@ class CHP(solph.Transformer):
                             outputEl: solph.Flow(
                                 investment=solph.Investment(
                                     ep_costs=epc,
-                                    minimum=capacityMin,
-                                    maximum=CapacityEl,
+                                    minimum=float(capacityMin) * efficiencyEl / efficiencyEl + efficiencySH,
+                                    maximum=float(capacityEl) * efficiencyEl / efficiencyEl + efficiencySH,
                                     nonconvex=True,
                                     offset=base,
                                     env_per_capa=env_capa,
@@ -82,23 +82,10 @@ class CHP(solph.Transformer):
                             outputSH: solph.Flow(
                                 investment=solph.Investment(
                                     ep_costs=epc,
-                                    minimum=capacityMin,
-                                    maximum=capacitySH,
+                                    minimum=float(capacityMin) * efficiencySH / efficiencyEl + efficiencySH,
+                                    maximum=float(capacitySH) * efficiencySH / efficiencyEl + efficiencySH,
                                     nonconvex=True,
-                                    #offset=base,
-                                    env_per_capa=env_capa,
-                                ),
-                                variable_costs=varc2,
-                                env_per_flow=env_flow2,
-
-                            ),
-                            outputDHW: solph.Flow(
-                                investment=solph.Investment(
-                                    ep_costs=epc,
-                                    minimum=capacityMin,
-                                    maximum=capacityDHW,
-                                    nonconvex=True,
-                                    #offset=base,
+                                    offset=base,
                                     env_per_capa=env_capa,
                                 ),
                                 variable_costs=varc2,
@@ -108,6 +95,51 @@ class CHP(solph.Transformer):
                         },
                         conversion_factors={outputEl: efficiencyEl,
                                             outputSH: efficiencySH,
-                                            outputDHW: efficiencyDHW,
                                             }
                     )
+        self.__CHPDHW = solph.Transformer(
+            label='CHP_DHW' + '__' + buildingLabel,
+            inputs={
+                input: solph.Flow()
+            },
+            outputs={
+                outputEl: solph.Flow(
+                    investment=solph.Investment(
+                        ep_costs=epc,
+                        minimum=float(capacityMin) * efficiencyEl / efficiencyEl + efficiencyDHW,
+                        maximum=float(capacityEl) * efficiencyEl / efficiencyEl + efficiencyDHW,
+                        nonconvex=True,
+                        offset=base,
+                        env_per_capa=env_capa,
+                    ),
+                    variable_costs=varc1,
+                    env_per_flow=env_flow1,
+
+                ),
+                outputDHW: solph.Flow(
+                    investment=solph.Investment(
+                        ep_costs=epc,
+                        minimum=float(capacityMin) * efficiencyDHW / efficiencyEl + efficiencyDHW,
+                        maximum=float(capacityDHW) * efficiencyDHW / efficiencyEl + efficiencyDHW,
+                        nonconvex=True,
+                        offset=base,
+                        env_per_capa=env_capa,
+                    ),
+                    variable_costs=varc2,
+                    env_per_flow=env_flow2,
+
+                ),
+            },
+            conversion_factors={outputEl: efficiencyEl,
+                                outputDHW: efficiencyDHW,
+                                }
+        )
+
+    def getCHP(self, type):
+        if type == 'sh':
+            return self.__CHPSH
+        elif type == 'dhw':
+            return self.__CHPDHW
+        else:
+            print("Transformer label not identified...")
+            return []
