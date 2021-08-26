@@ -242,11 +242,18 @@ def resultingDataDiagram(elBus, shBus, dhwBus, costs, env, COLORS, building):
         if "Storage" in flow and "out" in newLegends[flow.replace("__Building"+str(building), "")]:
             storage[newLegends[flow.replace("__Building"+str(building), "")]] = [0, 0, sum(elBus[flow])]
         elif "electricityLink" in flow:
-            if newLegends[flow.replace("__Building" + str(building), "")] in list:
-                production[newLegends[flow.replace("__Building" + str(building), "")]][2] += sum(elBus[flow])
-            else:
-                production[newLegends[flow.replace("__Building" + str(building), "")]] = [0, 0, sum(elBus[flow])]
-                list.append(newLegends[flow.replace("__Building" + str(building), "")])
+            if "_in" in newLegends[flow.replace("__Building" + str(building), "")]:
+                if newLegends[flow.replace("__Building" + str(building), "")].replace("_in", "") in list:
+                    production[newLegends[flow.replace("__Building" + str(building), "")].replace("_in", "")][2] -= sum(elBus[flow])
+                else:
+                    production[newLegends[flow.replace("__Building" + str(building), "")].replace("_in", "")] = [0, 0, -sum(elBus[flow])]
+                    list.append(newLegends[flow.replace("__Building" + str(building), "")].replace("_in", ""))
+            elif "_out" in newLegends[flow.replace("__Building" + str(building), "")]:
+                if newLegends[flow.replace("__Building" + str(building), "")].replace("_out", "") in list:
+                    production[newLegends[flow.replace("__Building" + str(building), "")].replace("_out", "")][2] += sum(elBus[flow])
+                else:
+                    production[newLegends[flow.replace("__Building" + str(building), "")].replace("_out", "")] = [0, 0, sum(elBus[flow])]
+                    list.append(newLegends[flow.replace("__Building" + str(building), "")].replace("_out", ""))
         elif "Storage" not in flow and "Demand" not in flow:
             production[newLegends[flow.replace("__Building"+str(building), "")]] = [0, 0, sum(elBus[flow])]
 
@@ -255,8 +262,7 @@ def resultingDataDiagram(elBus, shBus, dhwBus, costs, env, COLORS, building):
                 alpha += sum(elBus[flow])
 
     production["HP"] = [0, 0, -alpha]
-    production["electricityLink_in"] = [0, 0, -production["electricityLink_in"][2]]
-
+    
     for flow in shBus.keys():
         if "Storage" in flow and "out" in newLegends[flow.replace("__Building"+str(building), "")]:
             storage[newLegends[flow.replace("__Building"+str(building), "")]] = [0, sum(shBus[flow]), 0]
@@ -659,18 +665,19 @@ if __name__ == '__main__':
         "(('electricityBus', 'electricityDemand'), 'flow')": "Demand_elec",
         "(('electricityBus', 'HP_DHW'), 'flow')": "HP_dhw",
         "(('electricityBus', 'HP_SH'), 'flow')": "HP_sh",
-        "(('CHP', 'electricityBus'), 'flow')": "CHP_elec",
+        "(('CHP_DHW', 'electricityBus'), 'flow')": "CHP_DHW_elec",
+        "(('CHP_SH', 'electricityBus'), 'flow')": "CHP_SH_elec",
         "(('electricalStorage', 'electricityBus'), 'flow')": "Battery_out",
         "(('electricityResource', 'electricityBus'), 'flow')": "Grid_purchase",
         "(('dhwStorage', 'domesticHotWaterBus'), 'flow')": "Storage_dhw_out",
         "(('dhwStorageBus', 'dhwStorage'), 'flow')": "Storage_dhw_in",
         "(('domesticHotWaterBus', 'domesticHotWaterDemand'), 'flow')": "Demand_dhw",
         "(('HP_DHW', 'dhwStorageBus'), 'flow')": "HP_dhw",
-        "(('CHP', 'dhwStorageBus'), 'flow')": "CHP_dhw",
+        "(('CHP_DHW', 'dhwStorageBus'), 'flow')": "CHP_dhw",
         "(('shStorage', 'spaceHeatingBus'), 'flow')": "Storage_sh_out",
         "(('spaceHeatingBus', 'shStorage'), 'flow')": "Storage_sh_in",
         "(('spaceHeatingBus', 'spaceHeatingDemand'), 'flow')": "Demand_sh",
-        "(('CHP', 'spaceHeatingBus'), 'flow')": "CHP_sh",
+        "(('CHP_SH', 'spaceHeatingBus'), 'flow')": "CHP_sh",
         "(('HP_SH', 'spaceHeatingBus'), 'flow')": "HP_sh",
     }
 
@@ -687,7 +694,7 @@ if __name__ == '__main__':
     newLegends["(('electricityBus', 'electricityLink3_4'), 'flow')"] = "electricityLink_in"
     newLegends["(('electricityLink3_4', 'electricityBus'), 'flow')"] = "electricityLink_out"
 
-    buses = getData("results4_9.xlsx")
+    buses = getData("results4_8_group.xlsx")
     elec_names = []
     elec_dict = []
     sh_names = []
@@ -763,9 +770,10 @@ if __name__ == '__main__':
         'HP_dhw': (62, 173, 0),
         'HP_sh': (62, 173, 0),
         'HP': (62, 173, 0),
-        'CHP_elec': (0, 101, 189),
+        'CHP_SH_elec': (0, 101, 189),
+        'CHP_DHW_elec': (128, 0, 128),
         'CHP_sh': (0, 101, 189),
-        'CHP_dhw': (0, 101, 189),
+        'CHP_dhw': (128, 0, 128),
         'CHP': (0, 101, 189),
         'Inputs': (252, 93, 93),
         'Operation': (252, 93, 93),
@@ -777,6 +785,7 @@ if __name__ == '__main__':
         'Grid_purchase': (237, 127, 16),
         'electricityLink_in': (255, 215, 0),
         'electricityLink_out': (255, 215, 0),
+        'electricityLink': (255, 215, 0)
     }
     COLORS = {}
     for name, color in my_colors.items():
@@ -785,9 +794,10 @@ if __name__ == '__main__':
     # for i in range(len(buildings_names)):
     #     fig1 = resultingDataDiagram(elec_dict[i], sh_dict[i], dhw_dict[i], costs_dict[i], env_dict[i], COLORS, buildings_number[i])[0]
     #     fig2 = resultingDataDemandDiagram(elec_dict[i], sh_dict[i], dhw_dict[i], COLORS, buildings_number[i])[0]
+
     fig3 = resultingDataDiagramLoop(elec_dict, sh_dict, dhw_dict, costs_dict, env_dict, COLORS, buildings_number)
 
-    fig4 = resultingDataDemandDiagramLoop(elec_dict, sh_dict, dhw_dict, COLORS, buildings_number)
+    # fig4 = resultingDataDemandDiagramLoop(elec_dict, sh_dict, dhw_dict, COLORS, buildings_number)
 
     plt.show()
 
