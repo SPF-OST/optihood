@@ -156,6 +156,7 @@ def hourlyDailyPlot(data, bus, palette, new_legends):
 
 def toColor(COLORS, obj=None):
     """
+    Function from the URBS platform https://github.com/ojdo/urbs/blob/1house/comp.py
     Assign a deterministic pseudo-random color to argument.
     If COLORS[obj] is set, return that. For strings, this value depends only
     on the string content, so that same strings always yield the same color.
@@ -174,6 +175,7 @@ def toColor(COLORS, obj=None):
 
 def groupHbarPlots(ax, group_size, inner_sep=None):
     """
+    Function from the URBS platform https://github.com/ojdo/urbs/blob/1house/comp.py
     Group bars of a horizontal barplot closer together.
     Given an existing horizontal bar plot handle ax, move bars of a given group size (>=2) closer together,
     reducing the distance within the bars of a group, but increasing the distance between different groups.
@@ -204,6 +206,7 @@ def groupHbarPlots(ax, group_size, inner_sep=None):
 
 def deduplicateLegend(handles, labels):
     """
+    Function from the URBS platform https://github.com/ojdo/urbs/blob/1house/comp.py
     Remove double entries from figure legend.
     :param handles: list of legend entry handles
     :param labels: list of legend entry labels
@@ -222,6 +225,7 @@ def deduplicateLegend(handles, labels):
 
 def resultingDataDiagram(elBus, shBus, dhwBus, costs, env, COLORS, building):
     """
+    Function inspired from the URBS platform https://github.com/ojdo/urbs/blob/1house/comp.py
     Function plotting the different results of the optimization. First, costs will be plotted, then the energy produced,
     comparing energy for electricity bus, sh and dhw bus, and finally the retrieved energy from the storages.
     :param elBus: dict type, results from the optimization applied to one bus.
@@ -356,6 +360,7 @@ def resultingDataDiagram(elBus, shBus, dhwBus, costs, env, COLORS, building):
 
 def resultingDataDiagramLoop(elec, sh, dhw, costs, env, colors, buildings):
     """
+    Function inspired from the URBS platform https://github.com/ojdo/urbs/blob/1house/comp.py
     Function plotting the graph comparing the different buildings/scenarios on costs, energy produced and energy
     retrieved from storages
     :param elec: list of dict type, optimization results
@@ -440,6 +445,7 @@ def resultingDataDiagramLoop(elec, sh, dhw, costs, env, colors, buildings):
 
 def resultingDataDemandDiagram(elBus, shBus, dhwBus, COLORS, building):
     """
+    Function inspired from the URBS platform https://github.com/ojdo/urbs/blob/1house/comp.py
     Function plotting the different results of the optimization. First, costs will be plotted, then the energy produced,
     comparing energy for electricity bus, sh and dhw bus, and finally the retrieved energy from the storages.
     :param elBus: dict type, results from the optimization applied to one bus. Called like "solph.views.node(results, bus)"
@@ -559,6 +565,7 @@ def resultingDataDemandDiagram(elBus, shBus, dhwBus, COLORS, building):
 
 def resultingDataDemandDiagramLoop(elec, sh, dhw, colors, buildings):
     """
+    Function inspired from the URBS platform https://github.com/ojdo/urbs/blob/1house/comp.py
     Function plotting the graph comparing the different buildings/scenarios on costs, energy produced and energy
     retrieved from storages
     :param elec: list of dict type, optimization results
