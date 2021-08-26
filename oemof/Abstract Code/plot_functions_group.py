@@ -262,7 +262,7 @@ def resultingDataDiagram(elBus, shBus, dhwBus, costs, env, COLORS, building):
                 alpha += sum(elBus[flow])
 
     production["HP"] = [0, 0, -alpha]
-    
+
     for flow in shBus.keys():
         if "Storage" in flow and "out" in newLegends[flow.replace("__Building"+str(building), "")]:
             storage[newLegends[flow.replace("__Building"+str(building), "")]] = [0, sum(shBus[flow]), 0]
@@ -486,7 +486,7 @@ def resultingDataDemandDiagram(elBus, shBus, dhwBus, COLORS, building):
         else:
             dhw[newLegends[flow.replace("__Building" + str(building), "")]] = [sum(dhwBus[flow]), 0]
 
-        if "Storage" in flow and "in" in newLegends[flow.replace("__Building"+str(building), "")]:
+        if "Storage_" in flow:
             del dhw[newLegends[flow.replace("__Building"+str(building), "")]]
 
     elec = pd.DataFrame.from_dict(elec, orient='index')
@@ -749,14 +749,14 @@ if __name__ == '__main__':
             env_dict.append(buses[i])
 
     # for i in elec_names + sh_names + dhw_names:
-    #     monthlyBalance(buses[i], i, new_legends)
+    #     monthlyBalance(buses[i], i, newLegends)
     #
-    # hourlyDailyPlot(elec_dict, elec_names, Category10_8, new_legends)
-    # hourlyDailyPlot(sh_dict, sh_names, Category10_8, new_legends)
-    # hourlyDailyPlot(dhw_dict, dhw_names, Category10_8, new_legends)
+    # hourlyDailyPlot(elec_dict, elec_names, Category10_8, newLegends)
+    # hourlyDailyPlot(sh_dict, sh_names, Category10_8, newLegends)
+    # hourlyDailyPlot(dhw_dict, dhw_names, Category10_8, newLegends)
     #
     # for i in range(len(buildings_names)):
-    #     hourlyDailyPlot(buildings_dict[i], buildings_names[i], Category10_8, new_legends)
+    #     hourlyDailyPlot(buildings_dict[i], buildings_names[i], Category10_8, newLegends)
 
     #####################################
     ## Summary of the whole experiment ##
@@ -795,9 +795,9 @@ if __name__ == '__main__':
     #     fig1 = resultingDataDiagram(elec_dict[i], sh_dict[i], dhw_dict[i], costs_dict[i], env_dict[i], COLORS, buildings_number[i])[0]
     #     fig2 = resultingDataDemandDiagram(elec_dict[i], sh_dict[i], dhw_dict[i], COLORS, buildings_number[i])[0]
 
-    fig3 = resultingDataDiagramLoop(elec_dict, sh_dict, dhw_dict, costs_dict, env_dict, COLORS, buildings_number)
+    # fig3 = resultingDataDiagramLoop(elec_dict, sh_dict, dhw_dict, costs_dict, env_dict, COLORS, buildings_number)
 
-    # fig4 = resultingDataDemandDiagramLoop(elec_dict, sh_dict, dhw_dict, COLORS, buildings_number)
+    fig4 = resultingDataDemandDiagramLoop(elec_dict, sh_dict, dhw_dict, COLORS, buildings_number)
 
     plt.show()
 

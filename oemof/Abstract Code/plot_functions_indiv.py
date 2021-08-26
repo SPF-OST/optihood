@@ -238,10 +238,10 @@ def resultingDataDiagram(elBus, shBus, dhwBus, costs, env, COLORS, building):
     alpha = 0
 
     for flow in elBus.keys():
-        if "Storage" in flow and "out" in new_legends[flow.replace("__Building"+str(building), "")]:
-            storage[new_legends[flow.replace("__Building"+str(building), "")]] = [0, 0, sum(elBus[flow])]
+        if "Storage" in flow and "out" in newLegends[flow.replace("__Building"+str(building), "")]:
+            storage[newLegends[flow.replace("__Building"+str(building), "")]] = [0, 0, sum(elBus[flow])]
         elif "Storage" not in flow and "Demand" not in flow:
-            production[new_legends[flow.replace("__Building"+str(building), "")]] = [0, 0, sum(elBus[flow])]
+            production[newLegends[flow.replace("__Building"+str(building), "")]] = [0, 0, sum(elBus[flow])]
 
             # specific for negative flows
             if "HP_SH" in flow or "HP_DHW" in flow:
@@ -250,25 +250,25 @@ def resultingDataDiagram(elBus, shBus, dhwBus, costs, env, COLORS, building):
     production["HP"] = [0, 0, -alpha]
 
     for flow in shBus.keys():
-        if "Storage" in flow and "out" in new_legends[flow.replace("__Building"+str(building), "")]:
-            storage[new_legends[flow.replace("__Building"+str(building), "")]] = [0, sum(shBus[flow]), 0]
+        if "Storage" in flow and "out" in newLegends[flow.replace("__Building"+str(building), "")]:
+            storage[newLegends[flow.replace("__Building"+str(building), "")]] = [0, sum(shBus[flow]), 0]
         elif "Storage" not in flow and "Demand" not in flow:
-            production[new_legends[flow.replace("__Building"+str(building), "")]] = [0, sum(shBus[flow]), 0]
+            production[newLegends[flow.replace("__Building"+str(building), "")]] = [0, sum(shBus[flow]), 0]
 
     for flow in dhwBus.keys():
-        if "Storage__" in flow and "out" in new_legends[flow.replace("__Building"+str(building), "")]:
-            storage[new_legends[flow.replace("__Building"+str(building), "")]] = [sum(dhwBus[flow]), 0, 0]
+        if "Storage__" in flow and "out" in newLegends[flow.replace("__Building"+str(building), "")]:
+            storage[newLegends[flow.replace("__Building"+str(building), "")]] = [sum(dhwBus[flow]), 0, 0]
         elif "Storage__" not in flow and "Demand" not in flow:
-            production[new_legends[flow.replace("__Building"+str(building), "")]] = [sum(dhwBus[flow]), 0, 0]
+            production[newLegends[flow.replace("__Building"+str(building), "")]] = [sum(dhwBus[flow]), 0, 0]
 
     costs = costs.transpose()
     costs = costs.rename(index={0: building})
 
     env = env.transpose()
     for i in env.columns:
-        for j in new_legends.keys():
+        for j in newLegends.keys():
             if i.replace("__Building"+str(building), "") in j:
-                env = env.rename(columns={i: new_legends[j]})
+                env = env.rename(columns={i: newLegends[j]})
 
     production = pd.DataFrame.from_dict(production, orient='index')
     production = production.transpose()
@@ -440,33 +440,33 @@ def resultingDataDemandDiagram(elBus, shBus, dhwBus, COLORS, building):
     dhw = {}
     for flow in elBus.keys():
         if "Demand" in flow:
-            elec[new_legends[flow.replace("__Building"+str(building), "")]] = [0, sum(elBus[flow])]
+            elec[newLegends[flow.replace("__Building"+str(building), "")]] = [0, sum(elBus[flow])]
         else:
-            elec[new_legends[flow.replace("__Building"+str(building), "")]] = [sum(elBus[flow]), 0]
+            elec[newLegends[flow.replace("__Building"+str(building), "")]] = [sum(elBus[flow]), 0]
 
-        if "Storage" in flow and "in" in new_legends[flow.replace("__Building"+str(building), "")]:
-            del elec[new_legends[flow.replace("__Building"+str(building), "")]]
+        if "Storage" in flow and "in" in newLegends[flow.replace("__Building"+str(building), "")]:
+            del elec[newLegends[flow.replace("__Building"+str(building), "")]]
         elif "electricityBus" not in flow[5:] and "Demand" not in flow:
-            del elec[new_legends[flow.replace("__Building" + str(building), "")]]
+            del elec[newLegends[flow.replace("__Building" + str(building), "")]]
         elif "Resource" in flow or "excess" in flow:
-            del elec[new_legends[flow.replace("__Building" + str(building), "")]]
+            del elec[newLegends[flow.replace("__Building" + str(building), "")]]
 
     for flow in shBus.keys():
         if "Demand" in flow:
-            sh[new_legends[flow.replace("__Building" + str(building), "")]] = [0, sum(shBus[flow])]
+            sh[newLegends[flow.replace("__Building" + str(building), "")]] = [0, sum(shBus[flow])]
         else:
-            sh[new_legends[flow.replace("__Building" + str(building), "")]] = [sum(shBus[flow]), 0]
-        if "Storage" in flow and "in" in new_legends[flow.replace("__Building"+str(building), "")]:
-            del sh[new_legends[flow.replace("__Building"+str(building), "")]]
+            sh[newLegends[flow.replace("__Building" + str(building), "")]] = [sum(shBus[flow]), 0]
+        if "Storage" in flow and "in" in newLegends[flow.replace("__Building"+str(building), "")]:
+            del sh[newLegends[flow.replace("__Building"+str(building), "")]]
 
     for flow in dhwBus.keys():
         if "Demand" in flow:
-            dhw[new_legends[flow.replace("__Building" + str(building), "")]] = [0, sum(dhwBus[flow])]
+            dhw[newLegends[flow.replace("__Building" + str(building), "")]] = [0, sum(dhwBus[flow])]
         else:
-            dhw[new_legends[flow.replace("__Building" + str(building), "")]] = [sum(dhwBus[flow]), 0]
+            dhw[newLegends[flow.replace("__Building" + str(building), "")]] = [sum(dhwBus[flow]), 0]
 
-        if "Storage" in flow and "in" in new_legends[flow.replace("__Building"+str(building), "")]:
-            del dhw[new_legends[flow.replace("__Building"+str(building), "")]]
+        if "Storage_" in flow :
+            del dhw[newLegends[flow.replace("__Building"+str(building), "")]]
 
     elec = pd.DataFrame.from_dict(elec, orient='index')
     elec = elec.transpose()
@@ -637,7 +637,7 @@ if __name__ == '__main__':
     ########## Classic plots  ###########
     #####################################
 
-    new_legends = {
+    newLegends = {
         "(('naturalGasResource', 'naturalGasBus'), 'flow')": "NaturalGas",
         "(('electricityBus', 'excesselectricityBus'), 'flow')": "Feed-in",
         "(('electricityBus', 'electricalStorage'), 'flow')": "Battery_in",
@@ -660,7 +660,7 @@ if __name__ == '__main__':
         "(('HP_SH', 'spaceHeatingBus'), 'flow')": "HP_sh",
     }
 
-    buses = get_data("results1_8.xlsx")
+    buses = get_data("results4_8_indiv.xlsx")
     elec_names = []
     elec_dict = []
     sh_names = []
@@ -715,14 +715,14 @@ if __name__ == '__main__':
             env_dict.append(buses[i])
 
     # for i in elec_names + sh_names + dhw_names:
-    #     monthlyBalance(buses[i], i, new_legends)
+    #     monthlyBalance(buses[i], i, newLegends)
     #
-    # hourlyDailyPlot(elec_dict, elec_names, Category10_8, new_legends)
-    # hourlyDailyPlot(sh_dict, sh_names, Category10_8, new_legends)
-    # hourlyDailyPlot(dhw_dict, dhw_names, Category10_8, new_legends)
+    # hourlyDailyPlot(elec_dict, elec_names, Category10_8, newLegends)
+    # hourlyDailyPlot(sh_dict, sh_names, Category10_8, newLegends)
+    # hourlyDailyPlot(dhw_dict, dhw_names, Category10_8, newLegends)
     #
     # for i in range(len(buildings_names)):
-    #     hourlyDailyPlot(buildings_dict[i], buildings_names[i], Category10_8, new_legends)
+    #     hourlyDailyPlot(buildings_dict[i], buildings_names[i], Category10_8, newLegends)
 
     #####################################
     ## Summary of the whole experiment ##
@@ -754,13 +754,13 @@ if __name__ == '__main__':
     for name, color in my_colors.items():
         COLORS[name] = color
 
-    for i in range(len(buildings_names)):
-        fig1 = resultingDataDiagram(elec_dict[i], sh_dict[i], dhw_dict[i], costs_dict[i], env_dict[i], COLORS, buildings_number[i])[0]
-        fig2 = resultingDataDemandDiagram(elec_dict[i], sh_dict[i], dhw_dict[i], COLORS, buildings_number[i])[0]
+    # for i in range(len(buildings_names)):
+    #     fig1 = resultingDataDiagram(elec_dict[i], sh_dict[i], dhw_dict[i], costs_dict[i], env_dict[i], COLORS, buildings_number[i])[0]
+    #     fig2 = resultingDataDemandDiagram(elec_dict[i], sh_dict[i], dhw_dict[i], COLORS, buildings_number[i])[0]
 
     # fig3 = resultingDataDiagramLoop(elec_dict, sh_dict, dhw_dict, costs_dict, env_dict, COLORS, buildings_number)
-
-    # fig4 = resultingDataDemandDiagramLoop(elec_dict, sh_dict, dhw_dict, COLORS, buildings_number)
+    #
+    fig4 = resultingDataDemandDiagramLoop(elec_dict, sh_dict, dhw_dict, COLORS, buildings_number)
 
     plt.show()
 
