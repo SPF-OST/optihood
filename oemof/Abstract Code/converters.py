@@ -4,36 +4,42 @@ import numpy as np
 class HeatPumpLinear:
     def __init__(self, buildingLabel, temperatureDHW, temperatureSH, temperatureLow, input, outputSH, outputDHW, capacityMin, capacityMax,
                  epc, base, varc, env_flow, env_capa):
+        self.__tDHW = temperatureDHW
+        self.__tSH = temperatureSH
         self.__copDHW = self._calculate_cop(temperatureDHW, temperatureLow)
         self.__copSH = self._calculate_cop(temperatureSH, temperatureLow)
-        self.__heatpumpSH = solph.Transformer(label='HP_SH'+'__'+buildingLabel, inputs={input: solph.Flow()}, outputs={outputSH: solph.Flow(
-                                        investment=solph.Investment(
-                                            ep_costs=epc,
-                                            minimum=capacityMin,
-                                            maximum=capacityMax,
-                                            nonconvex=True,
-                                            offset=base,
-                                            env_per_capa=env_capa,
-                                        ),
-                                        variable_costs=varc,
-                                        env_per_flow=env_flow,
+        self.__DHWChargingTimesteps = [5, 6, 16, 17]     # Data in the scenario file is from 01:00 H onwards (instead of 00:00)
+        self._chargingRule()
+        self.__heatpumpSH = solph.Transformer(label='HP_SH'+'__'+buildingLabel, inputs={input: solph.Flow()},
+                                              outputs={outputSH: solph.Flow(
+                                                        investment=solph.Investment(
+                                                            ep_costs=epc,
+                                                            minimum=capacityMin,
+                                                            maximum=capacityMax,
+                                                            nonconvex=True,
+                                                            offset=base,
+                                                            env_per_capa=env_capa,
+                                                        ),
+                                                        variable_costs=varc,
+                                                        env_per_flow=env_flow,
 
-                                        )},
-                                        conversion_factors={outputSH: self.__copSH})
-        self.__heatpumpDHW = solph.Transformer(label='HP_DHW'+'__'+buildingLabel, inputs={input: solph.Flow()}, outputs={outputDHW: solph.Flow(
-                                        investment=solph.Investment(
-                                            ep_costs=epc,
-                                            minimum=capacityMin,
-                                            maximum=capacityMax,
-                                            nonconvex=True,
-                                            offset=base,
-                                            env_per_capa=env_capa,
-                                        ),
-                                        variable_costs=varc,
-                                        env_per_flow=env_flow,
+                                                        )},
+                                              conversion_factors={outputSH: self.__copSH})
+        self.__heatpumpDHW = solph.Transformer(label='HP_DHW'+'__'+buildingLabel, inputs={input: solph.Flow()},
+                                               outputs={outputDHW: solph.Flow(
+                                                        investment=solph.Investment(
+                                                            ep_costs=epc,
+                                                            minimum=capacityMin,
+                                                            maximum=capacityMax,
+                                                            nonconvex=True,
+                                                            offset=base,
+                                                            env_per_capa=env_capa,
+                                                        ),
+                                                        variable_costs=varc,
+                                                        env_per_flow=env_flow,
 
-                                        )},
-                                        conversion_factors={outputDHW: self.__copDHW})
+                                                        )},
+                                               conversion_factors={outputDHW: self.__copDHW})
 
     def _calculate_cop(self, tHigh, tLow):
         coefCOP = [12.4896, 64.0652, -83.0217, -230.1195, 173.2122]
@@ -47,6 +53,13 @@ class HeatPumpLinear:
         cop = np.divide(QCondenser, WCompressor)
         return cop
 
+    def _chargingRule(self):
+        for t in range(8760):
+            if any([(t - x) % 24 == 0 for x in self.__DHWChargingTimesteps]):
+                    self.__copSH[t] = 0
+            else:
+                    self.__copDHW[t] = 0
+
     def getHP(self, type):
         if type == 'sh':
             return self.__heatpumpSH
@@ -59,7 +72,7 @@ class HeatPumpLinear:
 
 class CHP(solph.Transformer):
     def __init__(self, buildingLabel, input, outputEl, outputSH, outputDHW, efficiencyEl, efficiencySH, efficiencyDHW,
-                 capacityMin, CapacityEl, capacitySH, capacityDHW, epc, base, varc1, varc2, env_flow1, env_flow2, env_capa):
+                 capacityMin, capacityEl, capacitySH, capacityDHW, epc, base, varc1, varc2, env_flow1, env_flow2, env_capa):
         super(CHP, self).__init__(
                         label='CHP'+'__'+buildingLabel,
                         inputs={
@@ -70,7 +83,7 @@ class CHP(solph.Transformer):
                                 investment=solph.Investment(
                                     ep_costs=epc,
                                     minimum=capacityMin,
-                                    maximum=CapacityEl,
+                                    maximum=capacityEl,
                                     nonconvex=True,
                                     offset=base,
                                     env_per_capa=env_capa,

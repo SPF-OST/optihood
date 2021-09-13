@@ -12,7 +12,7 @@ except ImportError:
     plt = None
 from converters import HeatPumpLinear, CHP
 from storages import ElectricalStorage, ThermalStorage
-from moo_limit import *
+from constraints import *
 
 intRate = 0.05
 
@@ -77,6 +77,14 @@ class Building:
                         )
                     )
                 self.__costParam["excess" + b["label"]+'__'+self.__buildingLabel] = b["excess costs"]
+
+    def addGridSeparation(self, dataGridSeparation):
+        if not dataGridSeparation.empty:
+            for i, gs in dataGridSeparation.iterrows():
+                self.__nodesList.append(solph.Transformer(label=gs["label"]+'__'+self.__buildingLabel,
+                                                          inputs={self.__busDict[gs["from"]+'__'+self.__buildingLabel]: solph.Flow()},
+                                                          outputs={self.__busDict[gs["to"]+'__'+self.__buildingLabel]: solph.Flow()},
+                                                  conversion_factors={self.__busDict[gs["to"]+'__'+self.__buildingLabel]: gs["efficiency"]}))
 
     def addSource(self, data, data_elec, opt):
         # Create Source objects from table 'commodity sources'
@@ -342,6 +350,7 @@ class EnergyNetwork(solph.EnergySystem):
         data = pd.ExcelFile(filePath)
         nodesData = {
             "buses": data.parse("buses"),
+            "grid_connection": data.parse("grid_connection"),
             "commodity_sources": data.parse("commodity_sources"),
             "electricity_impact": data.parse("electricity_impact"),
             "transformers": data.parse("transformers"),
@@ -379,6 +388,7 @@ class EnergyNetwork(solph.EnergySystem):
         for b in self.__buildings:
             i = int(b.getBuildingLabel()[8:])
             b.addBus(data["buses"][data["buses"]["building"] == i], opt)
+            b.addGridSeparation(data["grid_connection"][data["grid_connection"]["building"] == i])
             b.addSource(data["commodity_sources"][data["commodity_sources"]["building"] == i], data["electricity_impact"], opt)
             b.addSink(data["demand"][data["demand"]["building"] == i], data["timeseries"].filter(regex=str(i)))
             b.addTransformer(data["transformers"][data["transformers"]["building"] == i], self.__temperatureDHW,
@@ -402,6 +412,9 @@ class EnergyNetwork(solph.EnergySystem):
     def optimize(self, solver, e):
         logging.info("Initiating optimization using {} solver".format(solver))
         optimizationModel = solph.Model(self)
+        #optimizationModel = hpRule(optimizationModel, "HP_DHW", "HP_SH", "electricityBus", "domesticHotWaterDemand",
+         #                          "domesticHotWaterBus",
+         #                          "dhwStorage")  # labels namely labelHpDhw, labelHpSh, labelElBus, labelDhwDemand, labelDhwBus, labelDhwStorage need to be passed as argument if they differ from the default ones
         optimizationModel, flows, capa, capa_s = moo_limit(optimizationModel, keyword1="env_per_flow", keyword2="env_per_capa", limit=e)
         optimizationModel.solve(solver=solver)
         limit = optimizationModel.integral_limit_env_per_flow_env_per_capa()
@@ -441,7 +454,7 @@ class EnergyNetwork(solph.EnergySystem):
             self.__capex[b.getBuildingLabel()] = sum(self.__costParam[x][1] * (cap_building[x] > 1) for x in cap_building) +\
                 sum(cap_building[x] * self.__costParam[x][0] for x in cap_building)
             self.__opex[b.getBuildingLabel()] = sum(sum(solph.views.node(self.__optimizationResults, i[1])["sequences"][(i[0], i[1]), "flow"])
-                          * self.__costParam[i[0]] for i in n_inputs + [["electricityResource"+'__'+b.getBuildingLabel(), "electricityBus"+'__'+b.getBuildingLabel()]])
+                          * self.__costParam[i[0]] for i in n_inputs + [["electricityResource"+'__'+b.getBuildingLabel(), "gridBus"+'__'+b.getBuildingLabel()]])
             self.__feedIn[b.getBuildingLabel()] = sum(solph.views.node(self.__optimizationResults, "electricityBus"+'__'+b.getBuildingLabel())
                                 ["sequences"][("electricityBus"+'__'+b.getBuildingLabel(), "excesselectricityBus"
                                                +'__'+b.getBuildingLabel()), "flow"]) * self.__costParam[
@@ -452,7 +465,7 @@ class EnergyNetwork(solph.EnergySystem):
 
             A = self.__envParam["electricityResource"+'__'+b.getBuildingLabel()].copy()
             A.reset_index(inplace=True, drop=True)
-            B = solph.views.node(self.__optimizationResults, "electricityBus"+'__'+b.getBuildingLabel())["sequences"][("electricityResource"+'__'+b.getBuildingLabel(), "electricityBus"+'__'+b.getBuildingLabel()), "flow"]
+            B = solph.views.node(self.__optimizationResults, "gridBus"+'__'+b.getBuildingLabel())["sequences"][("electricityResource"+'__'+b.getBuildingLabel(), "gridBus"+'__'+b.getBuildingLabel()), "flow"]
             B.reset_index(inplace=True, drop=True)
 
             self.__envImpactInputs[b.getBuildingLabel()] += (A*B).sum()
@@ -549,9 +562,9 @@ class EnergyNetwork(solph.EnergySystem):
 
                 A = self.__envParam["electricityResource" + '__' + b.getBuildingLabel()].copy()
                 A.reset_index(inplace=True, drop=True)
-                B = solph.views.node(self.__optimizationResults, "electricityBus" + '__' + b.getBuildingLabel())[
+                B = solph.views.node(self.__optimizationResults, "gridBus" + '__' + b.getBuildingLabel())[
                     "sequences"][("electricityResource" + '__' + b.getBuildingLabel(),
-                                  "electricityBus" + '__' + b.getBuildingLabel()), "flow"]
+                                  "gridBus" + '__' + b.getBuildingLabel()), "flow"]
                 B.reset_index(inplace=True, drop=True)
                 env_impact["electricityResource" + '__' + b.getBuildingLabel()] = (A * B).sum()
 
