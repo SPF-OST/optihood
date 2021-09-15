@@ -11,13 +11,14 @@ from bokeh.resources import CDN
 
 from openpyxl import load_workbook
 
+import re
 import itertools
 import pandas as pd
 
 # This file defines different functions for the plotting of the results of the optimization.
 # The plots are made at the end of this file, introducing a .xls file previously created during the optimization.
 
-def monthly_balance(data, bus, new_legends):
+def monthlyBalance(data, bus, new_legends):
     """
     Function for the definition of the monthly summary of a bus
     :param data: dict type, results from the optimization applied to one bus
@@ -43,11 +44,10 @@ def monthly_balance(data, bus, new_legends):
     pos_flow = []
     for i in data.columns:
         a = [i.strip("()").split(", ")]
-        if bus in a[0][0]:
+        if "Bus" in a[0][0]:
             neg_flow.append(i)
         else:
             pos_flow.append(i)
-
     plt.figure()
     mark = []
     for i in neg_flow:
@@ -75,7 +75,7 @@ def monthly_balance(data, bus, new_legends):
     plt.show()
 
 
-def hourly_daily_plot(data, bus, palette, new_legends):
+def hourlyDailyPlot(data, bus, palette, new_legends):
     """
     Function for the bokeh plot of hourly and daily balance of a bus
     :param data: list of dict type, results from the optimization
@@ -154,8 +154,9 @@ def hourly_daily_plot(data, bus, palette, new_legends):
     show(graph)
 
 
-def to_color(COLORS, obj=None):
+def toColor(COLORS, obj=None):
     """
+    Function from the URBS platform https://github.com/ojdo/urbs/blob/1house/comp.py
     Assign a deterministic pseudo-random color to argument.
     If COLORS[obj] is set, return that. For strings, this value depends only
     on the string content, so that same strings always yield the same color.
@@ -172,8 +173,9 @@ def to_color(COLORS, obj=None):
     return color
 
 
-def group_hbar_plots(ax, group_size, inner_sep=None):
+def groupHbarPlots(ax, group_size, inner_sep=None):
     """
+    Function from the URBS platform https://github.com/ojdo/urbs/blob/1house/comp.py
     Group bars of a horizontal barplot closer together.
     Given an existing horizontal bar plot handle ax, move bars of a given group size (>=2) closer together,
     reducing the distance within the bars of a group, but increasing the distance between different groups.
@@ -202,8 +204,9 @@ def group_hbar_plots(ax, group_size, inner_sep=None):
                         + group_offset)
 
 
-def deduplicate_legend(handles, labels):
+def deduplicateLegend(handles, labels):
     """
+    Function from the URBS platform https://github.com/ojdo/urbs/blob/1house/comp.py
     Remove double entries from figure legend.
     :param handles: list of legend entry handles
     :param labels: list of legend entry labels
@@ -220,8 +223,9 @@ def deduplicate_legend(handles, labels):
     return (new_handles, new_labels)
 
 
-def resulting_data_diagram(elBus, shBus, dhwBus, costs, env, COLORS, building):
+def resultingDataDiagram(elBus, shBus, dhwBus, costs, env, COLORS, building):
     """
+    Function inspired from the URBS platform https://github.com/ojdo/urbs/blob/1house/comp.py
     Function plotting the different results of the optimization. First, costs will be plotted, then the energy produced,
     comparing energy for electricity bus, sh and dhw bus, and finally the retrieved energy from the storages.
     :param elBus: dict type, results from the optimization applied to one bus.
@@ -236,12 +240,26 @@ def resulting_data_diagram(elBus, shBus, dhwBus, costs, env, COLORS, building):
     production = {}
     storage = {}
     alpha = 0
+    list = []
 
     for flow in elBus.keys():
-        if "Storage" in flow and "out" in new_legends[flow.replace("__Building"+str(building), "")]:
-            storage[new_legends[flow.replace("__Building"+str(building), "")]] = [0, 0, sum(elBus[flow])]
+        if "Storage" in flow and "out" in newLegends[flow.replace("__Building"+str(building), "")]:
+            storage[newLegends[flow.replace("__Building"+str(building), "")]] = [0, 0, sum(elBus[flow])]
+        elif "electricityLink" in flow:
+            if "_in" in newLegends[flow.replace("__Building" + str(building), "")]:
+                if newLegends[flow.replace("__Building" + str(building), "")].replace("_in", "") in list:
+                    production[newLegends[flow.replace("__Building" + str(building), "")].replace("_in", "")][2] -= sum(elBus[flow])
+                else:
+                    production[newLegends[flow.replace("__Building" + str(building), "")].replace("_in", "")] = [0, 0, -sum(elBus[flow])]
+                    list.append(newLegends[flow.replace("__Building" + str(building), "")].replace("_in", ""))
+            elif "_out" in newLegends[flow.replace("__Building" + str(building), "")]:
+                if newLegends[flow.replace("__Building" + str(building), "")].replace("_out", "") in list:
+                    production[newLegends[flow.replace("__Building" + str(building), "")].replace("_out", "")][2] += sum(elBus[flow])
+                else:
+                    production[newLegends[flow.replace("__Building" + str(building), "")].replace("_out", "")] = [0, 0, sum(elBus[flow])]
+                    list.append(newLegends[flow.replace("__Building" + str(building), "")].replace("_out", ""))
         elif "Storage" not in flow and "Demand" not in flow:
-            production[new_legends[flow.replace("__Building"+str(building), "")]] = [0, 0, sum(elBus[flow])]
+            production[newLegends[flow.replace("__Building"+str(building), "")]] = [0, 0, sum(elBus[flow])]
 
             # specific for negative flows
             if "HP_SH" in flow or "HP_DHW" in flow:
@@ -250,25 +268,25 @@ def resulting_data_diagram(elBus, shBus, dhwBus, costs, env, COLORS, building):
     production["HP"] = [0, 0, -alpha]
 
     for flow in shBus.keys():
-        if "Storage" in flow and "out" in new_legends[flow.replace("__Building"+str(building), "")]:
-            storage[new_legends[flow.replace("__Building"+str(building), "")]] = [0, sum(shBus[flow]), 0]
+        if "Storage" in flow and "out" in newLegends[flow.replace("__Building"+str(building), "")]:
+            storage[newLegends[flow.replace("__Building"+str(building), "")]] = [0, sum(shBus[flow]), 0]
         elif "Storage" not in flow and "Demand" not in flow:
-            production[new_legends[flow.replace("__Building"+str(building), "")]] = [0, sum(shBus[flow]), 0]
+            production[newLegends[flow.replace("__Building"+str(building), "")]] = [0, sum(shBus[flow]), 0]
 
     for flow in dhwBus.keys():
-        if "Storage" in flow and "out" in new_legends[flow.replace("__Building"+str(building), "")]:
-            storage[new_legends[flow.replace("__Building"+str(building), "")]] = [sum(dhwBus[flow]), 0, 0]
-        elif "Storage" not in flow and "Demand" not in flow:
-            production[new_legends[flow.replace("__Building"+str(building), "")]] = [sum(dhwBus[flow]), 0, 0]
+        if "Storage__" in flow and "out" in newLegends[flow.replace("__Building"+str(building), "")]:
+            storage[newLegends[flow.replace("__Building"+str(building), "")]] = [sum(dhwBus[flow]), 0, 0]
+        elif "Storage__" not in flow and "Demand" not in flow:
+            production[newLegends[flow.replace("__Building"+str(building), "")]] = [sum(dhwBus[flow]), 0, 0]
 
     costs = costs.transpose()
     costs = costs.rename(index={0: building})
 
     env = env.transpose()
     for i in env.columns:
-        for j in new_legends.keys():
+        for j in newLegends.keys():
             if i.replace("__Building"+str(building), "") in j:
-                env = env.rename(columns={i: new_legends[j]})
+                env = env.rename(columns={i: newLegends[j]})
 
     production = pd.DataFrame.from_dict(production, orient='index')
     production = production.transpose()
@@ -280,26 +298,26 @@ def resulting_data_diagram(elBus, shBus, dhwBus, costs, env, COLORS, building):
     gs = gridspec.GridSpec(1, 4, width_ratios=[3, 4, 8, 3], wspace=0.03)
 
     ax0 = plt.subplot(gs[0])
-    costs_colors = [to_color(COLORS, x) for x in costs.columns]
+    costs_colors = [toColor(COLORS, x) for x in costs.columns]
     bp0 = costs.plot(ax=ax0, kind='barh', color=costs_colors, stacked=True, linewidth=0)
 
     ax1 = plt.subplot(gs[1])
-    env_colors = [to_color(COLORS, x) for x in env.columns]
+    env_colors = [toColor(COLORS, x) for x in env.columns]
     bp1 = env.plot(ax=ax1, kind='barh', color=env_colors, stacked=True, linewidth=0)
 
     ax2 = plt.subplot(gs[2])
-    production_colors = [to_color(COLORS, x) for x in production.columns]
+    production_colors = [toColor(COLORS, x) for x in production.columns]
     bp2 = production.plot(ax=ax2, kind='barh', color=production_colors, stacked=True, linewidth=0, width=.5)
 
     ax3 = plt.subplot(gs[3])
-    storage_colors = [to_color(COLORS, x) for x in storage.columns]
+    storage_colors = [toColor(COLORS, x) for x in storage.columns]
     bp3 = storage.plot(ax=ax3, kind='barh', color=storage_colors, stacked=True, linewidth=0)
 
     # remove scenario names from other bar plots
     for ax in [ax1, ax2]:
         ax.set_yticklabels('')
     for ax in [ax2, ax3]:
-        group_hbar_plots(ax, group_size=3, inner_sep=0.01)
+        groupHbarPlots(ax, group_size=3, inner_sep=0.01)
     ax3.yaxis.tick_right()
 
     # set limits and ticks for both axes
@@ -327,7 +345,7 @@ def resulting_data_diagram(elBus, shBus, dhwBus, costs, env, COLORS, building):
                         'ncol': 2,
                         'bbox_to_anchor': (0.5, .99)}
         # get handels and labels, remove duplicate labels
-        handles, labels = deduplicate_legend(*ax.get_legend_handles_labels())
+        handles, labels = deduplicateLegend(*ax.get_legend_handles_labels())
         # set legend to use those
         lg = ax.legend(handles, labels, **legend_style)
         # finally, remove lines from patches
@@ -340,8 +358,9 @@ def resulting_data_diagram(elBus, shBus, dhwBus, costs, env, COLORS, building):
     return fig, costs, env, production, storage
 
 
-def resulting_data_diagram_loop(elec, sh, dhw, costs, env, colors, buildings):
+def resultingDataDiagramLoop(elec, sh, dhw, costs, env, colors, buildings):
     """
+    Function inspired from the URBS platform https://github.com/ojdo/urbs/blob/1house/comp.py
     Function plotting the graph comparing the different buildings/scenarios on costs, energy produced and energy
     retrieved from storages
     :param elec: list of dict type, optimization results
@@ -353,9 +372,9 @@ def resulting_data_diagram_loop(elec, sh, dhw, costs, env, colors, buildings):
     :param buildings: list of str type, name of the different buildings
     :return: figure created
     """
-    n_costs, n_env, n_production, n_storage = resulting_data_diagram(elec[0], sh[0], dhw[0], costs[0], env[0], colors, buildings[0])[1:]
+    n_costs, n_env, n_production, n_storage = resultingDataDiagram(elec[0], sh[0], dhw[0], costs[0], env[0], colors, buildings[0])[1:]
     for i in range(1, len(elec)):
-        a, b, c, d = resulting_data_diagram(elec[i], sh[i], dhw[i], costs[i], env[i], colors, buildings[i])[1:]
+        a, b, c, d = resultingDataDiagram(elec[i], sh[i], dhw[i], costs[i], env[i], colors, buildings[i])[1:]
         n_costs = pd.concat([n_costs, a])
         n_env = pd.concat([n_env, b])
         n_production = pd.concat([n_production, c])
@@ -365,26 +384,26 @@ def resulting_data_diagram_loop(elec, sh, dhw, costs, env, colors, buildings):
     gs = gridspec.GridSpec(1, 4, width_ratios=[4, 3, 8, 3], wspace=0.03)
 
     ax0 = plt.subplot(gs[0])
-    costs_colors = [to_color(colors, x) for x in n_costs.columns]
+    costs_colors = [toColor(colors, x) for x in n_costs.columns]
     bp0 = n_costs.plot(ax=ax0, kind='barh', color=costs_colors, stacked=True, linewidth=0)
 
     ax1 = plt.subplot(gs[1])
-    env_colors = [to_color(colors, x) for x in n_env.columns]
+    env_colors = [toColor(colors, x) for x in n_env.columns]
     bp1 = n_env.plot(ax=ax1, kind='barh', color=env_colors, stacked=True, linewidth=0)
 
     ax2 = plt.subplot(gs[2])
-    production_colors = [to_color(colors, x) for x in n_production.columns]
+    production_colors = [toColor(colors, x) for x in n_production.columns]
     bp2 = n_production.plot(ax=ax2, kind='barh', color=production_colors, stacked=True, linewidth=0, width=.5)
 
     ax3 = plt.subplot(gs[3])
-    storage_colors = [to_color(colors, x) for x in n_storage.columns]
+    storage_colors = [toColor(colors, x) for x in n_storage.columns]
     bp3 = n_storage.plot(ax=ax3, kind='barh', color=storage_colors, stacked=True, linewidth=0)
 
     # remove scenario names from other bar plots
     for ax in [ax1, ax2, ax3]:
         ax.set_yticklabels('')
     for ax in [ax2, ax3]:
-        group_hbar_plots(ax, group_size=3, inner_sep=0.01)
+        groupHbarPlots(ax, group_size=3, inner_sep=0.01)
 
     # set limits and ticks for both axes
     for ax in [ax0, ax1, ax2, ax3]:
@@ -411,7 +430,7 @@ def resulting_data_diagram_loop(elec, sh, dhw, costs, env, colors, buildings):
                         'ncol': 2,
                         'bbox_to_anchor': (0.5, .99)}
         # get handels and labels, remove duplicate labels
-        handles, labels = deduplicate_legend(*ax.get_legend_handles_labels())
+        handles, labels = deduplicateLegend(*ax.get_legend_handles_labels())
         # set legend to use those
         lg = ax.legend(handles, labels, **legend_style)
         # finally, remove lines from patches
@@ -424,8 +443,9 @@ def resulting_data_diagram_loop(elec, sh, dhw, costs, env, colors, buildings):
 
     return fig
 
-def resulting_data_demand_diagram(elBus, shBus, dhwBus, COLORS, building):
+def resultingDataDemandDiagram(elBus, shBus, dhwBus, COLORS, building):
     """
+    Function inspired from the URBS platform https://github.com/ojdo/urbs/blob/1house/comp.py
     Function plotting the different results of the optimization. First, costs will be plotted, then the energy produced,
     comparing energy for electricity bus, sh and dhw bus, and finally the retrieved energy from the storages.
     :param elBus: dict type, results from the optimization applied to one bus. Called like "solph.views.node(results, bus)"
@@ -438,35 +458,42 @@ def resulting_data_demand_diagram(elBus, shBus, dhwBus, COLORS, building):
     elec = {}
     sh = {}
     dhw = {}
+    list = []
     for flow in elBus.keys():
         if "Demand" in flow:
-            elec[new_legends[flow.replace("__Building"+str(building), "")]] = [0, sum(elBus[flow])]
+            elec[newLegends[flow.replace("__Building"+str(building), "")]] = [0, sum(elBus[flow])]
+        elif "electricityLink" in flow and "_in" not in newLegends[flow.replace("__Building" + str(building), "")]:
+            if newLegends[flow.replace("__Building" + str(building), "")] in list:
+                elec[newLegends[flow.replace("__Building" + str(building), "")]][0] += sum(elBus[flow])
+            else:
+                elec[newLegends[flow.replace("__Building" + str(building), "")]] = [sum(elBus[flow]), 0]
+                list.append(newLegends[flow.replace("__Building" + str(building), "")])
         else:
-            elec[new_legends[flow.replace("__Building"+str(building), "")]] = [sum(elBus[flow]), 0]
+            elec[newLegends[flow.replace("__Building"+str(building), "")]] = [sum(elBus[flow]), 0]
 
-        if "Storage" in flow and "in" in new_legends[flow.replace("__Building"+str(building), "")]:
-            del elec[new_legends[flow.replace("__Building"+str(building), "")]]
+        if "Storage" in flow and "in" in newLegends[flow.replace("__Building"+str(building), "")]:
+            del elec[newLegends[flow.replace("__Building"+str(building), "")]]
         elif "electricityBus" not in flow[5:] and "Demand" not in flow:
-            del elec[new_legends[flow.replace("__Building" + str(building), "")]]
+            del elec[newLegends[flow.replace("__Building" + str(building), "")]]
         elif "Resource" in flow or "excess" in flow:
-            del elec[new_legends[flow.replace("__Building" + str(building), "")]]
+            del elec[newLegends[flow.replace("__Building" + str(building), "")]]
 
     for flow in shBus.keys():
         if "Demand" in flow:
-            sh[new_legends[flow.replace("__Building" + str(building), "")]] = [0, sum(shBus[flow])]
+            sh[newLegends[flow.replace("__Building" + str(building), "")]] = [0, sum(shBus[flow])]
         else:
-            sh[new_legends[flow.replace("__Building" + str(building), "")]] = [sum(shBus[flow]), 0]
-        if "Storage" in flow and "in" in new_legends[flow.replace("__Building"+str(building), "")]:
-            del sh[new_legends[flow.replace("__Building"+str(building), "")]]
+            sh[newLegends[flow.replace("__Building" + str(building), "")]] = [sum(shBus[flow]), 0]
+        if "Storage" in flow and "in" in newLegends[flow.replace("__Building"+str(building), "")]:
+            del sh[newLegends[flow.replace("__Building"+str(building), "")]]
 
     for flow in dhwBus.keys():
         if "Demand" in flow:
-            dhw[new_legends[flow.replace("__Building" + str(building), "")]] = [0, sum(dhwBus[flow])]
+            dhw[newLegends[flow.replace("__Building" + str(building), "")]] = [0, sum(dhwBus[flow])]
         else:
-            dhw[new_legends[flow.replace("__Building" + str(building), "")]] = [sum(dhwBus[flow]), 0]
+            dhw[newLegends[flow.replace("__Building" + str(building), "")]] = [sum(dhwBus[flow]), 0]
 
-        if "Storage" in flow and "in" in new_legends[flow.replace("__Building"+str(building), "")]:
-            del dhw[new_legends[flow.replace("__Building"+str(building), "")]]
+        if "Storage_" in flow:
+            del dhw[newLegends[flow.replace("__Building"+str(building), "")]]
 
     elec = pd.DataFrame.from_dict(elec, orient='index')
     elec = elec.transpose()
@@ -481,15 +508,15 @@ def resulting_data_demand_diagram(elBus, shBus, dhwBus, COLORS, building):
     gs = gridspec.GridSpec(1, 3, wspace=0.1)
 
     ax0 = plt.subplot(gs[0])
-    elec_colors = [to_color(COLORS, x) for x in elec.columns]
+    elec_colors = [toColor(COLORS, x) for x in elec.columns]
     bp0 = elec.plot(ax=ax0, kind='barh', color=elec_colors, stacked=True, linewidth=0, width=.5)
 
     ax1 = plt.subplot(gs[1])
-    sh_colors = [to_color(COLORS, x) for x in sh.columns]
+    sh_colors = [toColor(COLORS, x) for x in sh.columns]
     bp1 = sh.plot(ax=ax1, kind='barh', color=sh_colors, stacked=True, linewidth=0)
 
     ax2 = plt.subplot(gs[2])
-    dhw_colors = [to_color(COLORS, x) for x in dhw.columns]
+    dhw_colors = [toColor(COLORS, x) for x in dhw.columns]
     bp2 = dhw.plot(ax=ax2, kind='barh', color=dhw_colors, stacked=True, linewidth=0)
 
     # remove scenario names from other bar plots
@@ -497,7 +524,7 @@ def resulting_data_demand_diagram(elBus, shBus, dhwBus, COLORS, building):
     for ax in [ax1, ax2]:
         ax.set_yticklabels('')
     for ax in [ax0, ax1, ax2]:
-        group_hbar_plots(ax, group_size=2, inner_sep=0.0)
+        groupHbarPlots(ax, group_size=2, inner_sep=0.0)
 
     # set limits and ticks for both axes
     for ax in [ax0, ax1, ax2]:
@@ -524,20 +551,21 @@ def resulting_data_demand_diagram(elBus, shBus, dhwBus, COLORS, building):
                         'ncol': 3,
                         'bbox_to_anchor': (0.5, .99)}
         # get handels and labels, remove duplicate labels
-        handles, labels = deduplicate_legend(*ax.get_legend_handles_labels())
+        handles, labels = deduplicateLegend(*ax.get_legend_handles_labels())
         # set legend to use those
         lg = ax.legend(handles, labels, **legend_style)
         # finally, remove lines from patches
         plt.setp(lg.get_patches(), linewidth=0)
 
     ax0.set_xlabel('Demand and energy produced\n for electricity (kWh)')
-    ax1.set_xlabel('Demand and energy produced\n for space heat (kWh)')
+    ax1.set_xlabel('Demand and energy produced\n for space heating (kWh)')
     ax2.set_xlabel('Demand and energy produced\n for domestic hot water (kWh)')
 
     return fig, elec, sh, dhw
 
-def resulting_data_demand_diagram_loop(elec, sh, dhw, colors, buildings):
+def resultingDataDemandDiagramLoop(elec, sh, dhw, colors, buildings):
     """
+    Function inspired from the URBS platform https://github.com/ojdo/urbs/blob/1house/comp.py
     Function plotting the graph comparing the different buildings/scenarios on costs, energy produced and energy
     retrieved from storages
     :param elec: list of dict type, optimization results
@@ -547,9 +575,9 @@ def resulting_data_demand_diagram_loop(elec, sh, dhw, colors, buildings):
     :param buildings: list of str type, name of the different buildings
     :return: figure created
     """
-    n_elec, n_sh, n_dhw = resulting_data_demand_diagram(elec[0], sh[0], dhw[0], colors, int(buildings[0]))[1:]
+    n_elec, n_sh, n_dhw = resultingDataDemandDiagram(elec[0], sh[0], dhw[0], colors, int(buildings[0]))[1:]
     for i in range(1, len(elec)):
-        a, b, c = resulting_data_demand_diagram(elec[i], sh[i], dhw[i], colors, buildings[i])[1:]
+        a, b, c = resultingDataDemandDiagram(elec[i], sh[i], dhw[i], colors, buildings[i])[1:]
         n_elec = pd.concat([n_elec, a])
         n_sh = pd.concat([n_sh, b])
         n_dhw = pd.concat([n_dhw, c])
@@ -558,15 +586,15 @@ def resulting_data_demand_diagram_loop(elec, sh, dhw, colors, buildings):
     gs = gridspec.GridSpec(1, 3, wspace=0.1)
 
     ax0 = plt.subplot(gs[0])
-    elec_colors = [to_color(colors, x) for x in n_elec.columns]
+    elec_colors = [toColor(colors, x) for x in n_elec.columns]
     bp0 = n_elec.plot(ax=ax0, kind='barh', color=elec_colors, stacked=True, linewidth=0, width=.5)
 
     ax1 = plt.subplot(gs[1])
-    sh_colors = [to_color(colors, x) for x in n_sh.columns]
+    sh_colors = [toColor(colors, x) for x in n_sh.columns]
     bp1 = n_sh.plot(ax=ax1, kind='barh', color=sh_colors, stacked=True, linewidth=0)
 
     ax2 = plt.subplot(gs[2])
-    dhw_colors = [to_color(colors, x) for x in n_dhw.columns]
+    dhw_colors = [toColor(colors, x) for x in n_dhw.columns]
     bp2 = n_dhw.plot(ax=ax2, kind='barh', color=dhw_colors, stacked=True, linewidth=0)
 
     # remove scenario names from other bar plots
@@ -578,7 +606,7 @@ def resulting_data_demand_diagram_loop(elec, sh, dhw, colors, buildings):
     for ax in [ax1, ax2]:
         ax.set_yticklabels('')
     for ax in [ax0, ax1, ax2]:
-        group_hbar_plots(ax, group_size=2, inner_sep=0.0)
+        groupHbarPlots(ax, group_size=2, inner_sep=0.0)
 
     # set limits and ticks for both axes
     for ax in [ax0, ax1, ax2]:
@@ -605,20 +633,20 @@ def resulting_data_demand_diagram_loop(elec, sh, dhw, colors, buildings):
                         'ncol': 3,
                         'bbox_to_anchor': (0.5, .99)}
         # get handels and labels, remove duplicate labels
-        handles, labels = deduplicate_legend(*ax.get_legend_handles_labels())
+        handles, labels = deduplicateLegend(*ax.get_legend_handles_labels())
         # set legend to use those
         lg = ax.legend(handles, labels, **legend_style)
         # finally, remove lines from patches
         plt.setp(lg.get_patches(), linewidth=0)
 
     ax0.set_xlabel('Demand and energy produced\n for electricity (kWh)')
-    ax1.set_xlabel('Demand and energy produced\n for space heat (kWh)')
+    ax1.set_xlabel('Demand and energy produced\n for space heating (kWh)')
     ax2.set_xlabel('Demand and energy produced\n for domestic hot water (kWh)')
 
     return fig
 
 
-def get_data(filepath):
+def getData(filepath):
     """
     Function for the results recovery from an Excel file
     :param filepath: path to the Excel containing the results of the optimization
@@ -637,31 +665,43 @@ if __name__ == '__main__':
     ########## Classic plots  ###########
     #####################################
 
-    new_legends = {
+    newLegends = {
         "(('naturalGasResource', 'naturalGasBus'), 'flow')": "NaturalGas",
         "(('electricityBus', 'excesselectricityBus'), 'flow')": "Feed-in",
         "(('electricityBus', 'electricalStorage'), 'flow')": "Battery_in",
         "(('electricityBus', 'electricityDemand'), 'flow')": "Demand_elec",
         "(('electricityBus', 'HP_DHW'), 'flow')": "HP_dhw",
         "(('electricityBus', 'HP_SH'), 'flow')": "HP_sh",
-        "(('CHP', 'electricityBus'), 'flow')": "CHP_elec",
+        "(('CHP_DHW', 'electricityBus'), 'flow')": "CHP_DHW_elec",
+        "(('CHP_SH', 'electricityBus'), 'flow')": "CHP_SH_elec",
         "(('electricalStorage', 'electricityBus'), 'flow')": "Battery_out",
         "(('electricityResource', 'electricityBus'), 'flow')": "Grid_purchase",
         "(('dhwStorage', 'domesticHotWaterBus'), 'flow')": "Storage_dhw_out",
-        "(('domesticHotWaterBus', 'dhwStorage'), 'flow')": "Storage_dhw_in",
+        "(('dhwStorageBus', 'dhwStorage'), 'flow')": "Storage_dhw_in",
         "(('domesticHotWaterBus', 'domesticHotWaterDemand'), 'flow')": "Demand_dhw",
-        "(('HP_DHW', 'domesticHotWaterBus'), 'flow')": "HP_dhw",
-        "(('CHP', 'domesticHotWaterBus'), 'flow')": "CHP_dhw",
+        "(('HP_DHW', 'dhwStorageBus'), 'flow')": "HP_dhw",
+        "(('CHP_DHW', 'dhwStorageBus'), 'flow')": "CHP_dhw",
         "(('shStorage', 'spaceHeatingBus'), 'flow')": "Storage_sh_out",
         "(('spaceHeatingBus', 'shStorage'), 'flow')": "Storage_sh_in",
         "(('spaceHeatingBus', 'spaceHeatingDemand'), 'flow')": "Demand_sh",
-        "(('CHP', 'spaceHeatingBus'), 'flow')": "CHP_sh",
+        "(('CHP_SH', 'spaceHeatingBus'), 'flow')": "CHP_sh",
         "(('HP_SH', 'spaceHeatingBus'), 'flow')": "HP_sh",
-        "(('electricityBus', 'electricityLink1_2'), 'flow')": "electricityLink_in",
-        "(('electricityLink1_2', 'electricityBus'), 'flow')": "electricityLink_out"
     }
 
-    buses = get_data("results.xlsx")
+    newLegends["(('electricityBus', 'electricityLink1_2'), 'flow')"] = "electricityLink_in"
+    newLegends["(('electricityLink1_2', 'electricityBus'), 'flow')"] = "electricityLink_out"
+    newLegends["(('electricityBus', 'electricityLink1_3'), 'flow')"] = "electricityLink_in"
+    newLegends["(('electricityLink1_3', 'electricityBus'), 'flow')"] = "electricityLink_out"
+    newLegends["(('electricityBus', 'electricityLink1_4'), 'flow')"] = "electricityLink_in"
+    newLegends["(('electricityLink1_4', 'electricityBus'), 'flow')"] = "electricityLink_out"
+    newLegends["(('electricityBus', 'electricityLink2_3'), 'flow')"] = "electricityLink_in"
+    newLegends["(('electricityLink2_3', 'electricityBus'), 'flow')"] = "electricityLink_out"
+    newLegends["(('electricityBus', 'electricityLink2_4'), 'flow')"] = "electricityLink_in"
+    newLegends["(('electricityLink2_4', 'electricityBus'), 'flow')"] = "electricityLink_out"
+    newLegends["(('electricityBus', 'electricityLink3_4'), 'flow')"] = "electricityLink_in"
+    newLegends["(('electricityLink3_4', 'electricityBus'), 'flow')"] = "electricityLink_out"
+
+    buses = getData("results4_8_group.xlsx")
     elec_names = []
     elec_dict = []
     sh_names = []
@@ -686,7 +726,7 @@ if __name__ == '__main__':
         building = l[-1]  # in the case of a maximum of 9 buildings
         beta_bis = beta.copy()
         for j in beta:
-            if j.endswith(building) and ("electricityBus" in j or "spaceHeatingBus" in j or "domesticHotWaterBus" in j):
+            if j.endswith(building) and ("electricityBus" in j or "spaceHeatingBus" in j or "domesticHotWaterBus" in j or "dhwStorageBus" in j):
                 alpha.append(j)
                 alpha_a.append(buses[j])
                 beta_bis.remove(j)
@@ -698,6 +738,7 @@ if __name__ == '__main__':
             beta.remove(a)
 
     for i in buses.keys():
+        tt = {}
         if "electricityBus" in i:
             elec_names.append(i)
             elec_dict.append(buses[i])
@@ -714,15 +755,15 @@ if __name__ == '__main__':
             env_names.append(i)
             env_dict.append(buses[i])
 
-    for i in elec_names + sh_names + dhw_names:
-        monthly_balance(buses[i], i, new_legends)
-
-    hourly_daily_plot(elec_dict, elec_names, Category10_8, new_legends)
-    hourly_daily_plot(sh_dict, sh_names, Category10_8, new_legends)
-    hourly_daily_plot(dhw_dict, dhw_names, Category10_8, new_legends)
-
-    for i in range(len(buildings_names)):
-        hourly_daily_plot(buildings_dict[i], buildings_names[i], Category10_8, new_legends)
+    # for i in elec_names + sh_names + dhw_names:
+    #     monthlyBalance(buses[i], i, newLegends)
+    #
+    # hourlyDailyPlot(elec_dict, elec_names, Category10_8, newLegends)
+    # hourlyDailyPlot(sh_dict, sh_names, Category10_8, newLegends)
+    # hourlyDailyPlot(dhw_dict, dhw_names, Category10_8, newLegends)
+    #
+    # for i in range(len(buildings_names)):
+    #     hourlyDailyPlot(buildings_dict[i], buildings_names[i], Category10_8, newLegends)
 
     #####################################
     ## Summary of the whole experiment ##
@@ -730,14 +771,16 @@ if __name__ == '__main__':
 
     my_colors = {
         'Battery_out': (100, 160, 200),
+        'Battery_in': (100, 160, 200),
         'Storage_sh_out': (196, 7, 27),
         'Storage_dhw_out': (196, 7, 27),
         'HP_dhw': (62, 173, 0),
         'HP_sh': (62, 173, 0),
         'HP': (62, 173, 0),
-        'CHP_elec': (0, 101, 189),
+        'CHP_SH_elec': (0, 101, 189),
+        'CHP_DHW_elec': (128, 0, 128),
         'CHP_sh': (0, 101, 189),
-        'CHP_dhw': (0, 101, 189),
+        'CHP_dhw': (128, 0, 128),
         'CHP': (0, 101, 189),
         'Inputs': (252, 93, 93),
         'Operation': (252, 93, 93),
@@ -747,18 +790,21 @@ if __name__ == '__main__':
         'Demand_sh': (131, 166, 151),
         'Demand_dhw': (131, 166, 151),
         'Grid_purchase': (237, 127, 16),
+        'electricityLink_in': (255, 215, 0),
+        'electricityLink_out': (255, 215, 0),
+        'electricityLink': (255, 215, 0)
     }
     COLORS = {}
     for name, color in my_colors.items():
         COLORS[name] = color
 
-    for i in range(len(buildings_names)):
-        fig1 = resulting_data_diagram(elec_dict[i], sh_dict[i], dhw_dict[i], costs_dict[i], env_dict[i], COLORS, buildings_number[i])[0]
-        fig2 = resulting_data_demand_diagram(elec_dict[i], sh_dict[i], dhw_dict[i], COLORS, buildings_number[i])[0]
+    # for i in range(len(buildings_names)):
+    #     fig1 = resultingDataDiagram(elec_dict[i], sh_dict[i], dhw_dict[i], costs_dict[i], env_dict[i], COLORS, buildings_number[i])[0]
+    #     fig2 = resultingDataDemandDiagram(elec_dict[i], sh_dict[i], dhw_dict[i], COLORS, buildings_number[i])[0]
 
-    fig3 = resulting_data_diagram_loop(elec_dict, sh_dict, dhw_dict, costs_dict, env_dict, COLORS, buildings_number)
+    # fig3 = resultingDataDiagramLoop(elec_dict, sh_dict, dhw_dict, costs_dict, env_dict, COLORS, buildings_number)
 
-    fig4 = resulting_data_demand_diagram_loop(elec_dict, sh_dict, dhw_dict, COLORS, buildings_number)
+    fig4 = resultingDataDemandDiagramLoop(elec_dict, sh_dict, dhw_dict, COLORS, buildings_number)
 
     plt.show()
 

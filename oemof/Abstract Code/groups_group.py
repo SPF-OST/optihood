@@ -12,7 +12,7 @@ except ImportError:
     plt = None
 from converters import HeatPumpLinear, CHP
 from storages import ElectricalStorage, ThermalStorage
-from constraints import *
+from moo_limit import *
 
 intRate = 0.05
 
@@ -77,14 +77,6 @@ class Building:
                         )
                     )
                 self.__costParam["excess" + b["label"]+'__'+self.__buildingLabel] = b["excess costs"]
-
-    def addGridSeparation(self, dataGridSeparation):
-        if not dataGridSeparation.empty:
-            for i, gs in dataGridSeparation.iterrows():
-                self.__nodesList.append(solph.Transformer(label=gs["label"]+'__'+self.__buildingLabel,
-                                                          inputs={self.__busDict[gs["from"]+'__'+self.__buildingLabel]: solph.Flow()},
-                                                          outputs={self.__busDict[gs["to"]+'__'+self.__buildingLabel]: solph.Flow()},
-                                                  conversion_factors={self.__busDict[gs["to"]+'__'+self.__buildingLabel]: gs["efficiency"]}))
 
     def addSource(self, data, data_elec, opt):
         # Create Source objects from table 'commodity sources'
@@ -161,26 +153,26 @@ class Building:
                 if opt == "costs":
                     if t["label"] == "HP":
                         heatPump = HeatPumpLinear(self.__buildingLabel, temperatureDHW, temperatureSH, temperatureAmb,
-                                                  self.__busDict[t["from"]+'__'+self.__buildingLabel],
-                                                  self.__busDict[t["to"].split(",")[0]+'__'+self.__buildingLabel],
-                                                  self.__busDict[t["to"].split(",")[1]+'__'+self.__buildingLabel],
+                                                  self.__busDict[t["from"] + '__' + self.__buildingLabel],
+                                                  self.__busDict[t["to"].split(",")[0] + '__' + self.__buildingLabel],
+                                                  self.__busDict[t["to"].split(",")[1] + '__' + self.__buildingLabel],
                                                   t["capacity_min"], t["capacity_SH"],
                                                   self._calculateInvest(t)[0], self._calculateInvest(t)[1],
                                                   0, t["heat_impact"], t["impact_cap"] / t["lifetime"])
                         self.__nodesList.append(heatPump.getHP("sh"))
                         self.__nodesList.append(heatPump.getHP("dhw"))
-                        self.__costParam[t["label"] + "_SH"+'__'+self.__buildingLabel] = [self._calculateInvest(t)[0],
-                                                                                          self._calculateInvest(t)[1]]
-                        self.__envParam[t["label"] + "_SH"+'__'+self.__buildingLabel] = [t["heat_impact"], 0,
-                                                                                         t["impact_cap"] / t["lifetime"]]
-                        self.__technologies.append([t["to"].split(",")[0]+'__'+self.__buildingLabel, t["label"] + "_SH"+'__'
-                                                    + self.__buildingLabel])
-                        self.__costParam[t["label"] + "_DHW"+'__'+self.__buildingLabel] = [self._calculateInvest(t)[0],
-                                                                                           self._calculateInvest(t)[1]]
-                        self.__envParam[t["label"] + "_DHW"+'__'+self.__buildingLabel] = [t["heat_impact"], 0,
-                                                                                          t["impact_cap"] / t["lifetime"]]
-                        self.__technologies.append([t["to"].split(",")[1]+'__'+self.__buildingLabel, t["label"] + "_DHW" +
-                                                    '__'+self.__buildingLabel])
+                        self.__costParam[t["label"] + "_SH" + '__' + self.__buildingLabel] = [
+                            self._calculateInvest(t)[0],
+                            self._calculateInvest(t)[1]]
+                        self.__envParam[t["label"] + "_SH" + '__' + self.__buildingLabel] = [t["heat_impact"], 0, t["impact_cap"] / t["lifetime"]]
+                        self.__technologies.append(
+                            [t["to"].split(",")[0] + '__' + self.__buildingLabel, t["label"] + "_SH" + '__' + self.__buildingLabel])
+                        self.__costParam[t["label"] + "_DHW" + '__' + self.__buildingLabel] = [
+                            self._calculateInvest(t)[0],
+                            self._calculateInvest(t)[1]]
+                        self.__envParam[t["label"] + "_DHW" + '__' + self.__buildingLabel] = [t["heat_impact"], 0, t["impact_cap"] / t["lifetime"]]
+                        self.__technologies.append(
+                            [t["to"].split(",")[1] + '__' + self.__buildingLabel, t["label"] + "_DHW" + '__' + self.__buildingLabel])
                     elif t["label"] == "CHP":
                         # motoric CHP
                         chp = CHP(self.__buildingLabel, self.__busDict[t["from"] + '__' + self.__buildingLabel],
@@ -203,13 +195,17 @@ class Building:
                             self._calculateInvest(t)[1]]
                         self.__envParam[t["label"] + "_DHW" + '__' + self.__buildingLabel] = [t["heat_impact"], t["elec_impact"], t["impact_cap"] / t["lifetime"]]
                         self.__technologies.append(
-                            [t["to"].split(",")[0] + '__' + self.__buildingLabel, t["label"] + "_SH" + '__' + self.__buildingLabel])
+                            [t["to"].split(",")[0] + '__' + self.__buildingLabel,
+                             t["label"] + "_SH" + '__' + self.__buildingLabel])
                         self.__technologies.append(
-                            [t["to"].split(",")[0] + '__' + self.__buildingLabel, t["label"] + "_DHW" + '__' + self.__buildingLabel])
+                            [t["to"].split(",")[0] + '__' + self.__buildingLabel,
+                             t["label"] + "_DHW" + '__' + self.__buildingLabel])
                         self.__technologies.append(
-                            [t["to"].split(",")[1] + '__' + self.__buildingLabel, t["label"] + "_SH" + '__' + self.__buildingLabel])
+                            [t["to"].split(",")[1] + '__' + self.__buildingLabel,
+                             t["label"] + "_SH" + '__' + self.__buildingLabel])
                         self.__technologies.append(
-                            [t["to"].split(",")[2] + '__' + self.__buildingLabel, t["label"] + "_DHW" + '__' + self.__buildingLabel])
+                            [t["to"].split(",")[2] + '__' + self.__buildingLabel,
+                             t["label"] + "_DHW" + '__' + self.__buildingLabel])
                     else:
                         logging.warning("Transformer label not identified...")
                 elif opt == "env":
@@ -219,25 +215,28 @@ class Building:
                                                   self.__busDict[t["to"].split(",")[0] + '__' + self.__buildingLabel],
                                                   self.__busDict[t["to"].split(",")[1] + '__' + self.__buildingLabel],
                                                   t["capacity_min"], t["capacity_SH"], t["impact_cap"] / t["lifetime"],
-                                                  0, t["heat_impact"], t["heat_impact"], t["impact_cap"] / t["lifetime"])
+                                                  0, t["heat_impact"], t["heat_impact"],
+                                                  t["impact_cap"] / t["lifetime"])
                         self.__nodesList.append(heatPump.getHP("sh"))
                         self.__nodesList.append(heatPump.getHP("dhw"))
-                        self.__costParam[t["label"] + "_SH" + '__' + self.__buildingLabel] = [self._calculateInvest(t)[0], self._calculateInvest(t)[1]]
-                        self.__envParam[t["label"] + "_SH" + '__' + self.__buildingLabel] = [t["heat_impact"], 0,
-                                                                                             t["impact_cap"] / t["lifetime"]]
+                        self.__costParam[t["label"] + "_SH" + '__' + self.__buildingLabel] = [
+                            self._calculateInvest(t)[0], self._calculateInvest(t)[1]]
+                        self.__envParam[t["label"] + "_SH" + '__' + self.__buildingLabel] = [t["heat_impact"], 0, t["impact_cap"] / t["lifetime"]]
                         self.__technologies.append(
-                            [t["to"].split(",")[0] + '__' + self.__buildingLabel, t["label"] + "_SH" + '__' + self.__buildingLabel])
-                        self.__costParam[t["label"] + "_DHW" + '__' + self.__buildingLabel] = [self._calculateInvest(t)[0], self._calculateInvest(t)[1]]
-                        self.__envParam[t["label"] + "_DHW" + '__' + self.__buildingLabel] = [t["heat_impact"], 0,
-                                                                                              t["impact_cap"] / t["lifetime"]]
+                            [t["to"].split(",")[0] + '__' + self.__buildingLabel,
+                             t["label"] + "_SH" + '__' + self.__buildingLabel])
+                        self.__costParam[t["label"] + "_DHW" + '__' + self.__buildingLabel] = [
+                            self._calculateInvest(t)[0], self._calculateInvest(t)[1]]
+                        self.__envParam[t["label"] + "_DHW" + '__' + self.__buildingLabel] = [t["heat_impact"], 0, t["impact_cap"] / t["lifetime"]]
                         self.__technologies.append(
-                            [t["to"].split(",")[1] + '__' + self.__buildingLabel, t["label"] + "_DHW" + '__' + self.__buildingLabel])
+                            [t["to"].split(",")[1] + '__' + self.__buildingLabel,
+                             t["label"] + "_DHW" + '__' + self.__buildingLabel])
                     elif t["label"] == "CHP":
                         # motoric CHP
-                        chp = CHP(self.__buildingLabel, self.__busDict[t["from"]+'__'+self.__buildingLabel],
-                                  self.__busDict[t["to"].split(",")[0]+'__'+self.__buildingLabel],
-                                  self.__busDict[t["to"].split(",")[1]+'__'+self.__buildingLabel],
-                                  self.__busDict[t["to"].split(",")[2]+'__'+self.__buildingLabel],
+                        chp = CHP(self.__buildingLabel, self.__busDict[t["from"] + '__' + self.__buildingLabel],
+                                  self.__busDict[t["to"].split(",")[0] + '__' + self.__buildingLabel],
+                                  self.__busDict[t["to"].split(",")[1] + '__' + self.__buildingLabel],
+                                  self.__busDict[t["to"].split(",")[2] + '__' + self.__buildingLabel],
                                   float(t["efficiency"].split(",")[0]), float(t["efficiency"].split(",")[1]),
                                   float(t["efficiency"].split(",")[2]), t["capacity_min"], t["capacity_el"],
                                   t["capacity_SH"], t["capacity_DHW"],
@@ -369,14 +368,14 @@ class EnergyNetwork(solph.EnergySystem):
         data = pd.ExcelFile(filePath)
         nodesData = {
             "buses": data.parse("buses"),
-            "grid_connection": data.parse("grid_connection"),
             "commodity_sources": data.parse("commodity_sources"),
             "electricity_impact": data.parse("electricity_impact"),
             "transformers": data.parse("transformers"),
             "demand": data.parse("demand"),
             "storages": data.parse("storages"),
             "timeseries": data.parse("time_series"),
-            "stratified_storage": data.parse("stratified_storage")
+            "stratified_storage": data.parse("stratified_storage"),
+            "links": data.parse("links")
         }
         # update stratified_storage index
         nodesData["stratified_storage"].set_index("label", inplace=True)
@@ -400,6 +399,7 @@ class EnergyNetwork(solph.EnergySystem):
             logging.error("Nodes data is missing.")
         self.__temperatureAmb = np.array(data["timeseries"]["temperature.actual"])
         self._addBuildings(data, opt)
+        self._addLinks(data["links"])
 
     def _addBuildings(self, data, opt):
         numberOfBuildings = max(data["buses"]["building"])
@@ -407,7 +407,6 @@ class EnergyNetwork(solph.EnergySystem):
         for b in self.__buildings:
             i = int(b.getBuildingLabel()[8:])
             b.addBus(data["buses"][data["buses"]["building"] == i], opt)
-            b.addGridSeparation(data["grid_connection"][data["grid_connection"]["building"] == i])
             b.addSource(data["commodity_sources"][data["commodity_sources"]["building"] == i], data["electricity_impact"], opt)
             b.addSink(data["demand"][data["demand"]["building"] == i], data["timeseries"].filter(regex=str(i)))
             b.addTransformer(data["transformers"][data["transformers"]["building"] == i], self.__temperatureDHW,
@@ -420,6 +419,19 @@ class EnergyNetwork(solph.EnergySystem):
             self.__envParam.update(b.getEnvParam())
             self.__busDict.update(b.getBusDict())
 
+    def _addLinks(self, data):
+        for i, l in data.iterrows():
+            if l["active"]:
+                busA = self.__busDict["electricityBus"+'__Building'+str(l["buildingA"])]
+                busB = self.__busDict["electricityBus"+'__Building'+str(l["buildingB"])]
+                self.__nodesList.append(solph.custom.Link(
+                    label=l["label"]+str(l["buildingA"])+'_'+str(l["buildingB"]),
+                    inputs={busA: solph.Flow(), busB: solph.Flow()},
+                    outputs={busA: solph.Flow(), busB: solph.Flow()},
+                    conversion_factors={(busA, busB): l["efficiency from A to B"],
+                                        (busB, busA): l["efficiency from B to A"]}
+                ))
+
     def printNodes(self):
         print("*********************************************************")
         print("The following objects have been created from excel sheet:")
@@ -431,7 +443,8 @@ class EnergyNetwork(solph.EnergySystem):
     def optimize(self, solver, e):
         logging.info("Initiating optimization using {} solver".format(solver))
         optimizationModel = solph.Model(self)
-        optimizationModel, flows, capa, capa_s = moo_limit(optimizationModel, keyword1="env_per_flow", keyword2="env_per_capa", limit=e)
+        optimizationModel, flows, capa, capa_s = moo_limit(optimizationModel, keyword1="env_per_flow",
+                                                           keyword2="env_per_capa", limit=e)
         optimizationModel.solve(solver=solver)
         limit = optimizationModel.integral_limit_env_per_flow_env_per_capa()
 
@@ -439,10 +452,12 @@ class EnergyNetwork(solph.EnergySystem):
         capacities_invested_s = {}
         list = []
         for inflow, outflow in capa:
-            capacities_invested_c[(str(inflow), str(outflow))] = optimizationModel.InvestmentFlow.invest[inflow, outflow].value
+            capacities_invested_c[(str(inflow), str(outflow))] = optimizationModel.InvestmentFlow.invest[
+                inflow, outflow].value
         for x in capa_s:
             if x in list:
-                capacities_invested_s[str(x)] = capacities_invested_s[str(x)] + optimizationModel.GenericInvestmentStorageBlock.invest[x].value
+                capacities_invested_s[str(x)] = capacities_invested_s[str(x)] + \
+                                                optimizationModel.GenericInvestmentStorageBlock.invest[x].value
             else:
                 capacities_invested_s[str(x)] = optimizationModel.GenericInvestmentStorageBlock.invest[x].value
             list.append(x)
@@ -468,33 +483,43 @@ class EnergyNetwork(solph.EnergySystem):
                 if b.getBuildingLabel() in self.__inputs[i][0]:
                     n_inputs.append(self.__inputs[i])
 
-            self.__capex[b.getBuildingLabel()] = sum(self.__costParam[i][1] * (cap_building_c[(i,o)] > 1) for i, o in cap_building_c) + \
-                sum(cap_building_c[(i, o)] * self.__costParam[i][0] for i, o in cap_building_c) + \
-                sum(self.__costParam[x][1] * (cap_building_s[x] > 1) for x in cap_building_s) + \
-                sum(cap_building_s[x] * self.__costParam[x][0] for x in cap_building_s)
+            self.__capex[b.getBuildingLabel()] = sum(
+                self.__costParam[i][1] * (cap_building_c[(i, o)] > 1) for i, o in cap_building_c) + \
+                                                 sum(cap_building_c[(i, o)] * self.__costParam[i][0] for i, o in
+                                                     cap_building_c) + \
+                                                 sum(self.__costParam[x][1] * (cap_building_s[x] > 1) for x in
+                                                     cap_building_s) + \
+                                                 sum(cap_building_s[x] * self.__costParam[x][0] for x in cap_building_s)
 
-            self.__opex[b.getBuildingLabel()] = sum(sum(solph.views.node(self.__optimizationResults, i[1])["sequences"][(i[0], i[1]), "flow"])
-                                                 * self.__costParam[i[0]] for i in n_inputs + [["electricityResource"+'__'+b.getBuildingLabel(), "electricityBus"+'__'+b.getBuildingLabel()]])
-            self.__feedIn[b.getBuildingLabel()] = sum(solph.views.node(self.__optimizationResults, "electricityBus"+'__'+b.getBuildingLabel())
-                                ["sequences"][("electricityBus"+'__'+b.getBuildingLabel(), "excesselectricityBus"
-                                               +'__'+b.getBuildingLabel()), "flow"]) * self.__costParam[
-                                            "excesselectricityBus"+'__'+b.getBuildingLabel()]
+            self.__opex[b.getBuildingLabel()] = sum(
+                sum(solph.views.node(self.__optimizationResults, i[1])["sequences"][(i[0], i[1]), "flow"])
+                * self.__costParam[i[0]] for i in n_inputs + [["electricityResource" + '__' + b.getBuildingLabel(),
+                                                               "electricityBus" + '__' + b.getBuildingLabel()]])
+            self.__feedIn[b.getBuildingLabel()] = sum(
+                solph.views.node(self.__optimizationResults, "electricityBus" + '__' + b.getBuildingLabel())
+                ["sequences"][("electricityBus" + '__' + b.getBuildingLabel(), "excesselectricityBus"
+                               + '__' + b.getBuildingLabel()), "flow"]) * self.__costParam[
+                                                      "excesselectricityBus" + '__' + b.getBuildingLabel()]
             self.__envImpactInputs[b.getBuildingLabel()] = sum(
-                sum(solph.views.node(self.__optimizationResults, i[1])["sequences"][(i[0], i[1]), "flow"]* self.__envParam[i[0]])
+                sum(solph.views.node(self.__optimizationResults, i[1])["sequences"][(i[0], i[1]), "flow"] *
+                    self.__envParam[i[0]])
                 for i in n_inputs)
 
-            A = self.__envParam["electricityResource"+'__'+b.getBuildingLabel()].copy()
+            A = self.__envParam["electricityResource" + '__' + b.getBuildingLabel()].copy()
             A.reset_index(inplace=True, drop=True)
-            B = solph.views.node(self.__optimizationResults, "gridBus"+'__'+b.getBuildingLabel())["sequences"][("electricityResource"+'__'+b.getBuildingLabel(), "gridBus"+'__'+b.getBuildingLabel()), "flow"]
+            B = solph.views.node(self.__optimizationResults, "electricityBus" + '__' + b.getBuildingLabel())["sequences"][("electricityResource" + '__' + b.getBuildingLabel(), "electricityBus" + '__' + b.getBuildingLabel()), "flow"]
             B.reset_index(inplace=True, drop=True)
+            self.__envImpactInputs[b.getBuildingLabel()] += (A * B).sum()
 
-            self.__envImpactInputs[b.getBuildingLabel()] += (A*B).sum()
-
-            self.__envImpactTechnologies[b.getBuildingLabel()] = sum(cap_building_c[(i, o)] * self.__envParam[i][2] for i, o in cap_building_c) + \
-                                                                 sum(cap_building_s[x] * self.__envParam[x][2] for x in cap_building_s) + \
+            self.__envImpactTechnologies[b.getBuildingLabel()] = sum(
+                cap_building_c[(i, o)] * self.__envParam[i][2] for i, o in cap_building_c) + \
+                                                                 sum(cap_building_s[x] * self.__envParam[x][2] for x in
+                                                                     cap_building_s) + \
                                                                  sum(sum(
-                                                                     solph.views.node(self.__optimizationResults, i[0])["sequences"]
-                                                                     [((i[1], i[0]), "flow")] * self.__envParam[i[1]][1] * ('electricityBus' in i[0]) +\
+                                                                     solph.views.node(self.__optimizationResults, i[0])[
+                                                                         "sequences"]
+                                                                     [((i[1], i[0]), "flow")] * self.__envParam[i[1]][
+                                                                         1] * ('electricityBus' in i[0]) + \
                                                                      solph.views.node(self.__optimizationResults, i[0])
                                                                      ["sequences"][((i[1], i[0]), "flow")] *
                                                                      self.__envParam[i[1]][0] *
@@ -583,9 +608,9 @@ class EnergyNetwork(solph.EnergySystem):
 
                 A = self.__envParam["electricityResource" + '__' + b.getBuildingLabel()].copy()
                 A.reset_index(inplace=True, drop=True)
-                B = solph.views.node(self.__optimizationResults, "gridBus" + '__' + b.getBuildingLabel())[
+                B = solph.views.node(self.__optimizationResults, "electricityBus" + '__' + b.getBuildingLabel())[
                     "sequences"][("electricityResource" + '__' + b.getBuildingLabel(),
-                                  "gridBus" + '__' + b.getBuildingLabel()), "flow"]
+                                  "electricityBus" + '__' + b.getBuildingLabel()), "flow"]
                 B.reset_index(inplace=True, drop=True)
                 env_impact["electricityResource" + '__' + b.getBuildingLabel()] = (A * B).sum()
 
@@ -597,12 +622,12 @@ class EnergyNetwork(solph.EnergySystem):
                         if B in liste:
                             if (B, A) in capacities_invested_c:
                                 env_impact[B] += capacities_invested_c[(B, A)] * self.__envParam[B][2] + \
-                                       sum(solph.views.node(self.__optimizationResults, A)["sequences"]
-                                           [((B, A), "flow")] * self.__envParam[B][1] *
-                                           ('electricityBus' in A) +
-                                           solph.views.node(self.__optimizationResults, A)
-                                           ["sequences"][((B, A), "flow")] * self.__envParam[B][0] *
-                                           ('electricityBus' not in A))
+                                                 sum(solph.views.node(self.__optimizationResults, A)["sequences"]
+                                                     [((B, A), "flow")] * self.__envParam[B][1] *
+                                                     ('electricityBus' in A) +
+                                                     solph.views.node(self.__optimizationResults, A)
+                                                     ["sequences"][((B, A), "flow")] * self.__envParam[B][0] *
+                                                     ('electricityBus' not in A))
                             elif B in capacities_invested_s:
                                 env_impact[B] += capacities_invested_s[B] * self.__envParam[B][2] + \
                                                  sum(solph.views.node(self.__optimizationResults, A)["sequences"]
@@ -614,20 +639,20 @@ class EnergyNetwork(solph.EnergySystem):
                         else:
                             if (B, A) in capacities_invested_c:
                                 env_impact[B] = capacities_invested_c[(B, A)] * self.__envParam[B][2] + \
-                                                 sum(solph.views.node(self.__optimizationResults, A)["sequences"]
-                                                     [((B, A), "flow")] * self.__envParam[B][1] *
-                                                     ('electricityBus' in A) +
-                                                     solph.views.node(self.__optimizationResults, A)
-                                                     ["sequences"][((B, A), "flow")] * self.__envParam[B][0] *
-                                                     ('electricityBus' not in A))
+                                                sum(solph.views.node(self.__optimizationResults, A)["sequences"]
+                                                    [((B, A), "flow")] * self.__envParam[B][1] *
+                                                    ('electricityBus' in A) +
+                                                    solph.views.node(self.__optimizationResults, A)
+                                                    ["sequences"][((B, A), "flow")] * self.__envParam[B][0] *
+                                                    ('electricityBus' not in A))
                             elif B in capacities_invested_s:
                                 env_impact[B] = capacities_invested_s[B] * self.__envParam[B][2] + \
-                                                 sum(solph.views.node(self.__optimizationResults, A)["sequences"]
-                                                     [((B, A), "flow")] * self.__envParam[B][1] *
-                                                     ('electricityBus' in A) +
-                                                     solph.views.node(self.__optimizationResults, A)
-                                                     ["sequences"][((B, A), "flow")] * self.__envParam[B][0] *
-                                                     ('electricityBus' not in A))
+                                                sum(solph.views.node(self.__optimizationResults, A)["sequences"]
+                                                    [((B, A), "flow")] * self.__envParam[B][1] *
+                                                    ('electricityBus' in A) +
+                                                    solph.views.node(self.__optimizationResults, A)
+                                                    ["sequences"][((B, A), "flow")] * self.__envParam[B][0] *
+                                                    ('electricityBus' not in A))
                             liste.append(B)
 
                 env_n = pd.DataFrame.from_dict(env_impact, orient='index')
