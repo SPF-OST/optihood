@@ -2,7 +2,7 @@ from pyomo import environ as pyo
 from oemof.solph.plumbing import sequence
 from math import pi
 
-def moo_limit(om, keyword1, keyword2, limit=None):
+def environmentalImpactlimit(om, keyword1, keyword2, limit=None):
     """
     Function to limit the environmental impacts during the multi-objective optimization
     :param om: model
@@ -12,23 +12,23 @@ def moo_limit(om, keyword1, keyword2, limit=None):
     :return:
     """
     flows = {}
-    capa = {}
-    capa_s = {}
+    transformerFlowCapacityDict = {}
+    storageCapacityDict = {}
     for (i, o) in om.flows:
         if hasattr(om.flows[i, o], keyword1):
             flows[(i, o)] = om.flows[i, o]
         if hasattr(om.flows[i, o].investment, keyword2):
-            capa[(i, o)] = om.flows[i, o].investment
+            transformerFlowCapacityDict[(i, o)] = om.flows[i, o].investment
 
     for x in om.GenericInvestmentStorageBlock.INVESTSTORAGES:
         if hasattr(x.investment, keyword2):
-            capa_s[x] = om.GenericInvestmentStorageBlock.invest[x]
+            storageCapacityDict[x] = om.GenericInvestmentStorageBlock.invest[x]
 
-    limit_name = "integral_limit_" + keyword1 + "_" + keyword2
+    envImpact = "totalEnvironmentalImpact"
 
     setattr(
         om,
-        limit_name,
+        envImpact,
         pyo.Expression(
             expr=sum(
                 om.flow[inflow, outflow, t]
@@ -37,14 +37,14 @@ def moo_limit(om, keyword1, keyword2, limit=None):
                 for (inflow, outflow) in flows
                 for t in om.TIMESTEPS
             )
-            + sum(om.InvestmentFlow.invest[inflow, outflow] * getattr(capa[inflow, outflow], keyword2)
-            for (inflow, outflow) in capa)
-            + sum(om.GenericInvestmentStorageBlock.invest[x] * getattr(x.investment, keyword2) for x in capa_s)
+            + sum(om.InvestmentFlow.invest[inflow, outflow] * getattr(transformerFlowCapacityDict[inflow, outflow], keyword2)
+            for (inflow, outflow) in transformerFlowCapacityDict)
+            + sum(om.GenericInvestmentStorageBlock.invest[x] * getattr(x.investment, keyword2) for x in storageCapacityDict)
         ),
     )
     setattr(
         om,
-        limit_name + "_constraint",
-        pyo.Constraint(expr=(getattr(om, limit_name) <= limit)),
+        envImpact + "_constraint",
+        pyo.Constraint(expr=(getattr(om, envImpact) <= limit)),
     )
-    return om, flows, capa, capa_s
+    return om, flows, transformerFlowCapacityDict, storageCapacityDict

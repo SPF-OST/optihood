@@ -12,7 +12,7 @@ except ImportError:
     plt = None
 from converters import HeatPumpLinear, CHP
 from storages import ElectricalStorage, ThermalStorage
-from moo_limit import *
+from constraints import *
 
 intRate = 0.05
 
@@ -443,7 +443,7 @@ class EnergyNetwork(solph.EnergySystem):
     def optimize(self, solver, e):
         logging.info("Initiating optimization using {} solver".format(solver))
         optimizationModel = solph.Model(self)
-        optimizationModel, flows, capa, capa_s = moo_limit(optimizationModel, keyword1="env_per_flow",
+        optimizationModel, flows, capa, capa_s = environmentalImpactlimit(optimizationModel, keyword1="env_per_flow",
                                                            keyword2="env_per_capa", limit=e)
         optimizationModel.solve(solver=solver)
         limit = optimizationModel.integral_limit_env_per_flow_env_per_capa()

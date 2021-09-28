@@ -4,10 +4,8 @@ import numpy as np
 class HeatPumpLinear:
     def __init__(self, buildingLabel, temperatureDHW, temperatureSH, temperatureLow, input, outputSH, outputDHW, capacityMin, capacityMax,
                  epc, base, varc, env_flow, env_capa):
-        self.__tDHW = temperatureDHW
-        self.__tSH = temperatureSH
-        self.__copDHW = self._calculate_cop(temperatureDHW, temperatureLow)
-        self.__copSH = self._calculate_cop(temperatureSH, temperatureLow)
+        self.__copDHW = self._calculateCop(temperatureDHW, temperatureLow)
+        self.__copSH = self._calculateCop(temperatureSH, temperatureLow)
         self.__DHWChargingTimesteps = [5, 6, 16, 17]     # Data in the scenario file is from 01:00 H onwards (instead of 00:00)
         self._chargingRule()
         self.__heatpumpSH = solph.Transformer(label='HP_SH'+'__'+buildingLabel, inputs={input: solph.Flow()},
@@ -41,7 +39,7 @@ class HeatPumpLinear:
                                                         )},
                                                conversion_factors={outputDHW: self.__copDHW})
 
-    def _calculate_cop(self, tHigh, tLow):
+    def _calculateCop(self, tHigh, tLow):
         coefCOP = [12.4896, 64.0652, -83.0217, -230.1195, 173.2122]
         coefQ = [13.8603, 120.2178, -7.9046, -164.1900, -17.9805]
         QCondenser = coefQ[0] + (coefQ[1] * tLow / 273.15) + (coefQ[2] * tHigh / 273.15) + (
@@ -73,6 +71,12 @@ class HeatPumpLinear:
 class CHP:
     def __init__(self, buildingLabel, input, outputEl, outputSH, outputDHW, efficiencyEl, efficiencySH, efficiencyDHW,
                  capacityMin, capacityEl, capacitySH, capacityDHW, epc, base, varc1, varc2, env_flow1, env_flow2, env_capa):
+        self.__DHWChargingTimesteps = [5, 6, 16, 17]                    # Data in the scenario file is from 01:00 H onwards (instead of 00:00)
+        self._efficiencyElCHPSH = [efficiencyEl] * 8760
+        self._efficiencyElCHPDHW = [efficiencyEl] * 8760
+        self._efficiencySH = [efficiencySH] * 8760
+        self._efficiencyDHW = [efficiencyDHW] * 8760
+        #self._chargingRule()
         self.__CHPSH = solph.Transformer(
                         label='CHP_SH'+'__'+buildingLabel,
                         inputs={
@@ -106,8 +110,8 @@ class CHP:
 
                             ),
                         },
-                        conversion_factors={outputEl: efficiencyEl,
-                                            outputSH: efficiencySH,
+                        conversion_factors={outputEl: self._efficiencyElCHPSH,
+                                            outputSH: self._efficiencySH,
                                             }
                     )
         self.__CHPDHW = solph.Transformer(
@@ -143,10 +147,19 @@ class CHP:
 
                 ),
             },
-            conversion_factors={outputEl: efficiencyEl,
-                                outputDHW: efficiencyDHW,
+            conversion_factors={outputEl: self._efficiencyElCHPDHW,
+                                outputDHW: self._efficiencyDHW,
                                 }
         )
+
+    def _chargingRule(self):
+        for t in range(8760):
+            if any([(t - x) % 24 == 0 for x in self.__DHWChargingTimesteps]):
+                self._efficiencyElCHPSH[t] = 0
+                self._efficiencySH[t] = 0
+            else:
+                self._efficiencyElCHPDHW[t] = 0
+                self._efficiencyDHW[t] = 0
 
     def getCHP(self, type):
         if type == 'sh':
