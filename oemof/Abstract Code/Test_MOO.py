@@ -6,13 +6,16 @@ except ImportError:
     plt = None
 from groups_indiv import EnergyNetwork
 
+scenarioIndex = 4
+inputfileName = "scenario"+str(scenarioIndex)+".xls"
+
 def optimizeNetwork(network, buildingList, instance, aspectBalace):
     limit, capas_c, capas_s = network.optimize(solver='gurobi', e=aspectBalace)
     for buildingName in buildingList:
         network.printInvestedCapacities(capas_c, capas_s, buildingName)
     network.printCosts()
     network.printEnvImpacts()
-    network.exportToExcel('results4_'+str(instance)+'_indiv.xlsx', capas_c, capas_s)
+    network.exportToExcel('results'+str(scenarioIndex)+'_'+str(instance)+'_indiv.xlsx', capas_c, capas_s)
     meta = network.printMetaresults()
     print(limit)
     return(limit, meta)
@@ -40,8 +43,7 @@ if __name__ == '__main__':
     # -----------------------------------------------------------------------------#
     print("******************\nOPTIMIZATION " + str(optimizationInstanceNumber) + "\n******************")
     network = EnergyNetwork(pd.date_range("2018-01-01 01:00:00", "2019-01-01 00:00:00", freq="60min"), tSH=35, tDHW=55)
-    network.setFromExcel(os.path.join(os.getcwd(), "scenario4.xls"), opt="costs")
-
+    network.setFromExcel(os.path.join(os.getcwd(), inputfileName), opt="costs")
     # network.printNodes()
     (max_env, meta) = optimizeNetwork(network, buildingList, optimizationInstanceNumber, 1000000)
     optimizationInstanceNumber += 1
@@ -53,7 +55,7 @@ if __name__ == '__main__':
     # -----------------------------------------------------------------------------#
     print("******************\nOPTIMIZATION " + str(optimizationInstanceNumber) + "\n******************")
     network = EnergyNetwork(pd.date_range("2018-01-01 01:00:00", "2019-01-01 00:00:00", freq="60min"), tSH=35, tDHW=55)
-    network.setFromExcel(os.path.join(os.getcwd(), "scenario4.xls"), opt="env")
+    network.setFromExcel(os.path.join(os.getcwd(), inputfileName), opt="env")
     #network.printNodes()
     (min_env, meta) = optimizeNetwork(network, buildingList, optimizationInstanceNumber, 1000000)
     optimizationInstanceNumber += 1
@@ -61,7 +63,7 @@ if __name__ == '__main__':
 
 
     network = EnergyNetwork(pd.date_range("2018-01-01 01:00:00", "2019-01-01 00:00:00", freq="60min"), tSH=35, tDHW=55)
-    network.setFromExcel(os.path.join(os.getcwd(), "scenario4.xls"), opt="costs")
+    network.setFromExcel(os.path.join(os.getcwd(), inputfileName), opt="costs")
 
     n = 5
     steps = list(range(int(min_env), int(max_env), int((max_env - min_env) / n)))
