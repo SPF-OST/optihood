@@ -1,5 +1,58 @@
 import oemof.solph as solph
 import numpy as np
+from oemof.thermal.facades import SolarThermalCollector
+
+
+class SolarCollector:
+    def __init__(self, label, buildingLabel, inputs, outputs, electrical_consumption, peripheral_losses, aperture_area, latitude, longitude,
+                 collector_tilt, collector_azimuth, eta_0, a_1, a_2, temp_collector_inlet, delta_temp_n, irradiance_global,
+                 irradiance_diffuse, temp_amb_col, epc, capacityMin, capacityMax, base, env_capa, env_flow, varc):
+        collectorModel = SolarThermalCollector(label=label+'__'+buildingLabel, heat_out_bus=outputs,
+                                                  electricity_in_bus=inputs, electrical_consumption=electrical_consumption,
+                                                  peripheral_losses=peripheral_losses, aperture_area=aperture_area,
+                                                  latitude=latitude, longitude=longitude, collector_tilt=collector_tilt,
+                                                  collector_azimuth=collector_azimuth, eta_0=eta_0, a_1=a_1, a_2=a_2,
+                                                  temp_collector_inlet=temp_collector_inlet, delta_temp_n=delta_temp_n,
+                                                  irradiance_global=irradiance_global, irradiance_diffuse=irradiance_diffuse,
+                                                  temp_amb_col=temp_amb_col)
+
+        # data = flat_plate_precalc(
+        #     self.latitude,
+        #     self.longitude,
+        #     self.collector_tilt,
+        #     self.collector_azimuth,
+        #     self.eta_0,
+        #     self.a_1,
+        #     self.a_2,
+        #     self.temp_collector_inlet,
+        #     self.delta_temp_n,
+        #     self.irradiance_global,
+        #     self.irradiance_diffuse,
+        #     self.temp_amb,
+        # )
+        #
+        # self.collectors_eta_c = data['eta_c']
+        #
+        # self.collectors_heat = data['collectors_heat']
+        #
+        print(collectorModel)
+        self.__solarCollector = solph.Transformer(label=label+'__'+buildingLabel, inputs={inputs: solph.Flow()},
+                                                  outputs={outputs: solph.Flow(
+                                                    investment=solph.Investment(
+                                                        ep_costs=epc,
+                                                        minimum=capacityMin,
+                                                        maximum=capacityMax,
+                                                        nonconvex=True,
+                                                        offset=base,
+                                                        env_per_capa=env_capa,
+                                                    ),
+                                                    variable_costs=varc,
+                                                    env_per_flow=env_flow,
+                                                    )},
+                                                  conversion_factors={outputs: collectorModel.collectors_eta_c})
+
+    def getSolarCollector(self):
+        return self.__solarCollector
 
 class HeatPumpLinear:
     def __init__(self, buildingLabel, temperatureDHW, temperatureSH, temperatureLow, input, outputSH, outputDHW, capacityMin, capacityMax,

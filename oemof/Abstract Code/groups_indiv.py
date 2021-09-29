@@ -73,97 +73,44 @@ class Building:
         # Create Source objects from table 'commodity sources'
         for i, s in data.iterrows():
             if opt == "costs":
-                self.__nodesList.append(SolarThermalCollector(label=s["label"] + '__' + self.__buildingLabel,
-                                                              heat_out_bus=self.__busDict[
-                                                                   s["to"] + '__' + self.__buildingLabel],
-                                                              electricity_in_bus=self.__busDict[
-                                                                   s["from"] + '__' + self.__buildingLabel],
-                                                              electrical_consumption=s[
-                                                                  "electrical_consumption"],
-                                                              peripheral_losses=s[
-                                                                  "peripheral_losses"],
-                                                              aperture_area=s[
-                                                                  "aperture_area"],
-                                                              latitude=s["latitude"],
-                                                              longitude=s["longitude"],
-                                                              collector_tilt=s[
-                                                                  "collector_tilt"],
-                                                              collector_azimuth=s[
-                                                                  "collector_azimuth"],
-                                                              eta_0=s["eta_0"],
-                                                              a_1=s["a_1"],
-                                                              a_2=s["a_2"],
-                                                              temp_collector_inlet=s[
-                                                                  "temp_collector_inlet"],
-                                                              delta_temp_n=s["delta_temp_n"],
-                                                              irradiance_global=data_timeseries[
-                                                                  'global_horizontal_W_m2'],
-                                                              irradiance_diffuse=data_timeseries[
-                                                                  'diffuse_horizontal_W_m2'],
-                                                              temp_amb=data_timeseries['temp_amb'],
-                                                              inputs={self.__busDict[s["from"] + '__' + self.__buildingLabel]: solph.Flow()},
-                                                              outputs={self.__busDict[s["to"] + '__' + self.__buildingLabel]: solph.Flow(
-                                                                investment=solph.Investment(
-                                                                  ep_costs=self._calculateInvest(s)[0],
-                                                                  minimum=0,
-                                                                  maximum=1000000,
-                                                                  nonconvex=True,
-                                                                  offset=self._calculateInvest(s)[1],
-                                                                  env_per_capa=s["heat_impact"],
-                                                                ),
-                                                              variable_costs=0,
-                                                              env_per_flow=s["impact_cap"] / s["lifetime"])},
-                                                            ))
+                solarCollector=SolarCollector(s["label"], self.__buildingLabel,
+                                                       self.__busDict[s["from"] + '__' + self.__buildingLabel],
+                                                       self.__busDict[s["to"] + '__' + self.__buildingLabel],
+                                                       s["electrical_consumption"], s["peripheral_losses"],
+                                                       s["aperture_area"], s["latitude"], s["longitude"],
+                                                       s["collector_tilt"], s["collector_azimuth"],
+                                                       s["eta_0"], s["a_1"], s["a_2"], s["temp_collector_inlet"],
+                                                       s["delta_temp_n"], data_timeseries['global_horizontal_W_m2'],
+                                                       data_timeseries['diffuse_horizontal_W_m2'],
+                                                       data_timeseries['temp_amb'], s["capacity_min"], s["capacity"],
+                                                       self._calculateInvest(s)[0], self._calculateInvest(s)[1],
+                                                       0, s["heat_impact"], s["impact_cap"] / s["lifetime"])
+
+
                 self.__envParam[s["label"] + '__' + self.__buildingLabel] = [s["heat_impact"], 0,
                                                                              s["impact_cap"] / s["lifetime"]]
 
             elif opt == "env":
-                self.__nodesList.append(SolarThermalCollector(label=s["label"] + '__' + self.__buildingLabel,
-                                                              heat_out_bus=self.__busDict[
-                                                                   s["to"] + '__' + self.__buildingLabel],
-                                                              electricity_in_bus=self.__busDict[
-                                                                   s["from"] + '__' + self.__buildingLabel],
-                                                              electrical_consumption=s[
-                                                                  "electrical_consumption"],
-                                                              peripheral_losses=s[
-                                                                  "peripheral_losses"],
-                                                              aperture_area=s[
-                                                                  "aperture_area"],
-                                                              latitude=s["latitude"],
-                                                              longitude=s["longitude"],
-                                                              collector_tilt=s[
-                                                                  "collector_tilt"],
-                                                              collector_azimuth=s[
-                                                                  "collector_azimuth"],
-                                                              eta_0=s["eta_0"],
-                                                              a_1=s["a_1"],
-                                                              a_2=s["a_2"],
-                                                              temp_collector_inlet=s[
-                                                                  "temp_collector_inlet"],
-                                                              delta_temp_n=s["delta_temp_n"],
-                                                              irradiance_global=data_timeseries[
-                                                                  'global_horizontal_W_m2'],
-                                                              irradiance_diffuse=data_timeseries[
-                                                                  'diffuse_horizontal_W_m2'],
-                                                              temp_amb_col=data_timeseries['temp_amb'],
-                                                              inputs={self.__busDict[
-                                                                   s["from"] + '__' + self.__buildingLabel]: solph.Flow()},
-                                                              outputs={self.__busDict[
-                                                                   s["to"] + '__' + self.__buildingLabel]: solph.Flow(
-                                                                    investment=solph.Investment(
-                                                                        ep_costs=self._calculateInvest(s)[0],
-                                                                        minimum=0,
-                                                                        maximum=1000000,
-                                                                        nonconvex=True,
-                                                                        offset=self._calculateInvest(s)[1],
-                                                                        env_per_capa=s["heat_impact"],
-                                                                    ),
-                                                              variable_costs=0,
-                                                              env_per_flow=s["impact_cap"] / s["lifetime"])},
-                                                              ))
+                solarCollector=SolarCollector(s["label"], self.__buildingLabel,
+                                                              self.__busDict[s["from"] + '__' + self.__buildingLabel],
+                                                              self.__busDict[s["to"] + '__' + self.__buildingLabel],
+                                                              s["electrical_consumption"], s["peripheral_losses"],
+                                                              s["aperture_area"], s["latitude"], s["longitude"],
+                                                              s["collector_tilt"], s["collector_azimuth"],
+                                                              s["eta_0"], s["a_1"], s["a_2"], s["temp_collector_inlet"],
+                                                              s["delta_temp_n"],
+                                                              data_timeseries['global_horizontal_W_m2'],
+                                                              data_timeseries['diffuse_horizontal_W_m2'],
+                                                              data_timeseries['temp_amb'],s["capacity_min"],
+                                                              s["capacity"], s["impact_cap"] / s["lifetime"],
+                                                              0, s["heat_impact"], s["heat_impact"],
+                                                              s["impact_cap"] / s["lifetime"]).__solarCollector
+
                 self.__envParam[s["label"] + '__' + self.__buildingLabel] = [s["heat_impact"],
                                                                              s["elec_impact"], s["impact_cap"] / s[
                                                                                  "lifetime"]]
+
+            self.__nodesList.append(solarCollector.getSolarCollector());
             self.__costParam[s["label"] + '__' + self.__buildingLabel] = [self._calculateInvest(s)[0],
                                                                           self._calculateInvest(s)[1]]
             self.__technologies.append(
