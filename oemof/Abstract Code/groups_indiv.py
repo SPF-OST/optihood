@@ -1,16 +1,18 @@
 import numpy as np
 import pandas as pd
 import oemof.solph as solph
+from oemof.thermal.facades import SolarThermalCollector
 from oemof.tools import logger
 from oemof.tools import economics
 import logging
 import os
 import pprint as pp
+
 try:
     import matplotlib.pyplot as plt
 except ImportError:
     plt = None
-from converters import HeatPumpLinear, CHP
+from converters import HeatPumpLinear, CHP, SolarCollector
 from storages import ElectricalStorage, ThermalStorage
 from constraints import *
 
@@ -52,20 +54,120 @@ class Building:
         # Create Bus objects from buses table
         for i, b in data.iterrows():
             if b["active"]:
-                bus = solph.Bus(label=b["label"]+'__'+self.__buildingLabel)
+                bus = solph.Bus(label=b["label"] + '__' + self.__buildingLabel)
                 self.__nodesList.append(bus)
-                self.__busDict[b["label"]+'__'+self.__buildingLabel] = bus
+                self.__busDict[b["label"] + '__' + self.__buildingLabel] = bus
 
                 if b["excess"]:
                     self.__nodesList.append(
                         solph.Sink(
-                            label="excess"+b["label"]+'__'+self.__buildingLabel,
+                            label="excess" + b["label"] + '__' + self.__buildingLabel,
                             inputs={
                                 self.__busDict[b["label"]+'__'+self.__buildingLabel]: solph.Flow(
                                     variable_costs=b["excess costs"]*(opt == "costs")  # if opt = "env" variable costs should be zero
                                 )}))
                 # add the excess production cost to self.__costParam
                 self.__costParam["excess" + b["label"]+'__'+self.__buildingLabel] = b["excess costs"]
+
+    def addSolar(self, data, data_timeseries, opt):
+        # Create Source objects from table 'commodity sources'
+        for i, s in data.iterrows():
+            if opt == "costs":
+                self.__nodesList.append(SolarThermalCollector(label=s["label"] + '__' + self.__buildingLabel,
+                                                              heat_out_bus=self.__busDict[
+                                                                   s["to"] + '__' + self.__buildingLabel],
+                                                              electricity_in_bus=self.__busDict[
+                                                                   s["from"] + '__' + self.__buildingLabel],
+                                                              electrical_consumption=s[
+                                                                  "electrical_consumption"],
+                                                              peripheral_losses=s[
+                                                                  "peripheral_losses"],
+                                                              aperture_area=s[
+                                                                  "aperture_area"],
+                                                              latitude=s["latitude"],
+                                                              longitude=s["longitude"],
+                                                              collector_tilt=s[
+                                                                  "collector_tilt"],
+                                                              collector_azimuth=s[
+                                                                  "collector_azimuth"],
+                                                              eta_0=s["eta_0"],
+                                                              a_1=s["a_1"],
+                                                              a_2=s["a_2"],
+                                                              temp_collector_inlet=s[
+                                                                  "temp_collector_inlet"],
+                                                              delta_temp_n=s["delta_temp_n"],
+                                                              irradiance_global=data_timeseries[
+                                                                  'global_horizontal_W_m2'],
+                                                              irradiance_diffuse=data_timeseries[
+                                                                  'diffuse_horizontal_W_m2'],
+                                                              temp_amb=data_timeseries['temp_amb'],
+                                                              inputs={self.__busDict[s["from"] + '__' + self.__buildingLabel]: solph.Flow()},
+                                                              outputs={self.__busDict[s["to"] + '__' + self.__buildingLabel]: solph.Flow(
+                                                                investment=solph.Investment(
+                                                                  ep_costs=self._calculateInvest(s)[0],
+                                                                  minimum=0,
+                                                                  maximum=1000000,
+                                                                  nonconvex=True,
+                                                                  offset=self._calculateInvest(s)[1],
+                                                                  env_per_capa=s["heat_impact"],
+                                                                ),
+                                                              variable_costs=0,
+                                                              env_per_flow=s["impact_cap"] / s["lifetime"])},
+                                                            ))
+                self.__envParam[s["label"] + '__' + self.__buildingLabel] = [s["heat_impact"], 0,
+                                                                             s["impact_cap"] / s["lifetime"]]
+
+            elif opt == "env":
+                self.__nodesList.append(SolarThermalCollector(label=s["label"] + '__' + self.__buildingLabel,
+                                                              heat_out_bus=self.__busDict[
+                                                                   s["to"] + '__' + self.__buildingLabel],
+                                                              electricity_in_bus=self.__busDict[
+                                                                   s["from"] + '__' + self.__buildingLabel],
+                                                              electrical_consumption=s[
+                                                                  "electrical_consumption"],
+                                                              peripheral_losses=s[
+                                                                  "peripheral_losses"],
+                                                              aperture_area=s[
+                                                                  "aperture_area"],
+                                                              latitude=s["latitude"],
+                                                              longitude=s["longitude"],
+                                                              collector_tilt=s[
+                                                                  "collector_tilt"],
+                                                              collector_azimuth=s[
+                                                                  "collector_azimuth"],
+                                                              eta_0=s["eta_0"],
+                                                              a_1=s["a_1"],
+                                                              a_2=s["a_2"],
+                                                              temp_collector_inlet=s[
+                                                                  "temp_collector_inlet"],
+                                                              delta_temp_n=s["delta_temp_n"],
+                                                              irradiance_global=data_timeseries[
+                                                                  'global_horizontal_W_m2'],
+                                                              irradiance_diffuse=data_timeseries[
+                                                                  'diffuse_horizontal_W_m2'],
+                                                              temp_amb_col=data_timeseries['temp_amb'],
+                                                              inputs={self.__busDict[
+                                                                   s["from"] + '__' + self.__buildingLabel]: solph.Flow()},
+                                                              outputs={self.__busDict[
+                                                                   s["to"] + '__' + self.__buildingLabel]: solph.Flow(
+                                                                    investment=solph.Investment(
+                                                                        ep_costs=self._calculateInvest(s)[0],
+                                                                        minimum=0,
+                                                                        maximum=1000000,
+                                                                        nonconvex=True,
+                                                                        offset=self._calculateInvest(s)[1],
+                                                                        env_per_capa=s["heat_impact"],
+                                                                    ),
+                                                              variable_costs=0,
+                                                              env_per_flow=s["impact_cap"] / s["lifetime"])},
+                                                              ))
+                self.__envParam[s["label"] + '__' + self.__buildingLabel] = [s["heat_impact"],
+                                                                             s["elec_impact"], s["impact_cap"] / s[
+                                                                                 "lifetime"]]
+            self.__costParam[s["label"] + '__' + self.__buildingLabel] = [self._calculateInvest(s)[0],
+                                                                          self._calculateInvest(s)[1]]
+            self.__technologies.append(
+                [s["to"] + '__' + self.__buildingLabel, s["label"] + '__' + self.__buildingLabel])
 
     def addGridSeparation(self, dataGridSeparation):
         if not dataGridSeparation.empty:
@@ -77,6 +179,7 @@ class Building:
 
     def addSource(self, data, data_elec, opt):
         # Create Source objects from table 'commodity sources'
+
         for i, cs in data.iterrows():
             if cs["active"]:
                 sourceLabel = cs["label"]+'__'+self.__buildingLabel
@@ -256,6 +359,7 @@ class Building:
         base = economics.annuity(c * data["invest_base"], data["lifetime"], intRate)
         return perCapacity, base
 
+
 class EnergyNetwork(solph.EnergySystem):
     def __init__(self, timestamp, tSH, tDHW):
         self.__temperatureSH = tSH
@@ -287,6 +391,8 @@ class EnergyNetwork(solph.EnergySystem):
             "buses": data.parse("buses"),
             "grid_connection": data.parse("grid_connection"),
             "commodity_sources": data.parse("commodity_sources"),
+            "solar_collector": data.parse("solar_collector"),
+            "solar_time_series": data.parse("solar_time_series"),
             "electricity_impact": data.parse("electricity_impact"),
             "transformers": data.parse("transformers"),
             "demand": data.parse("demand"),
@@ -300,8 +406,13 @@ class EnergyNetwork(solph.EnergySystem):
         nodesData["electricity_impact"].set_index("timestamp", inplace=True)
         nodesData["electricity_impact"].index = pd.to_datetime(nodesData["electricity_impact"].index)
         nodesData["timeseries"].set_index("timestamp", inplace=True)
-        nodesData["timeseries"].index = pd.to_datetime(nodesData["timeseries"].index)
-
+        nodesData["timeseries"].index = pd.to_datetime(
+            nodesData["timeseries"].index
+        )
+        nodesData["solar_time_series"].set_index("timestamp", inplace=True)
+        nodesData["solar_time_series"].index = pd.to_datetime(
+            nodesData["solar_time_series"].index
+        )
         logging.info("Data from Excel file {} imported.".format(filePath))
 
         self._convertNodes(nodesData, opt)
@@ -317,7 +428,7 @@ class EnergyNetwork(solph.EnergySystem):
 
     def _addBuildings(self, data, opt):
         numberOfBuildings = max(data["buses"]["building"])
-        self.__buildings = [Building('Building'+str(i+1)) for i in range(numberOfBuildings)]
+        self.__buildings = [Building('Building' + str(i + 1)) for i in range(numberOfBuildings)]
         for b in self.__buildings:
             buildingLabel = b.getBuildingLabel()
             i = int(buildingLabel[8:])
@@ -328,6 +439,8 @@ class EnergyNetwork(solph.EnergySystem):
             b.addTransformer(data["transformers"][data["transformers"]["building"] == i], self.__temperatureDHW,
                              self.__temperatureSH, self.__temperatureAmb, opt)
             b.addStorage(data["storages"][data["storages"]["building"] == i], data["stratified_storage"], opt)
+            b.addSolar(data["solar_collector"][data["solar_collector"]["building"] == i], data["solar_time_series"],
+                       opt)
             self.__nodesList.extend(b.getNodesList())
             self.__inputs[buildingLabel] = b.getInputs()
             self.__technologies[buildingLabel] = b.getTechnologies()
@@ -465,7 +578,7 @@ class EnergyNetwork(solph.EnergySystem):
         return self.__metaResults
 
     def printStateofCharge(self, type, building):
-        storage = self.groups[type+'__'+building]
+        storage = self.groups[type + '__' + building]
         print(f"""********* State of Charge ({type},{building}) *********""")
         print(
             self.__optimizationResults[(storage, None)]["sequences"]
@@ -492,13 +605,20 @@ class EnergyNetwork(solph.EnergySystem):
             print("Invested in {} kWh DHW Storage Tank.".format(invest))
             invest = capacitiesInvestedStorages["shStorage__" + buildingLabel]
             print("Invested in {} kWh SH Storage Tank.".format(invest))
+            invest = capacities_invested_s["solarCollector__" + building]
+            print("Invested in {} kWh  SolarCollector.".format(invest))
             print("")
 
     def printCosts(self):
-        print("Investment Costs for the system: {} CHF".format(sum(self.__capex["Building"+str(b+1)] for b in range(len(self.__buildings)))))
-        print("Operation Costs for the system: {} CHF".format(sum(self.__opex["Building"+str(b+1)] for b in range(len(self.__buildings)))))
-        print("Feed In Costs for the system: {} CHF".format(sum(self.__feedIn["Building"+str(b+1)] for b in range(len(self.__buildings)))))
-        print("Total Costs for the system: {} CHF".format(sum(self.__capex["Building"+str(b+1)] + self.__opex["Building"+str(b+1)] + self.__feedIn["Building"+str(b+1)] for b in range(len(self.__buildings)))))
+        print("Investment Costs for the system: {} CHF".format(
+            sum(self.__capex["Building" + str(b + 1)] for b in range(len(self.__buildings)))))
+        print("Operation Costs for the system: {} CHF".format(
+            sum(self.__opex["Building" + str(b + 1)] for b in range(len(self.__buildings)))))
+        print("Feed In Costs for the system: {} CHF".format(
+            sum(self.__feedIn["Building" + str(b + 1)] for b in range(len(self.__buildings)))))
+        print("Total Costs for the system: {} CHF".format(sum(
+            self.__capex["Building" + str(b + 1)] + self.__opex["Building" + str(b + 1)] + self.__feedIn[
+                "Building" + str(b + 1)] for b in range(len(self.__buildings)))))
 
     def printEnvImpacts(self):
         envImpactInputsNetwork = sum(sum(self.__envImpactInputs["Building"+str(b+1)].values()) for b in range(len(self.__buildings)))
@@ -506,6 +626,7 @@ class EnergyNetwork(solph.EnergySystem):
         print("Environmental impact from input resources for the system: {} kg CO2 eq".format(envImpactInputsNetwork))
         print("Environmental impact from energy conversion technologies for the system: {} kg CO2 eq".format(envImpactTechnologiesNetwork))
         print("Total: {} kg CO2 eq".format(envImpactInputsNetwork+envImpactTechnologiesNetwork))
+
 
     def exportToExcel(self, file_name, capacitiesInvestedTransformers, capacitiesInvestedStorages):
         with pd.ExcelWriter(file_name) as writer:
@@ -539,3 +660,4 @@ class EnergyNetwork(solph.EnergySystem):
 
                 envImpactBuilding = pd.DataFrame.from_dict(envImpact, orient='index')
                 envImpactBuilding.to_excel(writer, sheet_name="env_impacts__"+buildingLabel)
+
