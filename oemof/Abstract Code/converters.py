@@ -43,7 +43,6 @@ class HeatPumpLinear:
     def __init__(self, buildingLabel, temperatureDHW, temperatureSH, temperatureLow, input, outputSH, outputDHW,
                  capacityMin, capacityMax,
                  epc, base, varc, env_flow, env_capa):
-<<<<<<< HEAD
         self.__copDHW = self._calculateCop(temperatureDHW, temperatureLow)
         self.__copSH = self._calculateCop(temperatureSH, temperatureLow)
         self.__DHWChargingTimesteps = [5, 6, 16, 17]     # Data in the scenario file is from 01:00 H onwards (instead of 00:00)
@@ -80,42 +79,6 @@ class HeatPumpLinear:
                                                conversion_factors={outputDHW: self.__copDHW})
 
     def _calculateCop(self, tHigh, tLow):
-=======
-        self.__copDHW = self._calculate_cop(temperatureDHW, temperatureLow)
-        self.__copSH = self._calculate_cop(temperatureSH, temperatureLow)
-        self.__heatpumpSH = solph.Transformer(label='HP_SH' + '__' + buildingLabel, inputs={input: solph.Flow()},
-                                              outputs={outputSH: solph.Flow(
-                                                  investment=solph.Investment(
-                                                      ep_costs=epc,
-                                                      minimum=capacityMin,
-                                                      maximum=capacityMax,
-                                                      nonconvex=True,
-                                                      offset=base,
-                                                      env_per_capa=env_capa,
-                                                  ),
-                                                  variable_costs=varc,
-                                                  env_per_flow=env_flow,
-
-                                              )},
-                                              conversion_factors={outputSH: self.__copSH})
-        self.__heatpumpDHW = solph.Transformer(label='HP_DHW' + '__' + buildingLabel, inputs={input: solph.Flow()},
-                                               outputs={outputDHW: solph.Flow(
-                                                   investment=solph.Investment(
-                                                       ep_costs=epc,
-                                                       minimum=capacityMin,
-                                                       maximum=capacityMax,
-                                                       nonconvex=True,
-                                                       offset=base,
-                                                       env_per_capa=env_capa,
-                                                   ),
-                                                   variable_costs=varc,
-                                                   env_per_flow=env_flow,
-
-                                               )},
-                                               conversion_factors={outputDHW: self.__copDHW})
-
-    def _calculate_cop(self, tHigh, tLow):
->>>>>>> 82ceb73 (PV and solarCollector Model running)
         coefCOP = [12.4896, 64.0652, -83.0217, -230.1195, 173.2122]
         coefQ = [13.8603, 120.2178, -7.9046, -164.1900, -17.9805]
         QCondenser = coefQ[0] + (coefQ[1] * tLow / 273.15) + (coefQ[2] * tHigh / 273.15) + (
@@ -146,7 +109,6 @@ class HeatPumpLinear:
 
 class CHP:
     def __init__(self, buildingLabel, input, outputEl, outputSH, outputDHW, efficiencyEl, efficiencySH, efficiencyDHW,
-<<<<<<< HEAD
                  capacityMin, capacityEl, capacitySH, capacityDHW, epc, base, varc1, varc2, env_flow1, env_flow2, env_capa):
         self.__DHWChargingTimesteps = [5, 6, 16, 17]                    # Data in the scenario file is from 01:00 H onwards (instead of 00:00)
         self._efficiencyElCHPSH = [efficiencyEl] * 8760
@@ -191,47 +153,6 @@ class CHP:
                                             outputSH: self._efficiencySH,
                                             }
                     )
-=======
-                 capacityMin, capacityEl, capacitySH, capacityDHW, epc, base, varc1, varc2, env_flow1, env_flow2,
-                 env_capa):
-        self.__CHPSH = solph.Transformer(
-            label='CHP_SH' + '__' + buildingLabel,
-            inputs={
-                input: solph.Flow()
-            },
-            outputs={
-                outputEl: solph.Flow(
-                    investment=solph.Investment(
-                        ep_costs=epc,
-                        minimum=float(capacityMin) * efficiencyEl / efficiencyEl + efficiencySH,
-                        maximum=float(capacityEl) * efficiencyEl / efficiencyEl + efficiencySH,
-                        nonconvex=True,
-                        offset=base,
-                        env_per_capa=env_capa,
-                    ),
-                    variable_costs=varc1,
-                    env_per_flow=env_flow1,
-
-                ),
-                outputSH: solph.Flow(
-                    investment=solph.Investment(
-                        ep_costs=epc,
-                        minimum=float(capacityMin) * efficiencySH / efficiencyEl + efficiencySH,
-                        maximum=float(capacitySH) * efficiencySH / efficiencyEl + efficiencySH,
-                        nonconvex=True,
-                        offset=base,
-                        env_per_capa=env_capa,
-                    ),
-                    variable_costs=varc2,
-                    env_per_flow=env_flow2,
-
-                ),
-            },
-            conversion_factors={outputEl: efficiencyEl,
-                                outputSH: efficiencySH,
-                                }
-        )
->>>>>>> 82ceb73 (PV and solarCollector Model running)
         self.__CHPDHW = solph.Transformer(
             label='CHP_DHW' + '__' + buildingLabel,
             inputs={
