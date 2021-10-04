@@ -74,34 +74,33 @@ class Building:
         # Create Source objects from table 'commodity sources'
         for i, s in data.iterrows():
             if opt == "costs":
-                self.__nodesList.append(PV(s["label"], self.__buildingLabel,
-                                           self.__busDict[s["to"] + '__' + self.__buildingLabel],
-                                           s["peripheral_losses"], s["latitude"], s["longitude"],
-                                           s["pv_tilt"], s["pv_azimuth"], s["nominalPower"],
-                                           data_timeseries['global_horizontal_W_m2'],
-                                           data_timeseries['diffuse_horizontal_W_m2'],
-                                           data_timeseries['temp_amb'], s["capacity_min"], s["capacity"],
-                                           self._calculateInvest(s)[0], self._calculateInvest(s)[1],
-                                           0, s["heat_impact"], s["impact_cap"] / s["lifetime"]))
+                epc=self._calculateInvest(s)[0]
+                base=self._calculateInvest(s)[1]
+                env_capa=0
+                env_flow=s["heat_impact"]
+                varc=s["impact_cap"] / s["lifetime"]
 
-                self.__envParam[s["label"] + '__' + self.__buildingLabel] = [s["heat_impact"], 0,
-                                                                             s["impact_cap"] / s["lifetime"]]
+                envParam = [s["heat_impact"], 0, s["impact_cap"] / s["lifetime"]]
 
             elif opt == "env":
-                self.__nodesList.append(PV(s["label"], self.__buildingLabel,
-                                           self.__busDict[s["to"] + '__' + self.__buildingLabel],
-                                           s["peripheral_losses"], s["latitude"], s["longitude"],
-                                           s["pv_tilt"], s["pv_azimuth"], s["nominalPower"],
-                                           data_timeseries['global_horizontal_W_m2'],
-                                           data_timeseries['diffuse_horizontal_W_m2'],
-                                           data_timeseries['temp_amb'], s["capacity_min"], s["capacity"],
-                                           s["impact_cap"] / s["lifetime"],
-                                           0, s["heat_impact"], s["heat_impact"],
-                                           s["impact_cap"] / s["lifetime"]))
+                epc = s["impact_cap"] / s["lifetime"]
+                base = 0
+                env_capa = s["heat_impact"]
+                env_flow = s["heat_impact"]
+                varc = s["impact_cap"] / s["lifetime"]
 
-                self.__envParam[s["label"] + '__' + self.__buildingLabel] = [s["heat_impact"],
-                                                                             s["elec_impact"], s["impact_cap"] / s[
-                                                                                 "lifetime"]]
+                envParam = [s["heat_impact"], s["elec_impact"], s["impact_cap"] / s["lifetime"]]
+
+            self.__nodesList.append(PV(s["label"], self.__buildingLabel,
+                                       self.__busDict[s["to"] + '__' + self.__buildingLabel],
+                                       s["peripheral_losses"], s["latitude"], s["longitude"],
+                                       s["pv_tilt"], s["pv_azimuth"],
+                                       data_timeseries['global_horizontal_W_m2'],
+                                       data_timeseries['diffuse_horizontal_W_m2'],
+                                       data_timeseries['temp_amb'], s["capacity_min"], s["capacity_max"],
+                                       epc, base, env_capa, env_flow, varc))
+
+            self.__envParam[s["label"] + '__' + self.__buildingLabel] = envParam
 
             self.__costParam[s["label"] + '__' + self.__buildingLabel] = [self._calculateInvest(s)[0],
                                                                           self._calculateInvest(s)[1]]
@@ -112,41 +111,35 @@ class Building:
         # Create Source objects from table 'commodity sources'
         for i, s in data.iterrows():
             if opt == "costs":
-                self.__nodesList.append(SolarCollector(s["label"], self.__buildingLabel,
-                                                       self.__busDict[s["from"] + '__' + self.__buildingLabel],
-                                                       self.__busDict[s["to"] + '__' + self.__buildingLabel],
-                                                       s["electrical_consumption"], s["peripheral_losses"],
-                                                       s["latitude"], s["longitude"],
-                                                       s["collector_tilt"], s["collector_azimuth"],
-                                                       s["eta_0"], s["a_1"], s["a_2"], s["temp_collector_inlet"],
-                                                       s["delta_temp_n"], data_timeseries['global_horizontal_W_m2'],
-                                                       data_timeseries['diffuse_horizontal_W_m2'],
-                                                       data_timeseries['temp_amb'], s["capacity_min"], s["capacity"],
-                                                       self._calculateInvest(s)[0], self._calculateInvest(s)[1],
-                                                       0, s["heat_impact"], s["impact_cap"] / s["lifetime"]))
+                epc=self._calculateInvest(s)[0]
+                base=self._calculateInvest(s)[1]
+                env_capa=0
+                env_flow=s["heat_impact"]
+                varc=s["impact_cap"] / s["lifetime"]
 
-                self.__envParam[s["label"] + '__' + self.__buildingLabel] = [s["heat_impact"], 0,
-                                                                             s["impact_cap"] / s["lifetime"]]
+                envParam = [s["heat_impact"], 0,s["impact_cap"] / s["lifetime"]]
 
             elif opt == "env":
-                self.__nodesList.append(SolarCollector(s["label"], self.__buildingLabel,
-                                                       self.__busDict[s["from"] + '__' + self.__buildingLabel],
-                                                       self.__busDict[s["to"] + '__' + self.__buildingLabel],
-                                                       s["electrical_consumption"], s["peripheral_losses"],
-                                                       s["latitude"], s["longitude"],
-                                                       s["collector_tilt"], s["collector_azimuth"],
-                                                       s["eta_0"], s["a_1"], s["a_2"], s["temp_collector_inlet"],
-                                                       s["delta_temp_n"],
-                                                       data_timeseries['global_horizontal_W_m2'],
-                                                       data_timeseries['diffuse_horizontal_W_m2'],
-                                                       data_timeseries['temp_amb'], s["capacity_min"],
-                                                       s["capacity"], s["impact_cap"] / s["lifetime"],
-                                                       0, s["heat_impact"], s["heat_impact"],
-                                                       s["impact_cap"] / s["lifetime"]))
+                epc=s["impact_cap"] / s["lifetime"]
+                base=0
+                env_capa=s["heat_impact"]
+                env_flow=s["heat_impact"]
+                varc=s["impact_cap"] / s["lifetime"]
 
-                self.__envParam[s["label"] + '__' + self.__buildingLabel] = [s["heat_impact"],
-                                                                             s["elec_impact"], s["impact_cap"] / s[
-                                                                                 "lifetime"]]
+                envParam = [s["heat_impact"], s["elec_impact"], s["impact_cap"] / s["lifetime"]]
+
+            self.__nodesList.append(SolarCollector(s["label"], self.__buildingLabel,
+                                                   self.__busDict[s["from"] + '__' + self.__buildingLabel],
+                                                   self.__busDict[s["to"] + '__' + self.__buildingLabel],
+                                                   s["electrical_consumption"], s["peripheral_losses"], s["latitude"],
+                                                   s["longitude"], s["collector_tilt"], s["collector_azimuth"],
+                                                   s["eta_0"], s["a_1"], s["a_2"], s["temp_collector_inlet"],
+                                                   s["delta_temp_n"], data_timeseries['global_horizontal_W_m2'],
+                                                   data_timeseries['diffuse_horizontal_W_m2'],
+                                                   data_timeseries['temp_amb'], s["capacity_min"], s["capacity_max"],
+                                                   epc, base, env_capa, env_flow, varc))
+
+            self.__envParam[s["label"] + '__' + self.__buildingLabel] = envParam
 
             self.__costParam[s["label"] + '__' + self.__buildingLabel] = [self._calculateInvest(s)[0],
                                                                           self._calculateInvest(s)[1]]
@@ -585,9 +578,9 @@ class EnergyNetwork(solph.EnergySystem):
             investDHW = capacitiesInvestedTransformers[("CHP_DHW__" + buildingLabel, "electricityBus__" + buildingLabel)] + \
                         capacitiesInvestedTransformers[("CHP_DHW__" + buildingLabel, "dhwStorageBus__" + buildingLabel)]
             print("Invested in {} kW :SH and {} kW :DHW CHP.".format(investSH, investDHW))
-            invest = capacities_invested_c[("solarCollector__" + building, "dhwStorageBus__" + building)]
+            invest = capacitiesInvestedTransformers[("solarCollector__" + buildingLabel, "dhwStorageBus__" + buildingLabel)]
             print("Invested in {} kWh  SolarCollector.".format(invest))
-            invest = capacities_invested_c[("pv__" + building, "electricityBus__" + building)]
+            invest = capacitiesInvestedTransformers[("pv__" + buildingLabel, "electricityBus__" + buildingLabel)]
             print("Invested in {} kWh  PV.".format(invest))
 
             invest = capacitiesInvestedStorages["electricalStorage__" + buildingLabel]
@@ -596,8 +589,7 @@ class EnergyNetwork(solph.EnergySystem):
             print("Invested in {} kWh DHW Storage Tank.".format(invest))
             invest = capacitiesInvestedStorages["shStorage__" + buildingLabel]
             print("Invested in {} kWh SH Storage Tank.".format(invest))
-            invest = capacities_invested_s["solarCollector__" + building]
-            print("Invested in {} kWh  SolarCollector.".format(invest))
+
             print("")
 
     def printCosts(self):
