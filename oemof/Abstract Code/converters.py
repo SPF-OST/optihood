@@ -1,8 +1,47 @@
 import oemof.solph as solph
 import numpy as np
+from oemof.thermal.solar_thermal_collector import flat_plate_precalc
+
+
+class SolarCollector(solph.Transformer):
+    def __init__(self, label, buildingLabel, inputs, outputs, electrical_consumption, peripheral_losses, latitude,
+                 longitude,
+                 collector_tilt, collector_azimuth, eta_0, a_1, a_2, temp_collector_inlet, delta_temp_n,
+                 irradiance_global,
+                 irradiance_diffuse, temp_amb_col, capacityMin, capacityMax, epc, base, env_capa, env_flow, varc):
+        flatPlateCollectorData = flat_plate_precalc(
+            latitude, longitude, collector_tilt, collector_azimuth, eta_0, a_1, a_2, temp_collector_inlet, delta_temp_n,
+            irradiance_global, irradiance_diffuse, temp_amb_col
+        )
+
+        self.collectors_eta_c = flatPlateCollectorData['eta_c']
+
+        self.collectors_heat = np.minimum(flatPlateCollectorData['collectors_heat'], capacityMax + base)
+
+        super(SolarCollector, self).__init__(label=label + '__' + buildingLabel, inputs={inputs: solph.Flow()},
+                                             outputs={outputs: solph.Flow(
+                                                 investment=solph.Investment(
+                                                     ep_costs=epc,
+                                                     minimum=capacityMin,
+                                                     maximum=capacityMax,
+                                                     nonconvex=True,
+                                                     offset=base,
+                                                     env_per_capa=env_capa,
+                                                 ),
+                                                 variable_costs=varc,
+                                                 env_per_flow=env_flow,
+                                                 max=self.collectors_heat
+                                             )},
+                                             conversion_factors={outputs:
+                                                                     (1 - peripheral_losses) / electrical_consumption})
+
+    def getSolarCollector(self):
+        return self.__solarCollector
+
 
 class HeatPumpLinear:
-    def __init__(self, buildingLabel, temperatureDHW, temperatureSH, temperatureLow, input, outputSH, outputDHW, capacityMin, capacityMax,
+    def __init__(self, buildingLabel, temperatureDHW, temperatureSH, temperatureLow, input, outputSH, outputDHW,
+                 capacityMin, capacityMax,
                  epc, base, varc, env_flow, env_capa):
         self.__copDHW = self._calculateCop(temperatureDHW, temperatureLow)
         self.__copSH = self._calculateCop(temperatureSH, temperatureLow)
@@ -44,10 +83,10 @@ class HeatPumpLinear:
         coefQ = [13.8603, 120.2178, -7.9046, -164.1900, -17.9805]
         QCondenser = coefQ[0] + (coefQ[1] * tLow / 273.15) + (coefQ[2] * tHigh / 273.15) + (
                 coefQ[3] * tLow / 273.15 * tHigh / 273.15) + (
-                                 coefQ[4] * tHigh / 273.15 * tHigh / 273.15)
+                             coefQ[4] * tHigh / 273.15 * tHigh / 273.15)
         WCompressor = coefCOP[0] + (coefCOP[1] * tLow / 273.15) + (coefCOP[2] * tHigh / 273.15) + (
                 coefCOP[3] * tLow / 273.15 * tHigh / 273.15) + (
-                                  coefCOP[4] * tHigh / 273.15 * tHigh / 273.15)
+                              coefCOP[4] * tHigh / 273.15 * tHigh / 273.15)
         cop = np.divide(QCondenser, WCompressor)
         return cop
 
