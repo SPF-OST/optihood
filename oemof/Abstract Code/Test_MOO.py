@@ -10,9 +10,15 @@ import time
 numberOfBuildings = 4
 numberOfOptimizations = 7
 inputfileName = "scenario" + str(numberOfBuildings) + ".xls"
+optimizationOptions ={
+                    "BarConvTol":1.0,
+                    "NonConvex":2,
+                    #"OptimalityTol":1e-2,
+                    "MIPGap":100
+                    }
 
 def optimizeNetwork(network, instance, envImpactlimit):
-    limit, capas_c, capas_s = network.optimize(solver='gurobi', envImpactlimit=envImpactlimit)
+    limit, capas_c, capas_s = network.optimize(solver='gurobi', envImpactlimit=envImpactlimit, options=optimizationOptions)
     network.printInvestedCapacities(capas_c, capas_s)
     network.printCosts()
     network.printEnvImpacts()
