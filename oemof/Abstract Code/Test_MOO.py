@@ -5,6 +5,7 @@ try:
 except ImportError:
     plt = None
 from groups_indiv import EnergyNetwork
+from groups_group import EnergyNetwork
 import time
 
 numberOfBuildings = 4
@@ -13,8 +14,8 @@ inputfileName = "scenario" + str(numberOfBuildings) + ".xls"
 optimizationOptions ={
                     "BarConvTol":1.0,
                     "NonConvex":2,
-                    #"OptimalityTol":1e-2,
-                    "MIPGap":100
+                    "OptimalityTol":1e-4,
+                    "MIPGap":1000
                     }
 
 def optimizeNetwork(network, instance, envImpactlimit):
@@ -22,7 +23,7 @@ def optimizeNetwork(network, instance, envImpactlimit):
     network.printInvestedCapacities(capas_c, capas_s)
     network.printCosts()
     network.printEnvImpacts()
-    network.exportToExcel('results' + str(numberOfBuildings) + '_' + str(instance) + '_indiv.xlsx', capas_c, capas_s)
+    network.exportToExcel('results' + str(numberOfBuildings) + '_' + str(instance) + '_indiv.xlsx')
     meta = network.printMetaresults()
     print(limit)
     return(limit, meta)
