@@ -4,11 +4,11 @@ try:
     import matplotlib.pyplot as plt
 except ImportError:
     plt = None
-from groups_indiv import EnergyNetwork
+from groups_group import EnergyNetwork
 import time
 
 numberOfBuildings = 4
-numberOfOptimizations = 7
+numberOfOptimizations = 1
 inputfileName = "scenario" + str(numberOfBuildings) + ".xls"
 optimizationOptions ={
                     "BarConvTol":1.0,
@@ -22,7 +22,7 @@ def optimizeNetwork(network, instance, envImpactlimit):
     network.printInvestedCapacities(capas_c, capas_s)
     network.printCosts()
     network.printEnvImpacts()
-    network.exportToExcel('results' + str(numberOfBuildings) + '_' + str(instance) + '_indiv.xlsx', capas_c, capas_s)
+    network.exportToExcel('results' + str(numberOfBuildings) + '_' + str(instance) + '_group.xlsx')
     meta = network.printMetaresults()
     print(limit)
     return(limit, meta)

@@ -16,4 +16,4 @@ if __name__ == '__main__':
     meta = network.printMetaresults()
     network.printCosts()
     network.printEnvImpacts()
-    network.exportToExcel('results_indiv.xlsx', capacitiesTransformers, capacitiesStorages)
+    network.exportToExcel('results_indiv.xlsx')
