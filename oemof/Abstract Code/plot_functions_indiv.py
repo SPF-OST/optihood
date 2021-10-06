@@ -673,17 +673,18 @@ if __name__ == '__main__':
     ########## Classic plots  ###########
     #####################################
 
+    # New legends need to be defined by hand for each new flow added to the energy network
     newLegends = {
         "(('naturalGasResource', 'naturalGasBus'), 'flow')": "NaturalGas",
         "(('electricityBus', 'excesselectricityBus'), 'flow')": "Feed-in",
         "(('electricityBus', 'electricalStorage'), 'flow')": "Battery_in",
-        "(('electricityBus', 'electricityDemand'), 'flow')": "Demand_elec",
-        "(('electricityBus', 'HP_DHW'), 'flow')": "HP_dhw",
-        "(('electricityBus', 'HP_SH'), 'flow')": "HP_sh",
+        "(('electricityInBus', 'electricityDemand'), 'flow')": "Demand_elec",
+        "(('electricityInBus', 'HP_DHW'), 'flow')": "HP_dhw",
+        "(('electricityInBus', 'HP_SH'), 'flow')": "HP_sh",
         "(('CHP_DHW', 'electricityBus'), 'flow')": "CHP_DHW_elec",
         "(('CHP_SH', 'electricityBus'), 'flow')": "CHP_SH_elec",
         "(('electricalStorage', 'electricityBus'), 'flow')": "Battery_out",
-        "(('electricityResource', 'electricityBus'), 'flow')": "Grid_purchase",
+        "(('electricityResource', 'gridBus'), 'flow')": "Grid_purchase",
         "(('dhwStorage', 'domesticHotWaterBus'), 'flow')": "Storage_dhw_out",
         "(('dhwStorageBus', 'dhwStorage'), 'flow')": "Storage_dhw_in",
         "(('domesticHotWaterBus', 'domesticHotWaterDemand'), 'flow')": "Demand_dhw",
@@ -694,7 +695,12 @@ if __name__ == '__main__':
         "(('spaceHeatingBus', 'spaceHeatingDemand'), 'flow')": "Demand_sh",
         "(('CHP_SH', 'spaceHeatingBus'), 'flow')": "CHP_sh",
         "(('HP_SH', 'spaceHeatingBus'), 'flow')": "HP_sh",
+        "(('electricityBus', 'producedElectricity'), 'flow')": "Electricity_produced",
+        "(('pv', 'electricityBus'), 'flow')": "PV_elec",
+        "(('solarCollector', 'dhwStorageBus'), 'flow')": "SolarCollector_dhw",
+        "(('electricityInBus', 'solarCollector'), 'flow')": "SolarCollector",
     }
+
     # add the name of the excel file here for which the plots are to be made
 
     buses = get_data("results4_1_indiv.xlsx")
@@ -719,10 +725,10 @@ if __name__ == '__main__':
         l = []
         for k in i:
             l.append(k)
-        building = l[-1]  # in the case of a maximum of 9 buildings
+        building = l[-1]  # in the case of maximum 9 buildings
         beta_bis = beta.copy()
         for j in beta:
-            if j.endswith(building) and ("electricityBus" in j or "spaceHeatingBus" in j or "domesticHotWaterBus" in j or "dhwStorageBus" in j):
+            if j.endswith(building) and ("electricityBus" in j or "gridBus" in j or "spaceHeatingBus" in j or "domesticHotWaterBus" in j or "dhwStorageBus" in j):
                 alpha.append(j)
                 alpha_a.append(buses[j])
                 beta_bis.remove(j)
@@ -735,10 +741,10 @@ if __name__ == '__main__':
 
     for i in buses.keys():
         tt = {}
-        if "electricityBus" in i:
+        if ("electricity" in i) or ("grid" in i):
             elec_names.append(i)
             elec_dict.append(buses[i])
-        if "spaceHeatingBus" in i:
+        if "spaceHeating" in i:
             sh_names.append(i)
             sh_dict.append(buses[i])
         if "domesticHotWater" in i:

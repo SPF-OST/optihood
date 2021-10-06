@@ -665,17 +665,18 @@ if __name__ == '__main__':
     ########## Classic plots  ###########
     #####################################
 
+    # New legends need to be defined by hand for each new flow added to the energy network
     newLegends = {
         "(('naturalGasResource', 'naturalGasBus'), 'flow')": "NaturalGas",
         "(('electricityBus', 'excesselectricityBus'), 'flow')": "Feed-in",
         "(('electricityBus', 'electricalStorage'), 'flow')": "Battery_in",
-        "(('electricityBus', 'electricityDemand'), 'flow')": "Demand_elec",
-        "(('electricityBus', 'HP_DHW'), 'flow')": "HP_dhw",
-        "(('electricityBus', 'HP_SH'), 'flow')": "HP_sh",
+        "(('electricityInBus', 'electricityDemand'), 'flow')": "Demand_elec",
+        "(('electricityInBus', 'HP_DHW'), 'flow')": "HP_dhw",
+        "(('electricityInBus', 'HP_SH'), 'flow')": "HP_sh",
         "(('CHP_DHW', 'electricityBus'), 'flow')": "CHP_DHW_elec",
         "(('CHP_SH', 'electricityBus'), 'flow')": "CHP_SH_elec",
         "(('electricalStorage', 'electricityBus'), 'flow')": "Battery_out",
-        "(('electricityResource', 'electricityBus'), 'flow')": "Grid_purchase",
+        "(('electricityResource', 'gridBus'), 'flow')": "Grid_purchase",
         "(('dhwStorage', 'domesticHotWaterBus'), 'flow')": "Storage_dhw_out",
         "(('dhwStorageBus', 'dhwStorage'), 'flow')": "Storage_dhw_in",
         "(('domesticHotWaterBus', 'domesticHotWaterDemand'), 'flow')": "Demand_dhw",
@@ -686,6 +687,7 @@ if __name__ == '__main__':
         "(('spaceHeatingBus', 'spaceHeatingDemand'), 'flow')": "Demand_sh",
         "(('CHP_SH', 'spaceHeatingBus'), 'flow')": "CHP_sh",
         "(('HP_SH', 'spaceHeatingBus'), 'flow')": "HP_sh",
+        "(('electricityBus', 'producedElectricity'), 'flow')": "Electricity_produced",
     }
 
     newLegends["(('electricityBus', 'electricityLink1_2'), 'flow')"] = "electricityLink_in"
@@ -701,7 +703,7 @@ if __name__ == '__main__':
     newLegends["(('electricityBus', 'electricityLink3_4'), 'flow')"] = "electricityLink_in"
     newLegends["(('electricityLink3_4', 'electricityBus'), 'flow')"] = "electricityLink_out"
 
-    buses = getData("results4_8_group.xlsx")
+    buses = getData("results4_1_group.xlsx")
     elec_names = []
     elec_dict = []
     sh_names = []
@@ -807,6 +809,4 @@ if __name__ == '__main__':
     fig4 = resultingDataDemandDiagramLoop(elec_dict, sh_dict, dhw_dict, COLORS, buildings_number)
 
     plt.show()
-
-logging.info("Done!")
 
