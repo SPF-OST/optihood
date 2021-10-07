@@ -156,6 +156,7 @@ class Building:
 
     def addSource(self, data, data_elec, opt):
         # Create Source objects from table 'commodity sources'
+
         for i, cs in data.iterrows():
             if cs["active"]:
                 sourceLabel = cs["label"]+'__'+self.__buildingLabel
@@ -387,8 +388,9 @@ class EnergyNetwork(solph.EnergySystem):
             nodesData["timeseries"].index
         )
         nodesData["solar_time_series"].set_index("timestamp", inplace=True)
-        nodesData["solar_time_series"].index = pd.to_datetime(nodesData["solar_time_series"].index)
-
+        nodesData["solar_time_series"].index = pd.to_datetime(
+            nodesData["solar_time_series"].index
+        )
         logging.info("Data from Excel file {} imported.".format(filePath))
 
         self._convertNodes(nodesData, opt)
@@ -415,8 +417,10 @@ class EnergyNetwork(solph.EnergySystem):
             b.addTransformer(data["transformers"][data["transformers"]["building"] == i], self.__temperatureDHW,
                              self.__temperatureSH, self.__temperatureAmb, opt)
             b.addStorage(data["storages"][data["storages"]["building"] == i], data["stratified_storage"], opt)
-            b.addSolar(data["solar_collector"][data["solar_collector"]["building"] == i], data["solar_time_series"], opt)
-            b.addPV(data["pv"][data["pv"]["building"] == i], data["solar_time_series"], opt)
+            b.addSolar(data["solar_collector"][data["solar_collector"]["building"] == i], data["solar_time_series"],
+                       opt)
+            b.addPV(data["pv"][data["pv"]["building"] == i], data["solar_time_series"],
+                    opt)
             self.__nodesList.extend(b.getNodesList())
             self.__inputs[buildingLabel] = b.getInputs()
             self.__technologies[buildingLabel] = b.getTechnologies()
@@ -576,7 +580,6 @@ class EnergyNetwork(solph.EnergySystem):
             investDHW = capacitiesInvestedTransformers[("CHP_DHW__" + buildingLabel, "electricityBus__" + buildingLabel)] + \
                         capacitiesInvestedTransformers[("CHP_DHW__" + buildingLabel, "dhwStorageBus__" + buildingLabel)]
             print("Invested in {} kW :SH and {} kW :DHW CHP.".format(investSH, investDHW))
-
             invest = capacitiesInvestedTransformers[("solarCollector__" + buildingLabel, "dhwStorageBus__" + buildingLabel)]
             print("Invested in {} kWh  SolarCollector.".format(invest))
             invest = capacitiesInvestedTransformers[("pv__" + buildingLabel, "electricityBus__" + buildingLabel)]
@@ -609,7 +612,8 @@ class EnergyNetwork(solph.EnergySystem):
         print("Environmental impact from energy conversion technologies for the system: {} kg CO2 eq".format(envImpactTechnologiesNetwork))
         print("Total: {} kg CO2 eq".format(envImpactInputsNetwork+envImpactTechnologiesNetwork))
 
-    def exportToExcel(self, file_name):
+
+    def exportToExcel(self, file_name, capacitiesInvestedTransformers, capacitiesInvestedStorages):
         with pd.ExcelWriter(file_name) as writer:
             busLabelList = []
             for i in self.nodes:
@@ -641,3 +645,4 @@ class EnergyNetwork(solph.EnergySystem):
 
                 envImpactBuilding = pd.DataFrame.from_dict(envImpact, orient='index')
                 envImpactBuilding.to_excel(writer, sheet_name="env_impacts__"+buildingLabel)
+

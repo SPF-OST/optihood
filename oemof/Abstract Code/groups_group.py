@@ -1,16 +1,19 @@
 import numpy as np
 import pandas as pd
 import oemof.solph as solph
+from oemof.thermal.facades import SolarThermalCollector                                                       
 from oemof.tools import logger
 from oemof.tools import economics
 import logging
 import os
 import pprint as pp
+
 try:
     import matplotlib.pyplot as plt
 except ImportError:
     plt = None
-from converters import HeatPumpLinear, CHP
+from converters import HeatPumpLinear, CHP, SolarCollector
+from sources import PV                      
 from storages import ElectricalStorage, ThermalStorage
 from constraints import *
 from groups_indiv import Building
@@ -48,11 +51,14 @@ class EnergyNetwork(solph.EnergySystem):
             "buses": data.parse("buses"),
             "grid_connection": data.parse("grid_connection"),
             "commodity_sources": data.parse("commodity_sources"),
+            "pv": data.parse("pv"),                       
             "electricity_impact": data.parse("electricity_impact"),
             "transformers": data.parse("transformers"),
+            "solar_collector": data.parse("solar_collector"),                                                 
             "demand": data.parse("demand"),
             "storages": data.parse("storages"),
             "timeseries": data.parse("time_series"),
+            "solar_time_series": data.parse("solar_time_series"),
             "stratified_storage": data.parse("stratified_storage"),
             "links": data.parse("links")
         }
@@ -63,6 +69,8 @@ class EnergyNetwork(solph.EnergySystem):
         nodesData["electricity_impact"].index = pd.to_datetime(nodesData["electricity_impact"].index)
         nodesData["timeseries"].set_index("timestamp", inplace=True)
         nodesData["timeseries"].index = pd.to_datetime(nodesData["timeseries"].index)
+        nodesData["solar_time_series"].set_index("timestamp", inplace=True)
+        nodesData["solar_time_series"].index = pd.to_datetime(nodesData["solar_time_series"].index)
 
         logging.info("Data from Excel file {} imported.".format(filePath))
 
@@ -91,6 +99,8 @@ class EnergyNetwork(solph.EnergySystem):
             b.addTransformer(data["transformers"][data["transformers"]["building"] == i], self.__temperatureDHW,
                              self.__temperatureSH, self.__temperatureAmb, opt)
             b.addStorage(data["storages"][data["storages"]["building"] == i], data["stratified_storage"], opt)
+            b.addSolar(data["solar_collector"][data["solar_collector"]["building"] == i], data["solar_time_series"], opt)
+            b.addPV(data["pv"][data["pv"]["building"] == i], data["solar_time_series"], opt)
             self.__nodesList.extend(b.getNodesList())
             self.__inputs[buildingLabel] = b.getInputs()
             self.__technologies[buildingLabel] = b.getTechnologies()
@@ -123,12 +133,12 @@ class EnergyNetwork(solph.EnergySystem):
             print(oobj + ":", n.label)
         print("*********************************************************")
 
-    def optimize(self, solver, envImpactlimit):
+    def optimize(self, solver, envImpactlimit, options={"MIPGap":10}):
         logging.info("Initiating optimization using {} solver".format(solver))
         optimizationModel = solph.Model(self)
         # add constraint to limit the environmental impacts
         optimizationModel, flows, transformerFlowCapacityDict, storageCapacityDict = environmentalImpactlimit(optimizationModel, keyword1="env_per_flow", keyword2="env_per_capa", limit=envImpactlimit)
-        optimizationModel.solve(solver=solver)
+        optimizationModel.solve(solver=solver, cmdline_options=options)
         # obtain the value of the environmental impact (subject to the limit constraint)
         # the optimization imposes an integral limit constraint on the environmental impacts
         # total environmental impacts <= envImpactlimit
@@ -261,6 +271,10 @@ class EnergyNetwork(solph.EnergySystem):
                         capacitiesInvestedTransformers[("CHP_DHW__" + buildingLabel, "dhwStorageBus__" + buildingLabel)]
             print("Invested in {} kW :SH and {} kW :DHW CHP.".format(investSH, investDHW))
 
+            invest = capacitiesInvestedTransformers[("solarCollector__" + buildingLabel, "dhwStorageBus__" + buildingLabel)]
+            print("Invested in {} kWh  SolarCollector.".format(invest))
+            invest = capacitiesInvestedTransformers[("pv__" + buildingLabel, "electricityBus__" + buildingLabel)]
+            print("Invested in {} kWh  PV.".format(invest))                                                                                                             
             invest = capacitiesInvestedStorages["electricalStorage__" + buildingLabel]
             print("Invested in {} kWh Electrical Storage.".format(invest))
             invest = capacitiesInvestedStorages["dhwStorage__" + buildingLabel]
