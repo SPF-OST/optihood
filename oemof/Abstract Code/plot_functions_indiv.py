@@ -67,9 +67,9 @@ def monthlyBalance(data, bus, new_legends):
     # Put a legend to the right of the current axis
     ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     plt.grid(axis='y')
-    if "electricityBus" in bus:
+    if "electricity" in bus or "grid" in bus:
         plt.title("Monthly electricity balance for " + building.replace("__", ""))
-    elif "spaceHeatingBus" in bus:
+    elif "spaceHeating" in bus:
         plt.title("Monthly space heating balance for " + building.replace("__", ""))
     else:
         plt.title("Monthly domestic hot water balance for " + building.replace("__", ""))
@@ -95,15 +95,9 @@ def hourlyDailyPlot(data, bus, palette, new_legends):
     b = 1
 
     for i in range(0, len(data)):
-        l = []
-        for j in bus[i]:
-            l.append(j)
-        l.reverse()
-        l = l[0:11]  # in the case of a maximum of 9 buildings
-        l.reverse()
-        building = ''.join([str(item) for item in l])
-
-        if "electricityBus" in bus[i]:
+        building = '__' + bus[i].split("__")[1]
+        if "electricity" in bus[i]:
+            del bus[i+1]
             dt = data[i]
             data_day = dt.resample('1d').sum()
             p1 = figure(title="Hourly electricity flows for " + building.replace("__", ""), x_axis_label="Date", y_axis_label="Power (kWh)", sizing_mode="scale_both")
@@ -127,7 +121,7 @@ def hourlyDailyPlot(data, bus, palette, new_legends):
             p_plots.append(p1)
             p_plots.append(p2)
 
-        elif "spaceHeatingBus" in bus[i]:
+        elif "spaceHeating" in bus[i]:
             dt = data[i]
             data_day = dt.resample('1d').sum()
             p3 = figure(title="Hourly space heating flows for " + building.replace("__", ""), x_axis_label="Date", y_axis_label="Power (kWh)", sizing_mode="scale_both")
@@ -475,30 +469,32 @@ def resultingDataDemandDiagram(elBus, shBus, dhwBus, COLORS, building):
     dhw = {}
     for flow in elBus.keys():
         if "Demand" in flow:
-            elec[newLegends[flow.replace("__Building"+str(building), "")]] = [0, sum(elBus[flow])]
+            elec[newLegends[flow.replace("__Building"+str(building), "")]] = [0, 0, sum(elBus[flow])]
+        elif "producedElectricity" in flow or "gridElectricity" in flow:
+            elec[newLegends[flow.replace("__Building" + str(building), "")]] = [0, sum(elBus[flow]), 0]
         else:
-            elec[newLegends[flow.replace("__Building"+str(building), "")]] = [sum(elBus[flow]), 0]
+            elec[newLegends[flow.replace("__Building" + str(building), "")]] = [sum(elBus[flow]), 0, 0]
 
         if "Storage" in flow and "in" in newLegends[flow.replace("__Building"+str(building), "")]:
             del elec[newLegends[flow.replace("__Building"+str(building), "")]]
-        elif "electricityBus" not in flow[5:] and "Demand" not in flow:
+        elif "electricity" not in flow[5:] and "Demand" not in flow:
             del elec[newLegends[flow.replace("__Building" + str(building), "")]]
         elif "Resource" in flow or "excess" in flow:
             del elec[newLegends[flow.replace("__Building" + str(building), "")]]
 
     for flow in shBus.keys():
         if "Demand" in flow:
-            sh[newLegends[flow.replace("__Building" + str(building), "")]] = [0, sum(shBus[flow])]
+            sh[newLegends[flow.replace("__Building" + str(building), "")]] = [0, 0, sum(shBus[flow])]
         else:
-            sh[newLegends[flow.replace("__Building" + str(building), "")]] = [sum(shBus[flow]), 0]
+            sh[newLegends[flow.replace("__Building" + str(building), "")]] = [0, sum(shBus[flow]), 0]
         if "Storage" in flow and "in" in newLegends[flow.replace("__Building"+str(building), "")]:
             del sh[newLegends[flow.replace("__Building"+str(building), "")]]
 
     for flow in dhwBus.keys():
         if "Demand" in flow:
-            dhw[newLegends[flow.replace("__Building" + str(building), "")]] = [0, sum(dhwBus[flow])]
+            dhw[newLegends[flow.replace("__Building" + str(building), "")]] = [0, 0, sum(dhwBus[flow])]
         else:
-            dhw[newLegends[flow.replace("__Building" + str(building), "")]] = [sum(dhwBus[flow]), 0]
+            dhw[newLegends[flow.replace("__Building" + str(building), "")]] = [0, sum(dhwBus[flow]), 0]
 
         if "Storage_" in flow :
             del dhw[newLegends[flow.replace("__Building"+str(building), "")]]
@@ -528,11 +524,11 @@ def resultingDataDemandDiagram(elBus, shBus, dhwBus, COLORS, building):
     bp2 = dhw.plot(ax=ax2, kind='barh', color=dhw_colors, stacked=True, linewidth=0)
 
     # remove scenario names from other bar plots
-    ax0.set_yticklabels(('', building))
+    ax0.set_yticklabels(('', '', 'Building '+str(building)))
     for ax in [ax1, ax2]:
         ax.set_yticklabels('')
     for ax in [ax0, ax1, ax2]:
-        groupHbarPlots(ax, group_size=2, inner_sep=0.0)
+        groupHbarPlots(ax, group_size=3, inner_sep=0.0)
 
     # set limits and ticks for both axes
     for ax in [ax0, ax1, ax2]:
@@ -609,12 +605,13 @@ def resultingDataDemandDiagramLoop(elec, sh, dhw, colors, buildings):
     liste = []
     for i in buildings:
         liste.append('')
-        liste.append(i)
+        liste.append('')
+        liste.append('Building '+str(i))
     ax0.set_yticklabels(liste)
     for ax in [ax1, ax2]:
         ax.set_yticklabels('')
     for ax in [ax0, ax1, ax2]:
-        groupHbarPlots(ax, group_size=2, inner_sep=0.0)
+        groupHbarPlots(ax, group_size=3, inner_sep=0.0)
 
     # set limits and ticks for both axes
     for ax in [ax0, ax1, ax2]:
@@ -696,14 +693,17 @@ if __name__ == '__main__':
         "(('CHP_SH', 'spaceHeatingBus'), 'flow')": "CHP_sh",
         "(('HP_SH', 'spaceHeatingBus'), 'flow')": "HP_sh",
         "(('electricityBus', 'producedElectricity'), 'flow')": "Electricity_produced",
+        "(('gridBus', 'gridElectricity'), 'flow')": "Electricity_grid",
         "(('pv', 'electricityBus'), 'flow')": "PV_elec",
-        "(('solarCollector', 'dhwStorageBus'), 'flow')": "SolarCollector_dhw",
+        "(('solarCollector', 'dhwStorageBus'), 'flow')": "SolarCollector",
         "(('electricityInBus', 'solarCollector'), 'flow')": "SolarCollector",
+        "(('gridElectricity', 'electricityInBus'), 'flow')": "Electricity_grid",
+        "(('producedElectricity', 'electricityInBus'), 'flow')": "Electricity_produced"
     }
 
     # add the name of the excel file here for which the plots are to be made
 
-    buses = get_data("results4_1_indiv.xlsx")
+    buses = get_data(".\Results\\results4_1_indiv.xlsx")
     elec_names = []
     elec_dict = []
     sh_names = []
@@ -728,9 +728,20 @@ if __name__ == '__main__':
         building = l[-1]  # in the case of maximum 9 buildings
         beta_bis = beta.copy()
         for j in beta:
-            if j.endswith(building) and ("electricityBus" in j or "gridBus" in j or "spaceHeatingBus" in j or "domesticHotWaterBus" in j or "dhwStorageBus" in j):
+            if j.endswith(building) and ("electricityBus" in j or "electricityInBus" in j or "spaceHeatingBus" in j or "domesticHotWaterBus" in j):
                 alpha.append(j)
-                alpha_a.append(buses[j])
+                if ("electricityBus" in j) or ("electricityInBus" in j):
+                    # find the index of electricity bus to merge the results of electricityBus and electricityInBus
+                    index = -1
+                    for ind in range(len(alpha_a)):
+                        if "electricityBus" in alpha_a[ind].keys()[0] or "electricityInBus" in alpha_a[ind].keys()[0]:
+                            index = ind
+                    if index != -1:
+                        alpha_a[index] = pd.concat((alpha_a[index], buses[j]), axis=1)
+                    else:
+                        alpha_a.append(buses[j])
+                else:
+                    alpha_a.append(buses[j])
                 beta_bis.remove(j)
         if alpha != []:
             buildings_dict.append(alpha_a)
@@ -741,9 +752,13 @@ if __name__ == '__main__':
 
     for i in buses.keys():
         tt = {}
-        if ("electricity" in i) or ("grid" in i):
+        if ("electricityBus" in i) or ("electricityInBus" in i):
             elec_names.append(i)
-            elec_dict.append(buses[i])
+            b = int(i.split("Building")[1])#building number
+            if b <= len(elec_dict):        #to merge the data of the two electricity buses of the same  (elec_dict[0] should have all the electricity related data of building 1, and so on...)
+                elec_dict[b-1] = pd.concat((elec_dict[b-1], buses[i]), axis=1)
+            else:
+                elec_dict.append(buses[i])
         if "spaceHeating" in i:
             sh_names.append(i)
             sh_dict.append(buses[i])
@@ -758,32 +773,54 @@ if __name__ == '__main__':
             env_dict.append(buses[i])
 
     # Add/Remove comments to hide/show monthly balance plots
-    """
+
     for i in elec_names + sh_names + dhw_names:
          monthlyBalance(buses[i], i, newLegends)
-    """
-    plotsHourly = []
-    plotsDaily = []
+
 
     # Add/Remove comments hide/show individual plots for each flow
-    #ncols = len(buildings_names)
-    #plotsHourly, plotsDaily = hourlyDailyPlot(elec_dict, elec_names, Category10_8, newLegends)
-    #plotsHourly, plotsDaily = hourlyDailyPlot(sh_dict, sh_names, Category10_8, newLegends)
-    #plotsHourly, plotsDaily = hourlyDailyPlot(dhw_dict, dhw_names, Category10_8, newLegends)
-
+    """
+    ncols = len(buildings_names)
+    
+    plotsHourly, plotsDaily = hourlyDailyPlot(elec_dict, elec_names, Category10_8, newLegends)
+    
+    output_file(".\Figures\HourlyPlotsElFlow.html")
+    grid = gridplot(plotsHourly, ncols=ncols, plot_width=500, plot_height=400, sizing_mode="fixed")
+    show(grid)
+    output_file(".\Figures\DailyPlotsElFlow.html")
+    grid = gridplot(plotsDaily, ncols=ncols, plot_width=500, plot_height=400, sizing_mode="fixed")
+    show(grid)
+    
+    plotsHourly, plotsDaily = hourlyDailyPlot(sh_dict, sh_names, Category10_8, newLegends)
+    output_file(".\Figures\HourlyPlotsSHFlow.html")
+    grid = gridplot(plotsHourly, ncols=ncols, plot_width=500, plot_height=400, sizing_mode="fixed")
+    show(grid)
+    output_file(".\Figures\DailyPlotsSHFlow.html")
+    grid = gridplot(plotsDaily, ncols=ncols, plot_width=500, plot_height=400, sizing_mode="fixed")
+    show(grid)
+    
+    plotsHourly, plotsDaily = hourlyDailyPlot(dhw_dict, dhw_names, Category10_8, newLegends)
+    output_file(".\Figures\HourlyPlotsDHWFlow.html")
+    grid = gridplot(plotsHourly, ncols=ncols, plot_width=500, plot_height=400, sizing_mode="fixed")
+    show(grid)
+    output_file(".\Figures\DailyPlotsDHWFlow.html")
+    grid = gridplot(plotsDaily, ncols=ncols, plot_width=500, plot_height=400, sizing_mode="fixed")
+    show(grid)
+    """
 
     # Add/Remove comments hide/show all the flows combined together in one plot
-
+    plotsHourly = []
+    plotsDaily = []
     ncols = 3
     for i in range(len(buildings_names)):
         plotsH, plotsD = hourlyDailyPlot(buildings_dict[i], buildings_names[i], Category10_8, newLegends)
         plotsHourly.extend(plotsH)
         plotsDaily.extend(plotsD)
 
-    output_file("HourlyPlots.html")
+    output_file(".\Figures\HourlyPlotsAllFlows.html")
     grid = gridplot(plotsHourly, ncols=ncols, plot_width=500, plot_height=400, sizing_mode="fixed")
     show(grid)
-    output_file("DailyPlots.html")
+    output_file(".\Figures\DailyPlotsAllFlows.html")
     grid = gridplot(plotsDaily, ncols=ncols, plot_width=500, plot_height=400, sizing_mode="fixed")
     show(grid)
 
@@ -804,10 +841,12 @@ if __name__ == '__main__':
         'CHP_sh': (0, 101, 189),
         'CHP_dhw': (128, 0, 128),
         'CHP': (0, 101, 189),
+        'PV_elec': (0, 128, 90),
+        'SolarCollector': (188, 128, 90),
         'Inputs': (252, 93, 93),
         'Operation': (252, 93, 93),
         'Investment': (0, 119, 138),
-        'Feed-in': (218, 215, 203),
+        'Feed-in': (0, 215, 203),
         'Demand_elec': (131, 166, 151),
         'Demand_sh': (131, 166, 151),
         'Demand_dhw': (131, 166, 151),
@@ -820,10 +859,10 @@ if __name__ == '__main__':
     for i in range(len(buildings_names)):
         fig1 = resultingDataDiagram(elec_dict[i], sh_dict[i], dhw_dict[i], costs_dict[i], env_dict[i], COLORS, buildings_number[i])[0]
         fig2 = resultingDataDemandDiagram(elec_dict[i], sh_dict[i], dhw_dict[i], COLORS, buildings_number[i])[0]
-
-    fig3 = resultingDataDiagramLoop(elec_dict, sh_dict, dhw_dict, costs_dict, env_dict, COLORS, buildings_number)
     """
     # Add/remove comments to hide/display the bar plots
+    fig3 = resultingDataDiagramLoop(elec_dict, sh_dict, dhw_dict, costs_dict, env_dict, COLORS, buildings_number)
     fig4 = resultingDataDemandDiagramLoop(elec_dict, sh_dict, dhw_dict, COLORS, buildings_number)
     plt.show()
+
 

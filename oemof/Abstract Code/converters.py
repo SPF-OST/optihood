@@ -35,9 +35,6 @@ class SolarCollector(solph.Transformer):
                                              conversion_factors={outputs:
                                                                      (1 - peripheral_losses) / electrical_consumption})
 
-    def getSolarCollector(self):
-        return self.__solarCollector
-
 
 class HeatPumpLinear:
     def __init__(self, buildingLabel, temperatureDHW, temperatureSH, temperatureLow, input, outputSH, outputDHW,
