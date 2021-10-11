@@ -12,11 +12,21 @@ numberOfBuildings = 4
 numberOfOptimizations = 7
 inputfileName = "scenario" + str(numberOfBuildings) + ".xls"
 optimizationOptions ={
-                    "BarConvTol":1.0,
-                    "NonConvex":2,
-                    "OptimalityTol":1e-4,
-                    "MIPGap":1000
-                    }
+                    "gurobi":{
+                        "BarConvTol":1.0,#The barrier solver terminates when the relative difference between the primal and dual objective values is less than the specified tolerance (with a GRB_OPTIMAL status)
+                        "NonConvex":2, # when 0 error is being sent when non-convex, 1 when non-convex funktion could not be linearized, 2 bilinear form and spacial branching for non-convex
+                        "OptimalityTol":1e-4, #Reduced costs must all be smaller than OptimalityTol in the improving direction in order for a model to be declared optimal
+                        #"PoolGap":1  #Determines how large a (relative) gap to tolerate in stored solutions. When this parameter is set to a non-default value, solutions whose objective values exceed that of the best known solution by more than the specified (relative) gap are discarded.
+                        "MIPGap":100 #Relative Tolerance between the best integer objective and de objective of the best node remaining
+                        #"MIPFocus":0 #1 feasible solution quickly. 2 proving optimality. 3 if the best objective bound is moving very slowly/focus on the bound
+                        #"Cutoff": #Indicates that you aren't interested in solutions whose objective values are worse than the specified value., could be dynamically be used in moo
+                    },
+                    "CBC ": {
+
+                    },
+                    "GLPK": {
+
+                    }}
 
 def optimizeNetwork(network, instance, envImpactlimit):
     limit, capas_c, capas_s = network.optimize(solver='gurobi', envImpactlimit=envImpactlimit, options=optimizationOptions)

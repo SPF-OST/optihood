@@ -133,12 +133,12 @@ class EnergyNetwork(solph.EnergySystem):
             print(oobj + ":", n.label)
         print("*********************************************************")
 
-    def optimize(self, solver, envImpactlimit, options={"MIPGap":10}):
+    def optimize(self, solver, envImpactlimit, options={"gurobi":{"MIPGap":10}}):
         logging.info("Initiating optimization using {} solver".format(solver))
         optimizationModel = solph.Model(self)
         # add constraint to limit the environmental impacts
         optimizationModel, flows, transformerFlowCapacityDict, storageCapacityDict = environmentalImpactlimit(optimizationModel, keyword1="env_per_flow", keyword2="env_per_capa", limit=envImpactlimit)
-        optimizationModel.solve(solver=solver, cmdline_options=options)
+        optimizationModel.solve(solver=solver, cmdline_options=options[solver])
         # obtain the value of the environmental impact (subject to the limit constraint)
         # the optimization imposes an integral limit constraint on the environmental impacts
         # total environmental impacts <= envImpactlimit
