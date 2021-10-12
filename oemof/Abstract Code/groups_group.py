@@ -117,12 +117,14 @@ class EnergyNetwork(solph.EnergySystem):
             if l["active"]:
                 busA = self.__busDict["electricityBus"+'__Building'+str(l["buildingA"])]
                 busB = self.__busDict["electricityBus"+'__Building'+str(l["buildingB"])]
+                busAIn = self.__busDict["electricityInBus" + '__Building' + str(l["buildingA"])]
+                busBIn = self.__busDict["electricityInBus" + '__Building' + str(l["buildingB"])]
                 self.__nodesList.append(solph.custom.Link(
                     label=l["label"]+str(l["buildingA"])+'_'+str(l["buildingB"]),
                     inputs={busA: solph.Flow(), busB: solph.Flow()},
-                    outputs={busA: solph.Flow(), busB: solph.Flow()},
-                    conversion_factors={(busA, busB): l["efficiency from A to B"],
-                                        (busB, busA): l["efficiency from B to A"]}
+                    outputs={busAIn: solph.Flow(), busBIn: solph.Flow()},
+                    conversion_factors={(busA, busBIn): l["efficiency from A to B"],
+                                        (busB, busAIn): l["efficiency from B to A"]}
                 ))
 
     def printNodes(self):
