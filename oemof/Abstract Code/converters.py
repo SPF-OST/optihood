@@ -122,8 +122,8 @@ class CHP:
                             outputEl: solph.Flow(
                                 investment=solph.Investment(
                                     ep_costs=epc,
-                                    minimum=float(capacityMin) * efficiencyEl / efficiencyEl + efficiencySH,
-                                    maximum=float(capacityEl) * efficiencyEl / efficiencyEl + efficiencySH,
+                                    minimum=float(capacityMin) * efficiencyEl / (efficiencyEl + efficiencySH),
+                                    maximum=float(capacityEl) * efficiencyEl / (efficiencyEl + efficiencySH),
                                     nonconvex=True,
                                     offset=base,
                                     env_per_capa=env_capa,
@@ -135,8 +135,8 @@ class CHP:
                             outputSH: solph.Flow(
                                 investment=solph.Investment(
                                     ep_costs=epc,
-                                    minimum=float(capacityMin) * efficiencySH / efficiencyEl + efficiencySH,
-                                    maximum=float(capacitySH) * efficiencySH / efficiencyEl + efficiencySH,
+                                    minimum=float(capacityMin) * efficiencySH / (efficiencyEl + efficiencySH),
+                                    maximum=float(capacitySH) * efficiencySH / (efficiencyEl + efficiencySH),
                                     nonconvex=True,
                                     offset=base,
                                     env_per_capa=env_capa,
@@ -159,8 +159,8 @@ class CHP:
                 outputEl: solph.Flow(
                     investment=solph.Investment(
                         ep_costs=epc,
-                        minimum=float(capacityMin) * efficiencyEl / efficiencyEl + efficiencyDHW,
-                        maximum=float(capacityEl) * efficiencyEl / efficiencyEl + efficiencyDHW,
+                        minimum=float(capacityMin) * efficiencyEl / (efficiencyEl + efficiencyDHW),
+                        maximum=float(capacityEl) * efficiencyEl / (efficiencyEl + efficiencyDHW),
                         nonconvex=True,
                         offset=base,
                         env_per_capa=env_capa,
@@ -172,8 +172,8 @@ class CHP:
                 outputDHW: solph.Flow(
                     investment=solph.Investment(
                         ep_costs=epc,
-                        minimum=float(capacityMin) * efficiencyDHW / efficiencyEl + efficiencyDHW,
-                        maximum=float(capacityDHW) * efficiencyDHW / efficiencyEl + efficiencyDHW,
+                        minimum=float(capacityMin) * efficiencyDHW / (efficiencyEl + efficiencyDHW),
+                        maximum=float(capacityDHW) * efficiencyDHW / (efficiencyEl + efficiencyDHW),
                         nonconvex=True,
                         offset=base,
                         env_per_capa=env_capa,
