@@ -20,7 +20,7 @@ def readResults(fileName, buildings):
             thickness=15,
             line=dict(color="black", width=0.5),
             label=nodes,
-            color=nodesColors
+            color=nodesColors.tolist()
         ),
         link=dict(
             source=sources,
