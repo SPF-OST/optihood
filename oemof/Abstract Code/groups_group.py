@@ -119,12 +119,17 @@ class EnergyNetwork(solph.EnergySystem):
                 busB = self.__busDict["electricityBus"+'__Building'+str(l["buildingB"])]
                 busAIn = self.__busDict["electricityInBus" + '__Building' + str(l["buildingA"])]
                 busBIn = self.__busDict["electricityInBus" + '__Building' + str(l["buildingB"])]
-                self.__nodesList.append(solph.custom.Link(
+                self.__nodesList.append(solph.Transformer(
                     label=l["label"]+str(l["buildingA"])+'_'+str(l["buildingB"]),
-                    inputs={busA: solph.Flow(), busB: solph.Flow()},
-                    outputs={busAIn: solph.Flow(), busBIn: solph.Flow()},
-                    conversion_factors={(busA, busBIn): l["efficiency from A to B"],
-                                        (busB, busAIn): l["efficiency from B to A"]}
+                    inputs={busA: solph.Flow()},
+                    outputs={busBIn: solph.Flow()},
+                    conversion_factors={(busA, busBIn): l["efficiency from A to B"]}
+                ))
+                self.__nodesList.append(solph.Transformer(
+                    label=l["label"] + str(l["buildingB"]) + '_' + str(l["buildingA"]),
+                    inputs={busB: solph.Flow()},
+                    outputs={busAIn: solph.Flow()},
+                    conversion_factors={(busB, busAIn): l["efficiency from B to A"]}
                 ))
 
     def printNodes(self):
@@ -136,7 +141,8 @@ class EnergyNetwork(solph.EnergySystem):
         print("*********************************************************")
 
     def optimize(self, solver, envImpactlimit, options={"gurobi":{"MIPGap":10}}):
-        logging.info("Initiating optimization using {} solver".format(solver))
+        if solver=="gurobi":
+            logging.info("Initiating optimization using {} solver".format(solver))
         optimizationModel = solph.Model(self)
         # add constraint to limit the environmental impacts
         optimizationModel, flows, transformerFlowCapacityDict, storageCapacityDict = environmentalImpactlimit(optimizationModel, keyword1="env_per_flow", keyword2="env_per_capa", limit=envImpactlimit)
