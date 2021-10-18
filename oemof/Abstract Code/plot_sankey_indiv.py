@@ -4,39 +4,42 @@ import plotly.graph_objects as go
 import pandas as pd
 import plot_functions_indiv
 import numpy as np
+from matplotlib import colors
 
-colorDict={"elec":"skyblue",
-           "gas":"darkgray",
-           "dhw":"red",
-            "sh":"darkorange",
-            "other":"lime"}
+opacity=0.8
+colorDict={"elec":'rgba'+str(colors.to_rgba("skyblue",opacity)),
+           "gas":'rgba'+str(colors.to_rgba("darkgray",opacity)),
+           "dhw":'rgba'+str(colors.to_rgba("red",opacity)),
+           "sh":'rgba'+str(colors.to_rgba("magenta",opacity)),
+           "other":'rgba'+str(colors.to_rgba("lime",opacity))
+           }
 
 PositionDict={
-    "naturalGas"	        :	[0,0.8],
-    "gridBus"				:	[0,0.15],
-    "pv"					:   [0,0.35],
-    "gridElect"				:	[0.1,0.05],
-    "CHP_SH"				:	[0.1,0.6],
-    "CHP_DHW"				:	[0.1,1],
-    "electricityBus"		:	[0.2,0.2],
-    "producedElectricity"	:	[0.4,0.2],
-    "electricityLink"	    :	[0.4,0.35],
-	"electricalStorage"	    :	[0.4,0.25],
-    "excesselect"	        :	[0.5,0.05],
-    "electricityInBus"		:	[0.5,0.3],
-    "HP_SH"					:	[0.6,0.35],
-    "HP_DHW"				:	[0.6,0.9],
-    "solarCollector"		:	[0.6,0.95],
-    "spaceHeatingBus"		:	[0.7,0.6],
-    "spaceHeating_"			:	[0.8,0.6],
-    "shStorage"				:	[0.8,0.37],
-    "spaceHeatingDemandBus"	:	[0.9,0.6],
-    "dhwStorageBus"			:	[0.7,0.9],
-    "dhwStorage_"			:	[0.8,0.9],
-	"domesticHotWaterBus"	:	[0.9,0.9],
-    "electricityDemand"		:	[1,0.2],
-    "spaceHeatingDemand_"	:	[1,0.6],
-    "domesticHotWaterDemand":	[1,0.9]
+    "naturalGas"	        :	[0, 0.75],
+    "gridBus"				:	[0, 0.15],
+    "pv"					:   [0, 0.35],
+    "gridElect"				:	[0.1, 0.05],
+    "CHP_SH"				:	[0.1, 0.6],
+    "CHP_DHW"				:	[0.1, 1],
+    "electricityBus"		:	[0.2, 0.2],
+    "producedElectricity"	:	[0.4, 0.2],
+    "electricityLink"	    :	[0.4, 0.35],
+	"electricalStorage"	    :	[0.4, 0.25],
+    "excesselect"	        :	[0.5, 0.05],
+    "electricityInBus"		:	[0.5, 0.3],
+    "HP_SH"					:	[0.6, 0.35],
+    "HP_DHW"				:	[0.6, 0.9],
+    "solarCollector"		:	[0.6, 0.95],
+    "spaceHeatingBus"		:	[0.7, 0.6],
+    "spaceHeating_"			:	[0.8, 0.6],
+    "shStorage"				:	[0.8, 0.37],
+    "spaceHeatingDemandBus"	:	[0.9, 0.6],
+    "dhwStorageBus"			:	[0.7, 0.9],
+    "dhwStorage_"			:	[0.8, 0.9],
+	"domesticHotWaterBus"	:	[0.9, 0.9],
+    "electricityDemand"		:	[1, 0.2],
+    "spaceHeatingDemand_"	:	[1, 0.6],
+    "domesticHotWaterDemand":	[1, 0.9]
 	}
 
 def readResults(fileName, buildings):
@@ -53,7 +56,7 @@ def readResults(fileName, buildings):
         arrangement="snap",
         valuesuffix="kWh",
         node={
-            "pad":10,
+            "pad":20,
             "thickness":15,
             "line":dict(color="black", width=0.5),
             "label":nodes,
@@ -66,7 +69,7 @@ def readResults(fileName, buildings):
             "source":sources,
             "target":targets,
             "value":values,
-            "color":linksColors,
+            "color":linksColors.tolist(),
             }
         )]
     return data
@@ -135,7 +138,7 @@ def createSankeyData(dataDict, keys, buildings=[]):
 
 
 def createColorList(inputList):
-    colors=[]
+    colorsList=[]
     for n in inputList:
         if "elec" in n or "Elec" in n or "pv" in n or "grid" in n:
             color = colorDict["elec"]
@@ -147,8 +150,8 @@ def createColorList(inputList):
             color = colorDict["gas"]
         else:
             color = colorDict["other"]
-        colors.append(color)
-    return colors
+        colorsList.append(color)
+    return colorsList
 
 
 def displaySankey(fileName, buildings):
@@ -156,7 +159,9 @@ def displaySankey(fileName, buildings):
 
     node = data[0]['node']
     link = data[0]['link']
-    fig = go.Figure(go.Sankey(arrangement = "perpendicular",link=link, node=node)) #snap, perpendicular,freeform, fixed
+    fig = go.Figure(go.Sankey(arrangement = "perpendicular",
+                              link=link,
+                              node=node)) #snap, perpendicular,freeform, fixed
     fig.update_layout(
         title=fileName +" for buildings " + str(buildings),
         font=dict(size=10, color='black'),
