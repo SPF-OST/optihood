@@ -4,6 +4,8 @@ import plotly.graph_objects as go
 from matplotlib import colors
 import plot_functions_indiv
 
+intervalSizeHours = 1095 #24
+
 opacity=0.8
 colorDict={"elec":'rgba'+str(colors.to_rgba("skyblue",opacity)),
            "gas":'rgba'+str(colors.to_rgba("darkgray",opacity)),
@@ -49,7 +51,6 @@ def readResults(fileName, buildings):
 def createSankeyData(dataDict, keys, buildings=None):
     if buildings is None:
         buildings = []
-    intervalSizeHours=24
     nodesList=[]
     sourcesList=[]
     targetsList=[]
@@ -79,15 +80,15 @@ def createSankeyData(dataDict, keys, buildings=None):
                 if isinstance(dfKey, int):
                     continue
                 dfKeySplit = dfKey.split("'")
-                # if "domesticHotWaterDemand" in dfKeySplit[3]:
-                #     continue
                 sourceNodeName=dfKeySplit[1]
                 targetNodeName =dfKeySplit[3]
                 if "Resource" not in dfKeySplit[1]:
                     dfKeyValues = df[dfKey].values
                     value = sum(list(dfKeyValues)[iteration*intervalSizeHours:(iteration*intervalSizeHours+intervalSizeHours)])
-                    if value < 0.001*intervalSizeHours:
+                    if value < intervalSizeHours/100:
                         continue
+                    values.append(value)
+
                     if sourceNodeName not in nodes:
                         nodes.append(sourceNodeName)
                         if "electricityLink" in sourceNodeName:
@@ -95,7 +96,6 @@ def createSankeyData(dataDict, keys, buildings=None):
                         for posKey in PositionDict.keys():
                             if posKey in sourceNodeName and posKey[0:2] == sourceNodeName[0:2]: #second part of the term added for CHP and HP
                                 x.append(PositionDict[posKey][0])
-                                a=sourceNodeName[-1]
                                 if "electricityLink" in sourceNodeName:
                                     y.append(0.5-PositionDict[posKey][1])
                                 else:
@@ -110,16 +110,13 @@ def createSankeyData(dataDict, keys, buildings=None):
                         for posKey in PositionDict.keys():
                             if posKey in targetNodeName and posKey[0:2] == targetNodeName[0:2]:
                                 x.append(PositionDict[posKey][0])
-                                a = targetNodeName[-1]
                                 if "electricityLink" in targetNodeName:
                                     y.append(0.5-PositionDict[posKey][1])
                                 else:
                                     buildingNumber=buildings.index(int(targetNodeName[-1]))
                                     y.append(PositionDict[posKey][1]/len(buildings)+(buildingNumber)/len(buildings))
                     targets.append(nodes.index(targetNodeName))
-                dfKeyValues = df[dfKey].values
-                value = list(dfKeyValues)
-                values.append(value)
+
 
                 nodesColors = pd.Series(createColorList(nodes))
                 linksColors = nodesColors[sources]
@@ -158,38 +155,30 @@ def displaySankey(fileName, buildings):
 
     fig = go.Figure(data=[go.Sankey(
                         arrangement="perpendicular",
-                        valuesuffix="kWh",
                         node=dict(
                             pad=20,
                             thickness=15,
                             line=dict(color="black", width=0.5),
                             label=nodes[0],
-                            color=nodesColors[0],
+                            color=nodesColors,
                             x=x[0],
                             y=y[0],
                         ),
                         link=dict(
-                            source=sources[0],
-                            target=targets[0],
-                            value=values[0],
-                            color=linksColors[0],
+                            source=sources,
+                            target=targets,
+                            value=values,
+                            color=linksColors,
                         ),
-                        )],
+            )],
                     layout=go.Layout(
                         updatemenus=[dict(type="buttons",
-                          buttons=[dict(label="Play",
-                                        method="animate",
-                                        args=[None],)])]),
+                                          buttons=[dict(label="Play",
+                                                        method="animate",
+                                                        args=[None])])]),
                     frames=[go.Frame(
                         data=[go.Sankey(
                             arrangement="perpendicular",
-                            valuesuffix="kWh",
-                            link=dict(
-                                source=sources[i],
-                                target=targets[i],
-                                value=values[i],
-                                color=linksColors[i],
-                            ),
                             node=dict(
                                 pad=20,
                                 thickness=15,
@@ -198,12 +187,18 @@ def displaySankey(fileName, buildings):
                                 color=nodesColors[i],
                                 x=x[i],
                                 y=y[i],
-                            ))])
+                            ),
+                            link=dict(
+                                source=sources[i],
+                                target=targets[i],
+                                value=values[i],
+                                color=linksColors[i],
+                            ),
+                            )])
                         for i in range(0, len(values))]
                     )
     fig.update_layout(
         title=fileName +" for buildings " + str(buildings),
         font=dict(size=10, color='black'),
     )
-
     return fig
