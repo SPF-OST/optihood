@@ -15,14 +15,14 @@ colorDict={"elec":'rgba'+str(colors.to_rgba("skyblue",opacity)),
            }
 
 PositionDict={
-    "naturalGas":	[0.001, 0.75],
-    "gridBus":	[0.001, 0.15],
-    "pv":   [0.001, 0.35],
+    "naturalGas":	[0.001, 0.65],
+    "gridBus":	[0.001, 0.05],
+    "pv":   [0.001, 0.2],
     "gridElect":	[0.1, 0.05],
     "CHP_SH":	[0.1, 0.6],
     "CHP_DHW":	[0.1, 0.99],
     "electricityBus":	[0.2, 0.2],
-    "producedElectricity":	[0.3, 0.2],
+    "producedElectricity":	[0.3, 0.25],
     "electricityLink":	[0.3, 0.35],
 	"electricalStorage":	[0.3, 0.25],
     "excesselect":	[0.5, 0.05],
@@ -30,7 +30,7 @@ PositionDict={
     "HP_SH":	[0.6, 0.3],
     "HP_DHW":	[0.6, 0.9],
     "solarCollector":	[0.6, 0.85],
-    "spaceHeatingBus":	[0.7, 0.6],
+    "spaceHeatingBus":	[0.7, 0.58],
     "spaceHeating_":	[0.8, 0.6],
     "shStorage":	[0.8, 0.37],
     "spaceHeatingDemandBus":	[0.9, 0.6],
@@ -97,7 +97,7 @@ def createSankeyData(dataDict, keys, buildings=None):
                             if posKey in sourceNodeName and posKey[0:2] == sourceNodeName[0:2]: #second part of the term added for CHP and HP
                                 x.append(PositionDict[posKey][0])
                                 if "electricityLink" in sourceNodeName:
-                                    y.append(0.5-PositionDict[posKey][1])
+                                    y.append((0.5-PositionDict[posKey][1])/ len(buildings))
                                 else:
                                     buildingNumber=buildings.index(int(sourceNodeName[-1]))
                                     y.append(PositionDict[posKey][1]/len(buildings)+(buildingNumber)/len(buildings))
@@ -111,7 +111,7 @@ def createSankeyData(dataDict, keys, buildings=None):
                             if posKey in targetNodeName and posKey[0:2] == targetNodeName[0:2]:
                                 x.append(PositionDict[posKey][0])
                                 if "electricityLink" in targetNodeName:
-                                    y.append(0.5-PositionDict[posKey][1])
+                                    y.append((0.5-PositionDict[posKey][1])/len(buildings))
                                 else:
                                     buildingNumber=buildings.index(int(targetNodeName[-1]))
                                     y.append(PositionDict[posKey][1]/len(buildings)+(buildingNumber)/len(buildings))
@@ -160,15 +160,15 @@ def displaySankey(fileName, buildings):
                             thickness=15,
                             line=dict(color="black", width=0.5),
                             label=nodes[0],
-                            color=nodesColors,
+                            color=nodesColors[0],
                             x=x[0],
                             y=y[0],
                         ),
                         link=dict(
-                            source=sources,
-                            target=targets,
-                            value=values,
-                            color=linksColors,
+                            source=sources[0],
+                            target=targets[0],
+                            value=values[0],
+                            color=linksColors[0],
                         ),
             )],
                     layout=go.Layout(
@@ -201,4 +201,27 @@ def displaySankey(fileName, buildings):
         title=fileName +" for buildings " + str(buildings),
         font=dict(size=10, color='black'),
     )
+
+
+    steps = []
+    for i in range(0, len(fig.frames)):
+        step = dict(
+            method = 'restyle',
+            args = ['visible', [True]],
+            label="Timestep "+str(i)
+        )
+        steps.append(step)
+
+
+    sliders = [dict(
+        active=10,
+        currentvalue={"prefix": "Date: "},
+        pad={"t": 50},
+        steps=steps
+    )]
+
+    fig.update_layout(
+        sliders=sliders
+    )
+
     return fig

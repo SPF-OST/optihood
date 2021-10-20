@@ -4,8 +4,11 @@ import plotly.graph_objects as go
 import pandas as pd
 import plot_functions_indiv
 import numpy as np
+from labelDict import labelDict
+from labelDict import labelPositionDict
 from matplotlib import colors
 
+useLabelDict=True
 opacity=0.8
 colorDict={"elec":'rgba'+str(colors.to_rgba("skyblue",opacity)),
            "gas":'rgba'+str(colors.to_rgba("darkgray",opacity)),
@@ -59,7 +62,7 @@ def readResults(fileName, buildings):
             "pad":20,
             "thickness":15,
             "line":dict(color="black", width=0.5),
-            "label":nodes,
+            "label":nodes,#+str(values),
             "color":nodesColors.tolist(),
             #"groups":[linkGroup],
             "x":x,
@@ -98,6 +101,14 @@ def createSankeyData(dataDict, keys, buildings=[]):
             #     continue
             sourceNodeName=dfKeySplit[1]
             targetNodeName =dfKeySplit[3]
+
+            if useLabelDict == True:
+                sourceNodeName=labelDict[sourceNodeName]
+                targetNodeName=labelDict[targetNodeName]
+                PositionDict=labelPositionDict
+                if sourceNodeName==targetNodeName:
+                    continue
+
             if "Resource" not in sourceNodeName:
                 dfKeyValues = df[dfKey].values
                 value = sum(dfKeyValues)
@@ -106,13 +117,13 @@ def createSankeyData(dataDict, keys, buildings=[]):
                 values.append(value)
                 if sourceNodeName not in nodes:
                     nodes.append(sourceNodeName)
-                    if "electricityLink" in sourceNodeName:
+                    if "electricityLink" in sourceNodeName or "elLink"in sourceNodeName:
                         linkGroup.append(nodes.index(sourceNodeName))
                     for posKey in PositionDict.keys():
                         if posKey in sourceNodeName and posKey[0:2] == sourceNodeName[0:2]: #second part of the term added for CHP and HP
                             x.append(PositionDict[posKey][0])
-                            if "electricityLink" in sourceNodeName:
-                                y.append(0.5-(PositionDict[posKey][1]))
+                            if "electricityLink" in sourceNodeName or "elLink"in sourceNodeName:
+                                y.append((0.5-(PositionDict[posKey][1]))/len(buildings))
                             else:
                                 buildingNumber=buildings.index(int(sourceNodeName[-1]))
                                 temp = (PositionDict[posKey][1]) / len(buildings) + (buildingNumber) / len(buildings)
@@ -121,13 +132,13 @@ def createSankeyData(dataDict, keys, buildings=[]):
 
                 if targetNodeName not in nodes:
                     nodes.append(targetNodeName)
-                    if "electricityLink" in targetNodeName:
+                    if "electricityLink" in targetNodeName or "elLink"in targetNodeName:
                         linkGroup.append(nodes.index(targetNodeName))
                     for posKey in PositionDict.keys():
                         if posKey in targetNodeName and posKey[0:2] == targetNodeName[0:2]:
                             x.append(PositionDict[posKey][0])
-                            if "electricityLink" in targetNodeName:
-                                y.append(0.5-(PositionDict[posKey][1]))
+                            if "electricityLink" in targetNodeName or "elLink"in targetNodeName:
+                                y.append((0.5-(PositionDict[posKey][1]))/len(buildings))
                             else:
                                 buildingNumber=buildings.index(int(targetNodeName[-1]))
                                 temp = (PositionDict[posKey][1]) / len(buildings) + (buildingNumber) / len(buildings)
@@ -139,14 +150,14 @@ def createSankeyData(dataDict, keys, buildings=[]):
 def createColorList(inputList):
     colorsList=[]
     for n in inputList:
-        if "elec" in n or "Elec" in n or "pv" in n or "grid" in n:
+        if "el" in n or "El" in n or "pv" in n or "grid" in n:
             color = colorDict["elec"]
-        elif "sh" in n or "SH" in n or "spaceHeating" in n:
-            color = colorDict["sh"]
-        elif "dhw" in n or "DHW" in n or "domestic" in n or "solarCollector" in n:
-            color = colorDict["dhw"]
         elif "Gas" in n:
             color = colorDict["gas"]
+        elif "sh" in n or "SH" in n or "spaceHeating" in n:
+            color = colorDict["sh"]
+        elif "dhw" in n or "DHW" in n or "domestic" in n or "solarCollector" or "sc" in n:
+            color = colorDict["dhw"]
         else:
             color = colorDict["other"]
         colorsList.append(color)
