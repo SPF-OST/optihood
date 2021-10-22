@@ -156,7 +156,7 @@ def createColorList(inputList):
             color = colorDict["gas"]
         elif "sh" in n or "SH" in n or "spaceHeating" in n:
             color = colorDict["sh"]
-        elif "dhw" in n or "DHW" in n or "domestic" in n or "solarCollector" or "sc" in n:
+        elif "dhw" in n or "DHW" in n or "domestic" in n or "solar" or "sc" in n:
             color = colorDict["dhw"]
         else:
             color = colorDict["other"]
@@ -175,5 +175,19 @@ def displaySankey(fileName, buildings):
     fig.update_layout(
         title=fileName +" for buildings " + str(buildings),
         font=dict(size=10, color='black'),
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
     )
+    fig.add_hline(y=0, line_color='rgba(0,0,0,0)')
+    if len(buildings)%2==0:
+        fig.add_hline(y=0.5, line_dash="dash")
+    if len(buildings)%3==0:
+        fig.add_hline(y=0.33, line_dash="dash")
+        fig.add_hline(y=0.66, line_dash="dash")
+    if len(buildings)%4==0:
+        fig.add_hline(y=0.25, line_dash="dash")
+        fig.add_hline(y=0.75, line_dash="dash")
+    fig.add_hline(y=1.0, line_color='rgba(0,0,0,0)')
+    fig.update_xaxes(visible=False)
+    fig.update_yaxes(visible=False)
     return fig

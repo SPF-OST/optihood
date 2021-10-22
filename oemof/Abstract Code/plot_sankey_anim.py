@@ -223,5 +223,16 @@ def displaySankey(fileName, buildings):
     fig.update_layout(
         sliders=sliders
     )
-
+    fig.add_hline(y=0, line_color='rgba(0,0,0,0)')
+    if len(buildings) % 2 == 0:
+        fig.add_hline(y=0.5, line_dash="dash")
+    if len(buildings) % 3 == 0:
+        fig.add_hline(y=0.33, line_dash="dash")
+        fig.add_hline(y=0.66, line_dash="dash")
+    if len(buildings) % 4 == 0:
+        fig.add_hline(y=0.25, line_dash="dash")
+        fig.add_hline(y=0.75, line_dash="dash")
+    fig.add_hline(y=1.0, line_color='rgba(0,0,0,0)')
+    fig.update_xaxes(visible=False)
+    fig.update_yaxes(visible=False)
     return fig
