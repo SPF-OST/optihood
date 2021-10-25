@@ -2,7 +2,6 @@ import oemof.solph as solph
 import numpy as np
 from oemof.thermal.solar_thermal_collector import flat_plate_precalc
 
-
 class SolarCollector(solph.Transformer):
     def __init__(self, label, buildingLabel, inputs, outputs, electrical_consumption, peripheral_losses, latitude,
                  longitude,
@@ -30,7 +29,7 @@ class SolarCollector(solph.Transformer):
                                                  ),
                                                  variable_costs=varc,
                                                  env_per_flow=env_flow,
-                                                 max=self.collectors_heat
+                                                 max=self.collectors_heat/1000
                                              )},
                                              conversion_factors={outputs:
                                                                      (1 - peripheral_losses) / electrical_consumption})
@@ -46,34 +45,24 @@ class HeatPumpLinear:
         self._chargingRule()
         self.__heatpumpSH = solph.Transformer(label='HP_SH'+'__'+buildingLabel, inputs={input: solph.Flow()},
                                               outputs={outputSH: solph.Flow(
-                                                        investment=solph.Investment(
-                                                            ep_costs=epc,
-                                                            minimum=capacityMin,
-                                                            maximum=capacityMax,
-                                                            nonconvex=True,
-                                                            offset=base,
-                                                            env_per_capa=env_capa,
-                                                        ),
+                                                      investment=solph.Investment(
+                                                          ep_costs=epc,
+                                                          minimum=capacityMin,
+                                                          maximum=capacityMax,
+                                                          nonconvex=True,
+                                                          offset=base,
+                                                          env_per_capa=env_capa,
+                                                      ),
                                                         variable_costs=varc,
                                                         env_per_flow=env_flow,
-
-                                                        )},
-                                              conversion_factors={outputSH: self.__copSH})
-        self.__heatpumpDHW = solph.Transformer(label='HP_DHW'+'__'+buildingLabel, inputs={input: solph.Flow()},
-                                               outputs={outputDHW: solph.Flow(
-                                                        investment=solph.Investment(
-                                                            ep_costs=epc,
-                                                            minimum=capacityMin,
-                                                            maximum=capacityMax,
-                                                            nonconvex=True,
-                                                            offset=base,
-                                                            env_per_capa=env_capa,
                                                         ),
-                                                        variable_costs=varc,
-                                                        env_per_flow=env_flow,
-
-                                                        )},
-                                               conversion_factors={outputDHW: self.__copDHW})
+                                                      outputDHW: solph.Flow(
+                                                          variable_costs=varc,
+                                                          env_per_flow=env_flow,
+                                                      )
+                                                  },
+                                              conversion_factors={outputSH: self.__copSH,
+                                                                  outputDHW: self.__copDHW})
 
     def _calculateCop(self, tHigh, tLow):
         coefCOP = [12.4896, 64.0652, -83.0217, -230.1195, 173.2122]
