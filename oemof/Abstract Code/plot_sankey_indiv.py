@@ -9,7 +9,7 @@ from labelDict import labelPositionDict
 from matplotlib import colors
 
 useLabelDict=True
-opacity=0.8
+opacity=0.6
 colorDict={"elec":'rgba'+str(colors.to_rgba("skyblue",opacity)),
            "gas":'rgba'+str(colors.to_rgba("darkgray",opacity)),
            "dhw":'rgba'+str(colors.to_rgba("red",opacity)),
@@ -52,14 +52,16 @@ def readResults(fileName, buildings):
 
     nodesColors=pd.Series(createColorList(nodes))
     linksColors = nodesColors[sources]
+    dhwIndex = [a and b for a, b in zip((nodesColors[targets] == colorDict["dhw"]), (nodesColors[sources] != colorDict["gas"]))]
+    linksColors = np.where(dhwIndex, colorDict["dhw"], linksColors)
     linksColors = np.where(nodesColors[targets]==colorDict["elec"], colorDict["elec"], linksColors)
-
+    #linksColors = np.where(nodesColors[sources]==colorDict["elec"], colorDict["elec"], linksColors)
 
     data = [go.Sankey(
         arrangement="snap",
         valuesuffix="kWh",
         node={
-            "pad":20,
+            "pad":25,
             "thickness":15,
             "line":dict(color="black", width=0.5),
             "label":nodes,#+str(values),
