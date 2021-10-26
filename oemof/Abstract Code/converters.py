@@ -15,7 +15,7 @@ class SolarCollector(solph.Transformer):
 
         self.collectors_eta_c = flatPlateCollectorData['eta_c']
 
-        self.collectors_heat = np.minimum(flatPlateCollectorData['collectors_heat'], capacityMax + base)
+        self.collectors_heat = flatPlateCollectorData['collectors_heat']/1000
 
         super(SolarCollector, self).__init__(label=label + '__' + buildingLabel, inputs={inputs: solph.Flow()},
                                              outputs={outputs: solph.Flow(
@@ -29,7 +29,7 @@ class SolarCollector(solph.Transformer):
                                                  ),
                                                  variable_costs=varc,
                                                  env_per_flow=env_flow,
-                                                 max=self.collectors_heat/1000
+                                                 max=self.collectors_heat
                                              )},
                                              conversion_factors={outputs:
                                                                      (1 - peripheral_losses) / electrical_consumption})

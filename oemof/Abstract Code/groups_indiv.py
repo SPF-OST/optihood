@@ -614,7 +614,7 @@ class EnergyNetwork(solph.EnergySystem):
         print("Total: {} kg CO2 eq".format(envImpactInputsNetwork+envImpactTechnologiesNetwork))
 
 
-    def exportToExcel(self, file_name, capacitiesInvestedTransformers, capacitiesInvestedStorages):
+    def exportToExcel(self, file_name):
         with pd.ExcelWriter(file_name) as writer:
             busLabelList = []
             for i in self.nodes:
