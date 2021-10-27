@@ -19,7 +19,7 @@ class ElectricalStorage(solph.components.GenericStorage):
             initial_storage_level=initial_storage,
             inflow_conversion_factor=efficiency_in,
             outflow_conversion_factor=efficiency_out,
-            Balanced=True,
+            Balanced=False,
             invest_relation_input_capacity=efficiency_in,
             invest_relation_output_capacity=efficiency_out,
             investment=solph.Investment(
@@ -50,7 +50,7 @@ class ThermalStorage(solph.components.GenericStorage):
             fixed_losses_absolute=fixed_losses_absolute,
             inflow_conversion_factor=stratifiedStorageParams.at[label2, 'inflow_conversion_factor'],
             outflow_conversion_factor=stratifiedStorageParams.at[label2, 'outflow_conversion_factor'],
-            balanced=True,
+            balanced=False,
             invest_relation_input_capacity=stratifiedStorageParams.at[label2, 'inflow_conversion_factor'],
             invest_relation_output_capacity=stratifiedStorageParams.at[label2, 'outflow_conversion_factor'],
             investment=solph.Investment(
