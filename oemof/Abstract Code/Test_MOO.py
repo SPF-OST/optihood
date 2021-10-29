@@ -4,8 +4,8 @@ try:
     import matplotlib.pyplot as plt
 except ImportError:
     plt = None
-#from groups_indiv import EnergyNetwork
-from groups_group import EnergyNetwork
+from groups_indiv import EnergyNetwork
+#from groups_group import EnergyNetwork
 import time
 
 numberOfBuildings = 4
@@ -29,11 +29,11 @@ optimizationOptions ={
                     }}
 
 def optimizeNetwork(network, instance, envImpactlimit):
-    limit, capas_c, capas_s = network.optimize(solver='gurobi', envImpactlimit=envImpactlimit, options=optimizationOptions)
-    network.printInvestedCapacities(capas_c, capas_s)
+    limit, capacitiesTransformers, capacitiesStorages = network.optimize(solver='gurobi', envImpactlimit=envImpactlimit, options=optimizationOptions)
+    network.printInvestedCapacities(capacitiesTransformers, capacitiesStorages)
     network.printCosts()
     network.printEnvImpacts()
-    network.exportToExcel('.\Results\\results' + str(numberOfBuildings) + '_' + str(instance) + '_group.xlsx')     # Replace _group with _indiv (and vice versa when running grouped/individual optimization)
+    network.exportToExcel('.\Results\\results' + str(numberOfBuildings) + '_' + str(instance) + '_indiv.xlsx')     # Replace _group with _indiv (and vice versa when running grouped/individual optimization)
     meta = network.printMetaresults()
     print(limit)
     return(limit, meta)
