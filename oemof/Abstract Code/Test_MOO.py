@@ -83,11 +83,12 @@ if __name__ == '__main__':
         # -----------------------------------------------------------------------------#
         ## MOO steps between Cost-Optimized and Env-Optimized ##
         # -----------------------------------------------------------------------------#
-        network = EnergyNetwork(pd.date_range("2018-01-01 01:00:00", "2019-01-01 00:00:00", freq="60min"), tSH=35, tDHW=55)
-        network.setFromExcel(os.path.join(os.getcwd(), inputfileName), opt="costs")
         steps = list(range(int(min_env), int(max_env), int((max_env - min_env) / (numberOfOptimizations-2))))
         for envCost in steps[::-1]:
             print("******************\nOPTIMIZATION " + str(optimizationInstanceNumber) + "\n******************")
+            network = EnergyNetwork(pd.date_range("2018-01-01 01:00:00", "2019-01-01 00:00:00", freq="60min"), tSH=35,
+                                    tDHW=55)
+            network.setFromExcel(os.path.join(os.getcwd(), inputfileName), opt="costs")
             (limit, meta) = optimizeNetwork(network, optimizationInstanceNumber, envCost + 1)
             costsList.append(meta['objective'])
             envList.append(limit)

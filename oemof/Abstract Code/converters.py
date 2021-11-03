@@ -43,8 +43,8 @@ class HeatPumpLinear:
         self.__copSH = self._calculateCop(temperatureSH, temperatureLow)
         self.__DHWChargingTimesteps = [5, 6, 16, 17]     # Data in the scenario file is from 01:00 H onwards (instead of 00:00)
         self._chargingRule()
-        self.__heatpumpSH = solph.Transformer(label='HP_SH'+'__'+buildingLabel, inputs={input: solph.Flow()},
-                                              outputs={outputSH: solph.Flow(
+        self.__heatpump = solph.Transformer(label='HP' + '__' + buildingLabel, inputs={input: solph.Flow()},
+                                            outputs={outputSH: solph.Flow(
                                                           investment=solph.Investment(
                                                               ep_costs=epc,
                                                               minimum=capacityMin,
@@ -61,7 +61,7 @@ class HeatPumpLinear:
                                                           env_per_flow=env_flow,
                                                       )
                                                   },
-                                              conversion_factors={outputSH: self.__copSH,
+                                            conversion_factors={outputSH: self.__copSH,
                                                                   outputDHW: self.__copDHW})
 
     def _calculateCop(self, tHigh, tLow):
@@ -85,9 +85,7 @@ class HeatPumpLinear:
 
     def getHP(self, type):
         if type == 'sh':
-            return self.__heatpumpSH
-        elif type == 'dhw':
-            return self.__heatpumpDHW
+            return self.__heatpump
         else:
             print("Transformer label not identified...")
             return []
@@ -102,8 +100,8 @@ class CHP:
         self._efficiencySH = [efficiencySH] * 8760
         self._efficiencyDHW = [efficiencyDHW] * 8760
         self._chargingRule()
-        self.__CHPSH = solph.Transformer(
-                        label='CHP_SH'+'__'+buildingLabel,
+        self.__CHP = solph.Transformer(
+                        label='CHP'+'__'+buildingLabel,
                         inputs={
                             input: solph.Flow()
                         },
@@ -154,9 +152,7 @@ class CHP:
 
     def getCHP(self, type):
         if type == 'sh':
-            return self.__CHPSH
-        elif type == 'dhw':
-            return self.__CHPDHW
+            return self.__CHP
         else:
             print("Transformer label not identified...")
             return []

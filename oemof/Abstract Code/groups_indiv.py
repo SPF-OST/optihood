@@ -216,7 +216,7 @@ class Building:
                 )
 
     def _addHeatPump(self, data, temperatureDHW, temperatureSH, temperatureAmb, opt):
-        hpSHLabel = data["label"] + "_SH" + '__' + self.__buildingLabel
+        hpSHLabel = data["label"] + '__' + self.__buildingLabel
         inputBusLabel = data["from"] + '__' + self.__buildingLabel
         outputSHBusLabel = data["to"].split(",")[0] + '__' + self.__buildingLabel
         outputDHWBusLabel = data["to"].split(",")[1] + '__' + self.__buildingLabel
@@ -243,7 +243,7 @@ class Building:
         self.__envParam[hpSHLabel] = [data["heat_impact"], data["elec_impact"], envImpactPerCapacity]
 
     def _addCHP(self, data, opt):
-        chpSHLabel = data["label"] + "_SH" + '__' + self.__buildingLabel
+        chpSHLabel = data["label"] + '__' + self.__buildingLabel
         inputBusLabel = data["from"] + '__' + self.__buildingLabel
         outputElBusLabel = data["to"].split(",")[0] + '__' + self.__buildingLabel
         outputSHBusLabel = data["to"].split(",")[1] + '__' + self.__buildingLabel
@@ -562,12 +562,13 @@ class EnergyNetwork(solph.EnergySystem):
         for b in range(len(self.__buildings)):
             buildingLabel = "Building"+str(b+1)
             print("************** Optimized Capacities for {} **************".format(buildingLabel))
-            investSH = capacitiesInvestedTransformers[("HP_SH__" + buildingLabel, "spaceHeatingBus__" + buildingLabel)]
+            investSH = capacitiesInvestedTransformers[("HP__" + buildingLabel, "spaceHeatingBus__" + buildingLabel)]
             print("Invested in {} kW :HP.".format(investSH))
 
-            investSH = capacitiesInvestedTransformers[("CHP_SH__" + buildingLabel, "spaceHeatingBus__" + buildingLabel)]
-            investEL = capacitiesInvestedTransformers[("CHP_SH__" + buildingLabel, "electricityBus__" + buildingLabel)]
+            investSH = capacitiesInvestedTransformers[("CHP__" + buildingLabel, "spaceHeatingBus__" + buildingLabel)]
+            investEL = capacitiesInvestedTransformers[("CHP__" + buildingLabel, "electricityBus__" + buildingLabel)]
             print("Invested in {} kW CHP.".format(investSH + investEL))
+            
             invest = capacitiesInvestedTransformers[("solarCollector__" + buildingLabel, "dhwStorageBus__" + buildingLabel)]
             print("Invested in {} kW  SolarCollector.".format(invest))
             invest = capacitiesInvestedTransformers[("pv__" + buildingLabel, "electricityBus__" + buildingLabel)]
