@@ -265,11 +265,11 @@ class EnergyNetwork(solph.EnergySystem):
         for b in range(len(self.__buildings)):
             buildingLabel = "Building" + str(b + 1)
             print("************** Optimized Capacities for {} **************".format(buildingLabel))
-            investSH = capacitiesInvestedTransformers[("HP_SH__" + buildingLabel, "spaceHeatingBus__" + buildingLabel)]
+            investSH = capacitiesInvestedTransformers[("HP__" + buildingLabel, "spaceHeatingBus__" + buildingLabel)]
             print("Invested in {} kW HP.".format(investSH))
 
-            investSH = capacitiesInvestedTransformers[("CHP_SH__" + buildingLabel, "spaceHeatingBus__" + buildingLabel)]
-            investEL = capacitiesInvestedTransformers[("CHP_SH__" + buildingLabel, "electricityBus__" + buildingLabel)]
+            investSH = capacitiesInvestedTransformers[("CHP__" + buildingLabel, "spaceHeatingBus__" + buildingLabel)]
+            investEL = capacitiesInvestedTransformers[("CHP__" + buildingLabel, "electricityBus__" + buildingLabel)]
             print("Invested in {} kW CHP.".format(investSH+investEL))
             invest = capacitiesInvestedTransformers[("solarCollector__" + buildingLabel, "dhwStorageBus__" + buildingLabel)]
             print("Invested in {} kW  SolarCollector.".format(invest))
