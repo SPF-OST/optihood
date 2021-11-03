@@ -52,10 +52,9 @@ def readResults(fileName, buildings):
 
     nodesColors=pd.Series(createColorList(nodes))
     linksColors = nodesColors[sources]
-    dhwIndex = [a and b for a, b in zip((nodesColors[targets] == colorDict["dhw"]), (nodesColors[sources] != colorDict["gas"]))]
+    dhwIndex = [a and b for a, b in zip((nodesColors[targets] == colorDict["dhw"]), (nodesColors[sources] == colorDict["sh"]))]
     linksColors = np.where(dhwIndex, colorDict["dhw"], linksColors)
     linksColors = np.where(nodesColors[targets]==colorDict["elec"], colorDict["elec"], linksColors)
-    #linksColors = np.where(nodesColors[sources]==colorDict["elec"], colorDict["elec"], linksColors)
 
     data = [go.Sankey(
         arrangement="snap",
@@ -70,7 +69,7 @@ def readResults(fileName, buildings):
             "x":x,
             "y":y,
             },
-        link= {
+        link={
             "source":sources,
             "target":targets,
             "value":values,
@@ -99,8 +98,6 @@ def createSankeyData(dataDict, keys, buildings=[]):
             if isinstance(dfKey, int):
                 continue
             dfKeySplit = dfKey.split("'")
-            # if "domesticHotWaterDemand" in dfKeySplit[3]:
-            #     continue
             sourceNodeName=dfKeySplit[1]
             targetNodeName =dfKeySplit[3]
 
@@ -114,7 +111,7 @@ def createSankeyData(dataDict, keys, buildings=[]):
             if "Resource" not in sourceNodeName:
                 dfKeyValues = df[dfKey].values
                 value = sum(dfKeyValues)
-                if value < 1:
+                if value < 0.001:
                     continue
                 values.append(value)
                 if sourceNodeName not in nodes:
@@ -152,7 +149,7 @@ def createSankeyData(dataDict, keys, buildings=[]):
 def createColorList(inputList):
     colorsList=[]
     for n in inputList:
-        if "el" in n or "El" in n or "pv" in n or "grid" in n:
+        if "el" in n or "El" in n or "pv" in n or "grid" in n or "Bat" in n:
             color = colorDict["elec"]
         elif "Gas" in n:
             color = colorDict["gas"]

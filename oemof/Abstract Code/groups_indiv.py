@@ -217,7 +217,6 @@ class Building:
 
     def _addHeatPump(self, data, temperatureDHW, temperatureSH, temperatureAmb, opt):
         hpSHLabel = data["label"] + "_SH" + '__' + self.__buildingLabel
-        #hpDHWLabel = data["label"] + "_DHW" + '__' + self.__buildingLabel
         inputBusLabel = data["from"] + '__' + self.__buildingLabel
         outputSHBusLabel = data["to"].split(",")[0] + '__' + self.__buildingLabel
         outputDHWBusLabel = data["to"].split(",")[1] + '__' + self.__buildingLabel
@@ -234,21 +233,17 @@ class Building:
                                   data["heat_impact"], envImpactPerCapacity)
 
         self.__nodesList.append(heatPump.getHP("sh"))
-        #self.__nodesList.append(heatPump.getHP("dhw"))
 
         # set technologies, environment and cost parameters
         self.__technologies.append([outputDHWBusLabel, hpSHLabel])
         self.__technologies.append([outputSHBusLabel, hpSHLabel])
 
         self.__costParam[hpSHLabel] = [self._calculateInvest(data)[0], self._calculateInvest(data)[1]]
-        #self.__costParam[hpDHWLabel] = [self._calculateInvest(data)[0], self._calculateInvest(data)[1]]
 
         self.__envParam[hpSHLabel] = [data["heat_impact"], data["elec_impact"], envImpactPerCapacity]
-        #self.__envParam[hpDHWLabel] = [data["heat_impact"], data["elec_impact"], envImpactPerCapacity]
 
     def _addCHP(self, data, opt):
         chpSHLabel = data["label"] + "_SH" + '__' + self.__buildingLabel
-        chpDHWLabel = data["label"] + "_DHW" + '__' + self.__buildingLabel
         inputBusLabel = data["from"] + '__' + self.__buildingLabel
         outputElBusLabel = data["to"].split(",")[0] + '__' + self.__buildingLabel
         outputSHBusLabel = data["to"].split(",")[1] + '__' + self.__buildingLabel
@@ -271,19 +266,15 @@ class Building:
                   data["elec_impact"], data["heat_impact"], envImpactPerCapacity)
 
         self.__nodesList.append(chp.getCHP("sh"))
-        self.__nodesList.append(chp.getCHP("dhw"))
 
         # set technologies, environment and cost parameters
         self.__technologies.append([outputElBusLabel, chpSHLabel])
-        self.__technologies.append([outputElBusLabel, chpDHWLabel])
         self.__technologies.append([outputSHBusLabel, chpSHLabel])
-        self.__technologies.append([outputDHWBusLabel, chpDHWLabel])
+        self.__technologies.append([outputDHWBusLabel, chpSHLabel])
 
         self.__costParam[chpSHLabel] = [self._calculateInvest(data)[0], self._calculateInvest(data)[1]]
-        self.__costParam[chpDHWLabel] = [self._calculateInvest(data)[0], self._calculateInvest(data)[1]]
 
         self.__envParam[chpSHLabel] = [data["heat_impact"], data["elec_impact"], envImpactPerCapacity]
-        self.__envParam[chpDHWLabel] = [data["heat_impact"], data["elec_impact"], envImpactPerCapacity]
 
     def addTransformer(self, data, temperatureDHW, temperatureSH, temperatureAmb, opt):
         for i, t in data.iterrows():
@@ -572,15 +563,10 @@ class EnergyNetwork(solph.EnergySystem):
             buildingLabel = "Building"+str(b+1)
             print("************** Optimized Capacities for {} **************".format(buildingLabel))
             investSH = capacitiesInvestedTransformers[("HP_SH__" + buildingLabel, "spaceHeatingBus__" + buildingLabel)]
-#            investDHW = capacitiesInvestedTransformers[("HP_DHW__" + buildingLabel, "dhwStorageBus__" + buildingLabel)]
-#            print("Invested in {} kW :SH and {} kW :DHW HP.".format(investSH, investDHW))
             print("Invested in {} kW :HP.".format(investSH))
 
-            investSH = capacitiesInvestedTransformers[("CHP_SH__" + buildingLabel, "electricityBus__" + buildingLabel)] + \
-                       capacitiesInvestedTransformers[("CHP_SH__" + buildingLabel, "spaceHeatingBus__" + buildingLabel)]
-            investDHW = capacitiesInvestedTransformers[("CHP_DHW__" + buildingLabel, "electricityBus__" + buildingLabel)] + \
-                        capacitiesInvestedTransformers[("CHP_DHW__" + buildingLabel, "dhwStorageBus__" + buildingLabel)]
-            print("Invested in {} kW :SH and {} kW :DHW CHP.".format(investSH, investDHW))
+            investSH = capacitiesInvestedTransformers[("CHP_SH__" + buildingLabel, "electricityBus__" + buildingLabel)]
+            print("Invested in {} kW CHP.".format(investSH))
             invest = capacitiesInvestedTransformers[("solarCollector__" + buildingLabel, "dhwStorageBus__" + buildingLabel)]
             print("Invested in {} kW  SolarCollector.".format(invest))
             invest = capacitiesInvestedTransformers[("pv__" + buildingLabel, "electricityBus__" + buildingLabel)]

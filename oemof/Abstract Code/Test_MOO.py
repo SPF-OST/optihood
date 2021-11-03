@@ -4,9 +4,13 @@ try:
     import matplotlib.pyplot as plt
 except ImportError:
     plt = None
-from groups_indiv import EnergyNetwork
-#from groups_group import EnergyNetwork
-import time
+
+optMode= "group"
+
+if optMode == "indiv":
+    from groups_indiv import EnergyNetwork
+elif optMode == "group":
+    from groups_group import EnergyNetwork
 
 numberOfBuildings = 4
 numberOfOptimizations = 7
@@ -17,7 +21,7 @@ optimizationOptions ={
                         "NonConvex":2, # when 0 error is being sent when non-convex, 1 when non-convex funktion could not be linearized, 2 bilinear form and spacial branching for non-convex
                         "OptimalityTol":1e-4, #Reduced costs must all be smaller than OptimalityTol in the improving direction in order for a model to be declared optimal
                         #"PoolGap":1  #Determines how large a (relative) gap to tolerate in stored solutions. When this parameter is set to a non-default value, solutions whose objective values exceed that of the best known solution by more than the specified (relative) gap are discarded.
-                        "MIPGap":100 #Relative Tolerance between the best integer objective and de objective of the best node remaining
+                        "MIPGap":50 #Relative Tolerance between the best integer objective and de objective of the best node remaining
                         #"MIPFocus":0 #1 feasible solution quickly. 2 proving optimality. 3 if the best objective bound is moving very slowly/focus on the bound
                         #"Cutoff": #Indicates that you aren't interested in solutions whose objective values are worse than the specified value., could be dynamically be used in moo
                     },
@@ -33,7 +37,7 @@ def optimizeNetwork(network, instance, envImpactlimit):
     network.printInvestedCapacities(capacitiesTransformers, capacitiesStorages)
     network.printCosts()
     network.printEnvImpacts()
-    network.exportToExcel('.\Results\\results' + str(numberOfBuildings) + '_' + str(instance) + '_indiv.xlsx')     # Replace _group with _indiv (and vice versa when running grouped/individual optimization)
+    network.exportToExcel('.\Results\\results' + str(numberOfBuildings) + '_' + str(instance) + '_' + optMode+'.xlsx')
     meta = network.printMetaresults()
     print(limit)
     return(limit, meta)
