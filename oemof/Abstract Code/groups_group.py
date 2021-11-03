@@ -268,8 +268,9 @@ class EnergyNetwork(solph.EnergySystem):
             investSH = capacitiesInvestedTransformers[("HP_SH__" + buildingLabel, "spaceHeatingBus__" + buildingLabel)]
             print("Invested in {} kW HP.".format(investSH))
 
-            investSH = capacitiesInvestedTransformers[("CHP_SH__" + buildingLabel, "electricityBus__" + buildingLabel)]
-            print("Invested in {} kW CHP.".format(investSH))
+            investSH = capacitiesInvestedTransformers[("CHP_SH__" + buildingLabel, "spaceHeatingBus__" + buildingLabel)]
+            investEL = capacitiesInvestedTransformers[("CHP_SH__" + buildingLabel, "electricityBus__" + buildingLabel)]
+            print("Invested in {} kW CHP.".format(investSH+investEL))
             invest = capacitiesInvestedTransformers[("solarCollector__" + buildingLabel, "dhwStorageBus__" + buildingLabel)]
             print("Invested in {} kW  SolarCollector.".format(invest))
             invest = capacitiesInvestedTransformers[("pv__" + buildingLabel, "electricityBus__" + buildingLabel)]
