@@ -123,7 +123,7 @@ labelDict = {
 labelPositionDict={
     "natGas":	[0.001, 0.65],
     "grid":	[0.001, 0.15],
-    "pv":   [0.001, 0.25],
+    "pv":   [0.001, 0.3],
     "CHP_SH":	[0.1, 0.6],
     "CHP_DHW":	[0.1, 0.85],
     "prodEl":	[0.2, 0.3],
