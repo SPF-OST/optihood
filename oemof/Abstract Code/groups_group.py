@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 import oemof.solph as solph
-from oemof.thermal.facades import SolarThermalCollector                                                       
 from oemof.tools import logger
 from oemof.tools import economics
 import logging
@@ -12,9 +11,6 @@ try:
     import matplotlib.pyplot as plt
 except ImportError:
     plt = None
-from converters import HeatPumpLinear, CHP, SolarCollector
-from sources import PV                      
-from storages import ElectricalStorage, ThermalStorage
 from constraints import *
 from groups_indiv import Building
 
@@ -51,10 +47,10 @@ class EnergyNetwork(solph.EnergySystem):
             "buses": data.parse("buses"),
             "grid_connection": data.parse("grid_connection"),
             "commodity_sources": data.parse("commodity_sources"),
-            "pv": data.parse("pv"),                       
+            "pv": data.parse("pv"),
             "electricity_impact": data.parse("electricity_impact"),
             "transformers": data.parse("transformers"),
-            "solar_collector": data.parse("solar_collector"),                                                 
+            "solar_collector": data.parse("solar_collector"),
             "demand": data.parse("demand"),
             "storages": data.parse("storages"),
             "timeseries": data.parse("time_series"),
@@ -270,19 +266,14 @@ class EnergyNetwork(solph.EnergySystem):
             buildingLabel = "Building" + str(b + 1)
             print("************** Optimized Capacities for {} **************".format(buildingLabel))
             investSH = capacitiesInvestedTransformers[("HP_SH__" + buildingLabel, "spaceHeatingBus__" + buildingLabel)]
-            investDHW = capacitiesInvestedTransformers[("HP_DHW__" + buildingLabel, "dhwStorageBus__" + buildingLabel)]
-            print("Invested in {} kW :SH and {} kW :DHW HP.".format(investSH, investDHW))
+            print("Invested in {} kW HP.".format(investSH))
 
-            investSH = capacitiesInvestedTransformers[("CHP_SH__" + buildingLabel, "electricityBus__" + buildingLabel)] + \
-                       capacitiesInvestedTransformers[("CHP_SH__" + buildingLabel, "spaceHeatingBus__" + buildingLabel)]
-            investDHW = capacitiesInvestedTransformers[("CHP_DHW__" + buildingLabel, "electricityBus__" + buildingLabel)] + \
-                        capacitiesInvestedTransformers[("CHP_DHW__" + buildingLabel, "dhwStorageBus__" + buildingLabel)]
-            print("Invested in {} kW :SH and {} kW :DHW CHP.".format(investSH, investDHW))
-
+            investSH = capacitiesInvestedTransformers[("CHP_SH__" + buildingLabel, "electricityBus__" + buildingLabel)]
+            print("Invested in {} kW CHP.".format(investSH))
             invest = capacitiesInvestedTransformers[("solarCollector__" + buildingLabel, "dhwStorageBus__" + buildingLabel)]
-            print("Invested in {} kWh  SolarCollector.".format(invest))
+            print("Invested in {} kW  SolarCollector.".format(invest))
             invest = capacitiesInvestedTransformers[("pv__" + buildingLabel, "electricityBus__" + buildingLabel)]
-            print("Invested in {} kWh  PV.".format(invest))                                                                                                             
+            print("Invested in {} kW  PV.".format(invest))
             invest = capacitiesInvestedStorages["electricalStorage__" + buildingLabel]
             print("Invested in {} kWh Electrical Storage.".format(invest))
             invest = capacitiesInvestedStorages["dhwStorage__" + buildingLabel]
