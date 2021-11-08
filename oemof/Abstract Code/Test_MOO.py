@@ -78,13 +78,15 @@ if __name__ == '__main__':
         network.setFromExcel(os.path.join(os.getcwd(), inputfileName), opt="env")
         (min_env, meta) = optimizeNetwork(network, optimizationInstanceNumber, 1000000)
         optimizationInstanceNumber += 1
+        costsListLast = [meta['objective']]
+        envListLast = [max_env]
         print('Each iteration will keep femissions lower than some values between femissions_min and femissions_max, so [' + str(min_env) + ', ' + str(max_env) + ']')
 
         # -----------------------------------------------------------------------------#
         ## MOO steps between Cost-Optimized and Env-Optimized ##
         # -----------------------------------------------------------------------------#
         steps = list(range(int(min_env), int(max_env), int((max_env - min_env) / (numberOfOptimizations-2))))
-        for envCost in steps[::-1]:
+        for envCost in steps[1:numberOfOptimizations]:
             print("******************\nOPTIMIZATION " + str(optimizationInstanceNumber) + "\n******************")
             network = EnergyNetwork(pd.date_range("2018-01-01 01:00:00", "2019-01-01 00:00:00", freq="60min"), tSH=35,
                                     tDHW=55)
@@ -97,6 +99,8 @@ if __name__ == '__main__':
         # -----------------------------------------------------------------------------#
         ## Plot Paretofront ##
         # -----------------------------------------------------------------------------#
+    costsList.append(costsListLast)
+    envList.append(envListLast)
     plotParetoFront(costsList, envList)
 
 

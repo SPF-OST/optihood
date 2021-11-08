@@ -635,3 +635,15 @@ class EnergyNetwork(solph.EnergySystem):
                 envImpactBuilding = pd.DataFrame.from_dict(envImpact, orient='index')
                 envImpactBuilding.to_excel(writer, sheet_name="env_impacts__"+buildingLabel)
 
+                capacitiesStorages = self.__capacitiesStoragesBuilding[buildingLabel]
+                capacitiesStorages.update(self.__capacitiesStoragesBuilding[buildingLabel])
+
+                capacitiesStoragesBuilding = pd.DataFrame.from_dict(capacitiesStorages, orient='index')
+                capacitiesStoragesBuilding.to_excel(writer, sheet_name="capStorages__" + buildingLabel)
+
+                capacitiesTransformers = self.__capacitiesTransformersBuilding[buildingLabel]
+                capacitiesTransformers.update(self.__capacitiesTransformersBuilding[buildingLabel])
+
+                capacitiesTransformersBuilding = pd.DataFrame.from_dict(capacitiesTransformers, orient='index')
+                capacitiesTransformersBuilding.to_excel(writer, sheet_name="capTransformers__" + buildingLabel)
+        writer.save()
