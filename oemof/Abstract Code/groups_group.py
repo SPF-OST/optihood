@@ -297,7 +297,10 @@ class EnergyNetwork(solph.EnergySystem):
         print("Total: {} kg CO2 eq".format(envImpactInputsNetwork + envImpactTechnologiesNetwork))
 
     def exportToExcel(self, file_name):
-        with pd.ExcelWriter(file_name) as writer:
+        options = {}
+        options['strings_to_formulas'] = False
+        options['strings_to_urls'] = False
+        with pd.ExcelWriter(file_name,options=options) as writer:
             busLabelList = []
             for i in self.nodes:
                 if str(type(i)).replace("<class 'oemof.solph.", "").replace("'>", "") == "network.bus.Bus":
@@ -314,6 +317,8 @@ class EnergyNetwork(solph.EnergySystem):
                     result = pd.concat([resultDHW, resultDHWStorage], axis=1, sort=True)
                 elif "dhwStorageBus" not in i:  # for all the other buses except DHW storage bus (as it is already considered with DHW bus)
                     result = pd.DataFrame.from_dict(solph.views.node(self.__optimizationResults, i)["sequences"])
+                elif "spaceHeatingDemandBus" not in i:  # for all the other buses except DHW storage bus (as it is already considered with DHW bus)
+                    i = "shDemandBus"+i[len("spaceHeatingDemandBus"):-1]
                 result.to_excel(writer, sheet_name=i)
 
             # writing the costs and environmental impacts (of different components...) for each building
@@ -331,3 +336,17 @@ class EnergyNetwork(solph.EnergySystem):
 
                 envImpactBuilding = pd.DataFrame.from_dict(envImpact, orient='index')
                 envImpactBuilding.to_excel(writer, sheet_name="env_impacts__" + buildingLabel)
+
+                capacitiesStorages = self.__capacitiesStoragesBuilding[buildingLabel]
+                capacitiesStorages.update(self.__capacitiesStoragesBuilding[buildingLabel])
+
+                capacitiesStoragesBuilding = pd.DataFrame.from_dict(capacitiesStorages, orient='index')
+                capacitiesStoragesBuilding.to_excel(writer, sheet_name="capStorages__" + buildingLabel)
+
+                capacitiesTransformers = self.__capacitiesTransformersBuilding[buildingLabel]
+                capacitiesTransformers.update(self.__capacitiesTransformersBuilding[buildingLabel])
+
+                capacitiesTransformersBuilding = pd.DataFrame.from_dict(capacitiesTransformers, orient='index')
+                capacitiesTransformersBuilding.to_excel(writer, sheet_name="capTransformers__" + buildingLabel)
+            writer.save()
+            writer.close()
