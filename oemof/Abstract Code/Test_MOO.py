@@ -21,8 +21,8 @@ optimizationOptions ={
                         "NonConvex":2, # when 0 error is being sent when non-convex, 1 when non-convex funktion could not be linearized, 2 bilinear form and spacial branching for non-convex
                         "OptimalityTol":1e-4, #Reduced costs must all be smaller than OptimalityTol in the improving direction in order for a model to be declared optimal
                         #"PoolGap":1  #Determines how large a (relative) gap to tolerate in stored solutions. When this parameter is set to a non-default value, solutions whose objective values exceed that of the best known solution by more than the specified (relative) gap are discarded.
-                        "MIPGap":50 #Relative Tolerance between the best integer objective and de objective of the best node remaining
-                        #"MIPFocus":0 #1 feasible solution quickly. 2 proving optimality. 3 if the best objective bound is moving very slowly/focus on the bound
+                        "MIPGap":100, #Relative Tolerance between the best integer objective and de objective of the best node remaining
+                        "MIPFocus":2 #1 feasible solution quickly. 2 proving optimality. 3 if the best objective bound is moving very slowly/focus on the bound
                         #"Cutoff": #Indicates that you aren't interested in solutions whose objective values are worse than the specified value., could be dynamically be used in moo
                     },
                     "CBC ": {
@@ -67,8 +67,8 @@ if __name__ == '__main__':
     network.setFromExcel(os.path.join(os.getcwd(), inputfileName), opt="costs")
     (max_env, meta) = optimizeNetwork(network, optimizationInstanceNumber, 1000000)
     optimizationInstanceNumber += 1
-    costsList = [meta['objective']]
-    envList = [max_env]
+    costsListLast = [meta['objective']]
+    envListLast = [max_env]
     # -----------------------------------------------------------------------------#
     ## Second optimization ##
     # -----------------------------------------------------------------------------#
@@ -78,15 +78,15 @@ if __name__ == '__main__':
         network.setFromExcel(os.path.join(os.getcwd(), inputfileName), opt="env")
         (min_env, meta) = optimizeNetwork(network, optimizationInstanceNumber, 1000000)
         optimizationInstanceNumber += 1
-        costsListLast = [meta['objective']]
-        envListLast = [max_env]
+        costsList = [meta['objective']]
+        envList = [max_env]
         print('Each iteration will keep femissions lower than some values between femissions_min and femissions_max, so [' + str(min_env) + ', ' + str(max_env) + ']')
 
         # -----------------------------------------------------------------------------#
         ## MOO steps between Cost-Optimized and Env-Optimized ##
         # -----------------------------------------------------------------------------#
         steps = list(range(int(min_env), int(max_env), int((max_env - min_env) / (numberOfOptimizations-2))))
-        for envCost in steps[1:numberOfOptimizations]:
+        for envCost in steps[0:numberOfOptimizations]:
             print("******************\nOPTIMIZATION " + str(optimizationInstanceNumber) + "\n******************")
             network = EnergyNetwork(pd.date_range("2018-01-01 01:00:00", "2019-01-01 00:00:00", freq="60min"), tSH=35,
                                     tDHW=55)
