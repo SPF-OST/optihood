@@ -1,1 +1,1 @@
-Different documents useful for the progress of the project.
+This folder shall entail the files related to automatic documentation of the project OptimEase

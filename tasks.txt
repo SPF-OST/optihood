@@ -1,4 +1,0 @@
-1. Implementation of MOO
-2. Adding new components in a separate script
-3. Take into account startup time
-4. Writing: Review
