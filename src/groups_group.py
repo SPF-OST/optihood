@@ -317,8 +317,8 @@ class EnergyNetwork(solph.EnergySystem):
                     result = pd.concat([resultDHW, resultDHWStorage], axis=1, sort=True)
                 elif "dhwStorageBus" not in i:  # for all the other buses except DHW storage bus (as it is already considered with DHW bus)
                     result = pd.DataFrame.from_dict(solph.views.node(self.__optimizationResults, i)["sequences"])
-                elif "spaceHeatingDemandBus" not in i:  # for all the other buses except DHW storage bus (as it is already considered with DHW bus)
-                    i = "shDemandBus"+i[len("spaceHeatingDemandBus"):-1]
+                #elif "spaceHeatingDemandBus" not in i:  # for all the other buses except DHW storage bus (as it is already considered with DHW bus)
+                #    i = "shDemandBus"+i[len("spaceHeatingDemandBus"):-1]
                 result.to_excel(writer, sheet_name=i)
 
             # writing the costs and environmental impacts (of different components...) for each building

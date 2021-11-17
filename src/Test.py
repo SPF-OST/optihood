@@ -101,8 +101,9 @@ if __name__ == '__main__':
         # -----------------------------------------------------------------------------#
         ## Plot Paretofront ##
         # -----------------------------------------------------------------------------#
-    costsList.append(costsListLast)
-    envList.append(envListLast)
-    plotParetoFront(costsList, envList)
+    if numberOfOptimizations > 1:
+        costsList.append(costsListLast)
+        envList.append(envListLast)
+        plotParetoFront(costsList, envList)
 
 

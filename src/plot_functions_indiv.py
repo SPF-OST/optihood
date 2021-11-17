@@ -11,10 +11,13 @@ from bokeh.resources import CDN
 from bokeh.io import output_file
 
 from openpyxl import load_workbook
+from datetime import datetime
+from dateutil.parser import isoparse
 
 import re
 import itertools
 import pandas as pd
+import os
 
 # This file defines different functions for the plotting of the results of the optimization.
 # The plots are made at the end of this file, introducing a .xls file previously created during the optimization.
@@ -27,18 +30,11 @@ def monthlyBalance(data, bus, new_legends):
     :param new_legends: dict type, new legends to plot on the graph
     :return:
     """
-    l = []
-    for i in bus:
-        l.append(i)
-    l.reverse()
-    l = l[0:11]  # in the case of a maximum of 9 buildings
-    l.reverse()
-    building = ''.join([str(item) for item in l])
-
+    building = "__" + bus.split("__")[1]
     data_month = data.resample('1m').sum()
-    monthShortNames = ['Jan', 'Fev', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    monthShortNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
-    while len(data_month) != len(monthShortNames) :
+    while len(data_month) != len(monthShortNames):
         data.drop(data.index[-1], inplace=True)
         data_month = data.resample('1m').sum()
     neg_flow = []
@@ -154,7 +150,7 @@ def hourlyDailyPlot(data, bus, palette, new_legends):
                                    formatters={'@x': 'datetime'},
                                    mode='mouse'))
             p6 = figure(title="Daily domestic hot water flows for "  + building.replace("__", ""), x_axis_label="Date", y_axis_label="Power (kWh)", sizing_mode="scale_both")
-            p6.add_tools(HoverTool(tooltips=[('Date', '@x{%H:%M:%S}'), ('Energy', '@y{0.00}')],
+            p6.add_tools(HoverTool(tooltips=[('Date', '@x{%d/%m/%Y}'), ('Energy', '@y{0.00}')],
                                    formatters={'@x': 'datetime'},
                                    mode='mouse'))
             if len(p_figs_h) > 0:
@@ -173,6 +169,8 @@ def hourlyDailyPlot(data, bus, palette, new_legends):
     for p in p_plots:
         p.xaxis[0].formatter = DatetimeTickFormatter(months="%d %b")
         p.legend.click_policy = "hide"
+        p.legend.location = "top_left"
+        p.legend.label_text_font_size = "8pt"
 
     return (p_figs_h, p_figs_d)
 
@@ -664,46 +662,13 @@ def get_data(filepath):
 
     return dict_sheet
 
-
-if __name__ == '__main__':
-    #####################################
-    ########## Classic plots  ###########
-    #####################################
-
-    # New legends need to be defined by hand for each new flow added to the energy network
-    newLegends = {
-        "(('naturalGasResource', 'naturalGasBus'), 'flow')": "NaturalGas",
-        "(('electricityBus', 'excesselectricityBus'), 'flow')": "Feed-in",
-        "(('electricityBus', 'electricalStorage'), 'flow')": "Battery_in",
-        "(('electricityInBus', 'electricityDemand'), 'flow')": "Demand_elec",
-        "(('electricityInBus', 'HP_DHW'), 'flow')": "HP_dhw",
-        "(('electricityInBus', 'HP_SH'), 'flow')": "HP_sh",
-        "(('CHP_DHW', 'electricityBus'), 'flow')": "CHP_DHW_elec",
-        "(('CHP_SH', 'electricityBus'), 'flow')": "CHP_SH_elec",
-        "(('electricalStorage', 'electricityBus'), 'flow')": "Battery_out",
-        "(('electricityResource', 'gridBus'), 'flow')": "Grid_purchase",
-        "(('dhwStorage', 'domesticHotWaterBus'), 'flow')": "Storage_dhw_out",
-        "(('dhwStorageBus', 'dhwStorage'), 'flow')": "Storage_dhw_in",
-        "(('domesticHotWaterBus', 'domesticHotWaterDemand'), 'flow')": "Demand_dhw",
-        "(('HP_DHW', 'dhwStorageBus'), 'flow')": "HP_dhw",
-        "(('CHP_DHW', 'dhwStorageBus'), 'flow')": "CHP_dhw",
-        "(('shStorage', 'spaceHeatingBus'), 'flow')": "Storage_sh_out",
-        "(('spaceHeatingBus', 'shStorage'), 'flow')": "Storage_sh_in",
-        "(('spaceHeatingBus', 'spaceHeatingDemand'), 'flow')": "Demand_sh",
-        "(('CHP_SH', 'spaceHeatingBus'), 'flow')": "CHP_sh",
-        "(('HP_SH', 'spaceHeatingBus'), 'flow')": "HP_sh",
-        "(('electricityBus', 'producedElectricity'), 'flow')": "Electricity_produced",
-        "(('gridBus', 'gridElectricity'), 'flow')": "Electricity_grid",
-        "(('pv', 'electricityBus'), 'flow')": "PV_elec",
-        "(('solarCollector', 'dhwStorageBus'), 'flow')": "SolarCollector",
-        "(('electricityInBus', 'solarCollector'), 'flow')": "SolarCollector",
-        "(('gridElectricity', 'electricityInBus'), 'flow')": "Electricity_grid",
-        "(('producedElectricity', 'electricityInBus'), 'flow')": "Electricity_produced"
-    }
-
-    # add the name of the excel file here for which the plots are to be made
-
-    buses = get_data(".\Results\\results4_1_indiv.xlsx")
+def loadPlottingData(resultFilePath):
+    """
+    Function for loading the data from excel file into variables
+    :param resultFilePath: path to the Excel containing the results of the optimization
+    :return: the different variables created after reading the excel file
+    """
+    buses = get_data(resultFilePath)
     elec_names = []
     elec_dict = []
     sh_names = []
@@ -722,14 +687,13 @@ if __name__ == '__main__':
     for i in beta:
         alpha = []
         alpha_a = []
-        l = []
-        for k in i:
-            l.append(k)
-        building = l[-1]  # in the case of maximum 9 buildings
+        building = i.split("Building")[1]  # building number
         beta_bis = beta.copy()
         for j in beta:
-            if j.endswith(building) and ("electricityBus" in j or "electricityInBus" in j or "spaceHeatingBus" in j or "domesticHotWaterBus" in j):
-                alpha.append(j)
+            if j.endswith(building) and (
+                    "electricityBus" in j or "electricityInBus" in j or "spaceHeatingBus" in j or "shDemandBus" in j or "domesticHotWaterBus" in j):
+                if "shDemandBus" not in j:
+                    alpha.append(j)
                 if ("electricityBus" in j) or ("electricityInBus" in j):
                     # find the index of electricity bus to merge the results of electricityBus and electricityInBus
                     index = -1
@@ -738,6 +702,17 @@ if __name__ == '__main__':
                             index = ind
                     if index != -1:
                         alpha_a[index] = pd.concat((alpha_a[index], buses[j]), axis=1)
+                    else:
+                        alpha_a.append(buses[j])
+                elif ("spaceHeatingBus" in j) or ("shDemandBus" in j):
+                    # find the index of spaceHeatingBus to merge the results of spaceHeatingBus and shDemandBus
+                    index = -1
+                    for ind in range(len(alpha_a)):
+                        if "spaceHeatingBus" in alpha_a[ind].keys()[0] or "shDemandBus" in alpha_a[ind].keys()[0]:
+                            index = ind
+                    if index != -1:
+                        alpha_a[index] = pd.concat((alpha_a[index], buses[j]), axis=1)
+                        alpha_a[index].pop(f"(('spaceHeating__Building{building}', 'shDemandBus__Building{building}'), 'flow')")
                     else:
                         alpha_a.append(buses[j])
                 else:
@@ -752,16 +727,23 @@ if __name__ == '__main__':
 
     for i in buses.keys():
         tt = {}
+        b = int(i.split("Building")[1])  # building number
         if ("electricityBus" in i) or ("electricityInBus" in i):
             elec_names.append(i)
-            b = int(i.split("Building")[1])#building number
-            if b <= len(elec_dict):        #to merge the data of the two electricity buses of the same  (elec_dict[0] should have all the electricity related data of building 1, and so on...)
-                elec_dict[b-1] = pd.concat((elec_dict[b-1], buses[i]), axis=1)
+            if b <= len(
+                    elec_dict):  # to merge the data of the two electricity buses of the same  (elec_dict[0] should have all the electricity related data of building 1, and so on...)
+                elec_dict[b - 1] = pd.concat((elec_dict[b - 1], buses[i]), axis=1)
             else:
                 elec_dict.append(buses[i])
-        if "spaceHeating" in i:
-            sh_names.append(i)
-            sh_dict.append(buses[i])
+        if ("spaceHeating" in i) or ("shDemand" in i):
+            if "shDemand" not in i:
+                sh_names.append(i)
+                sh_dict.append(buses[i])
+            else:
+                ind = len(sh_names) - 1
+                sh_dict[ind] = pd.concat((sh_dict[ind], buses[i]), axis=1)
+                sh_dict[ind].pop(f"(('spaceHeating__Building{b}', 'shDemandBus__Building{b}'), 'flow')")
+
         if "domesticHotWater" in i:
             dhw_names.append(i)
             dhw_dict.append(buses[i])
@@ -772,97 +754,168 @@ if __name__ == '__main__':
             env_names.append(i)
             env_dict.append(buses[i])
 
-    # Add/Remove comments to hide/show monthly balance plots
+    return buses, elec_names, elec_dict, sh_names, sh_dict, dhw_names, dhw_dict, costs_names, costs_dict, env_names, env_dict,\
+           buildings_dict, buildings_names, buildings_number
 
-    for i in elec_names + sh_names + dhw_names:
-         monthlyBalance(buses[i], i, newLegends)
+def createPlot(resultFilePath, plotLevel, plotType, flowType, plotAnnualHorizontalBar, newLegends):
+    # load the plotting data from excel file into variables
+    buses, elec_names, elec_dict, sh_names, sh_dict, dhw_names, dhw_dict, costs_names, costs_dict, env_names, env_dict, \
+    buildings_dict, buildings_names, buildings_number = loadPlottingData(resultFilePath)
+
+    if flowType == "all":
+        if plotType == "energy balance":
+            names = elec_names + sh_names + dhw_names
+        elif plotType == "bokeh":
+            names = buildings_names
+            dict = buildings_dict
+    elif flowType == "electricity":
+        names = elec_names
+        if plotType == "bokeh":
+            dict = elec_dict
+    elif flowType == "space heat":
+        names = sh_names
+        if plotType == "bokeh":
+            dict = sh_dict
+    elif flowType == "domestic hot water":
+        names = dhw_names
+        if plotType == "bokeh":
+            dict = dhw_dict
+    else:
+        raise ValueError("Illegal value for the parameter flow type")
+
+    months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+    if plotType == "energy balance":
+        if plotLevel == "allMonths":
+            for i in names:
+                if "electricityBus" not in i:
+                    monthlyBalance(buses[i], i, newLegends)
+    elif plotType == "bokeh":
+        ncols = 2
+        if plotLevel in months:
+            if flowType == "all":
+                for i in range(len(buildings_names)):
+                    tempDict = dict[i]
+                    for j in range(len(tempDict)):
+                        tempDict[j] = tempDict[j][tempDict[j].index.strftime('%b') == plotLevel]
+                    dict[i] = tempDict
+            else:
+                for i in range(len(dict)):
+                    dict[i] = dict[i][dict[i].index.strftime('%b') == plotLevel]
+
+        elif any(chr.isdigit() for chr in plotLevel):
+            if isoparse(plotLevel):
+                if flowType == "all":
+                    for i in range(len(buildings_names)):
+                        tempDict = dict[i]
+                        for j in range(len(tempDict)):
+                            tempDict[j] = tempDict[j][tempDict[j].index.date == datetime.strptime(plotLevel, "%Y-%m-%d").date()]
+                        dict[i] = tempDict
+                else:
+                    for i in range(len(dict)):
+                        dict[i] = dict[i][dict[i].index.date == datetime.strptime(plotLevel, "%Y-%m-%d").date()]
+
+        if flowType == "all":
+            plotsHourly = []
+            plotsDaily = []
+            for i in range(len(buildings_names)):
+                plotsH, plotsD = hourlyDailyPlot(dict[i], names[i], Category20_12, newLegends)
+                plotsHourly.extend(plotsH)
+                plotsDaily.extend(plotsD)
+        else:
+            plotsHourly, plotsDaily = hourlyDailyPlot(dict, names, Category20_12, newLegends)
+
+        output_file(".\Figures\HourlyBokehPlots.html")
+        grid = gridplot(plotsHourly, ncols=ncols, plot_width=600, plot_height=500, sizing_mode="fixed")
+        show(grid)
+        if not any(chr.isdigit() for chr in plotLevel):
+            output_file(".\Figures\DailyBokehPlots.html")
+            grid = gridplot(plotsDaily, ncols=ncols, plot_width=600, plot_height=500, sizing_mode="fixed")
+            show(grid)
+    else:
+        raise ValueError("Illegal value for the parameter plot type")
+
+    if plotAnnualHorizontalBar == True:
+        my_colors = {
+            'Battery_out': (100, 160, 200),
+            'Battery_in': (100, 160, 200),
+            'Storage_sh_out': (196, 7, 27),
+            'Storage_dhw_out': (196, 7, 27),
+            'HP_dhw': (62, 173, 0),
+            'HP_sh': (62, 173, 0),
+            'HP': (62, 173, 0),
+            'CHP_elec': (0, 101, 189),
+            'CHP_sh': (0, 101, 189),
+            'CHP_dhw': (128, 0, 128),
+            'CHP': (0, 101, 189),
+            'PV_elec': (0, 128, 90),
+            'SolarCollector': (188, 128, 90),
+            'Inputs': (252, 93, 93),
+            'Operation': (252, 93, 93),
+            'Investment': (0, 119, 138),
+            'Feed-in': (0, 215, 203),
+            'Demand_elec': (131, 166, 151),
+            'Demand_sh': (131, 166, 151),
+            'Demand_dhw': (131, 166, 151),
+            'Grid_purchase': (237, 127, 16),
+        }
+        COLORS = {}
+        for name, color in my_colors.items():
+            COLORS[name] = color
+        """
+        for i in range(len(buildings_names)):
+            fig1 = resultingDataDiagram(elec_dict[i], sh_dict[i], dhw_dict[i], costs_dict[i], env_dict[i], COLORS, buildings_number[i])[0]
+            fig2 = resultingDataDemandDiagram(elec_dict[i], sh_dict[i], dhw_dict[i], COLORS, buildings_number[i])[0]
+        """
+        fig3 = resultingDataDiagramLoop(elec_dict, sh_dict, dhw_dict, costs_dict, env_dict, COLORS, buildings_number)
+        fig4 = resultingDataDemandDiagramLoop(elec_dict, sh_dict, dhw_dict, COLORS, buildings_number)
+        plt.show()
 
 
-    # Add/Remove comments hide/show individual plots for each flow
-    """
-    ncols = len(buildings_names)
-    
-    plotsHourly, plotsDaily = hourlyDailyPlot(elec_dict, elec_names, Category10_8, newLegends)
-    
-    output_file(".\Figures\HourlyPlotsElFlow.html")
-    grid = gridplot(plotsHourly, ncols=ncols, plot_width=500, plot_height=400, sizing_mode="fixed")
-    show(grid)
-    output_file(".\Figures\DailyPlotsElFlow.html")
-    grid = gridplot(plotsDaily, ncols=ncols, plot_width=500, plot_height=400, sizing_mode="fixed")
-    show(grid)
-    
-    plotsHourly, plotsDaily = hourlyDailyPlot(sh_dict, sh_names, Category10_8, newLegends)
-    output_file(".\Figures\HourlyPlotsSHFlow.html")
-    grid = gridplot(plotsHourly, ncols=ncols, plot_width=500, plot_height=400, sizing_mode="fixed")
-    show(grid)
-    output_file(".\Figures\DailyPlotsSHFlow.html")
-    grid = gridplot(plotsDaily, ncols=ncols, plot_width=500, plot_height=400, sizing_mode="fixed")
-    show(grid)
-    
-    plotsHourly, plotsDaily = hourlyDailyPlot(dhw_dict, dhw_names, Category10_8, newLegends)
-    output_file(".\Figures\HourlyPlotsDHWFlow.html")
-    grid = gridplot(plotsHourly, ncols=ncols, plot_width=500, plot_height=400, sizing_mode="fixed")
-    show(grid)
-    output_file(".\Figures\DailyPlotsDHWFlow.html")
-    grid = gridplot(plotsDaily, ncols=ncols, plot_width=500, plot_height=400, sizing_mode="fixed")
-    show(grid)
-    """
-
-    # Add/Remove comments hide/show all the flows combined together in one plot
-    plotsHourly = []
-    plotsDaily = []
-    ncols = 3
-    for i in range(len(buildings_names)):
-        plotsH, plotsD = hourlyDailyPlot(buildings_dict[i], buildings_names[i], Category10_8, newLegends)
-        plotsHourly.extend(plotsH)
-        plotsDaily.extend(plotsD)
-
-    output_file(".\Figures\HourlyPlotsAllFlows.html")
-    grid = gridplot(plotsHourly, ncols=ncols, plot_width=500, plot_height=400, sizing_mode="fixed")
-    show(grid)
-    output_file(".\Figures\DailyPlotsAllFlows.html")
-    grid = gridplot(plotsDaily, ncols=ncols, plot_width=500, plot_height=400, sizing_mode="fixed")
-    show(grid)
-
-    #####################################
-    ## Summary of the whole experiment ##
-    #####################################
-
-    my_colors = {
-        'Battery_out': (100, 160, 200),
-        'Battery_in': (100, 160, 200),
-        'Storage_sh_out': (196, 7, 27),
-        'Storage_dhw_out': (196, 7, 27),
-        'HP_dhw': (62, 173, 0),
-        'HP_sh': (62, 173, 0),
-        'HP': (62, 173, 0),
-        'CHP_SH_elec': (0, 101, 189),
-        'CHP_DHW_elec': (128, 0, 128),
-        'CHP_sh': (0, 101, 189),
-        'CHP_dhw': (128, 0, 128),
-        'CHP': (0, 101, 189),
-        'PV_elec': (0, 128, 90),
-        'SolarCollector': (188, 128, 90),
-        'Inputs': (252, 93, 93),
-        'Operation': (252, 93, 93),
-        'Investment': (0, 119, 138),
-        'Feed-in': (0, 215, 203),
-        'Demand_elec': (131, 166, 151),
-        'Demand_sh': (131, 166, 151),
-        'Demand_dhw': (131, 166, 151),
-        'Grid_purchase': (237, 127, 16),
+if __name__ == '__main__':
+    # New legends need to be defined by hand for each new flow added to the energy network
+    newLegends = {
+        "(('naturalGasResource', 'naturalGasBus'), 'flow')": "NaturalGas",
+        "(('electricityBus', 'excesselectricityBus'), 'flow')": "Feed-in",
+        "(('electricityBus', 'electricalStorage'), 'flow')": "Battery_in",
+        "(('electricityInBus', 'electricityDemand'), 'flow')": "Demand_elec",
+        "(('electricityInBus', 'HP'), 'flow')": "HP",
+        "(('CHP', 'electricityBus'), 'flow')": "CHP_elec",
+        "(('electricalStorage', 'electricityInBus'), 'flow')": "Battery_out",
+        "(('electricityResource', 'gridBus'), 'flow')": "Grid_purchase",
+        "(('dhwStorage', 'domesticHotWaterBus'), 'flow')": "Storage_dhw_out",
+        "(('dhwStorageBus', 'dhwStorage'), 'flow')": "Storage_dhw_in",
+        "(('domesticHotWaterBus', 'domesticHotWaterDemand'), 'flow')": "Demand_dhw",
+        "(('HP', 'dhwStorageBus'), 'flow')": "HP_dhw",
+        "(('CHP', 'dhwStorageBus'), 'flow')": "CHP_dhw",
+        "(('shStorage', 'shDemandBus'), 'flow')": "Storage_sh_out",
+        "(('spaceHeatingBus', 'shStorage'), 'flow')": "Storage_sh_in",
+        "(('spaceHeatingBus', 'spaceHeating'), 'flow')": "SH_direct_to_load",
+        "(('shDemandBus', 'spaceHeatingDemand'), 'flow')": "Demand_sh",
+        "(('CHP', 'spaceHeatingBus'), 'flow')": "CHP_sh",
+        "(('HP', 'spaceHeatingBus'), 'flow')": "HP_sh",
+        "(('electricityBus', 'producedElectricity'), 'flow')": "Electricity_produced",
+        "(('gridBus', 'gridElectricity'), 'flow')": "Electricity_grid",
+        "(('pv', 'electricityBus'), 'flow')": "PV_elec",
+        "(('solarCollector', 'dhwStorageBus'), 'flow')": "SolarCollector",
+        "(('electricityInBus', 'solarCollector'), 'flow')": "SolarCollector",
+        "(('gridElectricity', 'electricityInBus'), 'flow')": "Electricity_grid",
+        "(('producedElectricity', 'electricityInBus'), 'flow')": "Electricity_produced"
     }
-    COLORS = {}
-    for name, color in my_colors.items():
-        COLORS[name] = color
-    """
-    for i in range(len(buildings_names)):
-        fig1 = resultingDataDiagram(elec_dict[i], sh_dict[i], dhw_dict[i], costs_dict[i], env_dict[i], COLORS, buildings_number[i])[0]
-        fig2 = resultingDataDemandDiagram(elec_dict[i], sh_dict[i], dhw_dict[i], COLORS, buildings_number[i])[0]
-    """
-    # Add/remove comments to hide/display the bar plots
-    fig3 = resultingDataDiagramLoop(elec_dict, sh_dict, dhw_dict, costs_dict, env_dict, COLORS, buildings_number)
-    fig4 = resultingDataDemandDiagramLoop(elec_dict, sh_dict, dhw_dict, COLORS, buildings_number)
-    plt.show()
+
+    resultFileBasePath = ".\Results"
+    resultFileName = "results4_1_indiv.xlsx"  # add the name of the excel file here for which the plots are to be made
+    if not os.path.exists(resultFileBasePath):
+        os.makedirs(resultFileBasePath)
+    resultFilePath = os.path.join(resultFileBasePath, resultFileName)
+
+    plotLevel = "Feb"   # permissible values (for energy balance plot): "allMonths" {for all months}
+                        # or specific month {"Jan", "Feb", "Mar", etc. three letter abbreviation of the month name}
+                        # or specific date {format: YYYY-MM-DD}
+    plotType = "bokeh"  # permissible values: "energy balance", "bokeh"
+    flowType = "all"  # permissible values: "all", "electricity", "space heat", "domestic hot water"
+    plotAnnualHorizontalBar = False  # determines whether the annual horizontal bar is plot or not
+
+    createPlot(resultFilePath, plotLevel, plotType, flowType, plotAnnualHorizontalBar, newLegends)
 
 
