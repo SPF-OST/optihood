@@ -45,15 +45,40 @@ PositionDict={
     "domesticHotWaterDemand":	[0.999, 0.9]
 	}
 
+
+def addCapacities(nodes, dataDict, buildings):
+    capacities = ["sufficient"] * len(nodes)
+    for i in buildings:
+        capTransformers=dataDict["capTransformers__Building"+str(i)]
+        capStorages=dataDict["capStorages__Building"+str(i)]
+        for j, k in capStorages.iterrows():
+            if k[0]==0:
+                continue
+            index=nodes.index(labelDict[j])
+            #nodes[index]=nodes[index]+" "+str(round(k[0],2))+" kWh"
+            capacities[index]=str(round(k[0],1))+" kWh"
+        for j, k in capTransformers.iterrows():
+            if k[0]==0:
+                continue
+            j=j.split("'")[1]
+            index=nodes.index(labelDict[j])
+            #nodes[index]=nodes[index]+" "+str(k[0])+" kW"
+            capacities[index]=str(round(k[0],1))+" kW"
+    return capacities
+
+
 def readResults(fileName, buildings):
     dataDict = plot_functions_indiv.get_data(fileName)
     keys=dataDict.keys()
     nodes, sources, targets, values,x,y, linkGroup = createSankeyData(dataDict, keys, buildings)
+    capacities = addCapacities(nodes, dataDict, buildings)
 
     nodesColors=pd.Series(createColorList(nodes))
     linksColors = nodesColors[sources]
     dhwIndex = [a and b for a, b in zip((nodesColors[targets] == colorDict["dhw"]), (nodesColors[sources] == colorDict["sh"]))]
     linksColors = np.where(dhwIndex, colorDict["dhw"], linksColors)
+    shIndex = [a and b for a, b in zip((nodesColors[targets] == colorDict["sh"]), (nodesColors[sources] == colorDict["dhw"]))]
+    linksColors = np.where(shIndex, colorDict["sh"], linksColors)
     linksColors = np.where(nodesColors[targets]==colorDict["elec"], colorDict["elec"], linksColors)
 
     data = [go.Sankey(
@@ -66,6 +91,8 @@ def readResults(fileName, buildings):
             "label":nodes,#+str(values),
             "color":nodesColors.tolist(),
             #"groups":[linkGroup],
+            "customdata": capacities,
+            "hovertemplate":  '%{label} has %{customdata} capacity installed',
             "x":x,
             "y":y,
             },

@@ -3,7 +3,7 @@ import numpy as np
 from oemof.thermal.solar_thermal_collector import flat_plate_precalc
 
 class SolarCollector(solph.Transformer):
-    def __init__(self, label, buildingLabel, inputs, outputs, electrical_consumption, peripheral_losses, latitude,
+    def __init__(self, label, buildingLabel, inputs, outputs, connector, electrical_consumption, peripheral_losses, latitude,
                  longitude,
                  collector_tilt, collector_azimuth, eta_0, a_1, a_2, temp_collector_inlet, delta_temp_n,
                  irradiance_global,
@@ -17,22 +17,50 @@ class SolarCollector(solph.Transformer):
 
         self.collectors_heat = flatPlateCollectorData['collectors_heat']/1000
 
-        super(SolarCollector, self).__init__(label=label + '__' + buildingLabel, inputs={inputs: solph.Flow()},
-                                             outputs={outputs: solph.Flow(
-                                                 investment=solph.Investment(
-                                                     ep_costs=epc,
-                                                     minimum=capacityMin,
-                                                     maximum=capacityMax,
-                                                     nonconvex=True,
-                                                     offset=base,
-                                                     env_per_capa=env_capa,
-                                                 ),
-                                                 variable_costs=varc,
-                                                 env_per_flow=env_flow,
-                                                 max=self.collectors_heat
-                                             )},
-                                             conversion_factors={outputs:
-                                                                     (1 - peripheral_losses) / electrical_consumption})
+        self.__collector_source = solph.Source(
+            label='heat_'+label + "__" + buildingLabel,
+            outputs={
+                connector: solph.Flow(
+                    fix=self.collectors_heat,
+                    investment=solph.Investment(
+                        ep_costs=epc,
+                        minimum=capacityMin,
+                        maximum=capacityMax,
+                        nonconvex=True,
+                        offset=base,
+                        env_per_capa=env_capa,
+                    ),
+                     variable_costs=varc,
+                     env_per_flow=env_flow,
+                )
+            },
+        )
+
+        self.__collector_excess_heat = solph.Sink(
+            label='excess_solarheat' + "__" + buildingLabel, inputs={connector: solph.Flow()}
+        )
+
+        self.__collector_transformer = solph.Transformer(
+            label=label + '__' + buildingLabel,
+            inputs={connector: solph.Flow(), inputs: solph.Flow()},
+            outputs={outputs: solph.Flow()},
+            conversion_factors={
+                connector: 1,
+                inputs: electrical_consumption * (1 - peripheral_losses),
+                outputs: 1 - peripheral_losses
+            },
+        )
+
+    def getSolar(self, type):
+        if type == 'source':
+            return self.__collector_source
+        elif type == 'transformer':
+            return self.__collector_transformer
+        elif type == 'sink':
+            return self.__collector_excess_heat
+        else:
+            print("Transformer label not identified...")
+            return []
 
 
 class HeatPumpLinear:
@@ -114,7 +142,7 @@ class CHP:
                                     nonconvex=True,
                                     offset=base * efficiencyEl / (efficiencyEl + efficiencySH),
                                     env_per_capa=env_capa,
-                                ),
+                                    ),
                                 variable_costs=varc1,
                                 env_per_flow=env_flow1,
                             ),
