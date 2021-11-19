@@ -128,20 +128,24 @@ class Building:
 
                 envParam = [s["heat_impact"], s["elec_impact"], s["impact_cap"] / s["lifetime"]]
 
-            self.__nodesList.append(SolarCollector(s["label"], self.__buildingLabel,
+            collector=SolarCollector(s["label"], self.__buildingLabel,
                                                    self.__busDict[s["from"] + '__' + self.__buildingLabel],
                                                    self.__busDict[s["to"] + '__' + self.__buildingLabel],
+                                                   self.__busDict[s["connect"]+ '__' + self.__buildingLabel],
                                                    s["electrical_consumption"], s["peripheral_losses"], s["latitude"],
                                                    s["longitude"], s["collector_tilt"], s["collector_azimuth"],
                                                    s["eta_0"], s["a_1"], s["a_2"], s["temp_collector_inlet"],
                                                    s["delta_temp_n"], data_timeseries['global_horizontal_W_m2'],
                                                    data_timeseries['diffuse_horizontal_W_m2'],
                                                    data_timeseries['temp_amb'], s["capacity_min"], s["capacity_max"],
-                                                   epc, base, env_capa, env_flow, varc))
+                                                   epc, base, env_capa, env_flow, varc)
+            self.__nodesList.append(collector.getSolar("source"))
+            self.__nodesList.append(collector.getSolar("transformer"))
+            self.__nodesList.append(collector.getSolar("sink"))
 
-            self.__envParam[s["label"] + '__' + self.__buildingLabel] = envParam
+            self.__envParam["heat_"+s["label"] + '__' + self.__buildingLabel] = envParam
 
-            self.__costParam[s["label"] + '__' + self.__buildingLabel] = [self._calculateInvest(s)[0],
+            self.__costParam["heat_"+s["label"] + '__' + self.__buildingLabel] = [self._calculateInvest(s)[0],
                                                                           self._calculateInvest(s)[1]]
             self.__technologies.append(
                 [s["to"] + '__' + self.__buildingLabel, s["label"] + '__' + self.__buildingLabel])
@@ -405,11 +409,11 @@ class EnergyNetwork(solph.EnergySystem):
             b.addGridSeparation(data["grid_connection"][data["grid_connection"]["building"] == i])
             b.addSource(data["commodity_sources"][data["commodity_sources"]["building"] == i], data["electricity_impact"], opt)
             b.addSink(data["demand"][data["demand"]["building"] == i], data["timeseries"].filter(regex=str(i)))
+            b.addSolar(data["solar_collector"][data["solar_collector"]["building"] == i], data["solar_time_series"],
+                       opt)
             b.addTransformer(data["transformers"][data["transformers"]["building"] == i], self.__temperatureDHW,
                              self.__temperatureSH, self.__temperatureAmb, opt)
             b.addStorage(data["storages"][data["storages"]["building"] == i], data["stratified_storage"], opt)
-            b.addSolar(data["solar_collector"][data["solar_collector"]["building"] == i], data["solar_time_series"],
-                       opt)
             b.addPV(data["pv"][data["pv"]["building"] == i], data["solar_time_series"],
                     opt)
             self.__nodesList.extend(b.getNodesList())
@@ -569,7 +573,7 @@ class EnergyNetwork(solph.EnergySystem):
             investEL = capacitiesInvestedTransformers[("CHP__" + buildingLabel, "electricityBus__" + buildingLabel)]
             print("Invested in {} kW CHP.".format(investSH + investEL))
             
-            invest = capacitiesInvestedTransformers[("solarCollector__" + buildingLabel, "dhwStorageBus__" + buildingLabel)]
+            invest = capacitiesInvestedTransformers[("heat_solarCollector__" + buildingLabel, "solarConnectBus__" + buildingLabel)]
             print("Invested in {} kW  SolarCollector.".format(invest))
             invest = capacitiesInvestedTransformers[("pv__" + buildingLabel, "electricityBus__" + buildingLabel)]
             print("Invested in {} kW  PV.".format(invest))
