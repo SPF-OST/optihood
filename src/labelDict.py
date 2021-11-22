@@ -11,6 +11,7 @@ labelDict = {
     "electricityLink4_3": "elLink",
     "electricityLink4_2": "elLink",
     "electricityLink4_1": "elLink",
+
     "naturalGasResource__Building1": "natGas_B1",
     "naturalGasBus__Building1": "natGas_B1",
     "gridBus__Building1": "grid_B1",
@@ -160,3 +161,32 @@ labelPositionDict={
     "Q_dhw":	[0.999, 0.85],
     "exSolar": [0.999, 0.95],
 	}
+
+fullPositionDict={
+        "naturalGas":	[0.001, 0.75],
+        "gridBus":	[0.001, 0.2],
+        "pv":   [0.001, 0.3],
+        "gridElect":	[0.1, 0.05],
+        "CHP":	[0.1, 0.6],
+        "electricityBus":	[0.2, 0.2],
+        "producedElectricity":	[0.3, 0.25],
+        "electricityLink":	[0.3, 0.35],
+        "electricalStorage":	[0.3, 0.25],
+        "excesselect":	[0.5, 0.05],
+        "electricityInBus":	[0.5, 0.2],
+        "HP":	[0.6, 0.5],
+        "heat_solarCollector": [0.4, 0.85],
+        "solarConnect": [0.5, 0.85],
+        "solarCollector_":	[0.6, 0.85],
+        "excess_solarheat":[0.7,0.85],
+        "spaceHeatingBus":	[0.7, 0.58],
+        "spaceHeating_":	[0.8, 0.6],
+        "shStorage":	[0.8, 0.37],
+        "shDemandBus":	[0.9, 0.6],
+        "dhwStorageBus":	[0.7, 0.9],
+        "dhwStorage_":	[0.8, 0.9],
+        "domesticHotWaterBus":	[0.9, 0.9],
+        "electricityDemand":	[0.999, 0.1],
+        "spaceHeatingDemand_":	[0.999, 0.6],
+        "domesticHotWaterDemand":	[0.999, 0.9]
+        }

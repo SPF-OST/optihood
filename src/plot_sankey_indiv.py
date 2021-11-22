@@ -7,44 +7,26 @@ import plot_functions_indiv
 import numpy as np
 from labelDict import labelDict
 from labelDict import labelPositionDict
+from labelDict import fullPositionDict
 from matplotlib import colors
 
-useLabelDict=True
-opacity=0.6
-colorDict={"elec":'rgba'+str(colors.to_rgba("skyblue",opacity)),
-           "gas":'rgba'+str(colors.to_rgba("darkgray",opacity)),
-           "dhw":'rgba'+str(colors.to_rgba("red",opacity)),
-           "sh":'rgba'+str(colors.to_rgba("magenta",opacity)),
-           "other":'rgba'+str(colors.to_rgba("lime",opacity))
+BUILDINGSLIST = [1, 2, 3, 4]
+
+RESULTSFILE = "../data/results/results4_1_indiv.xlsx"
+
+UseLabelDict=True
+OPACITY=0.6
+ColorDict={"elec": 'rgba' + str(colors.to_rgba("skyblue", OPACITY)),
+           "gas":'rgba'+str(colors.to_rgba("darkgray", OPACITY)),
+           "dhw":'rgba'+str(colors.to_rgba("red", OPACITY)),
+           "sh":'rgba'+str(colors.to_rgba("magenta", OPACITY)),
+           "other":'rgba'+str(colors.to_rgba("lime", OPACITY))
            }
 
-PositionDict={
-    "naturalGas":	[0.001, 0.75],
-    "gridBus":	[0.001, 0.05],
-    "pv":   [0.001, 0.2],
-    "gridElect":	[0.1, 0.05],
-    "CHP_SH":	[0.1, 0.6],
-    "CHP_DHW":	[0.1, 0.99],
-    "electricityBus":	[0.2, 0.2],
-    "producedElectricity":	[0.3, 0.25],
-    "electricityLink":	[0.3, 0.35],
-	"electricalStorage":	[0.3, 0.25],
-    "excesselect":	[0.5, 0.05],
-    "electricityInBus":	[0.5, 0.2],
-    "HP_SH":	[0.6, 0.3],
-    "HP_DHW":	[0.6, 0.9],
-    "solarCollector":	[0.6, 0.85],
-    "spaceHeatingBus":	[0.7, 0.58],
-    "spaceHeating_":	[0.8, 0.6],
-    "shStorage":	[0.8, 0.37],
-    "spaceHeatingDemandBus":	[0.9, 0.6],
-    "dhwStorageBus":	[0.7, 0.9],
-    "dhwStorage_":	[0.8, 0.9],
-	"domesticHotWaterBus":	[0.9, 0.9],
-    "electricityDemand":	[0.999, 0.1],
-    "spaceHeatingDemand_":	[0.999, 0.6],
-    "domesticHotWaterDemand":	[0.999, 0.9]
-	}
+if UseLabelDict == True:
+    PositionDict = labelPositionDict
+else:
+    PositionDict = fullPositionDict
 
 
 def addCapacities(nodes, dataDict, buildings):
@@ -55,14 +37,20 @@ def addCapacities(nodes, dataDict, buildings):
         for j, k in capStorages.iterrows():
             if k[0]==0:
                 continue
-            index=nodes.index(labelDict[j])
+            if UseLabelDict == True:
+                index=nodes.index(labelDict[j])
+            else:
+                index = nodes.index(j)
             #nodes[index]=nodes[index]+" "+str(round(k[0],2))+" kWh"
             capacities[index]=str(round(k[0],1))+" kWh"
         for j, k in capTransformers.iterrows():
             if k[0]==0:
                 continue
             j=j.split("'")[1]
-            index=nodes.index(labelDict[j])
+            if UseLabelDict == True:
+                index=nodes.index(labelDict[j])
+            else:
+                index = nodes.index(j)
             #nodes[index]=nodes[index]+" "+str(k[0])+" kW"
             capacities[index]=str(round(k[0],1))+" kW"
     return capacities
@@ -76,11 +64,11 @@ def readResults(fileName, buildings):
 
     nodesColors=pd.Series(createColorList(nodes))
     linksColors = nodesColors[sources]
-    dhwIndex = [a and b for a, b in zip((nodesColors[targets] == colorDict["dhw"]), (nodesColors[sources] == colorDict["sh"]))]
-    linksColors = np.where(dhwIndex, colorDict["dhw"], linksColors)
-    shIndex = [a and b for a, b in zip((nodesColors[targets] == colorDict["sh"]), (nodesColors[sources] == colorDict["dhw"]))]
-    linksColors = np.where(shIndex, colorDict["sh"], linksColors)
-    linksColors = np.where(nodesColors[targets]==colorDict["elec"], colorDict["elec"], linksColors)
+    dhwIndex = [a and b for a, b in zip((nodesColors[targets] == ColorDict["dhw"]), (nodesColors[sources] == ColorDict["sh"]))]
+    linksColors = np.where(dhwIndex, ColorDict["dhw"], linksColors)
+    shIndex = [a and b for a, b in zip((nodesColors[targets] == ColorDict["sh"]), (nodesColors[sources] == ColorDict["dhw"]))]
+    linksColors = np.where(shIndex, ColorDict["sh"], linksColors)
+    linksColors = np.where(nodesColors[targets] == ColorDict["elec"], ColorDict["elec"], linksColors)
 
     data = [go.Sankey(
         arrangement="snap",
@@ -129,10 +117,9 @@ def createSankeyData(dataDict, keys, buildings=[]):
             sourceNodeName=dfKeySplit[1]
             targetNodeName =dfKeySplit[3]
 
-            if useLabelDict == True:
+            if UseLabelDict == True:
                 sourceNodeName=labelDict[sourceNodeName]
                 targetNodeName=labelDict[targetNodeName]
-                PositionDict=labelPositionDict
                 if sourceNodeName==targetNodeName:
                     continue
 
@@ -178,20 +165,20 @@ def createColorList(inputList):
     colorsList=[]
     for n in inputList:
         if "el" in n or "El" in n or "pv" in n or "grid" in n or "Bat" in n:
-            color = colorDict["elec"]
+            color = ColorDict["elec"]
         elif "Gas" in n:
-            color = colorDict["gas"]
+            color = ColorDict["gas"]
         elif "sh" in n or "SH" in n or "spaceHeating" in n:
-            color = colorDict["sh"]
+            color = ColorDict["sh"]
         elif "dhw" in n or "DHW" in n or "domestic" in n or "solar" or "sc" in n:
-            color = colorDict["dhw"]
+            color = ColorDict["dhw"]
         else:
-            color = colorDict["other"]
+            color = ColorDict["other"]
         colorsList.append(color)
     return colorsList
 
 
-def displaySankey(fileName="../data/results/results4_1_indiv.xlsx", buildings=[1,2,3,4]):
+def displaySankey(fileName, buildings=[1, 2, 3, 4]):
     data = readResults(fileName, buildings)
 
     node = data[0]['node']
@@ -220,7 +207,7 @@ def displaySankey(fileName="../data/results/results4_1_indiv.xlsx", buildings=[1
     return fig
 
 def main():
-    fig=displaySankey("../data/results/results4_1_indiv.xlsx", [1,2,3,4])
+    fig=displaySankey(RESULTSFILE, BUILDINGSLIST)
     fig.show()
 
 if __name__ == "__main__":
