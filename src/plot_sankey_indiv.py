@@ -1,3 +1,4 @@
+import sys
 from random import random
 
 import plotly.graph_objects as go
@@ -190,7 +191,7 @@ def createColorList(inputList):
     return colorsList
 
 
-def displaySankey(fileName, buildings):
+def displaySankey(fileName="../data/results/results4_1_indiv.xlsx", buildings=[1,2,3,4]):
     data = readResults(fileName, buildings)
 
     node = data[0]['node']
@@ -217,3 +218,10 @@ def displaySankey(fileName, buildings):
     fig.update_xaxes(visible=False)
     fig.update_yaxes(visible=False)
     return fig
+
+def main():
+    fig=displaySankey("../data/results/results4_1_indiv.xlsx", [1,2,3,4])
+    fig.show()
+
+if __name__ == "__main__":
+    sys.exit(main())
