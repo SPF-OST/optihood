@@ -271,7 +271,7 @@ class EnergyNetwork(solph.EnergySystem):
             investSH = capacitiesInvestedTransformers[("CHP__" + buildingLabel, "spaceHeatingBus__" + buildingLabel)]
             investEL = capacitiesInvestedTransformers[("CHP__" + buildingLabel, "electricityBus__" + buildingLabel)]
             print("Invested in {} kW CHP.".format(investSH+investEL))
-            invest = capacitiesInvestedTransformers[("solarCollector__" + buildingLabel, "dhwStorageBus__" + buildingLabel)]
+            invest = capacitiesInvestedTransformers[("heat_solarCollector__" + buildingLabel, "solarConnectBus__" + buildingLabel)]
             print("Invested in {} kW  SolarCollector.".format(invest))
             invest = capacitiesInvestedTransformers[("pv__" + buildingLabel, "electricityBus__" + buildingLabel)]
             print("Invested in {} kW  PV.".format(invest))
@@ -295,6 +295,11 @@ class EnergyNetwork(solph.EnergySystem):
         print("Environmental impact from input resources for the system: {} kg CO2 eq".format(envImpactInputsNetwork))
         print("Environmental impact from energy conversion technologies for the system: {} kg CO2 eq".format(envImpactTechnologiesNetwork))
         print("Total: {} kg CO2 eq".format(envImpactInputsNetwork + envImpactTechnologiesNetwork))
+
+
+    def getTotalCosts(self):
+        return sum(self.__capex["Building" + str(b + 1)] + self.__opex["Building" + str(b + 1)] + self.__feedIn[
+                "Building" + str(b + 1)] for b in range(len(self.__buildings)))
 
     def exportToExcel(self, file_name):
         options = {}
