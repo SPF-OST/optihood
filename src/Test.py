@@ -43,9 +43,10 @@ def optimizeNetwork(network, instance, envImpactlimit):
     if not os.path.exists(resultFilePath):
         os.makedirs(resultFilePath)
     network.exportToExcel(resultFilePath + "\\results" + str(numberOfBuildings) + '_' + str(instance) + '_' + optMode+'.xlsx')
+    costs=network.getTotalCosts()
     meta = network.printMetaresults()
     print(limit)
-    return(limit, meta)
+    return(limit, costs, meta)
 
 
 def plotParetoFront(costsList, envList):
@@ -72,7 +73,7 @@ if __name__ == '__main__':
     print("******************\nOPTIMIZATION " + str(optimizationInstanceNumber) + "\n******************")
     network = EnergyNetwork(pd.date_range("2018-01-01 01:00:00", "2019-01-01 00:00:00", freq="60min"), tSH=35, tDHW=55)
     network.setFromExcel(os.path.join(inputFilePath, inputfileName), opt="costs")
-    (max_env, meta) = optimizeNetwork(network, optimizationInstanceNumber, 1000000)
+    (max_env, costs, meta) = optimizeNetwork(network, optimizationInstanceNumber, 1000000)
     optimizationInstanceNumber += 1
     costsListLast = meta['objective']
     envListLast = max_env
@@ -83,10 +84,10 @@ if __name__ == '__main__':
         print("******************\nOPTIMIZATION " + str(optimizationInstanceNumber) + "\n******************")
         network = EnergyNetwork(pd.date_range("2018-01-01 01:00:00", "2019-01-01 00:00:00", freq="60min"), tSH=35, tDHW=55)
         network.setFromExcel(os.path.join(inputFilePath, inputfileName), opt="env")
-        (min_env, meta) = optimizeNetwork(network, optimizationInstanceNumber, 1000000)
+        (min_env,costs, meta) = optimizeNetwork(network, optimizationInstanceNumber, 1000000)
         optimizationInstanceNumber += 1
-        #costsList.append(meta['objective'])
-        #envList.append(min_env)
+        costsList.append(costs)
+        envList.append(min_env)
         print('Each iteration will keep emissions lower than some values between femissions_min and femissions_max, so [' + str(min_env) + ', ' + str(max_env) + ']')
 
         # -----------------------------------------------------------------------------#
@@ -98,7 +99,7 @@ if __name__ == '__main__':
             network = EnergyNetwork(pd.date_range("2018-01-01 01:00:00", "2019-01-01 00:00:00", freq="60min"), tSH=35,
                                     tDHW=55)
             network.setFromExcel(os.path.join(inputFilePath, inputfileName), opt="costs")
-            (limit, meta) = optimizeNetwork(network, optimizationInstanceNumber, envCost + 1)
+            (limit,costs, meta) = optimizeNetwork(network, optimizationInstanceNumber, envCost + 1)
             costsList.append(meta['objective'])
             envList.append(limit)
             optimizationInstanceNumber += 1

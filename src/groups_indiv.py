@@ -605,6 +605,9 @@ class EnergyNetwork(solph.EnergySystem):
         print("Environmental impact from energy conversion technologies for the system: {} kg CO2 eq".format(envImpactTechnologiesNetwork))
         print("Total: {} kg CO2 eq".format(envImpactInputsNetwork+envImpactTechnologiesNetwork))
 
+    def getTotalCosts(self):
+        return sum(self.__capex["Building" + str(b + 1)] + self.__opex["Building" + str(b + 1)] + self.__feedIn[
+                "Building" + str(b + 1)] for b in range(len(self.__buildings)))
 
     def exportToExcel(self, file_name):
         with pd.ExcelWriter(file_name) as writer:
