@@ -12,7 +12,7 @@ from matplotlib import colors
 
 BUILDINGSLIST = [1, 2, 3, 4]
 
-RESULTSFILE = "../data/results/results4_1_indiv.xlsx"
+RESULTSFILE = "../data/results/results4_2_group.xlsx"
 
 UseLabelDict=True
 OPACITY=0.6
@@ -121,6 +121,8 @@ def createSankeyData(dataDict, keys, buildings=[]):
                 sourceNodeName=labelDict[sourceNodeName]
                 targetNodeName=labelDict[targetNodeName]
                 if sourceNodeName==targetNodeName:
+                    continue
+                if "exSolar" in targetNodeName:
                     continue
 
             if "Resource" not in sourceNodeName:
