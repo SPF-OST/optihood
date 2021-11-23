@@ -152,6 +152,7 @@ labelPositionDict={
     "usedEl":	[0.5, 0.2],
     "HP":	[0.6, 0.5],
     "solar":	[0.6, 0.85],
+    "exSolar": [0.7, 0.95],
     "SH":	[0.7, 0.58],
     "shStor":	[0.8, 0.37],
     "dhwStor":	[0.8, 0.85],
@@ -159,7 +160,6 @@ labelPositionDict={
     "Q_el":	[0.999, 0.15],
     "Q_sh":	[0.999, 0.6],
     "Q_dhw":	[0.999, 0.85],
-    "exSolar": [0.999, 0.95],
 	}
 
 fullPositionDict={
