@@ -5,15 +5,15 @@ try:
 except ImportError:
     plt = None
 
-optMode= "indiv"
+optMode= "group"
 
 if optMode == "indiv":
-    from groups_indiv import EnergyNetwork
+    from energy_network import EnergyNetworkIndiv as EnergyNetwork
 elif optMode == "group":
-    from groups_group import EnergyNetwork
+    from energy_network import EnergyNetworkGroup as EnergyNetwork
 
 numberOfBuildings = 4
-numberOfOptimizations = 10
+numberOfOptimizations = 8
 inputFilePath = "..\data\excels\\"
 resultFilePath= "..\data\Results"
 inputfileName = "scenario" + str(numberOfBuildings) + ".xls"

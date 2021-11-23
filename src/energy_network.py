@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 import oemof.solph as solph
 from oemof.tools import logger
-from oemof.tools import economics
 import logging
 import os
 import pprint as pp
@@ -12,30 +11,29 @@ try:
 except ImportError:
     plt = None
 from constraints import *
-from groups_indiv import Building
+from buildings import Building
 
-intRate = 0.05
 
-class EnergyNetwork(solph.EnergySystem):
+class EnergyNetworkClass(solph.EnergySystem):
     def __init__(self, timestamp, tSH, tDHW):
         self.__temperatureSH = tSH
         self.__temperatureDHW = tDHW
-        self.__nodesList = []
-        self.__inputs = {}  # dictionary of list of inputs indexed by the building label
-        self.__technologies = {}  # dictionary of list of technologies indexed by the building label
+        self._nodesList = []
+        self.__inputs = {}                          # dictionary of list of inputs indexed by the building label
+        self.__technologies = {}                    # dictionary of list of technologies indexed by the building label
         self.__capacitiesTransformersBuilding = {}  # dictionary of dictionary of optimized capacities of transformers indexed by the building label
-        self.__capacitiesStoragesBuilding = {}  # dictionary of dictionary of optimized capacities of storages indexed by the building label
+        self.__capacitiesStoragesBuilding = {}      # dictionary of dictionary of optimized capacities of storages indexed by the building label
         self.__costParam = {}
         self.__envParam = {}
         self.__capex = {}
         self.__opex = {}
         self.__feedIn = {}
-        self.__envImpactInputs = {}  # dictionary of dictionary of environmental impact of different inputs indexed by the building label
-        self.__envImpactTechnologies = {}  # dictionary of dictionary of environmental impact of different technologies indexed by the building label
-        self.__busDict = {}
+        self.__envImpactInputs = {}                 # dictionary of dictionary of environmental impact of different inputs indexed by the building label
+        self.__envImpactTechnologies = {}           # dictionary of dictionary of environmental impact of different technologies indexed by the building label
+        self._busDict = {}
         logger.define_logging(logpath=os.getcwd())
         logging.info("Initializing the energy network")
-        super(EnergyNetwork, self).__init__(timeindex=timestamp)
+        super(EnergyNetworkClass, self).__init__(timeindex=timestamp)
 
     def setFromExcel(self, filePath, opt):
         # does Excel file exist?
@@ -43,6 +41,14 @@ class EnergyNetwork(solph.EnergySystem):
             logging.error("Excel data file {} not found.".format(filePath))
         logging.info("Defining the energy network from the excel file: {}".format(filePath))
         data = pd.ExcelFile(filePath)
+        nodesData = self.createNodesData(data, filePath)
+
+        self._convertNodes(nodesData, opt)
+        logging.info("Nodes from Excel file {} successfully converted".format(filePath))
+        self.add(*self._nodesList)
+        logging.info("Nodes successfully added to the energy network")
+
+    def createNodesData(self, data, filePath):
         nodesData = {
             "buses": data.parse("buses"),
             "grid_connection": data.parse("grid_connection"),
@@ -56,7 +62,6 @@ class EnergyNetwork(solph.EnergySystem):
             "timeseries": data.parse("time_series"),
             "solar_time_series": data.parse("solar_time_series"),
             "stratified_storage": data.parse("stratified_storage"),
-            "links": data.parse("links")
         }
         # update stratified_storage index
         nodesData["stratified_storage"].set_index("label", inplace=True)
@@ -67,24 +72,18 @@ class EnergyNetwork(solph.EnergySystem):
         nodesData["timeseries"].index = pd.to_datetime(nodesData["timeseries"].index)
         nodesData["solar_time_series"].set_index("timestamp", inplace=True)
         nodesData["solar_time_series"].index = pd.to_datetime(nodesData["solar_time_series"].index)
-
         logging.info("Data from Excel file {} imported.".format(filePath))
-
-        self._convertNodes(nodesData, opt)
-        logging.info("Nodes from Excel file {} successfully converted".format(filePath))
-        self.add(*self.__nodesList)
-        logging.info("Nodes successfully added to the energy network")
+        return nodesData
 
     def _convertNodes(self, data, opt):
         if not data:
             logging.error("Nodes data is missing.")
         self.__temperatureAmb = np.array(data["timeseries"]["temperature.actual"])
         self._addBuildings(data, opt)
-        self._addLinks(data["links"])
 
     def _addBuildings(self, data, opt):
         numberOfBuildings = max(data["buses"]["building"])
-        self.__buildings = [Building('Building'+str(i+1)) for i in range(numberOfBuildings)]
+        self.__buildings = [Building('Building' + str(i + 1)) for i in range(numberOfBuildings)]
         for b in self.__buildings:
             buildingLabel = b.getBuildingLabel()
             i = int(buildingLabel[8:])
@@ -97,36 +96,16 @@ class EnergyNetwork(solph.EnergySystem):
             b.addStorage(data["storages"][data["storages"]["building"] == i], data["stratified_storage"], opt)
             b.addSolar(data["solar_collector"][data["solar_collector"]["building"] == i], data["solar_time_series"], opt)
             b.addPV(data["pv"][data["pv"]["building"] == i], data["solar_time_series"], opt)
-            self.__nodesList.extend(b.getNodesList())
+            self._nodesList.extend(b.getNodesList())
             self.__inputs[buildingLabel] = b.getInputs()
             self.__technologies[buildingLabel] = b.getTechnologies()
             self.__costParam.update(b.getCostParam())
             self.__envParam.update(b.getEnvParam())
-            self.__busDict.update(b.getBusDict())
+            self._busDict.update(b.getBusDict())
             self.__capacitiesTransformersBuilding[buildingLabel] = {}
             self.__capacitiesStoragesBuilding[buildingLabel] = {}
             self.__envImpactInputs[buildingLabel] = {}
             self.__envImpactTechnologies[buildingLabel] = {}
-
-    def _addLinks(self, data): # connects buses A and B (denotes a bidirectional link)
-        for i, l in data.iterrows():
-            if l["active"]:
-                busA = self.__busDict["electricityBus"+'__Building'+str(l["buildingA"])]
-                busB = self.__busDict["electricityBus"+'__Building'+str(l["buildingB"])]
-                busAIn = self.__busDict["electricityInBus" + '__Building' + str(l["buildingA"])]
-                busBIn = self.__busDict["electricityInBus" + '__Building' + str(l["buildingB"])]
-                self.__nodesList.append(solph.Transformer(
-                    label=l["label"]+str(l["buildingA"])+'_'+str(l["buildingB"]),
-                    inputs={busA: solph.Flow()},
-                    outputs={busBIn: solph.Flow()},
-                    conversion_factors={(busA, busBIn): l["efficiency from A to B"]}
-                ))
-                self.__nodesList.append(solph.Transformer(
-                    label=l["label"] + str(l["buildingB"]) + '_' + str(l["buildingA"]),
-                    inputs={busB: solph.Flow()},
-                    outputs={busAIn: solph.Flow()},
-                    conversion_factors={(busB, busAIn): l["efficiency from B to A"]}
-                ))
 
     def printNodes(self):
         print("*********************************************************")
@@ -212,8 +191,7 @@ class EnergyNetwork(solph.EnergySystem):
 
             # Feed-in electricity cost (value will be in negative to signify monetary gain...)
             self.__feedIn[buildingLabel] = sum(solph.views.node(self.__optimizationResults, electricityBusLabel)
-                                               ["sequences"][(electricityBusLabel, excessElectricityBusLabel), "flow"])\
-                                           * self.__costParam[excessElectricityBusLabel]
+                                               ["sequences"][(electricityBusLabel, excessElectricityBusLabel), "flow"]) * self.__costParam[excessElectricityBusLabel]
 
             envParamGridElectricity = self.__envParam[electricitySourceLabel].copy()
             envParamGridElectricity.reset_index(inplace=True, drop=True)
@@ -254,7 +232,7 @@ class EnergyNetwork(solph.EnergySystem):
         return self.__metaResults
 
     def printStateofCharge(self, type, building):
-        storage = self.groups[type+'__'+building]
+        storage = self.groups[type + '__' + building]
         print(f"""********* State of Charge ({type},{building}) *********""")
         print(
             self.__optimizationResults[(storage, None)]["sequences"]
@@ -270,7 +248,7 @@ class EnergyNetwork(solph.EnergySystem):
 
             investSH = capacitiesInvestedTransformers[("CHP__" + buildingLabel, "spaceHeatingBus__" + buildingLabel)]
             investEL = capacitiesInvestedTransformers[("CHP__" + buildingLabel, "electricityBus__" + buildingLabel)]
-            print("Invested in {} kW CHP.".format(investSH+investEL))
+            print("Invested in {} kW CHP.".format(investSH + investEL))
             invest = capacitiesInvestedTransformers[("heat_solarCollector__" + buildingLabel, "solarConnectBus__" + buildingLabel)]
             print("Invested in {} kW  SolarCollector.".format(invest))
             invest = capacitiesInvestedTransformers[("pv__" + buildingLabel, "electricityBus__" + buildingLabel)]
@@ -284,10 +262,10 @@ class EnergyNetwork(solph.EnergySystem):
             print("")
 
     def printCosts(self):
-        print("Investment Costs for the system: {} CHF".format(sum(self.__capex["Building"+str(b+1)] for b in range(len(self.__buildings)))))
-        print("Operation Costs for the system: {} CHF".format(sum(self.__opex["Building"+str(b+1)] for b in range(len(self.__buildings)))))
-        print("Feed In Costs for the system: {} CHF".format(sum(self.__feedIn["Building"+str(b+1)] for b in range(len(self.__buildings)))))
-        print("Total Costs for the system: {} CHF".format(sum(self.__capex["Building"+str(b+1)] + self.__opex["Building"+str(b+1)] + self.__feedIn["Building"+str(b+1)] for b in range(len(self.__buildings)))))
+        print("Investment Costs for the system: {} CHF".format(sum(self.__capex["Building" + str(b + 1)] for b in range(len(self.__buildings)))))
+        print("Operation Costs for the system: {} CHF".format(sum(self.__opex["Building" + str(b + 1)] for b in range(len(self.__buildings)))))
+        print("Feed In Costs for the system: {} CHF".format(sum(self.__feedIn["Building" + str(b + 1)] for b in range(len(self.__buildings)))))
+        print("Total Costs for the system: {} CHF".format(sum(self.__capex["Building" + str(b + 1)] + self.__opex["Building" + str(b + 1)] + self.__feedIn["Building" + str(b + 1)] for b in range(len(self.__buildings)))))
 
     def printEnvImpacts(self):
         envImpactInputsNetwork = sum(sum(self.__envImpactInputs["Building" + str(b + 1)].values()) for b in range(len(self.__buildings)))
@@ -296,16 +274,12 @@ class EnergyNetwork(solph.EnergySystem):
         print("Environmental impact from energy conversion technologies for the system: {} kg CO2 eq".format(envImpactTechnologiesNetwork))
         print("Total: {} kg CO2 eq".format(envImpactInputsNetwork + envImpactTechnologiesNetwork))
 
-
     def getTotalCosts(self):
         return sum(self.__capex["Building" + str(b + 1)] + self.__opex["Building" + str(b + 1)] + self.__feedIn[
                 "Building" + str(b + 1)] for b in range(len(self.__buildings)))
 
     def exportToExcel(self, file_name):
-        options = {}
-        options['strings_to_formulas'] = False
-        options['strings_to_urls'] = False
-        with pd.ExcelWriter(file_name,options=options) as writer:
+        with pd.ExcelWriter(file_name) as writer:
             busLabelList = []
             for i in self.nodes:
                 if str(type(i)).replace("<class 'oemof.solph.", "").replace("'>", "") == "network.bus.Bus":
@@ -314,16 +288,11 @@ class EnergyNetwork(solph.EnergySystem):
             for i in busLabelList:
                 if "domesticHotWaterBus" in i:  # special case for DHW bus (output from transformers --> dhwStorageBus --> DHW storage --> domesticHotWaterBus --> DHW Demand)
                     dhwStorageBusLabel = "dhwStorageBus__" + i.split("__")[1]
-                    resultDHW = pd.DataFrame.from_dict(
-                        solph.views.node(self.__optimizationResults, i)["sequences"])  # result sequences of DHW bus
-                    resultDHWStorage = pd.DataFrame.from_dict(
-                        solph.views.node(self.__optimizationResults, dhwStorageBusLabel)[
-                            "sequences"])  # result sequences of DHW storage bus
+                    resultDHW = pd.DataFrame.from_dict(solph.views.node(self.__optimizationResults, i)["sequences"])  # result sequences of DHW bus
+                    resultDHWStorage = pd.DataFrame.from_dict(solph.views.node(self.__optimizationResults, dhwStorageBusLabel)["sequences"])  # result sequences of DHW storage bus
                     result = pd.concat([resultDHW, resultDHWStorage], axis=1, sort=True)
                 elif "dhwStorageBus" not in i:  # for all the other buses except DHW storage bus (as it is already considered with DHW bus)
                     result = pd.DataFrame.from_dict(solph.views.node(self.__optimizationResults, i)["sequences"])
-                #elif "spaceHeatingDemandBus" not in i:  # for all the other buses except DHW storage bus (as it is already considered with DHW bus)
-                #    i = "shDemandBus"+i[len("spaceHeatingDemandBus"):-1]
                 result.to_excel(writer, sheet_name=i)
 
             # writing the costs and environmental impacts (of different components...) for each building
@@ -354,4 +323,44 @@ class EnergyNetwork(solph.EnergySystem):
                 capacitiesTransformersBuilding = pd.DataFrame.from_dict(capacitiesTransformers, orient='index')
                 capacitiesTransformersBuilding.to_excel(writer, sheet_name="capTransformers__" + buildingLabel)
             writer.save()
-            writer.close()
+
+class EnergyNetworkIndiv(EnergyNetworkClass):
+    pass
+
+class EnergyNetworkGroup(EnergyNetworkClass):
+    def setFromExcel(self, filePath, opt):
+        # does Excel file exist?
+        if not filePath or not os.path.isfile(filePath):
+            logging.error("Excel data file {} not found.".format(filePath))
+        logging.info("Defining the energy network from the excel file: {}".format(filePath))
+        data = pd.ExcelFile(filePath)
+
+        nodesData = self.createNodesData(data, filePath)
+        nodesData["links"]= data.parse("links")
+
+        self._convertNodes(nodesData, opt)
+        self._addLinks(nodesData["links"])
+        logging.info("Nodes from Excel file {} successfully converted".format(filePath))
+        self.add(*self._nodesList)
+        logging.info("Nodes successfully added to the energy network")
+
+
+    def _addLinks(self, data):  # connects buses A and B (denotes a bidirectional link)
+        for i, l in data.iterrows():
+            if l["active"]:
+                busA = self._busDict["electricityBus" + '__Building' + str(l["buildingA"])]
+                busB = self._busDict["electricityBus" + '__Building' + str(l["buildingB"])]
+                busAIn = self._busDict["electricityInBus" + '__Building' + str(l["buildingA"])]
+                busBIn = self._busDict["electricityInBus" + '__Building' + str(l["buildingB"])]
+                self._nodesList.append(solph.Transformer(
+                    label=l["label"] + str(l["buildingA"]) + '_' + str(l["buildingB"]),
+                    inputs={busA: solph.Flow()},
+                    outputs={busBIn: solph.Flow()},
+                    conversion_factors={(busA, busBIn): l["efficiency from A to B"]}
+                ))
+                self._nodesList.append(solph.Transformer(
+                    label=l["label"] + str(l["buildingB"]) + '_' + str(l["buildingA"]),
+                    inputs={busB: solph.Flow()},
+                    outputs={busAIn: solph.Flow()},
+                    conversion_factors={(busB, busAIn): l["efficiency from B to A"]}
+                ))
