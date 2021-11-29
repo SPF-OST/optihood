@@ -11,7 +11,7 @@ try:
 except ImportError:
     plt = None
 from constraints import *
-from buildings import Building
+from src.buildings import Building
 
 
 class EnergyNetworkClass(solph.EnergySystem):
@@ -247,11 +247,11 @@ class EnergyNetworkClass(solph.EnergySystem):
             print("Invested in {} kW HP.".format(investSH))
 
             investSH = capacitiesInvestedTransformers[("CHP__" + buildingLabel, "spaceHeatingBus__" + buildingLabel)]
-            investEL = capacitiesInvestedTransformers[("CHP__" + buildingLabel, "electricityBus__" + buildingLabel)]
+            investEL = capacitiesInvestedTransformers[("CHP__" + buildingLabel, "electricityProdBus__" + buildingLabel)]
             print("Invested in {} kW CHP.".format(investSH + investEL))
             invest = capacitiesInvestedTransformers[("heat_solarCollector__" + buildingLabel, "solarConnectBus__" + buildingLabel)]
             print("Invested in {} kW  SolarCollector.".format(invest))
-            invest = capacitiesInvestedTransformers[("pv__" + buildingLabel, "electricityBus__" + buildingLabel)]
+            invest = capacitiesInvestedTransformers[("pv__" + buildingLabel, "electricityProdBus__" + buildingLabel)]
             print("Invested in {} kW  PV.".format(invest))
             invest = capacitiesInvestedStorages["electricalStorage__" + buildingLabel]
             print("Invested in {} kWh Electrical Storage.".format(invest))

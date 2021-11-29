@@ -3,16 +3,16 @@ from random import random
 
 import plotly.graph_objects as go
 import pandas as pd
-import plot_functions_indiv
+from plot_functions import getData
 import numpy as np
 from labelDict import labelDict
 from labelDict import labelPositionDict
 from labelDict import fullPositionDict
 from matplotlib import colors
 
-BUILDINGSLIST = [1, 2, 3, 4]
+BUILDINGSLIST = [1, 2]
 
-RESULTSFILE = "../data/results/results4_2_group.xlsx"
+RESULTSFILE = "../data/Results/results4_2_group.xlsx"
 
 UseLabelDict=True
 OPACITY=0.6
@@ -57,7 +57,7 @@ def addCapacities(nodes, dataDict, buildings):
 
 
 def readResults(fileName, buildings):
-    dataDict = plot_functions_indiv.get_data(fileName)
+    dataDict = getData(fileName)
     keys=dataDict.keys()
     nodes, sources, targets, values,x,y, linkGroup = createSankeyData(dataDict, keys, buildings)
     capacities = addCapacities(nodes, dataDict, buildings)
