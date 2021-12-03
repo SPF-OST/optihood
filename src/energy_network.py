@@ -243,14 +243,16 @@ class EnergyNetworkClass(solph.EnergySystem):
         for b in range(len(self.__buildings)):
             buildingLabel = "Building" + str(b + 1)
             print("************** Optimized Capacities for {} **************".format(buildingLabel))
-            investSH = capacitiesInvestedTransformers[("HP__" + buildingLabel, "spaceHeatingBus__" + buildingLabel)]
+            investSH = capacitiesInvestedTransformers[("electricityInBus__" + buildingLabel, "HP__" + buildingLabel)]
             print("Invested in {} kW HP.".format(investSH))
 
-            investSH = capacitiesInvestedTransformers[("CHP__" + buildingLabel, "spaceHeatingBus__" + buildingLabel)]
-            investEL = capacitiesInvestedTransformers[("CHP__" + buildingLabel, "electricityProdBus__" + buildingLabel)]
-            print("Invested in {} kW CHP.".format(investSH + investEL))
+            investSH = capacitiesInvestedTransformers[("naturalGasBus__" + buildingLabel, "CHP__" + buildingLabel)]
+#            investEL = capacitiesInvestedTransformers[("CHP__" + buildingLabel, "electricityProdBus__" + buildingLabel)]
+            print("Invested in {} kW CHP.".format(investSH))# + investEL))
             invest = capacitiesInvestedTransformers[("heat_solarCollector__" + buildingLabel, "solarConnectBus__" + buildingLabel)]
             print("Invested in {} kW  SolarCollector.".format(invest))
+            invest = capacitiesInvestedTransformers[("GasBoiler__" + buildingLabel, "spaceHeatingBus__" + buildingLabel)]
+            print("Invested in {} kW  GasBoiler.".format(invest))
             invest = capacitiesInvestedTransformers[("pv__" + buildingLabel, "electricityProdBus__" + buildingLabel)]
             print("Invested in {} kW  PV.".format(invest))
             invest = capacitiesInvestedStorages["electricalStorage__" + buildingLabel]

@@ -10,9 +10,9 @@ from labelDict import labelPositionDict
 from labelDict import fullPositionDict
 from matplotlib import colors
 
-BUILDINGSLIST = [1, 2]
+BUILDINGSLIST = [1]
 
-RESULTSFILE = "../data/Results/results4_2_group.xlsx"
+RESULTSFILE = "../data/Results/results1_1_group.xlsx"
 
 UseLabelDict=True
 OPACITY=0.6
