@@ -69,18 +69,29 @@ class HeatPumpLinear:
                  epc, base, varc, env_flow, env_capa):
         self.__copDHW = self._calculateCop(temperatureDHW, temperatureLow)
         self.__copSH = self._calculateCop(temperatureSH, temperatureLow)
+        avgCopSh=(sum(self.__copSH)/len(self.__copSH))
         self.__DHWChargingTimesteps = [5, 6, 16, 17]     # Data in the scenario file is from 01:00 H onwards (instead of 00:00)
         self._chargingRule()
-        self.__heatpump = solph.Transformer(label='HP' + '__' + buildingLabel, inputs={input: solph.Flow()},
+        self.__heatpump = solph.Transformer(label='HP' + '__' + buildingLabel,
+                                            inputs={input: solph.Flow(
+                                                investment=solph.Investment(
+                                                    ep_costs=epc*avgCopSh,
+                                                    minimum=capacityMin/avgCopSh,
+                                                    maximum=capacityMax/avgCopSh,
+                                                    nonconvex=True,
+                                                    offset=base,
+                                                    env_per_capa=env_capa*avgCopSh,
+                                                ),
+                                            )},
                                             outputs={outputSH: solph.Flow(
-                                                          investment=solph.Investment(
-                                                              ep_costs=epc,
-                                                              minimum=capacityMin,
-                                                              maximum=capacityMax,
-                                                              nonconvex=True,
-                                                              offset=base,
-                                                              env_per_capa=env_capa,
-                                                          ),
+                                                          # investment=solph.Investment(
+                                                          #     ep_costs=epc,
+                                                          #     minimum=capacityMin,
+                                                          #     maximum=capacityMax,
+                                                          #     nonconvex=True,
+                                                          #     offset=base,
+                                                          #     env_per_capa=env_capa,
+                                                          # ),
                                                           variable_costs=varc,
                                                           env_per_flow=env_flow,
                                                       ),
@@ -127,34 +138,45 @@ class CHP:
         self._efficiencyElCHPDHW = [efficiencyEl] * 8760
         self._efficiencySH = [efficiencySH] * 8760
         self._efficiencyDHW = [efficiencyDHW] * 8760
+        avgEff=(sum(self._efficiencyElCHPSH)+sum(self._efficiencyElCHPDHW)+sum(self._efficiencySH)
+                +sum(self._efficiencyDHW))/2/8760
         self._chargingRule()
         self.__CHP = solph.Transformer(
                         label='CHP'+'__'+buildingLabel,
                         inputs={
-                            input: solph.Flow()
+                            input: solph.Flow(
+                                investment=solph.Investment(
+                                    ep_costs=epc*avgEff,
+                                    minimum=float(capacityMin) / (efficiencyEl / (efficiencyEl + efficiencySH)),
+                                    maximum=float(capacityEl) / (efficiencyEl / (efficiencyEl + efficiencySH)),
+                                    nonconvex=True,
+                                    offset=base,# * efficiencyEl / (efficiencyEl + efficiencySH),
+                                    env_per_capa=env_capa*avgEff,
+                                ),
+                            )
                         },
                         outputs={
                             outputEl: solph.Flow(
-                                investment=solph.Investment(
-                                    ep_costs=epc,
-                                    minimum=float(capacityMin) * efficiencyEl / (efficiencyEl + efficiencySH),
-                                    maximum=float(capacityEl) * efficiencyEl / (efficiencyEl + efficiencySH),
-                                    nonconvex=True,
-                                    offset=base * efficiencyEl / (efficiencyEl + efficiencySH),
-                                    env_per_capa=env_capa,
-                                    ),
+                                # investment=solph.Investment(
+                                #     ep_costs=epc,
+                                #     minimum=float(capacityMin) * efficiencyEl / (efficiencyEl + efficiencySH),
+                                #     maximum=float(capacityEl) * efficiencyEl / (efficiencyEl + efficiencySH),
+                                #     nonconvex=True,
+                                #     offset=base * efficiencyEl / (efficiencyEl + efficiencySH),
+                                #     env_per_capa=env_capa,
+                                #     ),
                                 variable_costs=varc1,
                                 env_per_flow=env_flow1,
                             ),
                             outputSH: solph.Flow(
-                                investment=solph.Investment(
-                                    ep_costs=epc,
-                                    minimum=float(capacityMin) * efficiencySH / (efficiencyEl + efficiencySH),
-                                    maximum=float(capacitySH) * efficiencySH / (efficiencyEl + efficiencySH),
-                                    nonconvex=True,
-                                    offset=base * efficiencySH / (efficiencyEl + efficiencySH),
-                                    env_per_capa=env_capa,
-                                ),
+                                # investment=solph.Investment(
+                                #     ep_costs=epc,
+                                #     minimum=float(capacityMin) * efficiencySH / (efficiencyEl + efficiencySH),
+                                #     maximum=float(capacitySH) * efficiencySH / (efficiencyEl + efficiencySH),
+                                #     nonconvex=True,
+                                #     offset=base * efficiencySH / (efficiencyEl + efficiencySH),
+                                #     env_per_capa=env_capa,
+                                # ),
                                 variable_costs=varc2,
                                 env_per_flow=env_flow2,
                             ),
@@ -184,3 +206,25 @@ class CHP:
         else:
             print("Transformer label not identified...")
             return []
+
+class GasBoiler(solph.Transformer):
+    def __init__(self, buildingLabel, input, output, efficiency,
+                 capacityMin, capacityMax, epc, base, varc, env_flow, env_capa):
+
+        super(GasBoiler, self).__init__(
+            label='GasBoiler'+'__'+buildingLabel,
+            inputs={input: solph.Flow()},
+            outputs={output: solph.Flow(
+                     investment=solph.Investment(
+                         ep_costs=epc,
+                         minimum=capacityMin,
+                         maximum=capacityMax,
+                         nonconvex=True,
+                         offset=base,
+                         env_per_capa=env_capa,
+                     ),
+                     variable_costs=varc,
+                     env_per_flow=env_flow
+                 )},
+            conversion_factors = {output: efficiency}
+                 )

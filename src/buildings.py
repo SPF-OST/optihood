@@ -2,7 +2,7 @@ import oemof.solph as solph
 from oemof.tools import logger
 from oemof.tools import economics
 import logging
-from converters import HeatPumpLinear, CHP, SolarCollector
+from converters import HeatPumpLinear, CHP, SolarCollector, GasBoiler
 from sources import PV
 from storages import ElectricalStorage, ThermalStorage
 
@@ -230,9 +230,9 @@ class Building:
         self.__technologies.append([outputDHWBusLabel, hpSHLabel])
         self.__technologies.append([outputSHBusLabel, hpSHLabel])
 
-        self.__costParam[hpSHLabel] = [self._calculateInvest(data)[0], self._calculateInvest(data)[1]]
+        self.__costParam[inputBusLabel] = [self._calculateInvest(data)[0], self._calculateInvest(data)[1]]
 
-        self.__envParam[hpSHLabel] = [data["heat_impact"], data["elec_impact"], envImpactPerCapacity]
+        self.__envParam[inputBusLabel] = [data["heat_impact"], data["elec_impact"], envImpactPerCapacity]
 
     def _addCHP(self, data, opt):
         chpSHLabel = data["label"] + '__' + self.__buildingLabel
@@ -264,9 +264,30 @@ class Building:
         self.__technologies.append([outputSHBusLabel, chpSHLabel])
         self.__technologies.append([outputDHWBusLabel, chpSHLabel])
 
-        self.__costParam[chpSHLabel] = [self._calculateInvest(data)[0], self._calculateInvest(data)[1]]
+        self.__costParam[inputBusLabel] = [self._calculateInvest(data)[0], self._calculateInvest(data)[1]]
 
-        self.__envParam[chpSHLabel] = [data["heat_impact"], data["elec_impact"], envImpactPerCapacity]
+        self.__envParam[inputBusLabel] = [data["heat_impact"], data["elec_impact"], envImpactPerCapacity]
+
+    def _addGasBoiler(self, data, opt):
+        gasBoilLabel = data["label"] + '__' + self.__buildingLabel
+        inputBusLabel = data["from"] + '__' + self.__buildingLabel
+        outputBusLabel = data["to"] + '__' + self.__buildingLabel
+        efficiency = float(data["efficiency"])
+        envImpactPerCapacity = data["impact_cap"] / data["lifetime"]
+
+
+        self.__nodesList.append(GasBoiler(self.__buildingLabel, self.__busDict[inputBusLabel],
+                  self.__busDict[outputBusLabel],
+                  efficiency, data["capacity_min"], data["capacity_SH"],
+                  self._calculateInvest(data)[0] * (opt == "costs") + envImpactPerCapacity * (opt == "env"),
+                  self._calculateInvest(data)[1] * (opt == "costs"), data["elec_impact"], data["heat_impact"], envImpactPerCapacity))
+
+        # set technologies, environment and cost parameters
+        self.__technologies.append([outputBusLabel, gasBoilLabel])
+
+        self.__costParam[gasBoilLabel] = [self._calculateInvest(data)[0], self._calculateInvest(data)[1]]
+
+        self.__envParam[gasBoilLabel] = [data["heat_impact"], data["elec_impact"], envImpactPerCapacity]
 
     def addTransformer(self, data, temperatureDHW, temperatureSH, temperatureAmb, opt):
         for i, t in data.iterrows():
@@ -275,6 +296,8 @@ class Building:
                     self._addHeatPump(t, temperatureDHW, temperatureSH, temperatureAmb, opt)
                 elif t["label"] == "CHP":
                     self._addCHP(t, opt)
+                elif t["label"] == "GasBoiler":
+                    self._addGasBoiler(t, opt)
                 else:
                     logging.warning("Transformer label not identified...")
 
