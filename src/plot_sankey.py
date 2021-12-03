@@ -46,7 +46,12 @@ def addCapacities(nodes, dataDict, buildings):
         for j, k in capTransformers.iterrows():
             if k[0]==0:
                 continue
-            j=j.split("'")[1]
+            jComponents=j.split("'")
+            if 'Bus' in jComponents[1]:
+                j =jComponents[3]
+            else:
+                j=jComponents[1]
+
             if UseLabelDict == True:
                 index=nodes.index(labelDict[j])
             else:
