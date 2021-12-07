@@ -93,7 +93,9 @@ def hourlyDailyPlot(data, bus, palette, new_legends):
 
         if "electricity" in bus[i]:
             del bus[i + 1]
+            del bus[i + 1]
             dt = data[i]
+            dt.pop(f"(('electricityProdBus{building}', 'electricitySource{building}'), 'flow')")
             data_day = dt.resample('1d').sum()
             p1 = figure(title="Hourly electricity flows for " + building.replace("__", ""), x_axis_label="Date", y_axis_label="Power (kWh)", sizing_mode="scale_both")
             p1.add_tools(HoverTool(tooltips=[('Time', '@x{%d/%m/%Y %H:%M:%S}'), ('Energy', '@y{0.00}')],
@@ -713,14 +715,14 @@ def loadPlottingData(resultFilePath):
         beta_bis = beta.copy()
         for j in beta:
             if j.endswith(building) and (
-                    "electricityBus" in j or "electricityInBus" in j or "spaceHeatingBus" in j or "shDemandBus" in j or "domesticHotWaterBus" in j):
+                    "electricityBus" in j or "electricityInBus" in j or "electricityProdBus" in j or "spaceHeatingBus" in j or "shDemandBus" in j or "domesticHotWaterBus" in j):
                 if "shDemandBus" not in j:
                     alpha.append(j)
-                if ("electricityBus" in j) or ("electricityInBus" in j):
-                    # find the index of electricity bus to merge the results of electricityBus and electricityInBus
+                if ("electricityBus" in j) or ("electricityInBus" in j) or ("electricityProdBus" in j):
+                    # find the index of electricity bus to merge the results of electricityBus, electricityInBus and electricityProdBus
                     index = -1
                     for ind in range(len(alpha_a)):
-                        if "electricityBus" in alpha_a[ind].keys()[0] or "electricityInBus" in alpha_a[ind].keys()[0]:
+                        if "electricityBus" in alpha_a[ind].keys()[0] or "electricityInBus" in alpha_a[ind].keys()[0] or "electricityProdBus" in alpha_a[ind].keys()[0]:
                             index = ind
                     if index != -1:
                         alpha_a[index] = pd.concat((alpha_a[index], buses[j]), axis=1)
@@ -750,7 +752,7 @@ def loadPlottingData(resultFilePath):
     for i in buses.keys():
         tt = {}
         b = int(i.split("Building")[1])  # building number
-        if ("electricityBus" in i) or ("electricityInBus" in i):
+        if ("electricityBus" in i) or ("electricityInBus" in i) or ("electricityProdBus" in i):
             elec_names.append(i)
             if b <= len(
                     elec_dict):  # to merge the data of the two electricity buses of the same  (elec_dict[0] should have all the electricity related data of building 1, and so on...)
@@ -847,11 +849,15 @@ def createPlot(resultFilePath, plotLevel, plotType, flowType, plotAnnualHorizont
         else:
             plotsHourly, plotsDaily = hourlyDailyPlot(dict, names, Category20_12, newLegends)
 
-        output_file("..\Figures\HourlyBokehPlots.html")
+        basePath = "..\Figures\\"
+        if not os.path.exists(basePath):
+            os.makedirs(basePath)
+
+        output_file(os.path.join(basePath,"HourlyBokehPlots.html"))
         grid = gridplot(plotsHourly, ncols=ncols, plot_width=600, plot_height=500, sizing_mode="fixed")
         show(grid)
         if not any(chr.isdigit() for chr in plotLevel):
-            output_file("..\Figures\DailyBokehPlots.html")
+            output_file(os.path.join(basePath,"DailyBokehPlots.html"))
             grid = gridplot(plotsDaily, ncols=ncols, plot_width=600, plot_height=500, sizing_mode="fixed")
             show(grid)
     else:
@@ -912,7 +918,7 @@ if __name__ == '__main__':
         "(('electricityProdBus', 'electricalStorage'), 'flow')": "Battery_in",
         "(('electricityInBus', 'electricityDemand'), 'flow')": "Demand_elec",
         "(('electricityInBus', 'HP'), 'flow')": "HP",
-        "(('CHP', 'electricityBus'), 'flow')": "CHP_elec",
+        "(('CHP', 'electricityProdBus'), 'flow')": "CHP_elec",
         "(('electricalStorage', 'electricityBus'), 'flow')": "Battery_out",
         "(('electricitySource', 'electricityBus'), 'flow')": "Elect_source",
         "(('electricityResource', 'gridBus'), 'flow')": "Grid_purchase",
@@ -929,7 +935,7 @@ if __name__ == '__main__':
         "(('HP', 'spaceHeatingBus'), 'flow')": "HP_sh",
         "(('electricityBus', 'producedElectricity'), 'flow')": "Electricity_produced",
         "(('gridBus', 'gridElectricity'), 'flow')": "Electricity_grid",
-        "(('pv', 'electricityBus'), 'flow')": "PV_elec",
+        "(('pv', 'electricityProdBus'), 'flow')": "PV_elec",
         "(('solarCollector', 'dhwStorageBus'), 'flow')": "SolarCollector",
         "(('electricityInBus', 'solarCollector'), 'flow')": "SolarCollector",
         "(('gridElectricity', 'electricityInBus'), 'flow')": "Electricity_grid",
@@ -963,7 +969,7 @@ if __name__ == '__main__':
 
     
     resultFileBasePath = "..\data\Results"
-    resultFileName = f"results1_1_{optMode}.xlsx"  # add the name of the excel file here for which the plots are to be made
+    resultFileName = f"results4_1_{optMode}.xlsx"  # add the name of the excel file here for which the plots are to be made
     if not os.path.exists(resultFileBasePath):
         os.makedirs(resultFileBasePath)
     resultFilePath = os.path.join(resultFileBasePath, resultFileName)
