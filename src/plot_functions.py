@@ -28,6 +28,16 @@ def monthlyBalance(data, bus, new_legends):
     :return:
     """
     building = "__" + bus.split("__")[1]
+    if not data.filter(like='electricityLink').empty:
+        elLinks = data.filter(like='electricityLink')  # half would be el_link_out and half would be el_link_in
+        data.drop(list(data.filter(regex='electricityLink')), axis=1, inplace=True)
+        mid = int(len(elLinks.columns) / 2)
+        elLinksOut = elLinks.iloc[:, 0:mid]
+        elLinksIn = elLinks.iloc[:, mid:len(elLinks.columns)]
+        elLinksOut["(('electricityBus', 'electricityLink'), 'flow')"] = elLinksOut.sum(axis=1)
+        elLinksIn["(('electricityLink', 'electricityInBus'), 'flow')"] = elLinksIn.sum(axis=1)
+        data = pd.concat((data, elLinksIn["(('electricityLink', 'electricityInBus'), 'flow')"]), axis=1)
+        data = pd.concat((data, elLinksOut["(('electricityBus', 'electricityLink'), 'flow')"]), axis=1)
     data_month = data.resample('1m').sum()
     monthShortNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
@@ -96,6 +106,16 @@ def hourlyDailyPlot(data, bus, palette, new_legends):
             del bus[i + 1]
             dt = data[i]
             dt.pop(f"(('electricityProdBus{building}', 'electricitySource{building}'), 'flow')")
+            elLinks = dt.filter(like='electricityLink')  #half would be el_link_out and half would be el_link_in
+            dt.drop(list(dt.filter(regex = 'electricityLink')), axis = 1, inplace = True)
+            mid = int(len(elLinks.columns)/2)
+            elLinksOut = elLinks.iloc[:, 0:mid]
+            elLinksIn = elLinks.iloc[:, mid:len(elLinks.columns)]
+            elLinksOut["(('electricityBus', 'electricityLink'), 'flow')"] = elLinksOut.sum(axis=1)
+            elLinksIn["(('electricityLink', 'electricityInBus'), 'flow')"] = elLinksIn.sum(axis=1)
+            dt = pd.concat((dt, elLinksIn["(('electricityLink', 'electricityInBus'), 'flow')"]), axis=1)
+            dt = pd.concat((dt, elLinksOut["(('electricityBus', 'electricityLink'), 'flow')"]), axis=1)
+
             data_day = dt.resample('1d').sum()
             p1 = figure(title="Hourly electricity flows for " + building.replace("__", ""), x_axis_label="Date", y_axis_label="Power (kWh)", sizing_mode="scale_both")
             p1.add_tools(HoverTool(tooltips=[('Time', '@x{%d/%m/%Y %H:%M:%S}'), ('Energy', '@y{0.00}')],
@@ -939,10 +959,13 @@ if __name__ == '__main__':
         "(('solarCollector', 'dhwStorageBus'), 'flow')": "SolarCollector",
         "(('electricityInBus', 'solarCollector'), 'flow')": "SolarCollector",
         "(('gridElectricity', 'electricityInBus'), 'flow')": "Electricity_grid",
-        "(('producedElectricity', 'electricityInBus'), 'flow')": "Electricity_produced"
+        "(('producedElectricity', 'electricityInBus'), 'flow')": "Electricity_produced",
+        "(('electricityProdBus', 'electricitySource'), 'flow')": "Battery_bypass"
     }
     if optMode == "group":
-        newLegends["(('electricityBus', 'electricityLink1_2'), 'flow')"] = "electricityLink_in"
+        newLegends["(('electricityBus', 'electricityLink'), 'flow')"] = "electricityLink_in"
+        newLegends["(('electricityLink', 'electricityInBus'), 'flow')"] = "electricityLink_out"
+        """newLegends["(('electricityBus', 'electricityLink1_2'), 'flow')"] = "electricityLink_in"
         newLegends["(('electricityBus', 'electricityLink2_1'), 'flow')"] = "electricityLink_in"
         newLegends["(('electricityLink1_2', 'electricityInBus'), 'flow')"] = "electricityLink_out"
         newLegends["(('electricityLink2_1', 'electricityInBus'), 'flow')"] = "electricityLink_out"
@@ -965,7 +988,7 @@ if __name__ == '__main__':
         newLegends["(('electricityBus', 'electricityLink3_4'), 'flow')"] = "electricityLink_in"
         newLegends["(('electricityBus', 'electricityLink4_3'), 'flow')"] = "electricityLink_in"
         newLegends["(('electricityLink4_3', 'electricityInBus'), 'flow')"] = "electricityLink_out"
-        newLegends["(('electricityLink3_4', 'electricityInBus'), 'flow')"] = "electricityLink_out"
+        newLegends["(('electricityLink3_4', 'electricityInBus'), 'flow')"] = "electricityLink_out" """
 
     
     resultFileBasePath = "..\data\Results"
