@@ -847,11 +847,11 @@ def createPlot(resultFilePath, plotLevel, plotType, flowType, plotAnnualHorizont
         else:
             plotsHourly, plotsDaily = hourlyDailyPlot(dict, names, Category20_12, newLegends)
 
-        output_file(".\Figures\HourlyBokehPlots.html")
+        output_file("..\Figures\HourlyBokehPlots.html")
         grid = gridplot(plotsHourly, ncols=ncols, plot_width=600, plot_height=500, sizing_mode="fixed")
         show(grid)
         if not any(chr.isdigit() for chr in plotLevel):
-            output_file(".\Figures\DailyBokehPlots.html")
+            output_file("..\Figures\DailyBokehPlots.html")
             grid = gridplot(plotsDaily, ncols=ncols, plot_width=600, plot_height=500, sizing_mode="fixed")
             show(grid)
     else:
@@ -909,11 +909,12 @@ if __name__ == '__main__':
     newLegends = {
         "(('naturalGasResource', 'naturalGasBus'), 'flow')": "NaturalGas",
         "(('electricityBus', 'excesselectricityBus'), 'flow')": "Feed-in",
-        "(('electricityBus', 'electricalStorage'), 'flow')": "Battery_in",
+        "(('electricityProdBus', 'electricalStorage'), 'flow')": "Battery_in",
         "(('electricityInBus', 'electricityDemand'), 'flow')": "Demand_elec",
         "(('electricityInBus', 'HP'), 'flow')": "HP",
         "(('CHP', 'electricityBus'), 'flow')": "CHP_elec",
-        "(('electricalStorage', 'electricityInBus'), 'flow')": "Battery_out",
+        "(('electricalStorage', 'electricityBus'), 'flow')": "Battery_out",
+        "(('electricitySource', 'electricityBus'), 'flow')": "Elect_source",
         "(('electricityResource', 'gridBus'), 'flow')": "Grid_purchase",
         "(('dhwStorage', 'domesticHotWaterBus'), 'flow')": "Storage_dhw_out",
         "(('dhwStorageBus', 'dhwStorage'), 'flow')": "Storage_dhw_in",
@@ -961,16 +962,16 @@ if __name__ == '__main__':
         newLegends["(('electricityLink3_4', 'electricityInBus'), 'flow')"] = "electricityLink_out"
 
     
-    resultFileBasePath = ".\Results"
-    resultFileName = f"results4_1_{optMode}.xlsx"  # add the name of the excel file here for which the plots are to be made
+    resultFileBasePath = "..\data\Results"
+    resultFileName = f"results1_1_{optMode}.xlsx"  # add the name of the excel file here for which the plots are to be made
     if not os.path.exists(resultFileBasePath):
         os.makedirs(resultFileBasePath)
     resultFilePath = os.path.join(resultFileBasePath, resultFileName)
 
-    plotLevel = "allMonths"   # permissible values (for energy balance plot): "allMonths" {for all months}
+    plotLevel = "Mar"   # permissible values (for energy balance plot): "allMonths" {for all months}
                         # or specific month {"Jan", "Feb", "Mar", etc. three letter abbreviation of the month name}
                         # or specific date {format: YYYY-MM-DD}
-    plotType = "energy balance"  # permissible values: "energy balance", "bokeh"
+    plotType = "bokeh"  # permissible values: "energy balance", "bokeh"
     flowType = "electricity"  # permissible values: "all", "electricity", "space heat", "domestic hot water"
     plotAnnualHorizontalBar = False  # determines whether the annual horizontal bar is plot or not
 

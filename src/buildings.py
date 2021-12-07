@@ -230,9 +230,9 @@ class Building:
         self.__technologies.append([outputDHWBusLabel, hpSHLabel])
         self.__technologies.append([outputSHBusLabel, hpSHLabel])
 
-        self.__costParam[inputBusLabel] = [self._calculateInvest(data)[0], self._calculateInvest(data)[1]]
+        self.__costParam[inputBusLabel] = [self._calculateInvest(data)[0]*heatPump.avgCopSh, self._calculateInvest(data)[1]*heatPump.avgCopSh]
 
-        self.__envParam[inputBusLabel] = [data["heat_impact"], data["elec_impact"], envImpactPerCapacity]
+        self.__envParam[inputBusLabel] = [data["heat_impact"]*heatPump.avgCopSh, data["elec_impact"]*heatPump.avgCopSh, envImpactPerCapacity*heatPump.avgCopSh]
 
     def _addCHP(self, data, opt):
         chpSHLabel = data["label"] + '__' + self.__buildingLabel
@@ -264,9 +264,9 @@ class Building:
         self.__technologies.append([outputSHBusLabel, chpSHLabel])
         self.__technologies.append([outputDHWBusLabel, chpSHLabel])
 
-        self.__costParam[inputBusLabel] = [self._calculateInvest(data)[0], self._calculateInvest(data)[1]]
+        self.__costParam[inputBusLabel] = [self._calculateInvest(data)[0]*chp.avgEff, self._calculateInvest(data)[1]*chp.avgEff]
 
-        self.__envParam[inputBusLabel] = [data["heat_impact"], data["elec_impact"], envImpactPerCapacity]
+        self.__envParam[inputBusLabel] = [data["heat_impact"]*chp.avgEff, data["elec_impact"]*chp.avgEff, envImpactPerCapacity*chp.avgEff]
 
     def _addGasBoiler(self, data, opt):
         gasBoilLabel = data["label"] + '__' + self.__buildingLabel
