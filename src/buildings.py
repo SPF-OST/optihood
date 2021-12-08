@@ -82,10 +82,10 @@ class Building:
             self.__nodesList.append(PV(s["label"], self.__buildingLabel,
                                        self.__busDict[s["to"] + '__' + self.__buildingLabel],
                                        s["peripheral_losses"], s["latitude"], s["longitude"],
-                                       s["pv_tilt"], s["pv_azimuth"],
-                                       data_timeseries['global_horizontal_W_m2'],
-                                       data_timeseries['diffuse_horizontal_W_m2'],
-                                       data_timeseries['temp_amb'], s["capacity_min"], s["capacity_max"],
+                                       s["tilt"], s["azimuth"],
+                                       data_timeseries['gls'],
+                                       data_timeseries['str.diffus'],
+                                       data_timeseries['tre200h0'], s["capacity_min"], s["capacity_max"],
                                        epc, base, env_capa, env_flow, varc))
 
             self.__envParam[s["label"] + '__' + self.__buildingLabel] = envParam
@@ -121,11 +121,10 @@ class Building:
                                                    self.__busDict[s["to"] + '__' + self.__buildingLabel],
                                                    self.__busDict[s["connect"]+ '__' + self.__buildingLabel],
                                                    s["electrical_consumption"], s["peripheral_losses"], s["latitude"],
-                                                   s["longitude"], s["collector_tilt"], s["collector_azimuth"],
+                                                   s["longitude"], s["tilt"], s["azimuth"],
                                                    s["eta_0"], s["a_1"], s["a_2"], s["temp_collector_inlet"],
-                                                   s["delta_temp_n"], data_timeseries['global_horizontal_W_m2'],
-                                                   data_timeseries['diffuse_horizontal_W_m2'],
-                                                   data_timeseries['temp_amb'], s["capacity_min"], s["capacity_max"],
+                                                   s["delta_temp_n"], data_timeseries['gls'], data_timeseries['str.diffus'],
+                                                    data_timeseries['tre200h0'], s["capacity_min"], s["capacity_max"],
                                                    epc, base, env_capa, env_flow, varc)
             self.__nodesList.append(collector.getSolar("source"))
             self.__nodesList.append(collector.getSolar("transformer"))
@@ -196,8 +195,8 @@ class Building:
                 inflow_args = {"nominal_value": de["nominal value"]}
                 # get time series for node and parameter
                 for col in timeseries.columns.values:
-                    if col.split(".")[0] == de["label"]:
-                        inflow_args[col.split(".")[1]] = timeseries[col]
+                    if col == de["label"]:
+                        inflow_args["fix"] = timeseries[col]
 
                 # create sink
                 self.__nodesList.append(

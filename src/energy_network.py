@@ -5,7 +5,7 @@ from oemof.tools import logger
 import logging
 import os
 import pprint as pp
-
+from datetime import datetime
 try:
     import matplotlib.pyplot as plt
 except ImportError:
@@ -53,32 +53,65 @@ class EnergyNetworkClass(solph.EnergySystem):
             "buses": data.parse("buses"),
             "grid_connection": data.parse("grid_connection"),
             "commodity_sources": data.parse("commodity_sources"),
-            "pv": data.parse("pv"),
-            "electricity_impact": data.parse("electricity_impact"),
+            "solar": data.parse("solar"),
             "transformers": data.parse("transformers"),
-            "solar_collector": data.parse("solar_collector"),
             "demand": data.parse("demand"),
             "storages": data.parse("storages"),
-            "timeseries": data.parse("time_series"),
-            "solar_time_series": data.parse("solar_time_series"),
             "stratified_storage": data.parse("stratified_storage"),
+            "csv_paths": data.parse("csv_data")
         }
         # update stratified_storage index
         nodesData["stratified_storage"].set_index("label", inplace=True)
-        # set datetime index
-        nodesData["electricity_impact"].set_index("timestamp", inplace=True)
-        nodesData["electricity_impact"].index = pd.to_datetime(nodesData["electricity_impact"].index)
-        nodesData["timeseries"].set_index("timestamp", inplace=True)
-        nodesData["timeseries"].index = pd.to_datetime(nodesData["timeseries"].index)
-        nodesData["solar_time_series"].set_index("timestamp", inplace=True)
-        nodesData["solar_time_series"].index = pd.to_datetime(nodesData["solar_time_series"].index)
+
+        # extract input data from CSVs
+        electricityImpactPath = nodesData["csv_paths"].loc[nodesData["csv_paths"]["name"] == "electricity_impact", "path"].iloc[0]
+        demandProfilesPath = nodesData["csv_paths"].loc[nodesData["csv_paths"]["name"] == "demand_profiles", "path"].iloc[0]
+        weatherDataPath = nodesData["csv_paths"].loc[nodesData["csv_paths"]["name"] == "weather_data", "path"].iloc[0]
+
+        demandProfiles = {}  # dictionary of dataframes for each building's demand profiles
+
+        if (not os.listdir(demandProfilesPath)) or (not os.path.exists(demandProfilesPath)):
+            logging.error("Error in the demand profiles path: The folder is either empty or does not exist")
+        else:
+            i = 0
+            for filename in os.listdir(demandProfilesPath): #this path should contain csv file(s) (one for each building's profiles)
+                i += 1      # Building number
+                demandProfiles.update({i: pd.read_csv(os.path.join(demandProfilesPath, filename), delimiter=";")})
+            numBuildings = i
+            nodesData["demandProfiles"] = demandProfiles
+            # set datetime index
+            for i in range(numBuildings):
+                nodesData["demandProfiles"][i + 1].set_index("timestamp", inplace=True)
+                nodesData["demandProfiles"][i + 1].index = pd.to_datetime(nodesData["demandProfiles"][i + 1].index)
+
+        if not os.path.exists(electricityImpactPath):
+            logging.error("Error in electricity impact file path")
+        else:
+            nodesData["electricity_impact"] = pd.read_csv(electricityImpactPath, delimiter=";")
+            # set datetime index
+            nodesData["electricity_impact"].set_index("timestamp", inplace=True)
+            nodesData["electricity_impact"].index = pd.to_datetime(nodesData["electricity_impact"].index)
+
+        if not os.path.exists(weatherDataPath):
+            logging.error("Error in weather data file path")
+        else:
+            nodesData["weather_data"] = pd.read_csv(weatherDataPath, delimiter=";")
+            #add a timestamp column to the dataframe
+            for index, row in nodesData['weather_data'].iterrows():
+                time = f"{int(row['time.yy'])}.{int(row['time.mm']):02}.{int(row['time.dd']):02} {int(row['time.hh']):02}:00:00"
+                nodesData['weather_data'].at[index, 'timestamp'] = datetime.strptime(time, "%Y.%m.%d  %H:%M:%S")
+                #set datetime index
+            nodesData["weather_data"].set_index("timestamp", inplace=True)
+            nodesData["weather_data"].index = pd.to_datetime(nodesData["weather_data"].index)
+
         logging.info("Data from Excel file {} imported.".format(filePath))
         return nodesData
 
     def _convertNodes(self, data, opt):
         if not data:
             logging.error("Nodes data is missing.")
-        self.__temperatureAmb = np.array(data["timeseries"]["temperature.actual"])
+        ################## !!!
+        self.__temperatureAmb = np.array(data["weather_data"]["tre200h0"])
         self._addBuildings(data, opt)
 
     def _addBuildings(self, data, opt):
@@ -90,12 +123,12 @@ class EnergyNetworkClass(solph.EnergySystem):
             b.addBus(data["buses"][data["buses"]["building"] == i], opt)
             b.addGridSeparation(data["grid_connection"][data["grid_connection"]["building"] == i])
             b.addSource(data["commodity_sources"][data["commodity_sources"]["building"] == i], data["electricity_impact"], opt)
-            b.addSink(data["demand"][data["demand"]["building"] == i], data["timeseries"].filter(regex=str(i)))
+            b.addSink(data["demand"][data["demand"]["building"] == i], data["demandProfiles"][i])
             b.addTransformer(data["transformers"][data["transformers"]["building"] == i], self.__temperatureDHW,
                              self.__temperatureSH, self.__temperatureAmb, opt)
             b.addStorage(data["storages"][data["storages"]["building"] == i], data["stratified_storage"], opt)
-            b.addSolar(data["solar_collector"][data["solar_collector"]["building"] == i], data["solar_time_series"], opt)
-            b.addPV(data["pv"][data["pv"]["building"] == i], data["solar_time_series"], opt)
+            b.addSolar(data["solar"][(data["solar"]["building"] == i) & (data["solar"]["label"] == "solarCollector")], data["weather_data"], opt)
+            b.addPV(data["solar"][(data["solar"]["building"] == i) & (data["solar"]["label"] == "pv")], data["weather_data"], opt)
             self._nodesList.extend(b.getNodesList())
             self.__inputs[buildingLabel] = b.getInputs()
             self.__technologies[buildingLabel] = b.getTechnologies()
@@ -115,8 +148,10 @@ class EnergyNetworkClass(solph.EnergySystem):
             print(oobj + ":", n.label)
         print("*********************************************************")
 
-    def optimize(self, solver, envImpactlimit, options={"gurobi":{"MIPGap":10}}):
-        if solver=="gurobi":
+    def optimize(self, solver, envImpactlimit, options=None):
+        if options is None:
+            options = {"gurobi": {"MIPGap": 10}}
+        if solver == "gurobi":
             logging.info("Initiating optimization using {} solver".format(solver))
         optimizationModel = solph.Model(self)
         # add constraint to limit the environmental impacts

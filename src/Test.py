@@ -13,10 +13,11 @@ elif optMode == "group":
     from energy_network import EnergyNetworkGroup as EnergyNetwork
 
 numberOfBuildings = 4
-numberOfOptimizations = 8
+numberOfOptimizations = 1
 inputFilePath = "..\data\excels\\"
 resultFilePath= "..\data\Results"
 inputfileName = "scenario" + str(numberOfBuildings) + ".xls"
+timePeriod = ["2018-01-01 00:00:00", "2018-12-31 23:00:00"]
 
 optimizationOptions ={
                     "gurobi":{
@@ -71,7 +72,7 @@ if __name__ == '__main__':
     ## First optimization ##
     # -----------------------------------------------------------------------------#
     print("******************\nOPTIMIZATION " + str(optimizationInstanceNumber) + "\n******************")
-    network = EnergyNetwork(pd.date_range("2018-01-01 01:00:00", "2019-01-01 00:00:00", freq="60min"), tSH=35, tDHW=55)
+    network = EnergyNetwork(pd.date_range(timePeriod[0], timePeriod[1], freq="60min"), tSH=35, tDHW=55)
     network.setFromExcel(os.path.join(inputFilePath, inputfileName), opt="costs")
     (max_env, costs, meta) = optimizeNetwork(network, optimizationInstanceNumber, 1000000)
     optimizationInstanceNumber += 1
@@ -82,7 +83,7 @@ if __name__ == '__main__':
     # -----------------------------------------------------------------------------#
     if numberOfOptimizations > 1:
         print("******************\nOPTIMIZATION " + str(optimizationInstanceNumber) + "\n******************")
-        network = EnergyNetwork(pd.date_range("2018-01-01 01:00:00", "2019-01-01 00:00:00", freq="60min"), tSH=35, tDHW=55)
+        network = EnergyNetwork(pd.date_range(timePeriod[0], timePeriod[1], freq="60min"), tSH=35, tDHW=55)
         network.setFromExcel(os.path.join(inputFilePath, inputfileName), opt="env")
         (min_env,costs, meta) = optimizeNetwork(network, optimizationInstanceNumber, 1000000)
         optimizationInstanceNumber += 1
@@ -96,7 +97,7 @@ if __name__ == '__main__':
         steps = list(range(int(min_env), int(max_env), int((max_env - min_env) / (numberOfOptimizations-2))))
         for envCost in steps[1:numberOfOptimizations]:
             print("******************\nOPTIMIZATION " + str(optimizationInstanceNumber) + "\n******************")
-            network = EnergyNetwork(pd.date_range("2018-01-01 01:00:00", "2019-01-01 00:00:00", freq="60min"), tSH=35,
+            network = EnergyNetwork(pd.date_range(timePeriod[0], timePeriod[1], freq="60min"), tSH=35,
                                     tDHW=55)
             network.setFromExcel(os.path.join(inputFilePath, inputfileName), opt="costs")
             (limit,costs, meta) = optimizeNetwork(network, optimizationInstanceNumber, envCost + 1)
