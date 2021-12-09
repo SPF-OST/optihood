@@ -35,20 +35,20 @@ class EnergyNetworkClass(solph.EnergySystem):
         logging.info("Initializing the energy network")
         super(EnergyNetworkClass, self).__init__(timeindex=timestamp)
 
-    def setFromExcel(self, filePath, opt):
+    def setFromExcel(self, filePath, numberOfBuildings, opt):
         # does Excel file exist?
         if not filePath or not os.path.isfile(filePath):
             logging.error("Excel data file {} not found.".format(filePath))
         logging.info("Defining the energy network from the excel file: {}".format(filePath))
         data = pd.ExcelFile(filePath)
-        nodesData = self.createNodesData(data, filePath)
+        nodesData = self.createNodesData(data, filePath, numberOfBuildings)
 
         self._convertNodes(nodesData, opt)
         logging.info("Nodes from Excel file {} successfully converted".format(filePath))
         self.add(*self._nodesList)
         logging.info("Nodes successfully added to the energy network")
 
-    def createNodesData(self, data, filePath):
+    def createNodesData(self, data, filePath, numBuildings):
         nodesData = {
             "buses": data.parse("buses"),
             "grid_connection": data.parse("grid_connection"),
@@ -76,8 +76,10 @@ class EnergyNetworkClass(solph.EnergySystem):
             i = 0
             for filename in os.listdir(demandProfilesPath): #this path should contain csv file(s) (one for each building's profiles)
                 i += 1      # Building number
+                if i > numBuildings:
+                    break
                 demandProfiles.update({i: pd.read_csv(os.path.join(demandProfilesPath, filename), delimiter=";")})
-            numBuildings = i
+
             nodesData["demandProfiles"] = demandProfiles
             # set datetime index
             for i in range(numBuildings):
@@ -365,14 +367,14 @@ class EnergyNetworkIndiv(EnergyNetworkClass):
     pass
 
 class EnergyNetworkGroup(EnergyNetworkClass):
-    def setFromExcel(self, filePath, opt):
+    def setFromExcel(self, filePath, numberOfBuildings, opt):
         # does Excel file exist?
         if not filePath or not os.path.isfile(filePath):
             logging.error("Excel data file {} not found.".format(filePath))
         logging.info("Defining the energy network from the excel file: {}".format(filePath))
         data = pd.ExcelFile(filePath)
 
-        nodesData = self.createNodesData(data, filePath)
+        nodesData = self.createNodesData(data, filePath, numberOfBuildings)
         nodesData["links"]= data.parse("links")
 
         self._convertNodes(nodesData, opt)

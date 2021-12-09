@@ -12,7 +12,7 @@ if optMode == "indiv":
 elif optMode == "group":
     from energy_network import EnergyNetworkGroup as EnergyNetwork
 
-numberOfBuildings = 4
+numberOfBuildings = 1
 numberOfOptimizations = 1
 inputFilePath = "..\data\excels\\"
 resultFilePath= "..\data\Results"
@@ -73,7 +73,7 @@ if __name__ == '__main__':
     # -----------------------------------------------------------------------------#
     print("******************\nOPTIMIZATION " + str(optimizationInstanceNumber) + "\n******************")
     network = EnergyNetwork(pd.date_range(timePeriod[0], timePeriod[1], freq="60min"), tSH=35, tDHW=55)
-    network.setFromExcel(os.path.join(inputFilePath, inputfileName), opt="costs")
+    network.setFromExcel(os.path.join(inputFilePath, inputfileName), numberOfBuildings, opt="costs")
     (max_env, costs, meta) = optimizeNetwork(network, optimizationInstanceNumber, 1000000)
     optimizationInstanceNumber += 1
     costsListLast = meta['objective']
@@ -84,7 +84,7 @@ if __name__ == '__main__':
     if numberOfOptimizations > 1:
         print("******************\nOPTIMIZATION " + str(optimizationInstanceNumber) + "\n******************")
         network = EnergyNetwork(pd.date_range(timePeriod[0], timePeriod[1], freq="60min"), tSH=35, tDHW=55)
-        network.setFromExcel(os.path.join(inputFilePath, inputfileName), opt="env")
+        network.setFromExcel(os.path.join(inputFilePath, inputfileName), numberOfBuildings, opt="env")
         (min_env,costs, meta) = optimizeNetwork(network, optimizationInstanceNumber, 1000000)
         optimizationInstanceNumber += 1
         costsList.append(costs)
@@ -99,7 +99,7 @@ if __name__ == '__main__':
             print("******************\nOPTIMIZATION " + str(optimizationInstanceNumber) + "\n******************")
             network = EnergyNetwork(pd.date_range(timePeriod[0], timePeriod[1], freq="60min"), tSH=35,
                                     tDHW=55)
-            network.setFromExcel(os.path.join(inputFilePath, inputfileName), opt="costs")
+            network.setFromExcel(os.path.join(inputFilePath, inputfileName), numberOfBuildings, opt="costs")
             (limit,costs, meta) = optimizeNetwork(network, optimizationInstanceNumber, envCost + 1)
             costsList.append(meta['objective'])
             envList.append(limit)
