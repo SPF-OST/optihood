@@ -201,6 +201,26 @@ class EnergyNetworkClass(solph.EnergySystem):
 
         return capacitiesInvestedTransformers, capacitiesInvestedStorages
 
+    def compensateInputCapacities(self, capacitiesTransformers):
+        for first, second in capacitiesTransformers.keys():
+            if "CHP" in second:
+                for index, value in enumerate(self.nodes):
+                    if second == value.label:
+                        test = self.nodes[index].conversion_factors
+                        for t in test.keys():
+                            if "spaceHeating" in t.label:
+                                capacitiesTransformers[(first,second)]= capacitiesTransformers[(first,second)]*test[t][0]
+            elif "HP" in second:
+                for index, value in enumerate(self.nodes):
+                    if second == value.label:
+                        test = self.nodes[index].conversion_factors
+                        for t in test.keys():
+                            if "spaceHeating" in t.label:
+                                capacitiesTransformers[(first,second)] = capacitiesTransformers[(first,second)] * \
+                                                                         (sum(test[t])/len(test[t]))
+
+        return capacitiesTransformers
+
     def _calculateResultsPerBuilding(self):
         for b in self.__buildings:
             buildingLabel = b.getBuildingLabel()
