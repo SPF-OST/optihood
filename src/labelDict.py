@@ -159,7 +159,7 @@ labelPositionDict={
     "pv":   [0.001, 0.3],
     "CHP":	[0.1, 0.7],
     "gasBoiler": [0.1, 0.7],
-    "localEl":	[0.1, 0.3],
+    "localEl":	[0.15, 0.3],
     "prodEl":[0.3,0.3],
     "elLink":	[0.4, 0.35],
 	"Bat":	[0.2, 0.25],

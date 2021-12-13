@@ -117,11 +117,11 @@ def hourlyDailyPlot(data, bus, palette, new_legends):
             dt = pd.concat((dt, elLinksOut["(('electricityBus', 'electricityLink'), 'flow')"]), axis=1)
 
             data_day = dt.resample('1d').sum()
-            p1 = figure(title="Hourly electricity flows for " + building.replace("__", ""), x_axis_label="Date", y_axis_label="Power (kWh)", sizing_mode="scale_both")
+            p1 = figure(title="Hourly electricity flows for " + building.replace("__", ""), x_axis_label="Date", y_axis_label="Energy (kWh)", sizing_mode="scale_both")
             p1.add_tools(HoverTool(tooltips=[('Time', '@x{%d/%m/%Y %H:%M:%S}'), ('Energy', '@y{0.00}')],
                                    formatters={'@x': 'datetime'},
                                    mode='mouse'))
-            p2 = figure(title="Daily electricity flows for " + building.replace("__", ""), x_axis_label="Date", y_axis_label="Power (kWh)", sizing_mode="scale_both")
+            p2 = figure(title="Daily electricity flows for " + building.replace("__", ""), x_axis_label="Date", y_axis_label="Energy (kWh)", sizing_mode="scale_both")
             p2.add_tools(HoverTool(tooltips=[('Date', '@x{%d/%m/%Y}'), ('Energy', '@y{0.00}')],
                                    formatters={'@x': 'datetime'},
                                    mode='mouse'))
@@ -141,11 +141,11 @@ def hourlyDailyPlot(data, bus, palette, new_legends):
         elif "spaceHeating" in bus[i]:
             dt = data[i]
             data_day = dt.resample('1d').sum()
-            p3 = figure(title="Hourly space heating flows for " + building.replace("__", ""), x_axis_label="Date", y_axis_label="Power (kWh)", sizing_mode="scale_both")
+            p3 = figure(title="Hourly space heating flows for " + building.replace("__", ""), x_axis_label="Date", y_axis_label="Energy (kWh)", sizing_mode="scale_both")
             p3.add_tools(HoverTool(tooltips=[('Time', '@x{%d/%m/%Y %H:%M:%S}'), ('Energy', '@y{0.00}')],
                                    formatters={'@x': 'datetime'},
                                    mode='mouse'))
-            p4 = figure(title="Daily space heating flows for " + building.replace("__", ""), x_axis_label="Date", y_axis_label="Power (kWh)", sizing_mode="scale_both")
+            p4 = figure(title="Daily space heating flows for " + building.replace("__", ""), x_axis_label="Date", y_axis_label="Energy (kWh)", sizing_mode="scale_both")
             p4.add_tools(HoverTool(tooltips=[('Date', '@x{%d/%m/%Y}'), ('Energy', '@y{0.00}')],
                                    formatters={'@x': 'datetime'},
                                    mode='mouse'))
@@ -166,11 +166,11 @@ def hourlyDailyPlot(data, bus, palette, new_legends):
             dt = data[i]
             data_day = dt.resample('1d').sum()
 
-            p5 = figure(title="Hourly domestic hot water flows for " + building.replace("__", ""), x_axis_label="Date", y_axis_label="Power (kWh)", sizing_mode="scale_both")
+            p5 = figure(title="Hourly domestic hot water flows for " + building.replace("__", ""), x_axis_label="Date", y_axis_label="Energy (kWh)", sizing_mode="scale_both")
             p5.add_tools(HoverTool(tooltips=[('Time', '@x{%d/%m/%Y %H:%M:%S}'), ('Energy', '@y{0.00}')],
                                    formatters={'@x': 'datetime'},
                                    mode='mouse'))
-            p6 = figure(title="Daily domestic hot water flows for "  + building.replace("__", ""), x_axis_label="Date", y_axis_label="Power (kWh)", sizing_mode="scale_both")
+            p6 = figure(title="Daily domestic hot water flows for "  + building.replace("__", ""), x_axis_label="Date", y_axis_label="Energy (kWh)", sizing_mode="scale_both")
             p6.add_tools(HoverTool(tooltips=[('Date', '@x{%d/%m/%Y}'), ('Energy', '@y{0.00}')],
                                    formatters={'@x': 'datetime'},
                                    mode='mouse'))
@@ -896,6 +896,8 @@ def createPlot(resultFilePath, plotLevel, plotType, flowType, plotAnnualHorizont
             'CHP_sh': (0, 101, 189),
             'CHP_dhw': (128, 0, 128),
             'CHP': (0, 101, 189),
+            'Gas_sh': (0, 110, 120),
+            'GasBoiler': (0, 110, 120),
             'PV_elec': (0, 128, 90),
             'SolarCollector': (188, 128, 90),
             'Inputs': (252, 93, 93),
@@ -940,7 +942,7 @@ if __name__ == '__main__':
         "(('electricityInBus', 'HP'), 'flow')": "HP",
         "(('CHP', 'electricityProdBus'), 'flow')": "CHP_elec",
         "(('electricalStorage', 'electricityBus'), 'flow')": "Battery_out",
-        "(('electricitySource', 'electricityBus'), 'flow')": "Elect_source",
+        "(('electricitySource', 'electricityBus'), 'flow')": "Elect_produced (not stored)",
         "(('electricityResource', 'gridBus'), 'flow')": "Grid_purchase",
         "(('dhwStorage', 'domesticHotWaterBus'), 'flow')": "Storage_dhw_out",
         "(('dhwStorageBus', 'dhwStorage'), 'flow')": "Storage_dhw_in",
@@ -952,14 +954,15 @@ if __name__ == '__main__':
         "(('spaceHeatingBus', 'spaceHeating'), 'flow')": "SH_direct_to_load",
         "(('shDemandBus', 'spaceHeatingDemand'), 'flow')": "Demand_sh",
         "(('CHP', 'spaceHeatingBus'), 'flow')": "CHP_sh",
+        "(('GasBoiler', 'spaceHeatingBus'), 'flow')": "Gas_sh",
         "(('HP', 'spaceHeatingBus'), 'flow')": "HP_sh",
-        "(('electricityBus', 'producedElectricity'), 'flow')": "Electricity_produced",
+        "(('electricityBus', 'producedElectricity'), 'flow')": "Self_consumption",
         "(('gridBus', 'gridElectricity'), 'flow')": "Electricity_grid",
         "(('pv', 'electricityProdBus'), 'flow')": "PV_elec",
         "(('solarCollector', 'dhwStorageBus'), 'flow')": "SolarCollector",
         "(('electricityInBus', 'solarCollector'), 'flow')": "SolarCollector",
         "(('gridElectricity', 'electricityInBus'), 'flow')": "Electricity_grid",
-        "(('producedElectricity', 'electricityInBus'), 'flow')": "Electricity_produced",
+        "(('producedElectricity', 'electricityInBus'), 'flow')": "Self_consumption",
         "(('electricityProdBus', 'electricitySource'), 'flow')": "Battery_bypass"
     }
     if optMode == "group":
@@ -997,11 +1000,11 @@ if __name__ == '__main__':
         os.makedirs(resultFileBasePath)
     resultFilePath = os.path.join(resultFileBasePath, resultFileName)
 
-    plotLevel = "Mar"   # permissible values (for energy balance plot): "allMonths" {for all months}
+    plotLevel = "allMonths"   # permissible values (for energy balance plot): "allMonths" {for all months}
                         # or specific month {"Jan", "Feb", "Mar", etc. three letter abbreviation of the month name}
                         # or specific date {format: YYYY-MM-DD}
     plotType = "bokeh"  # permissible values: "energy balance", "bokeh"
-    flowType = "electricity"  # permissible values: "all", "electricity", "space heat", "domestic hot water"
+    flowType = "space heat"  # permissible values: "all", "electricity", "space heat", "domestic hot water"
     plotAnnualHorizontalBar = False  # determines whether the annual horizontal bar is plot or not
 
     createPlot(resultFilePath, plotLevel, plotType, flowType, plotAnnualHorizontalBar, newLegends)
