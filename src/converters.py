@@ -65,22 +65,23 @@ class SolarCollector(solph.Transformer):
 
 class HeatPumpLinear:
     def __init__(self, buildingLabel, temperatureDHW, temperatureSH, temperatureLow, input, outputSH, outputDHW,
-                 capacityMin, capacityMax,
+                 capacityMin, capacityMax, nomEff,
                  epc, base, varc, env_flow, env_capa):
         self.__copDHW = self._calculateCop(temperatureDHW, temperatureLow)
         self.__copSH = self._calculateCop(temperatureSH, temperatureLow)
         self.avgCopSh=(sum(self.__copSH)/len(self.__copSH))
         self.__DHWChargingTimesteps = [5, 6, 16, 17]     # Data in the scenario file is from 01:00 H onwards (instead of 00:00)
         self._chargingRule()
+        self.nominalEff =nomEff
         self.__heatpump = solph.Transformer(label='HP' + '__' + buildingLabel,
                                             inputs={input: solph.Flow(
                                                 investment=solph.Investment(
-                                                    ep_costs=epc*self.avgCopSh,
-                                                    minimum=capacityMin/self.avgCopSh,
-                                                    maximum=capacityMax/self.avgCopSh,
+                                                    ep_costs=epc*nomEff,
+                                                    minimum=capacityMin/nomEff,
+                                                    maximum=capacityMax/nomEff,
                                                     nonconvex=True,
                                                     offset=base,
-                                                    env_per_capa=env_capa*self.avgCopSh,
+                                                    env_per_capa=env_capa*nomEff,
                                                 ),
                                             )},
                                             outputs={outputSH: solph.Flow(
