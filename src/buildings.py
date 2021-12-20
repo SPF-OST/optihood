@@ -217,7 +217,7 @@ class Building:
                                   self.__busDict[inputBusLabel],
                                   self.__busDict[outputSHBusLabel],
                                   self.__busDict[outputDHWBusLabel],
-                                  data["capacity_min"], data["capacity_SH"],
+                                  data["capacity_min"], data["capacity_SH"],data["efficiency"],
                                   self._calculateInvest(data)[0] * (opt == "costs") + envImpactPerCapacity*(opt == "env"),
                                   self._calculateInvest(data)[1] * (opt == "costs"),
                                   data["heat_impact"] * (opt == "env"),
@@ -229,9 +229,9 @@ class Building:
         self.__technologies.append([outputDHWBusLabel, hpSHLabel])
         self.__technologies.append([outputSHBusLabel, hpSHLabel])
 
-        self.__costParam[inputBusLabel] = [self._calculateInvest(data)[0]*heatPump.avgCopSh, self._calculateInvest(data)[1]*heatPump.avgCopSh]
+        self.__costParam[inputBusLabel] = [self._calculateInvest(data)[0]*data["efficiency"], self._calculateInvest(data)[1]*data["efficiency"]]
 
-        self.__envParam[inputBusLabel] = [data["heat_impact"]*heatPump.avgCopSh, data["elec_impact"]*heatPump.avgCopSh, envImpactPerCapacity*heatPump.avgCopSh]
+        self.__envParam[inputBusLabel] = [data["heat_impact"]*data["efficiency"], data["elec_impact"]*data["efficiency"], envImpactPerCapacity*data["efficiency"]]
 
     def _addCHP(self, data, opt):
         chpSHLabel = data["label"] + '__' + self.__buildingLabel
