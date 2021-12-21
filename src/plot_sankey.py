@@ -12,7 +12,7 @@ from matplotlib import colors
 
 BUILDINGSLIST = [1,2,3,4]
 
-RESULTSFILE = "../data/Results/results4_1_group.xlsx"
+RESULTSFILE = "../data/Results/results4_3_group.xlsx"
 
 UseLabelDict=True
 OPACITY=0.6
@@ -64,9 +64,8 @@ def addCapacities(nodes, dataDict, buildings):
 def readResults(fileName, buildings):
     dataDict = getData(fileName)
     keys=dataDict.keys()
-    nodes, sources, targets, values,x,y, linkGroup = createSankeyData(dataDict, keys, buildings)
+    nodes, sources, targets, values,x,y = createSankeyData(dataDict, keys, buildings)
     capacities = addCapacities(nodes, dataDict, buildings)
-
     nodesColors=pd.Series(createColorList(nodes))
     linksColors = nodesColors[sources]
     dhwIndex = [a and b for a, b in zip((nodesColors[targets] == ColorDict["dhw"]), (nodesColors[sources] == ColorDict["sh"]))]
@@ -95,18 +94,18 @@ def readResults(fileName, buildings):
             "target":targets,
             "value":values,
             "color":linksColors.tolist(),
-            }
+            },
         )]
     return data
 
 
 def createSankeyData(dataDict, keys, buildings=[]):
-    sources = []
-    targets = []
-    nodes = []
+    sources = [] #contains index of node
+    targets = [] #contains index of node
     values = []
-    x=[]
-    y=[]
+    nodes = []
+    x=[] #equivalent in dimension to nodes
+    y=[] #equivalent in dimension to nodes
     linkGroup=[]
     for key in keys:
         df = dataDict[key]
@@ -138,8 +137,6 @@ def createSankeyData(dataDict, keys, buildings=[]):
                 values.append(value)
                 if sourceNodeName not in nodes:
                     nodes.append(sourceNodeName)
-                    if "electricityLink" in sourceNodeName or "elLink"in sourceNodeName:
-                        linkGroup.append(nodes.index(sourceNodeName))
                     for posKey in PositionDict.keys():
                         if posKey in sourceNodeName and posKey[0:2] == sourceNodeName[0:2]: #second part of the term added for CHP and HP
                             x.append(PositionDict[posKey][0])
@@ -153,8 +150,6 @@ def createSankeyData(dataDict, keys, buildings=[]):
 
                 if targetNodeName not in nodes:
                     nodes.append(targetNodeName)
-                    if "electricityLink" in targetNodeName or "elLink"in targetNodeName:
-                        linkGroup.append(nodes.index(targetNodeName))
                     for posKey in PositionDict.keys():
                         if posKey in targetNodeName and posKey[0:2] == targetNodeName[0:2]:
                             x.append(PositionDict[posKey][0])
@@ -165,7 +160,7 @@ def createSankeyData(dataDict, keys, buildings=[]):
                                 temp = (PositionDict[posKey][1]) / len(buildings) + (buildingNumber) / len(buildings)
                                 y.append(temp)
                 targets.append(nodes.index(targetNodeName))
-    return nodes, sources, targets, values, x, y, linkGroup
+    return nodes, sources, targets, values, x, y
 
 
 def createColorList(inputList):
@@ -192,7 +187,8 @@ def displaySankey(fileName, buildings=[1, 2, 3, 4]):
     link = data[0]['link']
     fig = go.Figure(go.Sankey(arrangement = "perpendicular",
                               link=link,
-                              node=node)) #snap, perpendicular,freeform, fixed
+                              node=node
+                              )) #snap, perpendicular,freeform, fixed
     fig.update_layout(
         title=fileName +" for buildings " + str(buildings),
         font=dict(size=10, color='black'),

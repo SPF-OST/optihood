@@ -301,13 +301,11 @@ class EnergyNetworkClass(solph.EnergySystem):
             print("************** Optimized Capacities for {} **************".format(buildingLabel))
             investSH = capacitiesInvestedTransformers[("electricityInBus__" + buildingLabel, "HP__" + buildingLabel)]
             print("Invested in {} kW HP.".format(investSH))
-
             investSH = capacitiesInvestedTransformers[("naturalGasBus__" + buildingLabel, "CHP__" + buildingLabel)]
-#            investEL = capacitiesInvestedTransformers[("CHP__" + buildingLabel, "electricityProdBus__" + buildingLabel)]
             print("Invested in {} kW CHP.".format(investSH))# + investEL))
             invest = capacitiesInvestedTransformers[("heat_solarCollector__" + buildingLabel, "solarConnectBus__" + buildingLabel)]
             print("Invested in {} kW  SolarCollector.".format(invest))
-            invest = capacitiesInvestedTransformers[("GasBoiler__" + buildingLabel, "spaceHeatingBus__" + buildingLabel)]
+            invest = capacitiesInvestedTransformers[("GasBoiler__" + buildingLabel, "shSourceBus__" + buildingLabel)]
             print("Invested in {} kW  GasBoiler.".format(invest))
             invest = capacitiesInvestedTransformers[("pv__" + buildingLabel, "electricityProdBus__" + buildingLabel)]
             print("Invested in {} kW  PV.".format(invest))

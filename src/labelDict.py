@@ -36,7 +36,7 @@ labelDict = {
     "CHP_DHW__Building1": "CHP_B1",
     "CHP__Building1": "CHP_B1",
     "electricityBus__Building1": "prodEl_B1",
-    "electricityProdBus__Building1":"localEl_B1",
+    "electricityProdBus__Building1":"localEl_B1", #localEl is before the battery, prodEl after the battery but before the elLink
     "producedElectricity__Building1": "prodEl_B1",
     "electricitySource__Building1": "prodEl_B1",
     "electricalStorage__Building1": "Bat_B1",
@@ -175,7 +175,7 @@ labelDict = {
 }
 
 labelPositionDict={
-    "natGas":	[0.001, 0.65],
+    "natGas":	[0.001, 0.65], #X and Y positions should never be set to 0 or 1
     "grid":	[0.001, 0.15],
     "pv":   [0.001, 0.3],
     "CHP":	[0.1, 0.7],
@@ -205,6 +205,7 @@ fullPositionDict={
         "gridElect":	[0.1, 0.05],
         "electricityProdBus": [0.1, 0.2],
         "CHP":	[0.1, 0.6],
+        "GasBoiler": [0.1, 0.7],
         "electricitySource": [0.15, 0.2],
         "electricityBus":	[0.2, 0.2],
         "producedElectricity":	[0.3, 0.25],
