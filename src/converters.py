@@ -161,7 +161,7 @@ class CHP:
                                 env_per_flow=env_flow2,
                             ),
                         },
-                        conversion_factors={outputEl: self._efficiencyElCHPSH + self._efficiencyElCHPDHW,
+                        conversion_factors={outputEl: [sum(x) for x in zip(self._efficiencyElCHPDHW, self._efficiencyElCHPSH)],
                                             outputSH: self._efficiencySH,
                                             outputDHW: self._efficiencyDHW,
                                             }
