@@ -12,7 +12,7 @@ from matplotlib import colors
 
 BUILDINGSLIST = [1,2,3,4]
 
-RESULTSFILE = "../data/Results/results4_3_group.xlsx"
+RESULTSFILE = "../data/Results/results4_1_group.xlsx"
 
 UseLabelDict=True
 OPACITY=0.6
@@ -104,6 +104,7 @@ def createSankeyData(dataDict, keys, buildings=[]):
     targets = [] #contains index of node
     values = []
     nodes = []
+    # (x,y) is the position of the node
     x=[] #equivalent in dimension to nodes
     y=[] #equivalent in dimension to nodes
     linkGroup=[]
@@ -142,6 +143,8 @@ def createSankeyData(dataDict, keys, buildings=[]):
                             x.append(PositionDict[posKey][0])
                             if "electricityLink" in sourceNodeName or "elLink"in sourceNodeName:
                                 y.append((0.5-(PositionDict[posKey][1]))/len(buildings))
+                            elif "shLink" in sourceNodeName:
+                                y.append((0.5 - (PositionDict[posKey][1])) / len(buildings))
                             else:
                                 buildingNumber=buildings.index(int(sourceNodeName[-1]))
                                 temp = (PositionDict[posKey][1]) / len(buildings) + (buildingNumber) / len(buildings)
@@ -155,6 +158,8 @@ def createSankeyData(dataDict, keys, buildings=[]):
                             x.append(PositionDict[posKey][0])
                             if "electricityLink" in targetNodeName or "elLink"in targetNodeName:
                                 y.append((0.5-(PositionDict[posKey][1]))/len(buildings))
+                            elif "shLink" in targetNodeName:
+                                y.append((0.5 - (PositionDict[posKey][1])) / len(buildings))
                             else:
                                 buildingNumber=buildings.index(int(targetNodeName[-1]))
                                 temp = (PositionDict[posKey][1]) / len(buildings) + (buildingNumber) / len(buildings)

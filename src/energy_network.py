@@ -19,6 +19,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         self.__temperatureSH = tSH
         self.__temperatureDHW = tDHW
         self._nodesList = []
+        self._storageContentSH = {}
         self.__inputs = {}                          # dictionary of list of inputs indexed by the building label
         self.__technologies = {}                    # dictionary of list of technologies indexed by the building label
         self.__capacitiesTransformersBuilding = {}  # dictionary of dictionary of optimized capacities of transformers indexed by the building label
@@ -35,7 +36,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         logging.info("Initializing the energy network")
         super(EnergyNetworkClass, self).__init__(timeindex=timestamp)
 
-    def setFromExcel(self, filePath, numberOfBuildings, opt):
+    def setFromExcel(self, filePath, numberOfBuildings, clusterSize, opt):
         # does Excel file exist?
         if not filePath or not os.path.isfile(filePath):
             logging.error("Excel data file {} not found.".format(filePath))
@@ -43,12 +44,29 @@ class EnergyNetworkClass(solph.EnergySystem):
         data = pd.ExcelFile(filePath)
         nodesData = self.createNodesData(data, filePath, numberOfBuildings)
 
+        demandProfiles = {}
+        if clusterSize:
+            for i in range(1, numberOfBuildings + 1):
+                demandProfiles[i] = pd.concat(
+                    [nodesData["demandProfiles"][i].loc[d] for d in clusterSize.keys()])
+            electricityImpact = pd.concat(
+                [nodesData["electricity_impact"].loc[d] for d in clusterSize.keys()])
+            weatherData = pd.concat([nodesData['weather_data'][
+                                         nodesData['weather_data']['time.mm'] == int(d.split('-')[1])][
+                                         nodesData['weather_data']['time.dd'] == int(d.split('-')[2])][
+                                         ['gls', 'str.diffus', 'tre200h0']] for d in clusterSize.keys()])
+
+            nodesData["demandProfiles"] = demandProfiles
+            nodesData["electricity_impact"] = electricityImpact
+            nodesData["weather_data"] = weatherData
+
         self._convertNodes(nodesData, opt)
         logging.info("Nodes from Excel file {} successfully converted".format(filePath))
         self.add(*self._nodesList)
         logging.info("Nodes successfully added to the energy network")
 
     def createNodesData(self, data, filePath, numBuildings):
+        self.__noOfBuildings = numBuildings
         nodesData = {
             "buses": data.parse("buses"),
             "grid_connection": data.parse("grid_connection"),
@@ -150,7 +168,7 @@ class EnergyNetworkClass(solph.EnergySystem):
             print(oobj + ":", n.label)
         print("*********************************************************")
 
-    def optimize(self, solver, envImpactlimit, options=None):
+    def optimize(self, solver, envImpactlimit, clusterSize, options=None):
         if options is None:
             options = {"gurobi": {"MIPGap": 10}}
         if solver == "gurobi":
@@ -158,6 +176,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         optimizationModel = solph.Model(self)
         # add constraint to limit the environmental impacts
         optimizationModel, flows, transformerFlowCapacityDict, storageCapacityDict = environmentalImpactlimit(optimizationModel, keyword1="env_per_flow", keyword2="env_per_capa", limit=envImpactlimit)
+        optimizationModel = dailySHStorageConstraint(optimizationModel)
         optimizationModel.solve(solver=solver, cmdline_options=options[solver])
         # obtain the value of the environmental impact (subject to the limit constraint)
         # the optimization imposes an integral limit constraint on the environmental impacts
@@ -170,6 +189,9 @@ class EnergyNetworkClass(solph.EnergySystem):
 
         # calculate capacities invested for transformers and storages (for the entire energy network and per building)
         capacitiesTransformersNetwork, capacitiesStoragesNetwork = self._calculateInvestedCapacities(optimizationModel, transformerFlowCapacityDict, storageCapacityDict)
+
+        if clusterSize:
+            self._postprocessingClusters(clusterSize)
 
         # calculate results (CAPEX, OPEX, FeedIn Costs, environmental impacts etc...) for each building
         self._calculateResultsPerBuilding()
@@ -208,17 +230,24 @@ class EnergyNetworkClass(solph.EnergySystem):
                     if second == value.label:
                         test = self.nodes[index].conversion_factors
                         for t in test.keys():
-                            if "spaceHeating" in t.label:
+                            if "shSource" in t.label:
                                 capacitiesTransformers[(first,second)]= capacitiesTransformers[(first,second)]*test[t][0]
             elif "HP" in second:
                 for index, value in enumerate(self.nodes):
                     if second == value.label:
                         test = self.nodes[index].conversion_factors
                         for t in test.keys():
-                            if "spaceHeating" in t.label:
+                            if "shSource" in t.label:
                                 capacitiesTransformers[(first,second)] = capacitiesTransformers[(first,second)] * hpEff
 
         return capacitiesTransformers
+
+    def _postprocessingClusters(self, clusterSize):
+        flows = [x for x in self.__optimizationResults.keys() if x[1] is not None]
+        mfactor = np.repeat(list(clusterSize.values()), 24)
+        for flow in flows:
+            self.__optimizationResults[flow]['sequences'] = self.__optimizationResults[flow]['sequences'].mul(mfactor, axis=0)
+
 
     def _calculateResultsPerBuilding(self):
         for b in self.__buildings:
@@ -287,12 +316,13 @@ class EnergyNetworkClass(solph.EnergySystem):
         print("")
         return self.__metaResults
 
-    def printStateofCharge(self, type, building):
+    def calcStateofCharge(self, type, building):
         storage = self.groups[type + '__' + building]
-        print(f"""********* State of Charge ({type},{building}) *********""")
-        print(
-            self.__optimizationResults[(storage, None)]["sequences"]
-        )
+        #print(f"""********* State of Charge ({type},{building}) *********""")
+        #print(
+        #    self.__optimizationResults[(storage, None)]["sequences"]
+        #)
+        self._storageContentSH[building] = self.__optimizationResults[(storage, None)]["sequences"]
         print("")
 
     def printInvestedCapacities(self, capacitiesInvestedTransformers, capacitiesInvestedStorages):
@@ -335,6 +365,8 @@ class EnergyNetworkClass(solph.EnergySystem):
                 "Building" + str(b + 1)] for b in range(len(self.__buildings)))
 
     def exportToExcel(self, file_name):
+        for i in range(1, self.__noOfBuildings+1):
+            self.calcStateofCharge("shStorage", f"Building{i}")
         with pd.ExcelWriter(file_name) as writer:
             busLabelList = []
             for i in self.nodes:
@@ -349,6 +381,9 @@ class EnergyNetworkClass(solph.EnergySystem):
                     result = pd.concat([resultDHW, resultDHWStorage], axis=1, sort=True)
                 elif "dhwStorageBus" not in i:  # for all the other buses except DHW storage bus (as it is already considered with DHW bus)
                     result = pd.DataFrame.from_dict(solph.views.node(self.__optimizationResults, i)["sequences"])
+                    if "shSourceBus" in i:
+                        result = pd.concat([result, self._storageContentSH[i.split("__")[1]]], axis=1, sort=True)
+
                 result.to_excel(writer, sheet_name=i)
 
             # writing the costs and environmental impacts (of different components...) for each building
@@ -384,7 +419,7 @@ class EnergyNetworkIndiv(EnergyNetworkClass):
     pass
 
 class EnergyNetworkGroup(EnergyNetworkClass):
-    def setFromExcel(self, filePath, numberOfBuildings, opt):
+    def setFromExcel(self, filePath, numberOfBuildings, clusterSize, opt):
         # does Excel file exist?
         if not filePath or not os.path.isfile(filePath):
             logging.error("Excel data file {} not found.".format(filePath))
@@ -392,6 +427,22 @@ class EnergyNetworkGroup(EnergyNetworkClass):
         data = pd.ExcelFile(filePath)
 
         nodesData = self.createNodesData(data, filePath, numberOfBuildings)
+
+        demandProfiles = {}
+        if clusterSize:
+            for i in range(1, numberOfBuildings + 1):
+                demandProfiles[i] = pd.concat(
+                    [nodesData["demandProfiles"][i].loc[d] for d in clusterSize.keys()])
+            electricityImpact = pd.concat(
+                [nodesData["electricity_impact"].loc[d] for d in clusterSize.keys()])
+            weatherData = pd.concat([nodesData['weather_data'][
+                                         nodesData['weather_data']['time.mm'] == int(d.split('-')[1])][
+                                         nodesData['weather_data']['time.dd'] == int(d.split('-')[2])][['gls', 'str.diffus', 'tre200h0']] for d in clusterSize.keys()])
+
+            nodesData["demandProfiles"] = demandProfiles
+            nodesData["electricity_impact"] = electricityImpact
+            nodesData["weather_data"] = weatherData
+
         nodesData["links"]= data.parse("links")
         hpEff=3.5#This needs to be changed to dynamic
         self._convertNodes(nodesData, opt)
@@ -406,10 +457,10 @@ class EnergyNetworkGroup(EnergyNetworkClass):
         for i, l in data.iterrows():
             if "sh" in l["label"]:
                 if l["active"]:
-                    busA = self._busDict["shSourceBus" + '__Building' + str(l["buildingA"])]
-                    busB = self._busDict["shSourceBus" + '__Building' + str(l["buildingB"])]
-                    busAIn = self._busDict["spaceHeatingBus" + '__Building' + str(l["buildingA"])]
-                    busBIn = self._busDict["spaceHeatingBus" + '__Building' + str(l["buildingB"])]
+                    busA = self._busDict["spaceHeatingBus" + '__Building' + str(l["buildingA"])]
+                    busB = self._busDict["spaceHeatingBus" + '__Building' + str(l["buildingB"])]
+                    busAIn = self._busDict["shDemandBus" + '__Building' + str(l["buildingA"])]
+                    busBIn = self._busDict["shDemandBus" + '__Building' + str(l["buildingB"])]
                     self._nodesList.append(solph.Transformer(
                         label=l["label"] + str(l["buildingA"]) + '_' + str(l["buildingB"]),
                         inputs={busA: solph.Flow()},
@@ -417,6 +468,7 @@ class EnergyNetworkGroup(EnergyNetworkClass):
                             investment=solph.Investment(
                                 ep_costs=l["invest_cap"],
                                 nonconvex=True,
+                                maximum=5000,
                                 offset=l["invest_base"],
                             ),
                         )},
@@ -429,6 +481,7 @@ class EnergyNetworkGroup(EnergyNetworkClass):
                             investment=solph.Investment(
                                 ep_costs=l["invest_cap"],
                                 nonconvex=True,
+                                maximum=5000,
                                 offset=l["invest_base"],
                             ),
                         )},

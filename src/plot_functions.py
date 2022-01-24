@@ -4,7 +4,7 @@ import matplotlib.ticker as tkr
 
 from bokeh.plotting import figure, show
 from bokeh.layouts import layout, gridplot
-from bokeh.models import DatetimeTickFormatter, HoverTool
+from bokeh.models import DatetimeTickFormatter, HoverTool, Legend
 from bokeh.palettes import *
 from bokeh.io import output_file
 
@@ -118,10 +118,12 @@ def hourlyDailyPlot(data, bus, palette, new_legends):
 
             data_day = dt.resample('1d').sum()
             p1 = figure(title="Hourly electricity flows for " + building.replace("__", ""), x_axis_label="Date", y_axis_label="Energy (kWh)", sizing_mode="scale_both")
+            p1.add_layout(Legend(), 'right')
             p1.add_tools(HoverTool(tooltips=[('Time', '@x{%d/%m/%Y %H:%M:%S}'), ('Energy', '@y{0.00}')],
                                    formatters={'@x': 'datetime'},
                                    mode='mouse'))
             p2 = figure(title="Daily electricity flows for " + building.replace("__", ""), x_axis_label="Date", y_axis_label="Energy (kWh)", sizing_mode="scale_both")
+            p2.add_layout(Legend(), 'right')
             p2.add_tools(HoverTool(tooltips=[('Date', '@x{%d/%m/%Y}'), ('Energy', '@y{0.00}')],
                                    formatters={'@x': 'datetime'},
                                    mode='mouse'))
@@ -138,14 +140,25 @@ def hourlyDailyPlot(data, bus, palette, new_legends):
             p_plots.append(p1)
             p_plots.append(p2)
 
-        elif "spaceHeating" in bus[i]:
+        elif "shSource" in bus[i]:
             dt = data[i]
+            shLinks = dt.filter(like='shLink')  # half would be el_link_out and half would be el_link_in
+            dt.drop(list(dt.filter(regex='shLink')), axis=1, inplace=True)
+            mid = int(len(shLinks.columns) / 2)
+            shLinksOut = shLinks.iloc[:, 0:mid]
+            shLinksIn = shLinks.iloc[:, mid:len(shLinks.columns)]
+            shLinksOut["(('spaceHeatingBus', 'shLink'), 'flow')"] = shLinksOut.sum(axis=1)
+            shLinksIn["(('shLink', 'shDemandBus'), 'flow')"] = shLinksIn.sum(axis=1)
+            dt = pd.concat((dt, shLinksIn["(('shLink', 'shDemandBus'), 'flow')"]), axis=1)
+            dt = pd.concat((dt, shLinksOut["(('spaceHeatingBus', 'shLink'), 'flow')"]), axis=1)
             data_day = dt.resample('1d').sum()
             p3 = figure(title="Hourly space heating flows for " + building.replace("__", ""), x_axis_label="Date", y_axis_label="Energy (kWh)", sizing_mode="scale_both")
+            p3.add_layout(Legend(), 'right')
             p3.add_tools(HoverTool(tooltips=[('Time', '@x{%d/%m/%Y %H:%M:%S}'), ('Energy', '@y{0.00}')],
                                    formatters={'@x': 'datetime'},
                                    mode='mouse'))
             p4 = figure(title="Daily space heating flows for " + building.replace("__", ""), x_axis_label="Date", y_axis_label="Energy (kWh)", sizing_mode="scale_both")
+            p4.add_layout(Legend(), 'right')
             p4.add_tools(HoverTool(tooltips=[('Date', '@x{%d/%m/%Y}'), ('Energy', '@y{0.00}')],
                                    formatters={'@x': 'datetime'},
                                    mode='mouse'))
@@ -167,10 +180,12 @@ def hourlyDailyPlot(data, bus, palette, new_legends):
             data_day = dt.resample('1d').sum()
 
             p5 = figure(title="Hourly domestic hot water flows for " + building.replace("__", ""), x_axis_label="Date", y_axis_label="Energy (kWh)", sizing_mode="scale_both")
+            p5.add_layout(Legend(), 'right')
             p5.add_tools(HoverTool(tooltips=[('Time', '@x{%d/%m/%Y %H:%M:%S}'), ('Energy', '@y{0.00}')],
                                    formatters={'@x': 'datetime'},
                                    mode='mouse'))
             p6 = figure(title="Daily domestic hot water flows for "  + building.replace("__", ""), x_axis_label="Date", y_axis_label="Energy (kWh)", sizing_mode="scale_both")
+            p6.add_layout(Legend(), 'right')
             p6.add_tools(HoverTool(tooltips=[('Date', '@x{%d/%m/%Y}'), ('Energy', '@y{0.00}')],
                                    formatters={'@x': 'datetime'},
                                    mode='mouse'))
@@ -735,8 +750,8 @@ def loadPlottingData(resultFilePath):
         beta_bis = beta.copy()
         for j in beta:
             if j.endswith(building) and (
-                    "electricityBus" in j or "electricityInBus" in j or "electricityProdBus" in j or "spaceHeatingBus" in j or "shDemandBus" in j or "domesticHotWaterBus" in j):
-                if "shDemandBus" not in j:
+                    "electricityBus" in j or "electricityInBus" in j or "electricityProdBus" in j or "spaceHeatingBus" in j or "shDemandBus" in j or "shSourceBus" in j or "domesticHotWaterBus" in j):
+                if "shDemandBus" not in j and "shSourceBus" not in j:
                     alpha.append(j)
                 if ("electricityBus" in j) or ("electricityInBus" in j) or ("electricityProdBus" in j):
                     # find the index of electricity bus to merge the results of electricityBus, electricityInBus and electricityProdBus
@@ -748,17 +763,29 @@ def loadPlottingData(resultFilePath):
                         alpha_a[index] = pd.concat((alpha_a[index], buses[j]), axis=1)
                     else:
                         alpha_a.append(buses[j])
-                elif ("spaceHeatingBus" in j) or ("shDemandBus" in j):
-                    # find the index of spaceHeatingBus to merge the results of spaceHeatingBus and shDemandBus
+                elif ("spaceHeatingBus" in j) or ("shDemandBus" in j) or ("shSourceBus" in j):
+                    # find the index of spaceHeatingBus to merge the results of spaceHeatingBus, shDemandBus and shSourceBus
                     index = -1
                     for ind in range(len(alpha_a)):
-                        if "spaceHeatingBus" in alpha_a[ind].keys()[0] or "shDemandBus" in alpha_a[ind].keys()[0]:
+                        if "spaceHeatingBus" in alpha_a[ind].keys()[0] or "shDemandBus" in alpha_a[ind].keys()[0] or "shSourceBus" in alpha_a[ind].keys()[0]:
                             index = ind
                     if index != -1:
                         alpha_a[index] = pd.concat((alpha_a[index], buses[j]), axis=1)
-                        alpha_a[index].pop(f"(('spaceHeating__Building{building}', 'shDemandBus__Building{building}'), 'flow')")
+                        flow = f"(('spaceHeating__Building{building}', 'shDemandBus__Building{building}'), 'flow')"
+                        if flow in alpha_a[index].columns:
+                            alpha_a[index].pop(flow)
+                        flow = f"(('shSourceBus__Building{building}', 'shSource__Building{building}'), 'flow')"
+                        if flow in alpha_a[index].columns:
+                            alpha_a[index].pop(flow)
                     else:
+                        index = len(alpha_a)
                         alpha_a.append(buses[j])
+                        flow = f"(('spaceHeating__Building{building}', 'shDemandBus__Building{building}'), 'flow')"
+                        if flow in alpha_a[index].columns:
+                            alpha_a[index].pop(flow)
+                        flow = f"(('shSourceBus__Building{building}', 'shSource__Building{building}'), 'flow')"
+                        if flow in alpha_a[index].columns:
+                            alpha_a[index].pop(flow)
                 else:
                     alpha_a.append(buses[j])
                 beta_bis.remove(j)
@@ -779,14 +806,20 @@ def loadPlottingData(resultFilePath):
                 elec_dict[b - 1] = pd.concat((elec_dict[b - 1], buses[i]), axis=1)
             else:
                 elec_dict.append(buses[i])
-        if ("spaceHeating" in i) or ("shDemand" in i):
-            if "shDemand" not in i:
+        if ("spaceHeating" in i) or ("shDemand" in i) or ("shSource" in i):
+            if "shDemand" not in i and "spaceHeating" not in i:
                 sh_names.append(i)
                 sh_dict.append(buses[i])
             else:
                 ind = len(sh_names) - 1
                 sh_dict[ind] = pd.concat((sh_dict[ind], buses[i]), axis=1)
-                sh_dict[ind].pop(f"(('spaceHeating__Building{b}', 'shDemandBus__Building{b}'), 'flow')")
+
+                flow = f"(('spaceHeating__Building{b}', 'shDemandBus__Building{b}'), 'flow')"
+                if flow in sh_dict[ind].columns:
+                    sh_dict[ind].pop(flow)
+                flow = f"(('shSourceBus__Building{b}', 'shSource__Building{b}'), 'flow')"
+                if flow in sh_dict[ind].columns:
+                    sh_dict[ind].pop(flow)
 
         if "domesticHotWater" in i:
             dhw_names.append(i)
@@ -874,11 +907,11 @@ def createPlot(resultFilePath, plotLevel, plotType, flowType, plotAnnualHorizont
             os.makedirs(basePath)
 
         output_file(os.path.join(basePath,"HourlyBokehPlots.html"))
-        grid = gridplot(plotsHourly, ncols=ncols, plot_width=600, plot_height=500, sizing_mode="fixed")
+        grid = gridplot(plotsHourly, ncols=ncols, plot_width=700, plot_height=500, sizing_mode="fixed")
         show(grid)
         if not any(chr.isdigit() for chr in plotLevel):
             output_file(os.path.join(basePath,"DailyBokehPlots.html"))
-            grid = gridplot(plotsDaily, ncols=ncols, plot_width=600, plot_height=500, sizing_mode="fixed")
+            grid = gridplot(plotsDaily, ncols=ncols, plot_width=700, plot_height=500, sizing_mode="fixed")
             show(grid)
     else:
         raise ValueError("Illegal value for the parameter plot type")
@@ -949,13 +982,15 @@ if __name__ == '__main__':
         "(('domesticHotWaterBus', 'domesticHotWaterDemand'), 'flow')": "Demand_dhw",
         "(('HP', 'dhwStorageBus'), 'flow')": "HP_dhw",
         "(('CHP', 'dhwStorageBus'), 'flow')": "CHP_dhw",
-        "(('shStorage', 'shDemandBus'), 'flow')": "Storage_sh_out",
-        "(('spaceHeatingBus', 'shStorage'), 'flow')": "Storage_sh_in",
+        "(('shSource', 'spaceHeatingBus'), 'flow')": "SH_produced (not stored)",
+        "(('shStorage', 'spaceHeatingBus'), 'flow')": "Storage_sh_out",
+        "storage_content": "Storage_content",
+        "(('shSourceBus', 'shStorage'), 'flow')": "Storage_sh_in",
         "(('spaceHeatingBus', 'spaceHeating'), 'flow')": "SH_direct_to_load",
         "(('shDemandBus', 'spaceHeatingDemand'), 'flow')": "Demand_sh",
-        "(('CHP', 'spaceHeatingBus'), 'flow')": "CHP_sh",
-        "(('GasBoiler', 'spaceHeatingBus'), 'flow')": "Gas_sh",
-        "(('HP', 'spaceHeatingBus'), 'flow')": "HP_sh",
+        "(('CHP', 'shSourceBus'), 'flow')": "CHP_sh",
+        "(('GasBoiler', 'shSourceBus'), 'flow')": "Gas_sh",
+        "(('HP', 'shSourceBus'), 'flow')": "HP_sh",
         "(('electricityBus', 'producedElectricity'), 'flow')": "Self_consumption",
         "(('gridBus', 'gridElectricity'), 'flow')": "Electricity_grid",
         "(('pv', 'electricityProdBus'), 'flow')": "PV_elec",
@@ -968,30 +1003,8 @@ if __name__ == '__main__':
     if optMode == "group":
         newLegends["(('electricityBus', 'electricityLink'), 'flow')"] = "electricityLink_in"
         newLegends["(('electricityLink', 'electricityInBus'), 'flow')"] = "electricityLink_out"
-        """newLegends["(('electricityBus', 'electricityLink1_2'), 'flow')"] = "electricityLink_in"
-        newLegends["(('electricityBus', 'electricityLink2_1'), 'flow')"] = "electricityLink_in"
-        newLegends["(('electricityLink1_2', 'electricityInBus'), 'flow')"] = "electricityLink_out"
-        newLegends["(('electricityLink2_1', 'electricityInBus'), 'flow')"] = "electricityLink_out"
-        newLegends["(('electricityBus', 'electricityLink1_3'), 'flow')"] = "electricityLink_in"
-        newLegends["(('electricityBus', 'electricityLink3_1'), 'flow')"] = "electricityLink_in"
-        newLegends["(('electricityLink3_1', 'electricityInBus'), 'flow')"] = "electricityLink_out"
-        newLegends["(('electricityLink1_3', 'electricityInBus'), 'flow')"] = "electricityLink_out"
-        newLegends["(('electricityBus', 'electricityLink1_4'), 'flow')"] = "electricityLink_in"
-        newLegends["(('electricityBus', 'electricityLink4_1'), 'flow')"] = "electricityLink_in"
-        newLegends["(('electricityLink4_1', 'electricityInBus'), 'flow')"] = "electricityLink_out"
-        newLegends["(('electricityLink1_4', 'electricityInBus'), 'flow')"] = "electricityLink_out"
-        newLegends["(('electricityBus', 'electricityLink2_3'), 'flow')"] = "electricityLink_in"
-        newLegends["(('electricityBus', 'electricityLink3_2'), 'flow')"] = "electricityLink_in"
-        newLegends["(('electricityLink3_2', 'electricityInBus'), 'flow')"] = "electricityLink_out"
-        newLegends["(('electricityLink2_3', 'electricityInBus'), 'flow')"] = "electricityLink_out"
-        newLegends["(('electricityBus', 'electricityLink2_4'), 'flow')"] = "electricityLink_in"
-        newLegends["(('electricityBus', 'electricityLink4_2'), 'flow')"] = "electricityLink_in"
-        newLegends["(('electricityLink4_2', 'electricityInBus'), 'flow')"] = "electricityLink_out"
-        newLegends["(('electricityLink2_4', 'electricityInBus'), 'flow')"] = "electricityLink_out"
-        newLegends["(('electricityBus', 'electricityLink3_4'), 'flow')"] = "electricityLink_in"
-        newLegends["(('electricityBus', 'electricityLink4_3'), 'flow')"] = "electricityLink_in"
-        newLegends["(('electricityLink4_3', 'electricityInBus'), 'flow')"] = "electricityLink_out"
-        newLegends["(('electricityLink3_4', 'electricityInBus'), 'flow')"] = "electricityLink_out" """
+        newLegends["(('spaceHeatingBus', 'shLink'), 'flow')"] = "shLink_in"
+        newLegends["(('shLink', 'shDemandBus'), 'flow')"] = "shLink_out"
 
     
     resultFileBasePath = "..\data\Results"

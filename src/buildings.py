@@ -233,7 +233,7 @@ class Building:
 
         self.__envParam[inputBusLabel] = [data["heat_impact"]*data["efficiency"], data["elec_impact"]*data["efficiency"], envImpactPerCapacity*data["efficiency"]]
 
-    def _addCHP(self, data, opt):
+    def _addCHP(self, data, timesteps, opt):
         chpSHLabel = data["label"] + '__' + self.__buildingLabel
         inputBusLabel = data["from"] + '__' + self.__buildingLabel
         outputElBusLabel = data["to"].split(",")[0] + '__' + self.__buildingLabel
@@ -254,7 +254,7 @@ class Building:
                   self._calculateInvest(data)[0] * (opt == "costs") + envImpactPerCapacity * (opt == "env"),
                   self._calculateInvest(data)[1] * (opt == "costs"), data["elec_impact"] * (opt == "env"),
                   data["heat_impact"] * (opt == "env"),
-                  data["elec_impact"], data["heat_impact"], envImpactPerCapacity)
+                  data["elec_impact"], data["heat_impact"], envImpactPerCapacity, timesteps)
 
         self.__nodesList.append(chp.getCHP("sh"))
 
@@ -294,7 +294,7 @@ class Building:
                 if t["label"] == "HP":
                     self._addHeatPump(t, temperatureDHW, temperatureSH, temperatureAmb, opt)
                 elif t["label"] == "CHP":
-                    self._addCHP(t, opt)
+                    self._addCHP(t, len(temperatureAmb), opt)
                 elif t["label"] == "GasBoiler":
                     self._addGasBoiler(t, opt)
                 else:

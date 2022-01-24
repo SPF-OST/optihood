@@ -70,8 +70,8 @@ class HeatPumpLinear:
         self.__copDHW = self._calculateCop(temperatureDHW, temperatureLow)
         self.__copSH = self._calculateCop(temperatureSH, temperatureLow)
         self.avgCopSh=(sum(self.__copSH)/len(self.__copSH))
-        self.__DHWChargingTimesteps = [5, 6, 16, 17]     # Data in the scenario file is from 01:00 H onwards (instead of 00:00)
-        self._chargingRule()
+        self.__DHWChargingTimesteps = [6, 7, 17, 18]
+        self._chargingRule(len(temperatureLow))
         self.nominalEff =nomEff
         self.__heatpump = solph.Transformer(label='HP' + '__' + buildingLabel,
                                             inputs={input: solph.Flow(
@@ -97,19 +97,19 @@ class HeatPumpLinear:
                                                                   outputDHW: self.__copDHW})
 
     def _calculateCop(self, tHigh, tLow):
-        coefCOP = [12.4896, 64.0652, -83.0217, -230.1195, 173.2122]
-        coefQ = [13.8603, 120.2178, -7.9046, -164.1900, -17.9805]
+        coefW = [0.1592, -1.1251, 19.9694, 19.6610, -1.5186]
+        coefQ = [13.8603, 120.2178, -7.9046, -164.1900, -17.9804]
         QCondenser = coefQ[0] + (coefQ[1] * tLow / 273.15) + (coefQ[2] * tHigh / 273.15) + (
                 coefQ[3] * tLow / 273.15 * tHigh / 273.15) + (
                              coefQ[4] * (tHigh / 273.15) ** 2)
-        WCompressor = coefCOP[0] + (coefCOP[1] * tLow / 273.15) + (coefCOP[2] * tHigh / 273.15) + (
-                coefCOP[3] * tLow / 273.15 * tHigh / 273.15) + (
-                              coefCOP[4] * (tHigh / 273.15) ** 2)
-        cop = WCompressor#np.divide(QCondenser,WCompressor)
+        WCompressor = coefW[0] + (coefW[1] * tLow / 273.15) + (coefW[2] * tHigh / 273.15) + (
+                coefW[3] * tLow / 273.15 * tHigh / 273.15) + (
+                              coefW[4] * (tHigh / 273.15) ** 2)
+        cop = np.divide(QCondenser,WCompressor)
         return cop
 
-    def _chargingRule(self):
-        for t in range(8760):
+    def _chargingRule(self, dataLength):
+        for t in range(dataLength):
             if any([(t - x) % 24 == 0 for x in self.__DHWChargingTimesteps]):
                     self.__copSH[t] = 0
             else:
@@ -125,14 +125,14 @@ class HeatPumpLinear:
 
 class CHP:
     def __init__(self, buildingLabel, input, outputEl, outputSH, outputDHW, efficiencyEl, efficiencySH, efficiencyDHW,
-                 capacityMin, capacityEl, capacitySH, capacityDHW, epc, base, varc1, varc2, env_flow1, env_flow2, env_capa):
-        self.__DHWChargingTimesteps = [5, 6, 16, 17]                    # Data in the scenario file is from 01:00 H onwards (instead of 00:00)
-        self._efficiencyElCHPSH = [efficiencyEl] * 8760
-        self._efficiencyElCHPDHW = [efficiencyEl] * 8760
-        self._efficiencySH = [efficiencySH] * 8760
-        self._efficiencyDHW = [efficiencyDHW] * 8760
+                 capacityMin, capacityEl, capacitySH, capacityDHW, epc, base, varc1, varc2, env_flow1, env_flow2, env_capa, timesteps):
+        self.__DHWChargingTimesteps = [6, 7, 17, 18]
+        self._efficiencyElCHPSH = [efficiencyEl] * timesteps
+        self._efficiencyElCHPDHW = [efficiencyEl] * timesteps
+        self._efficiencySH = [efficiencySH] * timesteps
+        self._efficiencyDHW = [efficiencyDHW] * timesteps
         self.avgEff=efficiencySH
-        self._chargingRule()
+        self._chargingRule(timesteps)
         self.__CHP = solph.Transformer(
                         label='CHP'+'__'+buildingLabel,
                         inputs={
@@ -167,8 +167,8 @@ class CHP:
                                             }
                     )
 
-    def _chargingRule(self):
-        for t in range(8760):
+    def _chargingRule(self, dataLength):
+        for t in range(dataLength):
             if any([(t - x) % 24 == 0 for x in self.__DHWChargingTimesteps]):
                 self._efficiencyElCHPSH[t] = 0
                 self._efficiencySH[t] = 0

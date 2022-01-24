@@ -17,7 +17,24 @@ numberOfOptimizations = 1
 inputFilePath = "..\data\excels\\"
 resultFilePath= "..\data\Results"
 inputfileName = "scenario" + str(numberOfBuildings) + ".xls"
-timePeriod = ["2018-01-01 00:00:00", "2018-12-31 23:00:00"]
+
+clusterSize = {"2018-07-30": 26,         #set {} if day selection should not be applied
+               "2018-02-03": 44,
+               "2018-07-23": 32,
+               "2018-09-18": 28,
+               "2018-04-15": 22,
+               "2018-10-01": 32,
+               "2018-11-04": 32,
+               "2018-10-11": 37,
+               "2018-01-24": 15,
+               "2018-08-18": 26,
+               "2018-05-28": 23,
+               "2018-02-06": 48}
+
+if clusterSize:  # at the moment, we have 12 clusters (12 days in the analysis)
+    timePeriod = ["2018-01-01 00:00:00", "2018-01-12 23:00:00"]  # 1 Jan is a specific case (for elec_impact), so we start from 2
+else:
+    timePeriod = ["2018-01-01 00:00:00", "2018-12-31 23:00:00"]
 
 optimizationOptions ={
                     "gurobi":{
@@ -25,7 +42,7 @@ optimizationOptions ={
                         #"NonConvex":2, # when 0 error is being sent when non-convex, 1 when non-convex funktion could not be linearized, 2 bilinear form and spacial branching for non-convex
                         "OptimalityTol":1e-4, #Reduced costs must all be smaller than OptimalityTol in the improving direction in order for a model to be declared optimal
                         #"PoolGap":1  #Determines how large a (relative) gap to tolerate in stored solutions. When this parameter is set to a non-default value, solutions whose objective values exceed that of the best known solution by more than the specified (relative) gap are discarded.
-                        "MIPGap":500, #Relative Tolerance between the best integer objective and de objective of the best node remaining
+                        "MIPGap":1e-4, #Relative Tolerance between the best integer objective and de objective of the best node remaining
                         "MIPFocus":2 #1 feasible solution quickly. 2 proving optimality. 3 if the best objective bound is moving very slowly/focus on the bound
                         #"Cutoff": #Indicates that you aren't interested in solutions whose objective values are worse than the specified value., could be dynamically be used in moo
                     },
@@ -41,7 +58,7 @@ optimizationOptions ={
 
 
 def optimizeNetwork(network, instance, envImpactlimit, hpEff):
-    limit, capacitiesTransformers, capacitiesStorages = network.optimize(solver='gurobi', envImpactlimit=envImpactlimit, options=optimizationOptions)
+    limit, capacitiesTransformers, capacitiesStorages = network.optimize(solver='gurobi', envImpactlimit=envImpactlimit, clusterSize=clusterSize, options=optimizationOptions)
     capacitiesTransformers = network.compensateInputCapacities(capacitiesTransformers, hpEff)
     network.printInvestedCapacities(capacitiesTransformers, capacitiesStorages)
     network.printCosts()
@@ -78,7 +95,7 @@ if __name__ == '__main__':
     # -----------------------------------------------------------------------------#
     print("******************\nOPTIMIZATION " + str(optimizationInstanceNumber) + "\n******************")
     network = EnergyNetwork(pd.date_range(timePeriod[0], timePeriod[1], freq="60min"), tSH=35, tDHW=55)
-    hpEff=network.setFromExcel(os.path.join(inputFilePath, inputfileName), numberOfBuildings, opt="costs")
+    hpEff=network.setFromExcel(os.path.join(inputFilePath, inputfileName), numberOfBuildings, clusterSize, opt="costs")
     (max_env, costs, meta) = optimizeNetwork(network, optimizationInstanceNumber, 1000000, hpEff)
     optimizationInstanceNumber += 1
     costsListLast = meta['objective']
@@ -89,7 +106,7 @@ if __name__ == '__main__':
     if numberOfOptimizations > 1:
         print("******************\nOPTIMIZATION " + str(optimizationInstanceNumber) + "\n******************")
         network = EnergyNetwork(pd.date_range(timePeriod[0], timePeriod[1], freq="60min"), tSH=35, tDHW=55)
-        network.setFromExcel(os.path.join(inputFilePath, inputfileName), numberOfBuildings, opt="env")
+        network.setFromExcel(os.path.join(inputFilePath, inputfileName), numberOfBuildings, clusterSize, opt="env")
         (min_env,costs, meta) = optimizeNetwork(network, optimizationInstanceNumber, 1000000, hpEff)
         optimizationInstanceNumber += 1
         costsList.append(costs)
@@ -100,11 +117,11 @@ if __name__ == '__main__':
         ## MOO steps between Cost-Optimized and Env-Optimized ##
         # -----------------------------------------------------------------------------#
         steps = list(range(int(min_env), int(max_env), int((max_env - min_env) / (numberOfOptimizations-1))))
-        for envCost in steps[1:numberOfOptimizations]:
+        for envCost in steps[1:numberOfOptimizations-1]:
             print("******************\nOPTIMIZATION " + str(optimizationInstanceNumber) + "\n******************")
             network = EnergyNetwork(pd.date_range(timePeriod[0], timePeriod[1], freq="60min"), tSH=35,
                                     tDHW=55)
-            network.setFromExcel(os.path.join(inputFilePath, inputfileName), numberOfBuildings, opt="costs")
+            network.setFromExcel(os.path.join(inputFilePath, inputfileName), numberOfBuildings, clusterSize, opt="costs")
             (limit,costs, meta) = optimizeNetwork(network, optimizationInstanceNumber, envCost + 1, hpEff)
             costsList.append(meta['objective'])
             envList.append(limit)
@@ -113,7 +130,7 @@ if __name__ == '__main__':
         # -----------------------------------------------------------------------------#
         ## Plot Paretofront ##
         # -----------------------------------------------------------------------------#
-    if numberOfOptimizations > 1:
+
         costsList.append(costsListLast)
         envList.append(envListLast)
         plotParetoFront(costsList, envList)

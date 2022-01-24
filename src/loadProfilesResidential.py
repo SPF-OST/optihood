@@ -9,7 +9,7 @@ if __name__=="__main__":
     buildingType = "MFH30"  # "MFH30" or "MFH90" or "MFH150"
     numberOfFloors = 6
 
-    refBuildingProfile = pd.read_excel(os.path.join(inputFilePath, "Profiles_MFH30_90_150.xlsx"),
+    refBuildingProfile = pd.read_excel(os.path.join(inputFilePath, "Profiles_MFH30_90_150.xls"),
                                        header=[0, 1],
                                        index_col=[0],
                                        sheet_name=buildingType)
@@ -38,7 +38,7 @@ if __name__=="__main__":
     demandProfiles = demandProfiles.set_index(index)
     demandProfiles.index.name = 'timestamp'
 
-    outputFileName = f"{buildingType}_{numberOfFloors}Floors_test.csv"
+    outputFileName = f"{buildingType}_{numberOfFloors}Floors.csv"
     demandProfiles.to_csv(os.path.join(outputFilePath, outputFileName), sep=";")
 
 

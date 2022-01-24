@@ -2,6 +2,24 @@ from pyomo import environ as pyo
 from oemof.solph.plumbing import sequence
 from math import pi
 
+def dailySHStorageConstraint(om):
+    """
+    Function to limit the SH storage capacity to 2 days
+    :param om: model
+    :return:
+    """
+    for s in om.NODES:
+        if "shStorage" in s.label:
+            for t in om.TIMESTEPS:
+                if t % 48 == 0 and t!=0:
+                    setattr(
+                        om,
+                        "shStorage_constraint_" + str(t),
+                        pyo.Constraint(expr=(om.GenericInvestmentStorageBlock.storage_content[s, t] == 0)),
+                    )
+
+    return om
+
 def environmentalImpactlimit(om, keyword1, keyword2, limit=None):
     """
     Function to limit the environmental impacts during the multi-objective optimization
