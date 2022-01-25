@@ -18,8 +18,8 @@ inputFilePath = "..\data\excels\\"
 resultFilePath= "..\data\Results"
 inputfileName = "scenario" + str(numberOfBuildings) + ".xls"
 
-clusterSize = {"2018-07-30": 26,         #set {} if day selection should not be applied
-               "2018-02-03": 44,
+clusterSize = {"2018-07-30": 26,         # set {} if day selection should not be applied
+               "2018-02-03": 44,         # If clusterSize is set, reduce the MIP Gap parameter in optimizationOptions to 1e-4 (else 100 is acceptable)
                "2018-07-23": 32,
                "2018-09-18": 28,
                "2018-04-15": 22,

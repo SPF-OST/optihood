@@ -10,11 +10,12 @@ def dailySHStorageConstraint(om):
     """
     for s in om.NODES:
         if "shStorage" in s.label:
+            constr = s.label.replace("__Building","") + "_constraint_"
             for t in om.TIMESTEPS:
                 if t % 48 == 0 and t!=0:
                     setattr(
                         om,
-                        "shStorage_constraint_" + str(t),
+                        constr + str(t),
                         pyo.Constraint(expr=(om.GenericInvestmentStorageBlock.storage_content[s, t] == 0)),
                     )
 
