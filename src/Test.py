@@ -19,7 +19,7 @@ resultFilePath= "..\data\Results"
 inputfileName = "scenario" + str(numberOfBuildings) + ".xls"
 
 clusterSize = {"2018-07-30": 26,         # set {} if day selection should not be applied
-               "2018-02-03": 44,         # If clusterSize is set, reduce the MIP Gap parameter in optimizationOptions to 1e-4 (else 100 is acceptable)
+               "2018-02-03": 44,
                "2018-07-23": 32,
                "2018-09-18": 28,
                "2018-04-15": 22,
@@ -30,6 +30,7 @@ clusterSize = {"2018-07-30": 26,         # set {} if day selection should not be
                "2018-08-18": 26,
                "2018-05-28": 23,
                "2018-02-06": 48}
+
 
 if clusterSize:  # at the moment, we have 12 clusters (12 days in the analysis)
     timePeriod = ["2018-01-01 00:00:00", "2018-01-12 23:00:00"]  # 1 Jan is a specific case (for elec_impact), so we start from 2
@@ -42,7 +43,7 @@ optimizationOptions ={
                         #"NonConvex":2, # when 0 error is being sent when non-convex, 1 when non-convex funktion could not be linearized, 2 bilinear form and spacial branching for non-convex
                         "OptimalityTol":1e-4, #Reduced costs must all be smaller than OptimalityTol in the improving direction in order for a model to be declared optimal
                         #"PoolGap":1  #Determines how large a (relative) gap to tolerate in stored solutions. When this parameter is set to a non-default value, solutions whose objective values exceed that of the best known solution by more than the specified (relative) gap are discarded.
-                        "MIPGap":1e-4, #Relative Tolerance between the best integer objective and de objective of the best node remaining
+                        "MIPGap":100, #Relative Tolerance between the best integer objective and de objective of the best node remaining
                         "MIPFocus":2 #1 feasible solution quickly. 2 proving optimality. 3 if the best objective bound is moving very slowly/focus on the bound
                         #"Cutoff": #Indicates that you aren't interested in solutions whose objective values are worse than the specified value., could be dynamically be used in moo
                     },
@@ -54,7 +55,8 @@ optimizationOptions ={
                     }}
 
 
-
+if clusterSize:
+    optimizationOptions['gurobi']['MIPGap'] = 1e-4      # If clusterSize is set, reduce the MIP Gap parameter in optimizationOptions to 1e-4 (else 100 is acceptable)
 
 
 def optimizeNetwork(network, instance, envImpactlimit, hpEff):

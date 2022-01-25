@@ -12,7 +12,7 @@ from matplotlib import colors
 
 BUILDINGSLIST = [1,2,3,4]
 
-RESULTSFILE = "../data/Results/results4_1_group.xlsx"
+RESULTSFILE = "../data/Results/results4_1_group_allDays.xlsx"
 
 UseLabelDict=True
 OPACITY=0.6
@@ -116,8 +116,9 @@ def createSankeyData(dataDict, keys, buildings=[]):
         if all([str(i) not in key for i in buildings]):
             continue
         for dfKey in dfKeys:
-            if isinstance(dfKey, int):
+            if isinstance(dfKey, int) or "storage_content" in dfKey:
                 continue
+
             dfKeySplit = dfKey.split("'")
             sourceNodeName=dfKeySplit[1]
             targetNodeName =dfKeySplit[3]
