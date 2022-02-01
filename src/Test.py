@@ -31,7 +31,6 @@ clusterSize = {"2018-07-30": 26,         # set {} if day selection should not be
                "2018-05-28": 23,
                "2018-02-06": 48}
 
-
 if clusterSize:  # at the moment, we have 12 clusters (12 days in the analysis)
     timePeriod = ["2018-01-01 00:00:00", "2018-01-12 23:00:00"]  # 1 Jan is a specific case (for elec_impact), so we start from 2
 else:
@@ -59,9 +58,8 @@ if clusterSize:
     optimizationOptions['gurobi']['MIPGap'] = 1e-4      # If clusterSize is set, reduce the MIP Gap parameter in optimizationOptions to 1e-4 (else 100 is acceptable)
 
 
-def optimizeNetwork(network, instance, envImpactlimit, hpEff):
+def optimizeNetwork(network, instance, envImpactlimit):
     limit, capacitiesTransformers, capacitiesStorages = network.optimize(solver='gurobi', envImpactlimit=envImpactlimit, clusterSize=clusterSize, options=optimizationOptions)
-    capacitiesTransformers = network.compensateInputCapacities(capacitiesTransformers, hpEff)
     network.printInvestedCapacities(capacitiesTransformers, capacitiesStorages)
     network.printCosts()
     network.printEnvImpacts()
@@ -97,8 +95,8 @@ if __name__ == '__main__':
     # -----------------------------------------------------------------------------#
     print("******************\nOPTIMIZATION " + str(optimizationInstanceNumber) + "\n******************")
     network = EnergyNetwork(pd.date_range(timePeriod[0], timePeriod[1], freq="60min"), tSH=35, tDHW=55)
-    hpEff=network.setFromExcel(os.path.join(inputFilePath, inputfileName), numberOfBuildings, clusterSize, opt="costs")
-    (max_env, costs, meta) = optimizeNetwork(network, optimizationInstanceNumber, 1000000, hpEff)
+    network.setFromExcel(os.path.join(inputFilePath, inputfileName), numberOfBuildings, clusterSize, opt="costs")
+    (max_env, costs, meta) = optimizeNetwork(network, optimizationInstanceNumber, 1000000)
     optimizationInstanceNumber += 1
     costsListLast = meta['objective']
     envListLast = max_env
@@ -109,7 +107,7 @@ if __name__ == '__main__':
         print("******************\nOPTIMIZATION " + str(optimizationInstanceNumber) + "\n******************")
         network = EnergyNetwork(pd.date_range(timePeriod[0], timePeriod[1], freq="60min"), tSH=35, tDHW=55)
         network.setFromExcel(os.path.join(inputFilePath, inputfileName), numberOfBuildings, clusterSize, opt="env")
-        (min_env,costs, meta) = optimizeNetwork(network, optimizationInstanceNumber, 1000000, hpEff)
+        (min_env,costs, meta) = optimizeNetwork(network, optimizationInstanceNumber, 1000000)
         optimizationInstanceNumber += 1
         costsList.append(costs)
         envList.append(min_env)
@@ -124,7 +122,7 @@ if __name__ == '__main__':
             network = EnergyNetwork(pd.date_range(timePeriod[0], timePeriod[1], freq="60min"), tSH=35,
                                     tDHW=55)
             network.setFromExcel(os.path.join(inputFilePath, inputfileName), numberOfBuildings, clusterSize, opt="costs")
-            (limit,costs, meta) = optimizeNetwork(network, optimizationInstanceNumber, envCost + 1, hpEff)
+            (limit,costs, meta) = optimizeNetwork(network, optimizationInstanceNumber, envCost + 1)
             costsList.append(meta['objective'])
             envList.append(limit)
             optimizationInstanceNumber += 1
