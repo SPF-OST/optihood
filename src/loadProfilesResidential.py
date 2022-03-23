@@ -39,6 +39,8 @@ if __name__=="__main__":
     demandProfiles.index.name = 'timestamp'
 
     outputFileName = f"{buildingType}_{numberOfFloors}Floors.csv"
+    if not os.path.exists(outputFilePath):
+        os.makedirs(outputFilePath)
     demandProfiles.to_csv(os.path.join(outputFilePath, outputFileName), sep=";")
 
 
