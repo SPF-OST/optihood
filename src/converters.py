@@ -97,15 +97,17 @@ class HeatPumpLinear:
                                                                   outputDHW: self.__copDHW})
 
     def _calculateCop(self, tHigh, tLow):
-        coefW = [0.1592, -1.1251, 19.9694, 19.6610, -1.5186]
-        coefQ = [13.8603, 120.2178, -7.9046, -164.1900, -17.9804]
+        coefW = [0.1600, -1.2369, 19.9391, 19.3448, 7.1057, -1.4048]
+        coefQ = [13.8978, 114.8358, -9.3634, -179.4227, 342.3363, -12.4969]
         QCondenser = coefQ[0] + (coefQ[1] * tLow / 273.15) + (coefQ[2] * tHigh / 273.15) + (
                 coefQ[3] * tLow / 273.15 * tHigh / 273.15) + (
-                             coefQ[4] * (tHigh / 273.15) ** 2)
+                             coefQ[4] * (tLow / 273.15) ** 2) + (
+                             coefQ[5] * (tHigh / 273.15) ** 2)
         WCompressor = coefW[0] + (coefW[1] * tLow / 273.15) + (coefW[2] * tHigh / 273.15) + (
                 coefW[3] * tLow / 273.15 * tHigh / 273.15) + (
-                              coefW[4] * (tHigh / 273.15) ** 2)
-        cop = np.divide(QCondenser,WCompressor)
+                             coefW[4] * (tLow / 273.15) ** 2) + (
+                              coefW[5] * (tHigh / 273.15) ** 2)
+        cop = np.divide(QCondenser, WCompressor)
         return cop
 
     def _chargingRule(self, dataLength):
