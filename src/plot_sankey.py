@@ -10,26 +10,9 @@ from labelDict import labelPositionDict
 from labelDict import fullPositionDict
 from matplotlib import colors
 
-BUILDINGSLIST = [1,2,3,4]
-
-RESULTSFILE = "../data/Results/results4_1_group_allDays.xlsx"
-
-UseLabelDict=True
-OPACITY=0.6
-ColorDict={"elec": 'rgba' + str(colors.to_rgba("skyblue", OPACITY)),
-           "gas":'rgba'+str(colors.to_rgba("darkgray", OPACITY)),
-           "dhw":'rgba'+str(colors.to_rgba("red", OPACITY)),
-           "sh":'rgba'+str(colors.to_rgba("magenta", OPACITY)),
-           "other":'rgba'+str(colors.to_rgba("lime", OPACITY))
-           }
-
-if UseLabelDict == True:
-    PositionDict = labelPositionDict
-else:
-    PositionDict = fullPositionDict
 
 
-def addCapacities(nodes, dataDict, buildings):
+def addCapacities(nodes, dataDict, buildings, UseLabelDict):
     capacities = ["sufficient"] * len(nodes)
     for i in buildings:
         capTransformers=dataDict["capTransformers__Building"+str(i)]
@@ -37,7 +20,7 @@ def addCapacities(nodes, dataDict, buildings):
         for j, k in capStorages.iterrows():
             if k[0]==0:
                 continue
-            if UseLabelDict == True:
+            if UseLabelDict:
                 index=nodes.index(labelDict[j])
             else:
                 index = nodes.index(j)
@@ -61,12 +44,12 @@ def addCapacities(nodes, dataDict, buildings):
     return capacities
 
 
-def readResults(fileName, buildings):
+def readResults(fileName, buildings, ColorDict, UseLabelDict):
     dataDict = getData(fileName)
     keys=dataDict.keys()
-    nodes, sources, targets, values,x,y = createSankeyData(dataDict, keys, buildings)
-    capacities = addCapacities(nodes, dataDict, buildings)
-    nodesColors=pd.Series(createColorList(nodes))
+    nodes, sources, targets, values,x,y = createSankeyData(dataDict, keys, UseLabelDict, buildings)
+    capacities = addCapacities(nodes, dataDict, buildings, UseLabelDict)
+    nodesColors=pd.Series(createColorList(nodes, ColorDict))
     linksColors = nodesColors[sources]
     dhwIndex = [a and b for a, b in zip((nodesColors[targets] == ColorDict["dhw"]), (nodesColors[sources] == ColorDict["sh"]))]
     linksColors = np.where(dhwIndex, ColorDict["dhw"], linksColors)
@@ -99,7 +82,7 @@ def readResults(fileName, buildings):
     return data
 
 
-def createSankeyData(dataDict, keys, buildings=[]):
+def createSankeyData(dataDict, keys, UseLabelDict, buildings=[]):
     sources = [] #contains index of node
     targets = [] #contains index of node
     values = []
@@ -108,6 +91,10 @@ def createSankeyData(dataDict, keys, buildings=[]):
     x=[] #equivalent in dimension to nodes
     y=[] #equivalent in dimension to nodes
     linkGroup=[]
+    if UseLabelDict:
+        PositionDict = labelPositionDict
+    else:
+        PositionDict = fullPositionDict
     for key in keys:
         df = dataDict[key]
         dfKeys = df.keys()
@@ -123,10 +110,10 @@ def createSankeyData(dataDict, keys, buildings=[]):
             sourceNodeName=dfKeySplit[1]
             targetNodeName =dfKeySplit[3]
 
-            if UseLabelDict == True:
-                sourceNodeName=labelDict[sourceNodeName]
-                targetNodeName=labelDict[targetNodeName]
-                if sourceNodeName==targetNodeName:
+            if UseLabelDict:
+                sourceNodeName = labelDict[sourceNodeName]
+                targetNodeName = labelDict[targetNodeName]
+                if sourceNodeName == targetNodeName:
                     continue
                 if "exSolar" in targetNodeName:
                     continue
@@ -148,7 +135,7 @@ def createSankeyData(dataDict, keys, buildings=[]):
                                 y.append((0.5 - (PositionDict[posKey][1])) / len(buildings))
                             else:
                                 buildingNumber=buildings.index(int(sourceNodeName[-1]))
-                                temp = (PositionDict[posKey][1]) / len(buildings) + (buildingNumber) / len(buildings)
+                                temp = (PositionDict[posKey][1]) / len(buildings) + buildingNumber / len(buildings)
                                 y.append(temp)
                 sources.append(nodes.index(sourceNodeName))
 
@@ -169,7 +156,7 @@ def createSankeyData(dataDict, keys, buildings=[]):
     return nodes, sources, targets, values, x, y
 
 
-def createColorList(inputList):
+def createColorList(inputList, ColorDict):
     colorsList=[]
     for n in inputList:
         if "el" in n or "El" in n or "pv" in n or "grid" in n or "Bat" in n:
@@ -186,8 +173,15 @@ def createColorList(inputList):
     return colorsList
 
 
-def displaySankey(fileName, buildings=[1, 2, 3, 4]):
-    data = readResults(fileName, buildings)
+def displaySankey(fileName, UseLabelDict, buildings):
+    OPACITY = 0.6
+    ColorDict = {"elec": 'rgba' + str(colors.to_rgba("skyblue", OPACITY)),
+                 "gas": 'rgba' + str(colors.to_rgba("darkgray", OPACITY)),
+                 "dhw": 'rgba' + str(colors.to_rgba("red", OPACITY)),
+                 "sh": 'rgba' + str(colors.to_rgba("magenta", OPACITY)),
+                 "other": 'rgba' + str(colors.to_rgba("lime", OPACITY))
+                 }
+    data = readResults(fileName, buildings, ColorDict, UseLabelDict)
 
     node = data[0]['node']
     link = data[0]['link']
@@ -215,9 +209,18 @@ def displaySankey(fileName, buildings=[1, 2, 3, 4]):
     fig.update_yaxes(visible=False)
     return fig
 
-def main():
-    fig=displaySankey(RESULTSFILE, BUILDINGSLIST)
+
+def main(numberOfBuildings, plotOptim, optMode, UseLabelDict):
+    BUILDINGSLIST = list(range(1, numberOfBuildings + 1))
+    RESULTSFILE = f"../data/Results/results{numberOfBuildings}_{plotOptim}_{optMode}.xlsx"
+    fig = displaySankey(RESULTSFILE, UseLabelDict, BUILDINGSLIST)
     fig.show()
+    sys.exit()
+
 
 if __name__ == "__main__":
-    sys.exit(main())
+    optMode = "group"  # parameter defining whether the results file corresponds to "indiv" or "group" optimization
+    numberOfBuildings = 4
+    plotOptim = 3  # defines the number of the optimization to plot
+    UseLabelDict = True
+    main(numberOfBuildings, plotOptim, optMode, UseLabelDict)

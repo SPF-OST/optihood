@@ -19,6 +19,7 @@ import os
 # The plots are made at the end of this file, introducing a .xls file previously created during the optimization.
 # An important parameter "optMode" needs to be set when running the code (look in the __main__ fragment)
 
+
 def monthlyBalance(data, bus, new_legends):
     """
     Function for the definition of the monthly summary of a bus
@@ -959,13 +960,11 @@ def createPlot(resultFilePath, plotLevel, plotType, flowType, plotAnnualHorizont
         fig4 = resultingDataDemandDiagramLoop(elec_dict, sh_dict, dhw_dict, COLORS, buildings_number)
         plt.show()
 
-if __name__ == '__main__':
+
+def main(optMode, numberOfBuildings, plotOptim, plotLevel, plotType, flowType, plotAnnualHorizontalBar):
     #####################################
     ########## Classic plots  ###########
     #####################################
-
-    optMode = "group"  # parameter defining whether the results file corresponds to "indiv" or "group" optimization
-
     # New legends need to be defined by hand for each new flow added to the energy network
     newLegends = {
         "(('naturalGasResource', 'naturalGasBus'), 'flow')": "NaturalGas",
@@ -1006,19 +1005,23 @@ if __name__ == '__main__':
         newLegends["(('spaceHeatingBus', 'shLink'), 'flow')"] = "shLink_in"
         newLegends["(('shLink', 'shDemandBus'), 'flow')"] = "shLink_out"
 
-    
     resultFileBasePath = "..\data\Results"
-    resultFileName = f"results4_1_{optMode}.xlsx"  # add the name of the excel file here for which the plots are to be made
+    resultFileName = f"results{numberOfBuildings}_{plotOptim}_{optMode}.xlsx"  # add the name of the excel file here for which the plots are to be made
     if not os.path.exists(resultFileBasePath):
         os.makedirs(resultFileBasePath)
     resultFilePath = os.path.join(resultFileBasePath, resultFileName)
 
-    plotLevel = "allMonths"   # permissible values (for energy balance plot): "allMonths" {for all months}
-                        # or specific month {"Jan", "Feb", "Mar", etc. three letter abbreviation of the month name}
-                        # or specific date {format: YYYY-MM-DD}
+    createPlot(resultFilePath, plotLevel, plotType, flowType, plotAnnualHorizontalBar, newLegends)
+
+
+if __name__ == '__main__':
+    optMode = "group"  # parameter defining whether the results file corresponds to "indiv" or "group" optimization
+    numberOfBuildings = 4
+    plotOptim = 1  # defines the number of the optimization to plot
+    plotLevel = "allMonths"  # permissible values (for energy balance plot): "allMonths" {for all months}
+    # or specific month {"Jan", "Feb", "Mar", etc. three letter abbreviation of the month name}
+    # or specific date {format: YYYY-MM-DD}
     plotType = "bokeh"  # permissible values: "energy balance", "bokeh"
     flowType = "space heat"  # permissible values: "all", "electricity", "space heat", "domestic hot water"
     plotAnnualHorizontalBar = False  # determines whether the annual horizontal bar is plot or not
-
-    createPlot(resultFilePath, plotLevel, plotType, flowType, plotAnnualHorizontalBar, newLegends)
-
+    main(optMode, numberOfBuildings, plotOptim, plotLevel, plotType, flowType, plotAnnualHorizontalBar)
