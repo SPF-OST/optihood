@@ -50,14 +50,17 @@ def environmentalImpactlimit(om, keyword1, keyword2, limit=None):
         envImpact,
         pyo.Expression(
             expr=sum(
+            # Environmental inpact of input flows
                 om.flow[inflow, outflow, t]
                 * om.timeincrement[t]
                 * sequence(getattr(flows[inflow, outflow], keyword1))[t]
                 for (inflow, outflow) in flows
                 for t in om.TIMESTEPS
             )
+            # fix Environmental impact per transformer capacity
             + sum(om.InvestmentFlow.invest[inflow, outflow] * getattr(transformerFlowCapacityDict[inflow, outflow], keyword2)
             for (inflow, outflow) in transformerFlowCapacityDict)
+            # fix Environmental impact per storage capacity
             + sum(om.GenericInvestmentStorageBlock.invest[x] * getattr(x.investment, keyword2) for x in storageCapacityDict)
         ),
     )

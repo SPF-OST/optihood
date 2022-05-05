@@ -11,7 +11,7 @@ try:
 except ImportError:
     plt = None
 from constraints import *
-from src.buildings import Building
+from buildings import Building
 
 
 class EnergyNetworkClass(solph.EnergySystem):
@@ -171,7 +171,7 @@ class EnergyNetworkClass(solph.EnergySystem):
 
     def optimize(self, solver, envImpactlimit, clusterSize, options=None):
         if options is None:
-            options = {"gurobi": {"MIPGap": 10}}
+            options = {"gurobi": {"MIPGap": 0.01}}
         if solver == "gurobi":
             logging.info("Initiating optimization using {} solver".format(solver))
         optimizationModel = solph.Model(self)

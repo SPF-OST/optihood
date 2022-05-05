@@ -212,9 +212,10 @@ def displaySankey(fileName, UseLabelDict, buildings):
 
 def main(numberOfBuildings, plotOptim, optMode, UseLabelDict):
     BUILDINGSLIST = list(range(1, numberOfBuildings + 1))
-    RESULTSFILE = f"../data/Results/results{numberOfBuildings}_{plotOptim}_{optMode}.xlsx"
+    RESULTSFILE = f"..\data\Results\\results{numberOfBuildings}_{plotOptim}_{optMode}.xlsx"
     fig = displaySankey(RESULTSFILE, UseLabelDict, BUILDINGSLIST)
     fig.show()
+    fig.write_html(f"..\Figures\Sankey_{plotOptim}.html")
     sys.exit()
 
 

@@ -66,7 +66,7 @@ class Building:
                 base=self._calculateInvest(s)[1]
                 env_capa=0
                 env_flow=s["heat_impact"]
-                varc=s["impact_cap"] / s["lifetime"]
+                varc=0 #s["impact_cap"] / s["lifetime"]
 
                 envParam = [s["heat_impact"], 0, s["impact_cap"] / s["lifetime"]]
 
@@ -75,7 +75,7 @@ class Building:
                 base = 0
                 env_capa = s["heat_impact"]
                 env_flow = s["heat_impact"]
-                varc = s["impact_cap"] / s["lifetime"]
+                varc = 0#s["impact_cap"] / s["lifetime"]
 
                 envParam = [s["heat_impact"], s["elec_impact"], s["impact_cap"] / s["lifetime"]]
 
@@ -103,7 +103,7 @@ class Building:
                 base=self._calculateInvest(s)[1]
                 env_capa=0
                 env_flow=s["heat_impact"]
-                varc=s["invest_cap"] / s["lifetime"]
+                varc=0 #s["invest_cap"] / s["lifetime"]
 
                 envParam = [s["heat_impact"], 0,s["impact_cap"] / s["lifetime"]]
 
@@ -112,7 +112,7 @@ class Building:
                 base=0
                 env_capa=s["heat_impact"]
                 env_flow=s["heat_impact"]
-                varc=s["impact_cap"] / s["lifetime"]
+                varc=0 #s["impact_cap"] / s["lifetime"]
 
                 envParam = [s["heat_impact"], s["elec_impact"], s["impact_cap"] / s["lifetime"]]
 
@@ -150,7 +150,7 @@ class Building:
 
         for i, cs in data.iterrows():
             if cs["active"]:
-                sourceLabel = cs["label"]+'__'+self.__buildingLabel
+                sourceLabel = cs["label"]+'__' + self.__buildingLabel
                 outputBusLabel = cs["to"] + '__' + self.__buildingLabel
                 # variable costs = (if opt == "costs") : cs["variable costs"]
                 #                  (if opt == "env") and ('electricity' in cs["label"]): data_elec["impact"]

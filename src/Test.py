@@ -9,10 +9,10 @@ except ImportError:
 
 # Parameters
 optMode = "group"
-createProfiles = True
+createProfiles = False
 cluster = False
 numberOfBuildings = 4
-numberOfOptimizations = 4
+numberOfOptimizations = 5
 
 inputFilePath = "..\data\excels\\"
 resultFilePath = "..\data\Results"
@@ -63,7 +63,7 @@ optimizationOptions = {
         "OptimalityTol": 1e-4,
         # Reduced costs must all be smaller than OptimalityTol in the improving direction in order for a model to be declared optimal
         # "PoolGap":1  #Determines how large a (relative) gap to tolerate in stored solutions. When this parameter is set to a non-default value, solutions whose objective values exceed that of the best known solution by more than the specified (relative) gap are discarded.
-        "MIPGap": 0.01,
+        "MIPGap": 1e-2,
         # Relative Tolerance between the best integer objective and the objective of the best node remaining
         "MIPFocus": 2
         # 1 feasible solution quickly. 2 proving optimality. 3 if the best objective bound is moving very slowly/focus on the bound

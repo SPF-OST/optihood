@@ -8,6 +8,7 @@ class SolarCollector(solph.Transformer):
                  collector_tilt, collector_azimuth, eta_0, a_1, a_2, temp_collector_inlet, delta_temp_n,
                  irradiance_global,
                  irradiance_diffuse, temp_amb_col, capacityMin, capacityMax, epc, base, env_capa, env_flow, varc):
+
         flatPlateCollectorData = flat_plate_precalc(
             latitude, longitude, collector_tilt, collector_azimuth, eta_0, a_1, a_2, temp_collector_inlet, delta_temp_n,
             irradiance_global, irradiance_diffuse, temp_amb_col
@@ -133,7 +134,7 @@ class CHP:
         self._efficiencyElCHPDHW = [efficiencyEl] * timesteps
         self._efficiencySH = [efficiencySH] * timesteps
         self._efficiencyDHW = [efficiencyDHW] * timesteps
-        self.avgEff=efficiencySH
+        self.avgEff = efficiencySH
         self._chargingRule(timesteps)
         self.__CHP = solph.Transformer(
                         label='CHP'+'__'+buildingLabel,
