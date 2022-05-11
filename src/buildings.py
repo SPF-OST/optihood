@@ -64,20 +64,20 @@ class Building:
             if opt == "costs":
                 epc=self._calculateInvest(s)[0]
                 base=self._calculateInvest(s)[1]
-                env_capa=0
-                env_flow=s["heat_impact"]
-                varc=0 #s["impact_cap"] / s["lifetime"]
+                env_capa=s["impact_cap"] / s["lifetime"]
+                env_flow=s["elec_impact"]
+                varc=0 # variable cost is only passed for environmental optimization if there are emissions per kW of energy produced from the unit
 
-                envParam = [s["heat_impact"], 0, s["impact_cap"] / s["lifetime"]]
+                envParam = [0, s["elec_impact"], s["impact_cap"] / s["lifetime"]]
 
             elif opt == "env":
                 epc = s["impact_cap"] / s["lifetime"]
                 base = 0
-                env_capa = s["heat_impact"]
-                env_flow = s["heat_impact"]
-                varc = 0#s["impact_cap"] / s["lifetime"]
+                env_capa = s["impact_cap"] / s["lifetime"]
+                env_flow = s["elec_impact"]
+                varc = s["elec_impact"] # variable cost is only passed for environmental optimization if there are emissions per kW of energy produced from the unit
 
-                envParam = [s["heat_impact"], s["elec_impact"], s["impact_cap"] / s["lifetime"]]
+                envParam = [0, s["elec_impact"], s["impact_cap"] / s["lifetime"]]
 
             self.__nodesList.append(PV(s["label"], self.__buildingLabel,
                                        self.__busDict[s["to"] + '__' + self.__buildingLabel],
@@ -101,20 +101,20 @@ class Building:
             if opt == "costs":
                 epc=self._calculateInvest(s)[0]
                 base=self._calculateInvest(s)[1]
-                env_capa=0
+                env_capa=s["impact_cap"] / s["lifetime"]
                 env_flow=s["heat_impact"]
-                varc=0 #s["invest_cap"] / s["lifetime"]
+                varc=0 # variable cost is only passed for environmental optimization if there are emissions per kW of energy produced from the unit
 
-                envParam = [s["heat_impact"], 0,s["impact_cap"] / s["lifetime"]]
+                envParam = [s["heat_impact"], 0, env_capa]
 
             elif opt == "env":
                 epc=s["impact_cap"] / s["lifetime"]
                 base=0
-                env_capa=s["heat_impact"]
+                env_capa= s["impact_cap"] / s["lifetime"]
                 env_flow=s["heat_impact"]
-                varc=0 #s["impact_cap"] / s["lifetime"]
+                varc= s["heat_impact"] # variable cost is only passed for environmental optimization if there are emissions per kW of energy produced from the unit
 
-                envParam = [s["heat_impact"], s["elec_impact"], s["impact_cap"] / s["lifetime"]]
+                envParam = [s["heat_impact"], 0, env_capa]
 
             collector=SolarCollector(s["label"], self.__buildingLabel,
                                                    self.__busDict[s["from"] + '__' + self.__buildingLabel],
@@ -231,7 +231,7 @@ class Building:
 
         self.__costParam[inputBusLabel] = [self._calculateInvest(data)[0]*data["efficiency"], self._calculateInvest(data)[1]*data["efficiency"]]
 
-        self.__envParam[inputBusLabel] = [data["heat_impact"]*data["efficiency"], data["elec_impact"]*data["efficiency"], envImpactPerCapacity*data["efficiency"]]
+        self.__envParam[inputBusLabel] = [data["heat_impact"]*data["efficiency"], 0*data["efficiency"], envImpactPerCapacity*data["efficiency"]]
 
     def _addCHP(self, data, timesteps, opt):
         chpSHLabel = data["label"] + '__' + self.__buildingLabel
@@ -279,14 +279,14 @@ class Building:
                   self.__busDict[outputBusLabel],
                   efficiency, data["capacity_min"], data["capacity_SH"],
                   self._calculateInvest(data)[0] * (opt == "costs") + envImpactPerCapacity * (opt == "env"),
-                  self._calculateInvest(data)[1] * (opt == "costs"), data["elec_impact"], data["heat_impact"], envImpactPerCapacity))
+                  self._calculateInvest(data)[1] * (opt == "costs"), data["heat_impact"] * (opt == "env"), data["heat_impact"], envImpactPerCapacity))
 
         # set technologies, environment and cost parameters
         self.__technologies.append([outputBusLabel, gasBoilLabel])
 
         self.__costParam[gasBoilLabel] = [self._calculateInvest(data)[0], self._calculateInvest(data)[1]]
 
-        self.__envParam[gasBoilLabel] = [data["heat_impact"], data["elec_impact"], envImpactPerCapacity]
+        self.__envParam[gasBoilLabel] = [data["heat_impact"], 0, envImpactPerCapacity]
 
     def addTransformer(self, data, temperatureDHW, temperatureSH, temperatureAmb, opt):
         for i, t in data.iterrows():
