@@ -11,8 +11,8 @@ except ImportError:
 optMode = "group"
 createProfiles = False
 cluster = False
-numberOfBuildings = 4
-numberOfOptimizations = 5
+numberOfBuildings = 1
+numberOfOptimizations = 10
 
 inputFilePath = "..\data\excels\\"
 resultFilePath = "..\data\Results"
@@ -121,7 +121,7 @@ if __name__ == '__main__':
     ## First optimization ##
     # -----------------------------------------------------------------------------#
     print("******************\nOPTIMIZATION " + str(optimizationInstanceNumber) + "\n******************")
-    network = EnergyNetwork(pd.date_range(timePeriod[0], timePeriod[1], freq="60min"), tSH=35, tDHW=55)
+    network = EnergyNetwork(pd.date_range(timePeriod[0], timePeriod[1], freq="60min"))
     network.setFromExcel(os.path.join(inputFilePath, inputfileName), numberOfBuildings, clusterSize, opt="costs")
     (max_env, costs, meta) = optimizeNetwork(network, optimizationInstanceNumber, 1000000)
     optimizationInstanceNumber += 1
@@ -132,12 +132,12 @@ if __name__ == '__main__':
     # -----------------------------------------------------------------------------#
     if numberOfOptimizations > 1:
         print("******************\nOPTIMIZATION " + str(optimizationInstanceNumber) + "\n******************")
-        network = EnergyNetwork(pd.date_range(timePeriod[0], timePeriod[1], freq="60min"), tSH=35, tDHW=55)
+        network = EnergyNetwork(pd.date_range(timePeriod[0], timePeriod[1], freq="60min"))
         network.setFromExcel(os.path.join(inputFilePath, inputfileName), numberOfBuildings, clusterSize, opt="env")
         (min_env, costs, meta) = optimizeNetwork(network, optimizationInstanceNumber, 1000000)
         optimizationInstanceNumber += 1
-        costsList.append(costs)
-        envList.append(min_env)
+        #costsList.append(costs)
+        #envList.append(min_env)
         print(
             'Each iteration will keep emissions lower than some values between femissions_min and femissions_max, so [' + str(
                 min_env) + ', ' + str(max_env) + ']')
@@ -146,12 +146,10 @@ if __name__ == '__main__':
         ## MOO steps between Cost-Optimized and Env-Optimized ##
         # -----------------------------------------------------------------------------#
         steps = list(range(int(min_env), int(max_env), int((max_env - min_env) / (numberOfOptimizations - 1))))
-        for envCost in steps[1:numberOfOptimizations - 1]:
+        for envCost in steps[0:numberOfOptimizations - 1]:
             print("******************\nOPTIMIZATION " + str(optimizationInstanceNumber) + "\n******************")
-            network = EnergyNetwork(pd.date_range(timePeriod[0], timePeriod[1], freq="60min"), tSH=35,
-                                    tDHW=55)
-            network.setFromExcel(os.path.join(inputFilePath, inputfileName), numberOfBuildings, clusterSize,
-                                 opt="costs")
+            network = EnergyNetwork(pd.date_range(timePeriod[0], timePeriod[1], freq="60min"))
+            network.setFromExcel(os.path.join(inputFilePath, inputfileName), numberOfBuildings, clusterSize, opt="costs")
             (limit, costs, meta) = optimizeNetwork(network, optimizationInstanceNumber, envCost + 1)
             costsList.append(meta['objective'])
             envList.append(limit)

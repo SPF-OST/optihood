@@ -66,7 +66,7 @@ class Building:
                 base=self._calculateInvest(s)[1]
                 env_capa=s["impact_cap"] / s["lifetime"]
                 env_flow=s["elec_impact"]
-                varc=0 # variable cost is only passed for environmental optimization if there are emissions per kW of energy produced from the unit
+                varc=0 # variable cost is only passed for environmental optimization if there are emissions per kWh of energy produced from the unit
 
                 envParam = [0, s["elec_impact"], s["impact_cap"] / s["lifetime"]]
 
@@ -75,7 +75,7 @@ class Building:
                 base = 0
                 env_capa = s["impact_cap"] / s["lifetime"]
                 env_flow = s["elec_impact"]
-                varc = s["elec_impact"] # variable cost is only passed for environmental optimization if there are emissions per kW of energy produced from the unit
+                varc = s["elec_impact"] # variable cost is only passed for environmental optimization if there are emissions per kWh of energy produced from the unit
 
                 envParam = [0, s["elec_impact"], s["impact_cap"] / s["lifetime"]]
 
@@ -103,7 +103,7 @@ class Building:
                 base=self._calculateInvest(s)[1]
                 env_capa=s["impact_cap"] / s["lifetime"]
                 env_flow=s["heat_impact"]
-                varc=0 # variable cost is only passed for environmental optimization if there are emissions per kW of energy produced from the unit
+                varc=0 # variable cost is only passed for environmental optimization if there are emissions per kWh of energy produced from the unit
 
                 envParam = [s["heat_impact"], 0, env_capa]
 
@@ -112,7 +112,7 @@ class Building:
                 base=0
                 env_capa= s["impact_cap"] / s["lifetime"]
                 env_flow=s["heat_impact"]
-                varc= s["heat_impact"] # variable cost is only passed for environmental optimization if there are emissions per kW of energy produced from the unit
+                varc= s["heat_impact"] # variable cost is only passed for environmental optimization if there are emissions per kWh of energy produced from the unit
 
                 envParam = [s["heat_impact"], 0, env_capa]
 
@@ -270,19 +270,22 @@ class Building:
     def _addGasBoiler(self, data, opt):
         gasBoilLabel = data["label"] + '__' + self.__buildingLabel
         inputBusLabel = data["from"] + '__' + self.__buildingLabel
-        outputBusLabel = data["to"] + '__' + self.__buildingLabel
-        efficiency = float(data["efficiency"])
+        outputSHBusLabel = data["to"].split(",")[0] + '__' + self.__buildingLabel
+        outputDHWBusLabel = data["to"].split(",")[1] + '__' + self.__buildingLabel
+        shEfficiency = float(data["efficiency"].split(",")[0])
+        dhwEfficiency = float(data["efficiency"].split(",")[1])
         envImpactPerCapacity = data["impact_cap"] / data["lifetime"]
 
 
         self.__nodesList.append(GasBoiler(self.__buildingLabel, self.__busDict[inputBusLabel],
-                  self.__busDict[outputBusLabel],
-                  efficiency, data["capacity_min"], data["capacity_SH"],
+                  self.__busDict[outputSHBusLabel], self.__busDict[outputDHWBusLabel],
+                  shEfficiency, dhwEfficiency, data["capacity_min"], data["capacity_SH"],
                   self._calculateInvest(data)[0] * (opt == "costs") + envImpactPerCapacity * (opt == "env"),
                   self._calculateInvest(data)[1] * (opt == "costs"), data["heat_impact"] * (opt == "env"), data["heat_impact"], envImpactPerCapacity))
 
         # set technologies, environment and cost parameters
-        self.__technologies.append([outputBusLabel, gasBoilLabel])
+        self.__technologies.append([outputSHBusLabel, gasBoilLabel])
+        self.__technologies.append([outputDHWBusLabel, gasBoilLabel])
 
         self.__costParam[gasBoilLabel] = [self._calculateInvest(data)[0], self._calculateInvest(data)[1]]
 
@@ -336,7 +339,9 @@ class Building:
                     logging.warning("Storage label not identified")
 
     def _calculateInvest(self, data):
-        c = data["maintenance"] + data["installation"] + data["planification"] + 1
-        perCapacity = economics.annuity(c * data["invest_cap"], data["lifetime"], intRate)
-        base = economics.annuity(c * data["invest_base"], data["lifetime"], intRate)
+        # Calculate the CAPEX and the part of the OPEX not related to energy flows (maintenance)
+        c = data["installation"] + data["planification"] + 1
+        m = data["maintenance"]
+        perCapacity = m*data["invest_cap"] + economics.annuity(c * data["invest_cap"], data["lifetime"], intRate)
+        base = m*data["invest_base"] + economics.annuity(c * data["invest_base"], data["lifetime"], intRate)
         return perCapacity, base

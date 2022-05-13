@@ -281,7 +281,7 @@ def deduplicateLegend(handles, labels):
     return (new_handles, new_labels)
 
 
-def resultingDataDiagram(elBus, shBus, dhwBus, costs, env, COLORS, building):
+def resultingDataDiagram(elBus, shBus, dhwBus, costs, env, COLORS, building, newLegends):
     """
     Function inspired from the URBS platform https://github.com/ojdo/urbs/blob/1house/comp.py
     Function plotting the different results of the optimization. First, costs will be plotted, then the energy produced,
@@ -502,7 +502,7 @@ def resultingDataDiagramLoop(elec, sh, dhw, costs, env, colors, buildings):
 
     return fig
 
-def resultingDataDemandDiagram(elBus, shBus, dhwBus, COLORS, building):
+def resultingDataDemandDiagram(elBus, shBus, dhwBus, COLORS, building, newLegends):
     """
     Function inspired from the URBS platform https://github.com/ojdo/urbs/blob/1house/comp.py
     Function plotting the different results of the optimization. First, costs will be plotted, then the energy produced,
@@ -989,6 +989,7 @@ def main(optMode, numberOfBuildings, plotOptim, plotLevel, plotType, flowType, p
         "(('shDemandBus', 'spaceHeatingDemand'), 'flow')": "Demand_sh",
         "(('CHP', 'shSourceBus'), 'flow')": "CHP_sh",
         "(('GasBoiler', 'shSourceBus'), 'flow')": "Gas_sh",
+        "(('GasBoiler', 'dhwStorageBus'), 'flow')": "Gas_dhw",
         "(('HP', 'shSourceBus'), 'flow')": "HP_sh",
         "(('electricityBus', 'producedElectricity'), 'flow')": "Self_consumption",
         "(('gridBus', 'gridElectricity'), 'flow')": "Electricity_grid",
@@ -1016,8 +1017,8 @@ def main(optMode, numberOfBuildings, plotOptim, plotLevel, plotType, flowType, p
 
 if __name__ == '__main__':
     optMode = "group"  # parameter defining whether the results file corresponds to "indiv" or "group" optimization
-    numberOfBuildings = 4
-    plotOptim = 1  # defines the number of the optimization to plot
+    numberOfBuildings = 1
+    plotOptim = 3  # defines the number of the optimization to plot
     plotLevel = "allMonths"  # permissible values (for energy balance plot): "allMonths" {for all months}
     # or specific month {"Jan", "Feb", "Mar", etc. three letter abbreviation of the month name}
     # or specific date {format: YYYY-MM-DD}

@@ -34,8 +34,8 @@ class ElectricalStorage(solph.components.GenericStorage):
         )
 
 class ThermalStorage(solph.components.GenericStorage):
-    def __init__(self, label1, label2, stratifiedStorageParams, input, output, initial_storage, capacity_min, capacity_max, epc, base, varc, env_flow, env_capa):
-        u_value, loss_rate, fixed_losses_relative, fixed_losses_absolute = self._precalculate(stratifiedStorageParams, label2)
+    def __init__(self, label1, label2, stratifiedStorageParams, input, output, initial_storage, min, max, volume_cost, base, varc, env_flow, env_cap):
+        u_value, loss_rate, fixed_losses_relative, fixed_losses_absolute, capacity_min, capacity_max, epc, env_capa = self._precalculate(stratifiedStorageParams,label2,min,max,volume_cost,env_cap)
         super(ThermalStorage, self).__init__(
             label=label1,
             inputs={
@@ -64,7 +64,9 @@ class ThermalStorage(solph.components.GenericStorage):
             ),
         )
 
-    def _precalculate(self, data, label):
+    def _precalculate(self, data, label,min,max,volume_cost,env_cap):
+        tempH = data.at[label, 'temp_h']
+        tempC = data.at[label, 'temp_c']
         u_value = calculate_storage_u_value(
             data.at[label, 's_iso'],
             data.at[label, 'lamb_iso'],
@@ -74,8 +76,14 @@ class ThermalStorage(solph.components.GenericStorage):
         loss_rate, fixed_losses_relative, fixed_losses_absolute = calculate_losses(
             u_value,
             data.at[label, 'diameter'],
-            data.at[label, 'temp_h'],
-            data.at[label, 'temp_c'],
+            tempH,
+            tempC,
             data.at[label, 'temp_env'])
 
-        return u_value, loss_rate, fixed_losses_relative, fixed_losses_absolute
+        L_to_kWh = 4.186*(tempH-tempC)/3600 #converts L data to kWh data for oemof GenericStorage class
+        capacity_min = min*L_to_kWh
+        capacity_max = max*L_to_kWh
+        epc = volume_cost/L_to_kWh
+        env_capa = env_cap/L_to_kWh
+
+        return u_value, loss_rate, fixed_losses_relative, fixed_losses_absolute, capacity_min, capacity_max, epc, env_capa

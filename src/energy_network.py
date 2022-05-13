@@ -15,9 +15,7 @@ from buildings import Building
 
 
 class EnergyNetworkClass(solph.EnergySystem):
-    def __init__(self, timestamp, tSH, tDHW):
-        self.__temperatureSH = tSH
-        self.__temperatureDHW = tDHW
+    def __init__(self, timestamp):
         self._nodesList = []
         self._storageContentSH = {}
         self.__inputs = {}                          # dictionary of list of inputs indexed by the building label
@@ -132,7 +130,15 @@ class EnergyNetworkClass(solph.EnergySystem):
             logging.error("Nodes data is missing.")
         ################## !!!
         self.__temperatureAmb = np.array(data["weather_data"]["tre200h0"])
+        self.__temperatureSH = data["stratified_storage"].loc["shStorage","temp_h"]
+        self.__temperatureDHW = data["stratified_storage"].loc["dhwStorage","temp_h"]
+        # Transformers conversion factors input power - output power
+        self.__chpEff = float(data["transformers"][data["transformers"]["label"] == "CHP"]["efficiency"][0].split(",")[1])
         self.__hpEff = data["transformers"][data["transformers"]["label"]=="HP"]["efficiency"][1]
+        self.__gbEff = float(data["transformers"][data["transformers"]["label"]=="GasBoiler"]["efficiency"][2].split(",")[0])
+        # Storage conversion L - kWh to display the L value
+        self.__Lsh = 4.186*(self.__temperatureSH - data["stratified_storage"].loc["shStorage","temp_c"])/3600
+        self.__Ldhw = 4.186 * (self.__temperatureDHW - data["stratified_storage"].loc["dhwStorage", "temp_c"]) / 3600
         self._addBuildings(data, opt)
 
     def _addBuildings(self, data, opt):
@@ -204,10 +210,11 @@ class EnergyNetworkClass(solph.EnergySystem):
         capacitiesInvestedStorages = {}
         storageList = []
 
+        # Transformers capacities
         for inflow, outflow in transformerFlowCapacityDict:
             index = (str(inflow), str(outflow))
             capacitiesInvestedTransformers[index] = optimizationModel.InvestmentFlow.invest[inflow, outflow].value
-
+        # Conversion into output capacity
         capacitiesInvestedTransformers = self._compensateInputCapacities(capacitiesInvestedTransformers)
 
         for inflow, outflow in transformerFlowCapacityDict:
@@ -215,21 +222,30 @@ class EnergyNetworkClass(solph.EnergySystem):
             buildingLabel = str(inflow).split("__")[1]
             self.__capacitiesTransformersBuilding[buildingLabel].update({index: capacitiesInvestedTransformers[index]})
 
+        # Storages capacities
+        for x in storageCapacityDict:
+            index = str(x)
+            if x in storageList:  # useful when we want to implement two or more storage units of the same type
+                capacitiesInvestedStorages[index] = capacitiesInvestedStorages[index] + \
+                                                    optimizationModel.GenericInvestmentStorageBlock.invest[x].value
+            else:
+                capacitiesInvestedStorages[str(x)] = optimizationModel.GenericInvestmentStorageBlock.invest[x].value
+        # Convert kWh into L
+        capacitiesInvestedStorages = self._compensateStorageCapacities(capacitiesInvestedStorages)
+
         for x in storageCapacityDict:
             index = str(x)
             buildingLabel = index.split("__")[1]
             if x in storageList:  # useful when we want to implement two or more storage units of the same type
-                capacitiesInvestedStorages[index] = capacitiesInvestedStorages[index] + \
-                                                    optimizationModel.GenericInvestmentStorageBlock.invest[x].value
                 self.__capacitiesStoragesBuilding[buildingLabel].update({index: capacitiesInvestedStorages[index]})
             else:
-                capacitiesInvestedStorages[str(x)] = optimizationModel.GenericInvestmentStorageBlock.invest[x].value
                 self.__capacitiesStoragesBuilding[buildingLabel].update({index: capacitiesInvestedStorages[index]})
             storageList.append(x)
 
         return capacitiesInvestedTransformers, capacitiesInvestedStorages
 
     def _compensateInputCapacities(self, capacitiesTransformers):
+        # Input capacity -> output capacity
         for first, second in capacitiesTransformers.keys():
             if "CHP" in second:
                 for index, value in enumerate(self.nodes):
@@ -237,16 +253,32 @@ class EnergyNetworkClass(solph.EnergySystem):
                         test = self.nodes[index].conversion_factors
                         for t in test.keys():
                             if "shSource" in t.label:
-                                capacitiesTransformers[(first,second)]= capacitiesTransformers[(first,second)]*test[t][0]
+                                capacitiesTransformers[(first,second)]= capacitiesTransformers[(first,second)]*self.__chpEff
             elif "HP" in second:
                 for index, value in enumerate(self.nodes):
                     if second == value.label:
                         test = self.nodes[index].conversion_factors
                         for t in test.keys():
                             if "shSource" in t.label:
-                                capacitiesTransformers[(first,second)] = capacitiesTransformers[(first,second)] * self.__hpEff
+                                capacitiesTransformers[(first,second)] = capacitiesTransformers[(first,second)]*self.__hpEff
+            elif "GasBoiler" in second:
+                for index, value in enumerate(self.nodes):
+                    if second == value.label:
+                        test = self.nodes[index].conversion_factors
+                        for t in test.keys():
+                            if "shSource" in t.label:
+                                capacitiesTransformers[(first, second)] = capacitiesTransformers[(first, second)]*self.__gbEff
 
         return capacitiesTransformers
+
+    def _compensateStorageCapacities(self, capacitiesStorages):
+        # kWh -> L
+        for storage in capacitiesStorages.keys():
+            if "sh" in storage:
+                capacitiesStorages[storage] = capacitiesStorages[storage] / self.__Lsh
+            elif "dhw" in storage:
+                capacitiesStorages[storage] = capacitiesStorages[storage] / self.__Ldhw
+        return capacitiesStorages
 
     def _postprocessingClusters(self, clusterSize):
         flows = [x for x in self.__optimizationResults.keys() if x[1] is not None]
@@ -340,17 +372,17 @@ class EnergyNetworkClass(solph.EnergySystem):
             investSH = capacitiesInvestedTransformers[("naturalGasBus__" + buildingLabel, "CHP__" + buildingLabel)]
             print("Invested in {} kW CHP.".format(investSH))# + investEL))
             invest = capacitiesInvestedTransformers[("heat_solarCollector__" + buildingLabel, "solarConnectBus__" + buildingLabel)]
-            print("Invested in {} kW  SolarCollector.".format(invest))
-            invest = capacitiesInvestedTransformers[("GasBoiler__" + buildingLabel, "shSourceBus__" + buildingLabel)]
-            print("Invested in {} kW  GasBoiler.".format(invest))
+            print("Invested in {} m² SolarCollector.".format(invest))
+            investSH = capacitiesInvestedTransformers[("naturalGasBus__" + buildingLabel, "GasBoiler__" + buildingLabel)]
+            print("Invested in {} kW  GasBoiler.".format(investSH))
             invest = capacitiesInvestedTransformers[("pv__" + buildingLabel, "electricityProdBus__" + buildingLabel)]
             print("Invested in {} kW  PV.".format(invest))
             invest = capacitiesInvestedStorages["electricalStorage__" + buildingLabel]
             print("Invested in {} kWh Electrical Storage.".format(invest))
             invest = capacitiesInvestedStorages["dhwStorage__" + buildingLabel]
-            print("Invested in {} kWh DHW Storage Tank.".format(invest))
+            print("Invested in {} L DHW Storage Tank.".format(invest))
             invest = capacitiesInvestedStorages["shStorage__" + buildingLabel]
-            print("Invested in {} kWh SH Storage Tank.".format(invest))
+            print("Invested in {} L SH Storage Tank.".format(invest))
             print("")
 
     def printCosts(self):

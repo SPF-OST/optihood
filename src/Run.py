@@ -53,7 +53,7 @@ def plotParetoFront(costsList, envList):
     print(envList)
 
 
-def optimization(numberOfBuildings, numberOfOptimizations, optMode, cluster):
+def optimization(numberOfBuildings, numberOfOptimizations, optMode, cluster, tSH, tDHW,):
     inputFilePath = "..\data\excels\\"
     resultFilePath = "..\data\Results"
     inputfileName = "scenario" + str(numberOfBuildings) + ".xls"
@@ -111,8 +111,8 @@ def optimization(numberOfBuildings, numberOfOptimizations, optMode, cluster):
     ## First optimization ##
     # -----------------------------------------------------------------------------#
     print("******************\nOPTIMIZATION " + str(optimizationInstanceNumber) + "\n******************")
-    network = EnergyNetwork(pd.date_range(timePeriod[0], timePeriod[1], freq="60min"), tSH=35, tDHW=55)
-    network.setFromExcel(os.path.join(inputFilePath, inputfileName), numberOfBuildings, clusterSize, opt="costs")
+    network = EnergyNetwork(pd.date_range(timePeriod[0], timePeriod[1], freq="60min"))
+    network.setFromExcel(os.path.join(inputFilePath, inputfileName), numberOfBuildings, opt="costs")
     (max_env, costs, meta) = optimizeNetwork(network, optimizationInstanceNumber, 1000000, clusterSize, optimizationOptions, resultFilePath, numberOfBuildings, optMode)
     optimizationInstanceNumber += 1
     costsListLast = meta['objective']
@@ -122,7 +122,7 @@ def optimization(numberOfBuildings, numberOfOptimizations, optMode, cluster):
     # -----------------------------------------------------------------------------#
     if numberOfOptimizations > 1:
         print("******************\nOPTIMIZATION " + str(optimizationInstanceNumber) + "\n******************")
-        network = EnergyNetwork(pd.date_range(timePeriod[0], timePeriod[1], freq="60min"), tSH=35, tDHW=55)
+        network = EnergyNetwork(pd.date_range(timePeriod[0], timePeriod[1], freq="60min"))
         network.setFromExcel(os.path.join(inputFilePath, inputfileName), numberOfBuildings, clusterSize, opt="env")
         (min_env, costs, meta) = optimizeNetwork(network, optimizationInstanceNumber, 1000000, clusterSize, optimizationOptions, resultFilePath, numberOfBuildings, optMode)
         optimizationInstanceNumber += 1
@@ -138,10 +138,8 @@ def optimization(numberOfBuildings, numberOfOptimizations, optMode, cluster):
         steps = list(range(int(min_env), int(max_env), int((max_env - min_env) / (numberOfOptimizations - 1))))
         for envCost in steps[1:numberOfOptimizations - 1]:
             print("******************\nOPTIMIZATION " + str(optimizationInstanceNumber) + "\n******************")
-            network = EnergyNetwork(pd.date_range(timePeriod[0], timePeriod[1], freq="60min"), tSH=35,
-                                    tDHW=55)
-            network.setFromExcel(os.path.join(inputFilePath, inputfileName), numberOfBuildings, clusterSize,
-                                 opt="costs")
+            network = EnergyNetwork(pd.date_range(timePeriod[0], timePeriod[1], freq="60min"))
+            network.setFromExcel(os.path.join(inputFilePath, inputfileName), numberOfBuildings, clusterSize, opt="costs")
             (limit, costs, meta) = optimizeNetwork(network, optimizationInstanceNumber, envCost + 1, clusterSize, optimizationOptions, resultFilePath, numberOfBuildings, optMode)
             costsList.append(meta['objective'])
             envList.append(limit)

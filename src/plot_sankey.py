@@ -25,7 +25,10 @@ def addCapacities(nodes, dataDict, buildings, UseLabelDict):
             else:
                 index = nodes.index(j)
             #nodes[index]=nodes[index]+" "+str(round(k[0],2))+" kWh"
-            capacities[index]=str(round(k[0],1))+" kWh"
+            if "Bat" in labelDict[j]:
+                capacities[index]=str(round(k[0],1))+" kWh"
+            else:
+                capacities[index] = str(round(k[0], 1)) + " L"
         for j, k in capTransformers.iterrows():
             if k[0]==0:
                 continue
@@ -221,7 +224,7 @@ def main(numberOfBuildings, plotOptim, optMode, UseLabelDict):
 
 if __name__ == "__main__":
     optMode = "group"  # parameter defining whether the results file corresponds to "indiv" or "group" optimization
-    numberOfBuildings = 4
+    numberOfBuildings = 1
     plotOptim = 3  # defines the number of the optimization to plot
     UseLabelDict = True
     main(numberOfBuildings, plotOptim, optMode, UseLabelDict)
