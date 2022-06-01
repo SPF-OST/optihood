@@ -225,6 +225,6 @@ def main(numberOfBuildings, plotOptim, optMode, UseLabelDict):
 if __name__ == "__main__":
     optMode = "group"  # parameter defining whether the results file corresponds to "indiv" or "group" optimization
     numberOfBuildings = 1
-    plotOptim = 3  # defines the number of the optimization to plot
+    plotOptim = 1  # defines the number of the optimization to plot
     UseLabelDict = True
     main(numberOfBuildings, plotOptim, optMode, UseLabelDict)

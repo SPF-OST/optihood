@@ -908,11 +908,11 @@ def createPlot(resultFilePath, plotLevel, plotType, flowType, plotAnnualHorizont
             os.makedirs(basePath)
 
         output_file(os.path.join(basePath,"HourlyBokehPlots.html"))
-        grid = gridplot(plotsHourly, ncols=ncols, plot_width=700, plot_height=500, sizing_mode="fixed")
+        grid = gridplot(plotsHourly, ncols=ncols, plot_width=850, plot_height=500, sizing_mode="fixed")
         show(grid)
         if not any(chr.isdigit() for chr in plotLevel):
             output_file(os.path.join(basePath,"DailyBokehPlots.html"))
-            grid = gridplot(plotsDaily, ncols=ncols, plot_width=700, plot_height=500, sizing_mode="fixed")
+            grid = gridplot(plotsDaily, ncols=ncols, plot_width=850, plot_height=500, sizing_mode="fixed")
             show(grid)
     else:
         raise ValueError("Illegal value for the parameter plot type")
@@ -1018,7 +1018,7 @@ def main(optMode, numberOfBuildings, plotOptim, plotLevel, plotType, flowType, p
 if __name__ == '__main__':
     optMode = "group"  # parameter defining whether the results file corresponds to "indiv" or "group" optimization
     numberOfBuildings = 1
-    plotOptim = 3  # defines the number of the optimization to plot
+    plotOptim = 1  # defines the number of the optimization to plot
     plotLevel = "allMonths"  # permissible values (for energy balance plot): "allMonths" {for all months}
     # or specific month {"Jan", "Feb", "Mar", etc. three letter abbreviation of the month name}
     # or specific date {format: YYYY-MM-DD}

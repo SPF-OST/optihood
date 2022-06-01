@@ -133,9 +133,9 @@ class EnergyNetworkClass(solph.EnergySystem):
         self.__temperatureSH = data["stratified_storage"].loc["shStorage","temp_h"]
         self.__temperatureDHW = data["stratified_storage"].loc["dhwStorage","temp_h"]
         # Transformers conversion factors input power - output power
-        self.__chpEff = float(data["transformers"][data["transformers"]["label"] == "CHP"]["efficiency"][0].split(",")[1])
-        self.__hpEff = data["transformers"][data["transformers"]["label"]=="HP"]["efficiency"][1]
-        self.__gbEff = float(data["transformers"][data["transformers"]["label"]=="GasBoiler"]["efficiency"][2].split(",")[0])
+        self.__chpEff = float(data["transformers"][data["transformers"]["label"] == "CHP"]["efficiency"].iloc[0].split(",")[1])
+        self.__hpEff = data["transformers"][data["transformers"]["label"]=="HP"]["efficiency"].iloc[0]
+        self.__gbEff = float(data["transformers"][data["transformers"]["label"]=="GasBoiler"]["efficiency"].iloc[0].split(",")[0])
         # Storage conversion L - kWh to display the L value
         self.__Lsh = 4.186*(self.__temperatureSH - data["stratified_storage"].loc["shStorage","temp_c"])/3600
         self.__Ldhw = 4.186 * (self.__temperatureDHW - data["stratified_storage"].loc["dhwStorage", "temp_c"]) / 3600
@@ -216,7 +216,7 @@ class EnergyNetworkClass(solph.EnergySystem):
             capacitiesInvestedTransformers[index] = optimizationModel.InvestmentFlow.invest[inflow, outflow].value
         # Conversion into output capacity
         capacitiesInvestedTransformers = self._compensateInputCapacities(capacitiesInvestedTransformers)
-
+        # Update capacities
         for inflow, outflow in transformerFlowCapacityDict:
             index = (str(inflow), str(outflow))
             buildingLabel = str(inflow).split("__")[1]
@@ -232,7 +232,7 @@ class EnergyNetworkClass(solph.EnergySystem):
                 capacitiesInvestedStorages[str(x)] = optimizationModel.GenericInvestmentStorageBlock.invest[x].value
         # Convert kWh into L
         capacitiesInvestedStorages = self._compensateStorageCapacities(capacitiesInvestedStorages)
-
+        # Update capacities
         for x in storageCapacityDict:
             index = str(x)
             buildingLabel = index.split("__")[1]

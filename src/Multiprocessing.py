@@ -2,6 +2,9 @@ import pandas as pd
 import os
 import loadProfilesResidential as Resi
 import shoppingmall as Shop
+import multiprocessing
+import concurrent.futures
+import sys
 try:
     import matplotlib.pyplot as plt
 except ImportError:
@@ -11,8 +14,9 @@ except ImportError:
 optMode = "group"
 createProfiles = False
 cluster = False
-numberOfBuildings = 1
-numberOfOptimizations = 1
+numberOfBuildings = 4
+numberOfOptimizations = 5
+
 
 inputFilePath = "..\data\excels\\"
 resultFilePath = "..\data\Results"
@@ -112,53 +116,77 @@ def plotParetoFront(costsList, envList):
     print(envList)
 
 
-
-if __name__ == '__main__':
-    optimizationInstanceNumber = 1
-    costsList = []
-    envList = []
-    # -----------------------------------------------------------------------------#
-    ## First optimization ##
-    # -----------------------------------------------------------------------------#
-    print("******************\nOPTIMIZATION " + str(optimizationInstanceNumber) + "\n******************")
+def f1():
+    old_stdout = sys.stdout
+    log_file = open("optimization1.log","w")
+    sys.stdout = log_file
+    print("******************\nOPTIMIZATION " + str(1) + "\n******************")
     network = EnergyNetwork(pd.date_range(timePeriod[0], timePeriod[1], freq="60min"))
     network.setFromExcel(os.path.join(inputFilePath, inputfileName), numberOfBuildings, clusterSize, opt="costs")
-    (max_env, costs, meta) = optimizeNetwork(network, optimizationInstanceNumber, 1000000)
-    optimizationInstanceNumber += 1
-    costsListLast = meta['objective']
-    envListLast = max_env
-    # -----------------------------------------------------------------------------#
-    ## Second optimization ##
-    # -----------------------------------------------------------------------------#
-    if numberOfOptimizations > 1:
-        print("******************\nOPTIMIZATION " + str(optimizationInstanceNumber) + "\n******************")
-        network = EnergyNetwork(pd.date_range(timePeriod[0], timePeriod[1], freq="60min"))
-        network.setFromExcel(os.path.join(inputFilePath, inputfileName), numberOfBuildings, clusterSize, opt="env")
-        (min_env, costs, meta) = optimizeNetwork(network, optimizationInstanceNumber, 1000000)
-        optimizationInstanceNumber += 1
-        #costsList.append(costs)
-        #envList.append(min_env)
-        print(
-            'Each iteration will keep emissions lower than some values between femissions_min and femissions_max, so [' + str(
-                min_env) + ', ' + str(max_env) + ']')
+    (max_env, costs, meta) = optimizeNetwork(network, 1, 1000000)
+    #costsListLast = meta['objective']
+    sys.stdout = old_stdout
+    log_file.close()
+    return max_env, meta['objective']
 
-        # -----------------------------------------------------------------------------#
-        ## MOO steps between Cost-Optimized and Env-Optimized ##
-        # -----------------------------------------------------------------------------#
-        steps = list(range(int(min_env), int(max_env), int((max_env - min_env) / (numberOfOptimizations - 1))))
-        for envCost in steps[0:numberOfOptimizations - 1]:
-            print("******************\nOPTIMIZATION " + str(optimizationInstanceNumber) + "\n******************")
-            network = EnergyNetwork(pd.date_range(timePeriod[0], timePeriod[1], freq="60min"))
-            network.setFromExcel(os.path.join(inputFilePath, inputfileName), numberOfBuildings, clusterSize, opt="costs")
-            (limit, costs, meta) = optimizeNetwork(network, optimizationInstanceNumber, envCost + 1)
-            costsList.append(meta['objective'])
-            envList.append(limit)
-            optimizationInstanceNumber += 1
+def f2():
+    old_stdout = sys.stdout
+    log_file = open("optimization2.log", "w")
+    sys.stdout = log_file
+    print("******************\nOPTIMIZATION " + str(2) + "\n******************")
+    network = EnergyNetwork(pd.date_range(timePeriod[0], timePeriod[1], freq="60min"))
+    network.setFromExcel(os.path.join(inputFilePath, inputfileName), numberOfBuildings, clusterSize, opt="env")
+    (min_env, costs, meta) = optimizeNetwork(network, 2, 1000000)
+    # costsList.append(costs)
+    # envList.append(min_env)
+    sys.stdout = old_stdout
+    log_file.close()
+    return min_env
+
+def fi(instance, envCost):
+    old_stdout = sys.stdout
+    log_file = open(f"optimization{instance}.log", "w")
+    sys.stdout = log_file
+    print("******************\nOPTIMIZATION " + str(instance) + "\n******************")
+    network = EnergyNetwork(pd.date_range(timePeriod[0], timePeriod[1], freq="60min"))
+    network.setFromExcel(os.path.join(inputFilePath, inputfileName), numberOfBuildings, clusterSize, opt="costs")
+    (limit, costs, meta) = optimizeNetwork(network, instance, envCost + 1)
+    #costsList.append(meta['objective'])
+    #envList.append(limit)
+    sys.stdout = old_stdout
+    log_file.close()
+    return instance, meta['objective'], limit
+
+
+if __name__ == '__main__':
+    costsList = (numberOfOptimizations-2)*[0]
+    envList = (numberOfOptimizations-2)*[0]
+
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        process1 = executor.submit(f1)
+        process2 = executor.submit(f2)
+        (max_env, costsListLast) = process1.result()
+        min_env = process2.result()
+
+    print(
+        'Each iteration will keep emissions lower than some values between femissions_min and femissions_max, so [' + str(
+            min_env) + ', ' + str(max_env) + ']')
+    steps = list(range(int(min_env), int(max_env), int((max_env - min_env) / (numberOfOptimizations - 1))))
+
+    processes = []
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        instances = list(range(3, numberOfOptimizations+1))
+        limits = [steps[i-3] for i in instances]
+        pool = executor.map(fi, instances, limits)
+        for result in pool:
+            (instance, cost, env) = result
+            costsList[instance-3] = cost
+            envList[instance-3] = env
 
         # -----------------------------------------------------------------------------#
         ## Plot Paretofront ##
         # -----------------------------------------------------------------------------#
 
-        costsList.append(costsListLast)
-        envList.append(envListLast)
-        plotParetoFront(costsList, envList)
+    costsList.append(costsListLast)
+    envList.append(max_env)
+    plotParetoFront(costsList, envList)
