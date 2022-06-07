@@ -49,18 +49,18 @@ two child classes EnergyNetworkIndiv and EnergyNetworkGroup are inherited. Eithe
 EnergyNetworkGroup class could be used to define an energy network. The choice mainly depends on whether the buildings 
 are linked together (electrically and/or thermally) or not.
 
-If the buildings within an energy network do not share electricity and/or heat, EnergyNetworkIndiv class is used::
+If the buildings within an energy network do not share electricity and/or heat, EnergyNetworkIndiv class is used:
     ```commandline
     import EnergyNetworkIndiv
     network = EnergyNetworkIndiv(dateTimeIndex, tSH=35, tDHW=55)
     ```
-Otherwise, if the buildings are expected to share energy (electrical and/or heat), EnergyNetworkGroup class is used::
+Otherwise, if the buildings are expected to share energy (electrical and/or heat), EnergyNetworkGroup class is used:
     ```commandline
     import EnergyNetworkGroup
     network = EnergyNetworkGroup(dateTimeIndex, tSH=35, tDHW=55)
     ```
 The first parameter to be passed in both the cases is a Datetime index. This parameter gives the time range for an
-optimization model. The Datetime index could be defined using date_range() in pandas::
+optimization model. The Datetime index could be defined using date_range() in pandas:
     ```commandline
     import pandas as pd
     dateTimeIndex = pd.date_range('2021-01-01 00:00:00', '2021-12-31 23:00:00', freq="60min")
@@ -69,7 +69,7 @@ The second and the third parameters tSH and tDHW define the temperatures for spa
 production, respectively.
 
 Once the 'network' object has been created, the next step then is to build the model from an input excel file which
-defines different components which constitute the model, how they are connected and their associated parameters::
+defines different components which constitute the model, how they are connected and their associated parameters:
     ```commandline
     network.setFromExcel(inputExcelFilePath, numberOfBuildings, clusterSize, opt)
     ```
