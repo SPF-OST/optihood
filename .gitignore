@@ -7,8 +7,8 @@
 **/.idea/
 
 # Ignore result excel and image files
-**/Results/
-**/Figures/
+**/[Rr]esults/
+**/[Ff]igures/
 
 # Ignore virtual environment directory
 venv
