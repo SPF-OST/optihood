@@ -1,0 +1,19 @@
+# Ignore build files
+/.idea/
+/docs/_static/
+/docs/_build/
+/docs/_templates
+*.orig
+**/.idea/
+
+# Ignore result excel and image files
+**/Results/
+**/Figures/
+
+# Ignore virtual environment directory
+venv
+
+# Ignore logs
+**/*.log.*
+
+
