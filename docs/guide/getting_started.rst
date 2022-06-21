@@ -3,7 +3,7 @@
 Getting Started
 ===============
 
-Prerequesites
+Prerequisites
 -------------
 
 In order to use optihood, the following prerequisites are needed on your machine:
