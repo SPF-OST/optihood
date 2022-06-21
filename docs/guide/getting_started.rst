@@ -40,7 +40,7 @@ commands could be used.
 Setting up your optimization model
 ----------------------------------
 
-Optihood offers a several functionalities to define an energy network, optimize it and visualize the results, which
+Optihood offers several functionalities to define an energy network, optimize it and visualize the results, which
 provides the user with a complete framework for optimization without the need to code by hand. You could learn more
 about using optihood by walking through the remaining sections of the documentation:
 
