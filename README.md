@@ -8,7 +8,10 @@ It enables the users to perform both single-objective and multi-objective optimi
 it's associated parameters can be defined easily using an excel file. Additionally, a variety of plotting methods are 
 defined for easy and fast result visualization.
 
-## Installation
+## Documentation
+The documentation can be found on https://optihood.readthedocs.io/.
+
+## Pre-requisites
 In order to use optihood, the following prerequisites are needed on your machine:
 
 - [Python 3.9](https://www.python.org/downloads/) is installed.
