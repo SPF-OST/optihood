@@ -66,7 +66,7 @@ buses
 This excel sheet defines the buses used in the energy network. Buses define the connections between different
 components. Each row of this excel sheet represents a bus node in the model.
 
-.. image:: ./resources/input_excel_buses.PNG
+.. image:: ./resources/input_excel_buses.png
       :width: 400
       :alt: input_excel_buses
 
@@ -115,7 +115,7 @@ demand
 The nodes related to the energy demand i.e. sink are defined in this sheet. The parameters ``label``, ``active`` and
 ``building`` are analogous to the parameters described earlier for buses.
 
-.. image:: ./resources/input_excel_demand.PNG
+.. image:: ./resources/input_excel_demand.png
       :width: 800
       :alt: input_excel_demand
 
