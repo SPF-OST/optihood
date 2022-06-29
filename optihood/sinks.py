@@ -50,12 +50,12 @@ class SinkRCModel(solph.Sink):
             cWall=226.30,
             areaWindows=0.09,
             qDistributionMin=0,
-            qDistributionMax=50,
+            qDistributionMax=1000,
             tIndoorMin=19,
             tIndoorMax=23,
-            tIndoorInit=21,
-            tWallInit=20,
-            tDistributionInit=35,
+            tIndoorInit=19,
+            tWallInit=19,
+            tDistributionInit=19,
             **kwargs,
     ):
         super().__init__(**kwargs)
@@ -179,6 +179,7 @@ class SinkRCModelBlock(SimpleBlock):
             for t in m.TIMESTEPS:
                 for g in group:
                     lhs = self.tIndoor[g, t]
+                    #rhs = g.tIndoorMax
                     rhs = g.tIndoorMax + self.epsilonIndoor[g, t]
                     block.indoor_comfort_upper_limit.add((g, t), (lhs <= rhs))
 
@@ -191,6 +192,7 @@ class SinkRCModelBlock(SimpleBlock):
             for t in m.TIMESTEPS:
                 for g in group:
                     lhs = self.tIndoor[g, t]
+                    # rhs = g.tIndoorMin
                     rhs = g.tIndoorMin - self.epsilonIndoor[g, t]
                     block.indoor_comfort_lower_limit.add((g, t), (lhs >= rhs))
 
@@ -203,6 +205,7 @@ class SinkRCModelBlock(SimpleBlock):
             t = m.TIMESTEPS[-1] #final timestep
             for g in group:
                 lhs = self.tIndoor[g, t]
+                #rhs = g.tIndoorInit
                 rhs = g.tIndoorInit - self.deltaIndoor[g]
                 block.indoor_final_temperature.add((g, t), (lhs >= rhs))
 
