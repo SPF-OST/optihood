@@ -2,7 +2,7 @@ import oemof.solph as solph
 from oemof.tools import logger
 from oemof.tools import economics
 import logging
-from converters import HeatPumpLinear, CHP, SolarCollector, GasBoiler
+from converters import HeatPumpLinear, CHP, SolarCollector, GasBoiler, GeothermalHeatPumpLinear
 from sources import PV
 from storages import ElectricalStorage, ThermalStorage
 
@@ -233,6 +233,33 @@ class Building:
 
         self.__envParam[inputBusLabel] = [data["heat_impact"]*data["efficiency"], 0*data["efficiency"], envImpactPerCapacity*data["efficiency"]]
 
+    def _addGeothemalHeatPump(self, data, temperatureDHW, temperatureSH, temperatureAmb, opt):
+        gwhpSHLabel = data["label"] + '__' + self.__buildingLabel
+        inputBusLabel = data["from"] + '__' + self.__buildingLabel
+        outputSHBusLabel = data["to"].split(",")[0] + '__' + self.__buildingLabel
+        outputDHWBusLabel = data["to"].split(",")[1] + '__' + self.__buildingLabel
+        envImpactPerCapacity = data["impact_cap"] / data["lifetime"]
+
+        geothermalheatPump = GeothermalHeatPumpLinear(self.__buildingLabel, temperatureDHW, temperatureSH, temperatureAmb,
+                                  self.__busDict[inputBusLabel],
+                                  self.__busDict[outputSHBusLabel],
+                                  self.__busDict[outputDHWBusLabel],
+                                  data["capacity_min"], data["capacity_SH"],data["efficiency"],
+                                  self._calculateInvest(data)[0] * (opt == "costs") + envImpactPerCapacity*(opt == "env"),
+                                  self._calculateInvest(data)[1] * (opt == "costs"),
+                                  data["heat_impact"] * (opt == "env"),
+                                  data["heat_impact"], envImpactPerCapacity)
+
+        self.__nodesList.append(geothermalheatPump.getHP("sh"))
+
+        # set technologies, environment and cost parameters
+        self.__technologies.append([outputDHWBusLabel, gwhpSHLabel])
+        self.__technologies.append([outputSHBusLabel, gwhpSHLabel])
+
+        self.__costParam[inputBusLabel] = [self._calculateInvest(data)[0]*data["efficiency"], self._calculateInvest(data)[1]]
+
+        self.__envParam[inputBusLabel] = [data["heat_impact"]*data["efficiency"], 0*data["efficiency"], envImpactPerCapacity*data["efficiency"]]
+
     def _addCHP(self, data, timesteps, opt):
         chpSHLabel = data["label"] + '__' + self.__buildingLabel
         inputBusLabel = data["from"] + '__' + self.__buildingLabel
@@ -291,11 +318,13 @@ class Building:
 
         self.__envParam[gasBoilLabel] = [data["heat_impact"], 0, envImpactPerCapacity]
 
-    def addTransformer(self, data, temperatureDHW, temperatureSH, temperatureAmb, opt):
+    def addTransformer(self, data, temperatureDHW, temperatureSH, temperatureAmb, temperatureGround, opt):
         for i, t in data.iterrows():
             if t["active"]:
                 if t["label"] == "HP":
                     self._addHeatPump(t, temperatureDHW, temperatureSH, temperatureAmb, opt)
+                elif t["label"] == "GWHP":
+                    self._addGeothemalHeatPump(t, temperatureDHW, temperatureSH, temperatureGround, opt)
                 elif t["label"] == "CHP":
                     self._addCHP(t, len(temperatureAmb), opt)
                 elif t["label"] == "GasBoiler":

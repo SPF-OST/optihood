@@ -1,8 +1,9 @@
 import pandas as pd
+import numpy as np
 import os
 import loadProfilesResidential as Resi
 import shoppingmall as Shop
-import multiprocessing
+from multiprocessing import Process, Queue
 import concurrent.futures
 import sys
 try:
@@ -14,8 +15,8 @@ except ImportError:
 optMode = "group"
 createProfiles = False
 cluster = False
-numberOfBuildings = 4
-numberOfOptimizations = 5
+numberOfBuildings = 1
+numberOfOptimizations = 10
 
 
 inputFilePath = "..\data\excels\\"
@@ -116,7 +117,7 @@ def plotParetoFront(costsList, envList):
     print(envList)
 
 
-def f1():
+def f1(q):
     old_stdout = sys.stdout
     log_file = open("optimization1.log","w")
     sys.stdout = log_file
@@ -127,9 +128,9 @@ def f1():
     #costsListLast = meta['objective']
     sys.stdout = old_stdout
     log_file.close()
-    return max_env, meta['objective']
+    q.put((max_env, meta['objective']))
 
-def f2():
+def f2(q):
     old_stdout = sys.stdout
     log_file = open("optimization2.log", "w")
     sys.stdout = log_file
@@ -141,9 +142,9 @@ def f2():
     # envList.append(min_env)
     sys.stdout = old_stdout
     log_file.close()
-    return min_env
+    q.put(min_env)
 
-def fi(instance, envCost):
+def fi(instance, envCost, q):
     old_stdout = sys.stdout
     log_file = open(f"optimization{instance}.log", "w")
     sys.stdout = log_file
@@ -155,33 +156,48 @@ def fi(instance, envCost):
     #envList.append(limit)
     sys.stdout = old_stdout
     log_file.close()
-    return instance, meta['objective'], limit
+    q.put((instance, meta['objective'], limit))
 
 
 if __name__ == '__main__':
     costsList = (numberOfOptimizations-2)*[0]
     envList = (numberOfOptimizations-2)*[0]
 
-    with concurrent.futures.ProcessPoolExecutor() as executor:
-        process1 = executor.submit(f1)
-        process2 = executor.submit(f2)
-        (max_env, costsListLast) = process1.result()
-        min_env = process2.result()
+    q1 = Queue()
+    q2 = Queue()
+    p1 = Process(target=f1, args=(q1,))
+    p2 = Process(target=f2, args=(q2,))
+    p1.start()
+    p2.start()
+    p1.join()
+    p2.join()
+    (max_env, costsListLast) = q1.get()
+    min_env = q2.get()
+
 
     print(
         'Each iteration will keep emissions lower than some values between femissions_min and femissions_max, so [' + str(
             min_env) + ', ' + str(max_env) + ']')
-    steps = list(range(int(min_env), int(max_env), int((max_env - min_env) / (numberOfOptimizations - 1))))
+    #steps = list(range(int(min_env), int(max_env), int((max_env - min_env) / (numberOfOptimizations - 1))))
+    steps = list(np.geomspace(int(min_env), int(max_env), numberOfOptimizations-2, endpoint=False))
+    print(steps)
 
+    qi = Queue()
     processes = []
-    with concurrent.futures.ProcessPoolExecutor() as executor:
-        instances = list(range(3, numberOfOptimizations+1))
-        limits = [steps[i-3] for i in instances]
-        pool = executor.map(fi, instances, limits)
-        for result in pool:
-            (instance, cost, env) = result
-            costsList[instance-3] = cost
-            envList[instance-3] = env
+    for i in range(numberOfOptimizations - 2):
+        instance = i + 3
+        limit = steps[i]
+        p = Process(target=fi, args=(instance, limit, qi,))
+        processes.append(p)
+        p.start()
+
+    for p in processes:
+        p.join()
+
+    while not qi.empty():
+        (instance, cost, env) = qi.get()
+        costsList[instance - 3] = cost
+        envList[instance - 3] = env
 
         # -----------------------------------------------------------------------------#
         ## Plot Paretofront ##

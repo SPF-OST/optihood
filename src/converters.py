@@ -71,9 +71,68 @@ class HeatPumpLinear:
                  epc, base, varc, env_flow, env_capa):
         self.__copDHW = self._calculateCop(temperatureDHW, temperatureLow)
         self.__copSH = self._calculateCop(temperatureSH, temperatureLow)
-        self.avgCopSh=(sum(self.__copSH)/len(self.__copSH))
-        self.nominalEff =nomEff
+        self.avgCopSh = (sum(self.__copSH)/len(self.__copSH))
+        self.nominalEff = nomEff
         self.__heatpump = cp.CombinedTransformer(label='HP' + '__' + buildingLabel,
+                                            inputs={input: solph.Flow(
+                                                investment=solph.Investment(
+                                                    ep_costs=epc*nomEff,
+                                                    minimum=capacityMin/nomEff,
+                                                    maximum=capacityMax/nomEff,
+                                                    nonconvex=True,
+                                                    offset=base,
+                                                    env_per_capa=env_capa*nomEff,
+                                                ),
+                                            )},
+                                            outputs={outputSH: solph.Flow(
+                                                          variable_costs=varc,
+                                                          env_per_flow=env_flow,
+                                                      ),
+                                                      outputDHW: solph.Flow(
+                                                          variable_costs=varc,
+                                                          env_per_flow=env_flow,
+                                                      )
+                                                  },
+                                            efficiencies={outputSH: self.__copSH,
+                                                        outputDHW: self.__copDHW})
+
+    def _calculateCop(self, tHigh, tLow):
+        coefW = [0.66610, -2.2365, 15.541, 25.705, -17.407, 3.8145]
+        coefQ = [11.833, 96.504, 14.496, -50.064, 161.02, -133.60]
+        QCondenser = coefQ[0] + (coefQ[1] * tLow / 273.15) + (coefQ[2] * tHigh / 273.15) + (
+                coefQ[3] * tLow / 273.15 * tHigh / 273.15) + (
+                             coefQ[4] * (tLow / 273.15) ** 2) + (
+                             coefQ[5] * (tHigh / 273.15) ** 2)
+        WCompressor = coefW[0] + (coefW[1] * tLow / 273.15) + (coefW[2] * tHigh / 273.15) + (
+                coefW[3] * tLow / 273.15 * tHigh / 273.15) + (
+                             coefW[4] * (tLow / 273.15) ** 2) + (
+                              coefW[5] * (tHigh / 273.15) ** 2)
+        cop = np.divide(QCondenser, WCompressor)
+        return cop
+
+    def _chargingRule(self, dataLength):
+        for t in range(dataLength):
+            if any([(t - x) % 24 == 0 for x in self.__DHWChargingTimesteps]):
+                    self.__copSH[t] = 0
+            else:
+                    self.__copDHW[t] = 0
+
+    def getHP(self, type):
+        if type == 'sh':
+            return self.__heatpump
+        else:
+            print("Transformer label not identified...")
+            return []
+
+class GeothermalHeatPumpLinear:
+    def __init__(self, buildingLabel, temperatureDHW, temperatureSH, temperatureLow, input, outputSH, outputDHW,
+                 capacityMin, capacityMax, nomEff,
+                 epc, base, varc, env_flow, env_capa):
+        self.__copDHW = self._calculateCop(temperatureDHW, temperatureLow)
+        self.__copSH = self._calculateCop(temperatureSH, temperatureLow)
+        self.avgCopSh = (sum(self.__copSH)/len(self.__copSH))
+        self.nominalEff = nomEff
+        self.__geothermalheatpump = cp.CombinedTransformer(label='GWHP' + '__' + buildingLabel,
                                             inputs={input: solph.Flow(
                                                 investment=solph.Investment(
                                                     ep_costs=epc*nomEff,
@@ -119,7 +178,7 @@ class HeatPumpLinear:
 
     def getHP(self, type):
         if type == 'sh':
-            return self.__heatpump
+            return self.__geothermalheatpump
         else:
             print("Transformer label not identified...")
             return []

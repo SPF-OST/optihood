@@ -133,8 +133,8 @@ def hourlyDailyPlot(data, bus, palette, new_legends):
                 p2.x_range = p_figs_d[0].x_range
             colors = itertools.cycle(palette)
             for j, color in zip(dt.columns, colors):
-                p1.line(dt.index, dt[j], legend_label=new_legends[j.replace(building, "")], color=color)
-                p2.line(data_day.index, data_day[j], legend_label=new_legends[j.replace(building, "")], color=color)
+                p1.line(dt.index, dt[j], legend_label=new_legends[j.replace(building, "")], color=color, line_width=1.5)
+                p2.line(data_day.index, data_day[j], legend_label=new_legends[j.replace(building, "")], color=color, line_width=1.5)
             p_figs.append([p1, p2])
             p_figs_h.append(p1)
             p_figs_d.append(p2)
@@ -168,8 +168,8 @@ def hourlyDailyPlot(data, bus, palette, new_legends):
                 p4.x_range = p_figs_d[0].x_range
             colors = itertools.cycle(palette)
             for j, color in zip(dt.columns, colors):
-                p3.line(dt.index, dt[j], legend_label=new_legends[j.replace(building, "")], color=color)
-                p4.line(data_day.index, data_day[j], legend_label=new_legends[j.replace(building, "")], color=color)
+                p3.line(dt.index, dt[j], legend_label=new_legends[j.replace(building, "")], color=color, line_width=1.5)
+                p4.line(data_day.index, data_day[j], legend_label=new_legends[j.replace(building, "")], color=color, line_width=1.5)
             p_figs.append([p3, p4])
             p_figs_h.append(p3)
             p_figs_d.append(p4)
@@ -195,8 +195,8 @@ def hourlyDailyPlot(data, bus, palette, new_legends):
                 p6.x_range = p_figs_d[0].x_range
             colors = itertools.cycle(palette)
             for j, color in zip(dt.columns, colors):
-                p5.line(dt.index, dt[j], legend_label=new_legends[j.replace(building, "")], color=color)
-                p6.line(data_day.index, data_day[j], legend_label=new_legends[j.replace(building, "")], color=color)
+                p5.line(dt.index, dt[j], legend_label=new_legends[j.replace(building, "")], color=color, line_width=1.5)
+                p6.line(data_day.index, data_day[j], legend_label=new_legends[j.replace(building, "")], color=color, line_width=1.5)
             p_figs.append([p5, p6])
             p_figs_h.append(p5)
             p_figs_d.append(p6)
@@ -901,7 +901,7 @@ def createPlot(resultFilePath, plotLevel, plotType, flowType, plotAnnualHorizont
                 plotsHourly.extend(plotsH)
                 plotsDaily.extend(plotsD)
         else:
-            plotsHourly, plotsDaily = hourlyDailyPlot(dict, names, Category20_12, newLegends)
+            plotsHourly, plotsDaily = hourlyDailyPlot(dict, names, Set1_9, newLegends)
 
         basePath = "..\Figures\\"
         if not os.path.exists(basePath):
@@ -980,6 +980,7 @@ def main(optMode, numberOfBuildings, plotOptim, plotLevel, plotType, flowType, p
         "(('dhwStorageBus', 'dhwStorage'), 'flow')": "Storage_dhw_in",
         "(('domesticHotWaterBus', 'domesticHotWaterDemand'), 'flow')": "Demand_dhw",
         "(('HP', 'dhwStorageBus'), 'flow')": "HP_dhw",
+        "(('GWHP', 'dhwStorageBus'), 'flow')": "GWHP_dhw",
         "(('CHP', 'dhwStorageBus'), 'flow')": "CHP_dhw",
         "(('shSource', 'spaceHeatingBus'), 'flow')": "SH_produced (not stored)",
         "(('shStorage', 'spaceHeatingBus'), 'flow')": "Storage_sh_out",
@@ -991,6 +992,7 @@ def main(optMode, numberOfBuildings, plotOptim, plotLevel, plotType, flowType, p
         "(('GasBoiler', 'shSourceBus'), 'flow')": "Gas_sh",
         "(('GasBoiler', 'dhwStorageBus'), 'flow')": "Gas_dhw",
         "(('HP', 'shSourceBus'), 'flow')": "HP_sh",
+        "(('GWHP', 'shSourceBus'), 'flow')": "GWHP_sh",
         "(('electricityBus', 'producedElectricity'), 'flow')": "Self_consumption",
         "(('gridBus', 'gridElectricity'), 'flow')": "Electricity_grid",
         "(('pv', 'electricityProdBus'), 'flow')": "PV_elec",
@@ -1001,8 +1003,8 @@ def main(optMode, numberOfBuildings, plotOptim, plotLevel, plotType, flowType, p
         "(('electricityProdBus', 'electricitySource'), 'flow')": "Battery_bypass"
     }
     if optMode == "group":
-        newLegends["(('electricityBus', 'electricityLink'), 'flow')"] = "electricityLink_in"
-        newLegends["(('electricityLink', 'electricityInBus'), 'flow')"] = "electricityLink_out"
+        newLegends["(('electricityBus', 'electricityLink'), 'flow')"] = "electricityLink_out"
+        newLegends["(('electricityLink', 'electricityInBus'), 'flow')"] = "electricityLink_in"
         newLegends["(('spaceHeatingBus', 'shLink'), 'flow')"] = "shLink_in"
         newLegends["(('shLink', 'shDemandBus'), 'flow')"] = "shLink_out"
 
@@ -1018,7 +1020,7 @@ def main(optMode, numberOfBuildings, plotOptim, plotLevel, plotType, flowType, p
 if __name__ == '__main__':
     optMode = "group"  # parameter defining whether the results file corresponds to "indiv" or "group" optimization
     numberOfBuildings = 1
-    plotOptim = 1  # defines the number of the optimization to plot
+    plotOptim = 3  # defines the number of the optimization to plot
     plotLevel = "allMonths"  # permissible values (for energy balance plot): "allMonths" {for all months}
     # or specific month {"Jan", "Feb", "Mar", etc. three letter abbreviation of the month name}
     # or specific date {format: YYYY-MM-DD}

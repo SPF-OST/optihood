@@ -130,11 +130,13 @@ class EnergyNetworkClass(solph.EnergySystem):
             logging.error("Nodes data is missing.")
         ################## !!!
         self.__temperatureAmb = np.array(data["weather_data"]["tre200h0"])
+        self.__temperatureGround = np.array(data["weather_data"]["ground_temp"])
         self.__temperatureSH = data["stratified_storage"].loc["shStorage","temp_h"]
         self.__temperatureDHW = data["stratified_storage"].loc["dhwStorage","temp_h"]
         # Transformers conversion factors input power - output power
         self.__chpEff = float(data["transformers"][data["transformers"]["label"] == "CHP"]["efficiency"].iloc[0].split(",")[1])
         self.__hpEff = data["transformers"][data["transformers"]["label"]=="HP"]["efficiency"].iloc[0]
+        self.__gwhpEff = data["transformers"][data["transformers"]["label"] == "GWHP"]["efficiency"].iloc[0]
         self.__gbEff = float(data["transformers"][data["transformers"]["label"]=="GasBoiler"]["efficiency"].iloc[0].split(",")[0])
         # Storage conversion L - kWh to display the L value
         self.__Lsh = 4.186*(self.__temperatureSH - data["stratified_storage"].loc["shStorage","temp_c"])/3600
@@ -152,7 +154,7 @@ class EnergyNetworkClass(solph.EnergySystem):
             b.addSource(data["commodity_sources"][data["commodity_sources"]["building"] == i], data["electricity_impact"], opt)
             b.addSink(data["demand"][data["demand"]["building"] == i], data["demandProfiles"][i])
             b.addTransformer(data["transformers"][data["transformers"]["building"] == i], self.__temperatureDHW,
-                             self.__temperatureSH, self.__temperatureAmb, opt)
+                             self.__temperatureSH, self.__temperatureAmb, self.__temperatureGround, opt)
             b.addStorage(data["storages"][data["storages"]["building"] == i], data["stratified_storage"], opt)
             b.addSolar(data["solar"][(data["solar"]["building"] == i) & (data["solar"]["label"] == "solarCollector")], data["weather_data"], opt)
             b.addPV(data["solar"][(data["solar"]["building"] == i) & (data["solar"]["label"] == "pv")], data["weather_data"], opt)
@@ -261,6 +263,13 @@ class EnergyNetworkClass(solph.EnergySystem):
                         for t in test.keys():
                             if "shSource" in t.label:
                                 capacitiesTransformers[(first,second)] = capacitiesTransformers[(first,second)]*self.__hpEff
+            elif "GWHP" in second:
+                for index, value in enumerate(self.nodes):
+                    if second == value.label:
+                        test = self.nodes[index].conversion_factors
+                        for t in test.keys():
+                            if "shSource" in t.label:
+                                capacitiesTransformers[(first,second)] = capacitiesTransformers[(first,second)]*self.__gwhpEff
             elif "GasBoiler" in second:
                 for index, value in enumerate(self.nodes):
                     if second == value.label:
@@ -355,34 +364,46 @@ class EnergyNetworkClass(solph.EnergySystem):
         return self.__metaResults
 
     def calcStateofCharge(self, type, building):
-        storage = self.groups[type + '__' + building]
-        #print(f"""********* State of Charge ({type},{building}) *********""")
-        #print(
-        #    self.__optimizationResults[(storage, None)]["sequences"]
-        #)
-        self._storageContentSH[building] = self.__optimizationResults[(storage, None)]["sequences"]
+        if type + '__' + building in self.groups:
+            storage = self.groups[type + '__' + building]
+            #print(f"""********* State of Charge ({type},{building}) *********""")
+            #print(
+            #    self.__optimizationResults[(storage, None)]["sequences"]
+            #)
+            self._storageContentSH[building] = self.__optimizationResults[(storage, None)]["sequences"]
         print("")
 
     def printInvestedCapacities(self, capacitiesInvestedTransformers, capacitiesInvestedStorages):
         for b in range(len(self.__buildings)):
             buildingLabel = "Building" + str(b + 1)
             print("************** Optimized Capacities for {} **************".format(buildingLabel))
-            investSH = capacitiesInvestedTransformers[("electricityInBus__" + buildingLabel, "HP__" + buildingLabel)]
-            print("Invested in {} kW HP.".format(investSH))
-            investSH = capacitiesInvestedTransformers[("naturalGasBus__" + buildingLabel, "CHP__" + buildingLabel)]
-            print("Invested in {} kW CHP.".format(investSH))# + investEL))
-            invest = capacitiesInvestedTransformers[("heat_solarCollector__" + buildingLabel, "solarConnectBus__" + buildingLabel)]
-            print("Invested in {} m² SolarCollector.".format(invest))
-            investSH = capacitiesInvestedTransformers[("naturalGasBus__" + buildingLabel, "GasBoiler__" + buildingLabel)]
-            print("Invested in {} kW  GasBoiler.".format(investSH))
-            invest = capacitiesInvestedTransformers[("pv__" + buildingLabel, "electricityProdBus__" + buildingLabel)]
-            print("Invested in {} kW  PV.".format(invest))
-            invest = capacitiesInvestedStorages["electricalStorage__" + buildingLabel]
-            print("Invested in {} kWh Electrical Storage.".format(invest))
-            invest = capacitiesInvestedStorages["dhwStorage__" + buildingLabel]
-            print("Invested in {} L DHW Storage Tank.".format(invest))
-            invest = capacitiesInvestedStorages["shStorage__" + buildingLabel]
-            print("Invested in {} L SH Storage Tank.".format(invest))
+            if ("electricityInBus__" + buildingLabel, "HP__" + buildingLabel) in capacitiesInvestedTransformers:
+                investSH = capacitiesInvestedTransformers[("electricityInBus__" + buildingLabel, "HP__" + buildingLabel)]
+                print("Invested in {} kW HP.".format(investSH))
+            if ("electricityInBus__" + buildingLabel, "GWHP__" + buildingLabel) in capacitiesInvestedTransformers:
+                investSH = capacitiesInvestedTransformers[("electricityInBus__" + buildingLabel, "GWHP__" + buildingLabel)]
+                print("Invested in {} kW GWHP.".format(investSH))
+            if ("naturalGasBus__" + buildingLabel, "CHP__" + buildingLabel) in capacitiesInvestedTransformers:
+                investSH = capacitiesInvestedTransformers[("naturalGasBus__" + buildingLabel, "CHP__" + buildingLabel)]
+                print("Invested in {} kW CHP.".format(investSH))# + investEL))
+            if ("naturalGasBus__" + buildingLabel, "GasBoiler__" + buildingLabel) in capacitiesInvestedTransformers:
+                investSH = capacitiesInvestedTransformers[("naturalGasBus__" + buildingLabel, "GasBoiler__" + buildingLabel)]
+                print("Invested in {} kW  GasBoiler.".format(investSH))
+            if ("heat_solarCollector__" + buildingLabel, "solarConnectBus__" + buildingLabel) in capacitiesInvestedTransformers:
+                invest = capacitiesInvestedTransformers[("heat_solarCollector__" + buildingLabel, "solarConnectBus__" + buildingLabel)]
+                print("Invested in {} m² SolarCollector.".format(invest))
+            if ("pv__" + buildingLabel, "electricityProdBus__" + buildingLabel) in capacitiesInvestedTransformers:
+                invest = capacitiesInvestedTransformers[("pv__" + buildingLabel, "electricityProdBus__" + buildingLabel)]
+                print("Invested in {} kWp  PV.".format(invest))
+            if "electricalStorage__" + buildingLabel in capacitiesInvestedStorages:
+                invest = capacitiesInvestedStorages["electricalStorage__" + buildingLabel]
+                print("Invested in {} kWh Electrical Storage.".format(invest))
+            if "dhwStorage__" + buildingLabel in capacitiesInvestedStorages:
+                invest = capacitiesInvestedStorages["dhwStorage__" + buildingLabel]
+                print("Invested in {} L DHW Storage Tank.".format(invest))
+            if "shStorage__" + buildingLabel in capacitiesInvestedStorages:
+                invest = capacitiesInvestedStorages["shStorage__" + buildingLabel]
+                print("Invested in {} L SH Storage Tank.".format(invest))
             print("")
 
     def printCosts(self):
