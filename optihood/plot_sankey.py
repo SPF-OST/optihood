@@ -25,7 +25,10 @@ def addCapacities(nodes, dataDict, buildings, UseLabelDict):
             else:
                 index = nodes.index(j)
             #nodes[index]=nodes[index]+" "+str(round(k[0],2))+" kWh"
-            capacities[index]=str(round(k[0],1))+" kWh"
+            if "Bat" in labelDict[j]:
+                capacities[index] = str(round(k[0], 1)) + " kWh"
+            else:
+                capacities[index] = str(round(k[0], 1)) + " L"
         for j, k in capTransformers.iterrows():
             if k[0] < 0.001:     # if the installed capacity is 0 then skip (sometimes as an error very low capacites are selected. To handle this k<0.001kW is set as the condition for comparison
                 continue

@@ -2,7 +2,7 @@ import oemof.solph as solph
 from oemof.tools import logger
 from oemof.tools import economics
 import logging
-from optihood.converters import HeatPumpLinear, CHP, SolarCollector, GasBoiler
+from optihood.converters import HeatPumpLinear, CHP, SolarCollector, GasBoiler, GeothermalHeatPumpLinear
 from optihood.sources import PV
 from optihood.storages import ElectricalStorage, ThermalStorage
 from optihood.sinks import SinkRCModel
@@ -67,7 +67,7 @@ class Building:
                 base=self._calculateInvest(s)[1]
                 env_capa=s["impact_cap"] / s["lifetime"]
                 env_flow=s["elec_impact"]
-                varc=0 # variable cost is only passed for environmental optimization if there are emissions per kW of energy produced from the unit
+                varc=0 # variable cost is only passed for environmental optimization if there are emissions per kWh of energy produced from the unit
 
                 envParam = [0, s["elec_impact"], s["impact_cap"] / s["lifetime"]]
 
@@ -76,7 +76,7 @@ class Building:
                 base = 0
                 env_capa = s["impact_cap"] / s["lifetime"]
                 env_flow = s["elec_impact"]
-                varc = s["elec_impact"] # variable cost is only passed for environmental optimization if there are emissions per kW of energy produced from the unit
+                varc = s["elec_impact"] # variable cost is only passed for environmental optimization if there are emissions per kWh of energy produced from the unit
 
                 envParam = [0, s["elec_impact"], s["impact_cap"] / s["lifetime"]]
 
@@ -104,7 +104,7 @@ class Building:
                 base=self._calculateInvest(s)[1]
                 env_capa=s["impact_cap"] / s["lifetime"]
                 env_flow=s["heat_impact"]
-                varc=0 # variable cost is only passed for environmental optimization if there are emissions per kW of energy produced from the unit
+                varc=0 # variable cost is only passed for environmental optimization if there are emissions per kWh of energy produced from the unit
 
                 envParam = [s["heat_impact"], 0, env_capa]
 
@@ -113,7 +113,7 @@ class Building:
                 base=0
                 env_capa= s["impact_cap"] / s["lifetime"]
                 env_flow=s["heat_impact"]
-                varc= s["heat_impact"] # variable cost is only passed for environmental optimization if there are emissions per kW of energy produced from the unit
+                varc= s["heat_impact"] # variable cost is only passed for environmental optimization if there are emissions per kWh of energy produced from the unit
 
                 envParam = [s["heat_impact"], 0, env_capa]
 
@@ -242,9 +242,39 @@ class Building:
         self.__technologies.append([outputDHWBusLabel, hpSHLabel])
         self.__technologies.append([outputSHBusLabel, hpSHLabel])
 
-        self.__costParam[inputBusLabel] = [self._calculateInvest(data)[0]*data["efficiency"], self._calculateInvest(data)[1]*data["efficiency"]]
+        self.__costParam[inputBusLabel] = [self._calculateInvest(data)[0]*data["efficiency"], self._calculateInvest(data)[1]]
 
-        self.__envParam[inputBusLabel] = [data["heat_impact"]*data["efficiency"], 0*data["efficiency"], envImpactPerCapacity*data["efficiency"]]
+        self.__envParam[inputBusLabel] = [data["heat_impact"] * data["efficiency"], 0 * data["efficiency"], envImpactPerCapacity * data["efficiency"]]
+
+        def _addGeothemalHeatPump(self, data, temperatureDHW, temperatureSH, temperatureAmb, opt):
+            gwhpSHLabel = data["label"] + '__' + self.__buildingLabel
+            inputBusLabel = data["from"] + '__' + self.__buildingLabel
+            outputSHBusLabel = data["to"].split(",")[0] + '__' + self.__buildingLabel
+            outputDHWBusLabel = data["to"].split(",")[1] + '__' + self.__buildingLabel
+            envImpactPerCapacity = data["impact_cap"] / data["lifetime"]
+
+            geothermalheatPump = GeothermalHeatPumpLinear(self.__buildingLabel, temperatureDHW, temperatureSH,
+                                                          temperatureAmb,
+                                                          self.__busDict[inputBusLabel],
+                                                          self.__busDict[outputSHBusLabel],
+                                                          self.__busDict[outputDHWBusLabel],
+                                                          data["capacity_min"], data["capacity_SH"], data["efficiency"],
+                                                          self._calculateInvest(data)[0] * (
+                                                                      opt == "costs") + envImpactPerCapacity * (
+                                                                      opt == "env"),
+                                                          self._calculateInvest(data)[1] * (opt == "costs"),
+                                                          data["heat_impact"] * (opt == "env"),
+                                                          data["heat_impact"], envImpactPerCapacity)
+
+            self.__nodesList.append(geothermalheatPump.getHP("sh"))
+
+            # set technologies, environment and cost parameters
+            self.__technologies.append([outputDHWBusLabel, gwhpSHLabel])
+            self.__technologies.append([outputSHBusLabel, gwhpSHLabel])
+
+            self.__costParam[inputBusLabel] = [self._calculateInvest(data)[0] * data["efficiency"], self._calculateInvest(data)[1]]
+
+            self.__envParam[inputBusLabel] = [data["heat_impact"]*data["efficiency"], 0*data["efficiency"], envImpactPerCapacity*data["efficiency"]]
 
     def _addCHP(self, data, timesteps, opt):
         chpSHLabel = data["label"] + '__' + self.__buildingLabel
@@ -276,36 +306,41 @@ class Building:
         self.__technologies.append([outputSHBusLabel, chpSHLabel])
         self.__technologies.append([outputDHWBusLabel, chpSHLabel])
 
-        self.__costParam[inputBusLabel] = [self._calculateInvest(data)[0]*chp.avgEff, self._calculateInvest(data)[1]*chp.avgEff]
+        self.__costParam[inputBusLabel] = [self._calculateInvest(data)[0]*chp.avgEff, self._calculateInvest(data)[1]]
 
         self.__envParam[inputBusLabel] = [data["heat_impact"]*chp.avgEff, data["elec_impact"]*chp.avgEff, envImpactPerCapacity*chp.avgEff]
 
     def _addGasBoiler(self, data, opt):
         gasBoilLabel = data["label"] + '__' + self.__buildingLabel
         inputBusLabel = data["from"] + '__' + self.__buildingLabel
-        outputBusLabel = data["to"] + '__' + self.__buildingLabel
-        efficiency = float(data["efficiency"])
+        outputSHBusLabel = data["to"].split(",")[0] + '__' + self.__buildingLabel
+        outputDHWBusLabel = data["to"].split(",")[1] + '__' + self.__buildingLabel
+        shEfficiency = float(data["efficiency"].split(",")[0])
+        dhwEfficiency = float(data["efficiency"].split(",")[1])
         envImpactPerCapacity = data["impact_cap"] / data["lifetime"]
 
 
         self.__nodesList.append(GasBoiler(self.__buildingLabel, self.__busDict[inputBusLabel],
-                  self.__busDict[outputBusLabel],
-                  efficiency, data["capacity_min"], data["capacity_SH"],
+                  self.__busDict[outputSHBusLabel], self.__busDict[outputDHWBusLabel],
+                  shEfficiency, dhwEfficiency, data["capacity_min"], data["capacity_SH"],
                   self._calculateInvest(data)[0] * (opt == "costs") + envImpactPerCapacity * (opt == "env"),
                   self._calculateInvest(data)[1] * (opt == "costs"), data["heat_impact"] * (opt == "env"), data["heat_impact"], envImpactPerCapacity))
 
         # set technologies, environment and cost parameters
-        self.__technologies.append([outputBusLabel, gasBoilLabel])
+        self.__technologies.append([outputSHBusLabel, gasBoilLabel])
+        self.__technologies.append([outputDHWBusLabel, gasBoilLabel])
 
         self.__costParam[gasBoilLabel] = [self._calculateInvest(data)[0], self._calculateInvest(data)[1]]
 
         self.__envParam[gasBoilLabel] = [data["heat_impact"], 0, envImpactPerCapacity]
 
-    def addTransformer(self, data, temperatureDHW, temperatureSH, temperatureAmb, opt):
+    def addTransformer(self, data, temperatureDHW, temperatureSH, temperatureAmb, temperatureGround, opt):
         for i, t in data.iterrows():
             if t["active"]:
                 if t["label"] == "HP":
                     self._addHeatPump(t, temperatureDHW, temperatureSH, temperatureAmb, opt)
+                elif t["label"] == "GWHP":
+                    self._addGeothemalHeatPump(t, temperatureDHW, temperatureSH, temperatureGround, opt)
                 elif t["label"] == "CHP":
                     self._addCHP(t, len(temperatureAmb), opt)
                 elif t["label"] == "GasBoiler":
@@ -349,7 +384,9 @@ class Building:
                     logging.warning("Storage label not identified")
 
     def _calculateInvest(self, data):
-        c = data["maintenance"] + data["installation"] + data["planification"] + 1
-        perCapacity = economics.annuity(c * data["invest_cap"], data["lifetime"], intRate)
-        base = economics.annuity(c * data["invest_base"], data["lifetime"], intRate)
+        # Calculate the CAPEX and the part of the OPEX not related to energy flows (maintenance)
+        c = data["installation"] + data["planification"] + 1
+        m = data["maintenance"]
+        perCapacity = m * data["invest_cap"] + economics.annuity(c * data["invest_cap"], data["lifetime"], intRate)
+        base = m * data["invest_base"] + economics.annuity(c * data["invest_base"], data["lifetime"], intRate)
         return perCapacity, base

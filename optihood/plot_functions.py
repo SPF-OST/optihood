@@ -133,8 +133,8 @@ def hourlyDailyPlot(data, bus, palette, new_legends):
                 p2.x_range = p_figs_d[0].x_range
             colors = itertools.cycle(palette)
             for j, color in zip(dt.columns, colors):
-                p1.line(dt.index, dt[j], legend_label=new_legends[j.replace(building, "")], color=color)
-                p2.line(data_day.index, data_day[j], legend_label=new_legends[j.replace(building, "")], color=color)
+                p1.line(dt.index, dt[j], legend_label=new_legends[j.replace(building, "")], color=color, line_width=1.5)
+                p2.line(data_day.index, data_day[j], legend_label=new_legends[j.replace(building, "")], color=color, line_width=1.5)
             p_figs.append([p1, p2])
             p_figs_h.append(p1)
             p_figs_d.append(p2)
@@ -168,8 +168,8 @@ def hourlyDailyPlot(data, bus, palette, new_legends):
                 p4.x_range = p_figs_d[0].x_range
             colors = itertools.cycle(palette)
             for j, color in zip(dt.columns, colors):
-                p3.line(dt.index, dt[j], legend_label=new_legends[j.replace(building, "")], color=color)
-                p4.line(data_day.index, data_day[j], legend_label=new_legends[j.replace(building, "")], color=color)
+                p3.line(dt.index, dt[j], legend_label=new_legends[j.replace(building, "")], color=color, line_width=1.5)
+                p4.line(data_day.index, data_day[j], legend_label=new_legends[j.replace(building, "")], color=color, line_width=1.5)
             p_figs.append([p3, p4])
             p_figs_h.append(p3)
             p_figs_d.append(p4)
@@ -195,8 +195,8 @@ def hourlyDailyPlot(data, bus, palette, new_legends):
                 p6.x_range = p_figs_d[0].x_range
             colors = itertools.cycle(palette)
             for j, color in zip(dt.columns, colors):
-                p5.line(dt.index, dt[j], legend_label=new_legends[j.replace(building, "")], color=color)
-                p6.line(data_day.index, data_day[j], legend_label=new_legends[j.replace(building, "")], color=color)
+                p5.line(dt.index, dt[j], legend_label=new_legends[j.replace(building, "")], color=color, line_width=1.5)
+                p6.line(data_day.index, data_day[j], legend_label=new_legends[j.replace(building, "")], color=color, line_width=1.5)
             p_figs.append([p5, p6])
             p_figs_h.append(p5)
             p_figs_d.append(p6)
@@ -281,7 +281,7 @@ def deduplicateLegend(handles, labels):
     return (new_handles, new_labels)
 
 
-def resultingDataDiagram(elBus, shBus, dhwBus, costs, env, COLORS, building):
+def resultingDataDiagram(elBus, shBus, dhwBus, costs, env, COLORS, building, newLegends):
     """
     Function inspired from the URBS platform https://github.com/ojdo/urbs/blob/1house/comp.py
     Function plotting the different results of the optimization. First, costs will be plotted, then the energy produced,
@@ -502,7 +502,7 @@ def resultingDataDiagramLoop(elec, sh, dhw, costs, env, colors, buildings):
 
     return fig
 
-def resultingDataDemandDiagram(elBus, shBus, dhwBus, COLORS, building):
+def resultingDataDemandDiagram(elBus, shBus, dhwBus, COLORS, building, newLegends):
     """
     Function inspired from the URBS platform https://github.com/ojdo/urbs/blob/1house/comp.py
     Function plotting the different results of the optimization. First, costs will be plotted, then the energy produced,
@@ -901,17 +901,17 @@ def createPlot(resultFilePath, basePath, plotLevel, plotType, flowType, plotAnnu
                 plotsHourly.extend(plotsH)
                 plotsDaily.extend(plotsD)
         else:
-            plotsHourly, plotsDaily = hourlyDailyPlot(dict, names, Category20_12, newLegends)
+            plotsHourly, plotsDaily = hourlyDailyPlot(dict, names, Set1_9, newLegends)
 
         if not os.path.exists(basePath):
             os.makedirs(basePath)
 
         output_file(os.path.join(basePath,"HourlyBokehPlots.html"))
-        grid = gridplot(plotsHourly, ncols=ncols, plot_width=700, plot_height=500, sizing_mode="fixed")
+        grid = gridplot(plotsHourly, ncols=ncols, plot_width=850, plot_height=500, sizing_mode="fixed")
         show(grid)
         if not any(chr.isdigit() for chr in plotLevel):
             output_file(os.path.join(basePath,"DailyBokehPlots.html"))
-            grid = gridplot(plotsDaily, ncols=ncols, plot_width=700, plot_height=500, sizing_mode="fixed")
+            grid = gridplot(plotsDaily, ncols=ncols, plot_width=850, plot_height=500, sizing_mode="fixed")
             show(grid)
     else:
         raise ValueError("Illegal value for the parameter plot type")
@@ -979,6 +979,7 @@ def plot(excelFileName, figureFilePath, plotLevel, plotType, flowType, plotAnnua
         "(('dhwStorageBus', 'dhwStorage'), 'flow')": "Storage_dhw_in",
         "(('domesticHotWaterBus', 'domesticHotWaterDemand'), 'flow')": "Demand_dhw",
         "(('HP', 'dhwStorageBus'), 'flow')": "HP_dhw",
+        "(('GWHP', 'dhwStorageBus'), 'flow')": "GWHP_dhw",
         "(('CHP', 'dhwStorageBus'), 'flow')": "CHP_dhw",
         "(('shSource', 'spaceHeatingBus'), 'flow')": "SH_produced (not stored)",
         "(('shStorage', 'spaceHeatingBus'), 'flow')": "Storage_sh_out",
@@ -988,7 +989,9 @@ def plot(excelFileName, figureFilePath, plotLevel, plotType, flowType, plotAnnua
         "(('shDemandBus', 'spaceHeatingDemand'), 'flow')": "Demand_sh",
         "(('CHP', 'shSourceBus'), 'flow')": "CHP_sh",
         "(('GasBoiler', 'shSourceBus'), 'flow')": "Gas_sh",
+        "(('GasBoiler', 'dhwStorageBus'), 'flow')": "Gas_dhw",
         "(('HP', 'shSourceBus'), 'flow')": "HP_sh",
+        "(('GWHP', 'shSourceBus'), 'flow')": "GWHP_sh",
         "(('electricityBus', 'producedElectricity'), 'flow')": "Self_consumption",
         "(('gridBus', 'gridElectricity'), 'flow')": "Electricity_grid",
         "(('pv', 'electricityProdBus'), 'flow')": "PV_elec",
