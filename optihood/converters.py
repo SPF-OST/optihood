@@ -1,6 +1,6 @@
 import oemof.solph as solph
 import numpy as np
-import combined_prod as cp
+import optihood.combined_prod as cp
 from oemof.thermal.solar_thermal_collector import flat_plate_precalc
 
 class SolarCollector(solph.Transformer):
