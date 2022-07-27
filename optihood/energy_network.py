@@ -52,7 +52,7 @@ class EnergyNetworkClass(solph.EnergySystem):
             weatherData = pd.concat([nodesData['weather_data'][
                                          nodesData['weather_data']['time.mm'] == int(d.split('-')[1])][
                                          nodesData['weather_data']['time.dd'] == int(d.split('-')[2])][
-                                         ['gls', 'str.diffus', 'tre200h0']] for d in clusterSize.keys()])
+                                         ['gls', 'str.diffus', 'tre200h0', 'ground_temp']] for d in clusterSize.keys()])
 
             nodesData["demandProfiles"] = demandProfiles
             nodesData["electricity_impact"] = electricityImpact

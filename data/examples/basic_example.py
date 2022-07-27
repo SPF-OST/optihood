@@ -52,7 +52,7 @@ if __name__ == '__main__':
     }
 
     # create an energy network and set the network parameters from an excel file
-    network = EnergyNetwork(timePeriod, temperatureSH, temperatureDHW)
+    network = EnergyNetwork(timePeriod)
     network.setFromExcel(os.path.join(inputFilePath, inputfileName), numberOfBuildings, opt=optimizationType)
 
     # optimize the energy network

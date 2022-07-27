@@ -971,6 +971,7 @@ def plot(excelFileName, figureFilePath, plotLevel, plotType, flowType, plotAnnua
         "(('electricityProdBus', 'electricalStorage'), 'flow')": "Battery_in",
         "(('electricityInBus', 'electricityDemand'), 'flow')": "Demand_elec",
         "(('electricityInBus', 'HP'), 'flow')": "HP",
+        "(('electricityInBus', 'GWHP'), 'flow')": "GWHP",
         "(('CHP', 'electricityProdBus'), 'flow')": "CHP_elec",
         "(('electricalStorage', 'electricityBus'), 'flow')": "Battery_out",
         "(('electricitySource', 'electricityBus'), 'flow')": "Elect_produced (not stored)",

@@ -44,7 +44,7 @@ if __name__ == '__main__':
     optimizationType = "costs"  # set as "env" for environmental optimization
 
     # create an energy network and set the network parameters from an excel file
-    network = EnergyNetwork(timePeriod, temperatureSH, temperatureDHW)
+    network = EnergyNetwork(timePeriod)
     network.setFromExcel(os.path.join(inputFilePath, inputfileName), numberOfBuildings, clusterSize=cluster, opt=optimizationType)
 
     # optimize the energy network
