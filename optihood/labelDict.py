@@ -77,6 +77,7 @@ labelDict = {
     "electricitySource__Building1": "prodEl_B1",
     "electricalStorage__Building1": "Bat_B1",
     "excesselectricityBus__Building1": "exEl_B1",
+    "excessshDemandBus__Building1": "exSh_B1",
     "electricityInBus__Building1": "usedEl_B1",
     "HP_SH__Building1": "HP_B1",
     "HP_DHW__Building1": "HP_B1",
@@ -100,6 +101,7 @@ labelDict = {
     "electricityDemand__Building1": "Q_el_B1",
     "spaceHeatingDemand__Building1": "Q_sh_B1",
     "domesticHotWaterDemand__Building1": "Q_dhw_B1",
+    "excessshSourceBus__Building1": "exSh_B1",
 
     "naturalGasResource__Building2": "natGas_B2",
     "naturalGasBus__Building2": "natGas_B2",
@@ -117,6 +119,7 @@ labelDict = {
     "electricitySource__Building2": "prodEl_B2",
     "electricalStorage__Building2": "Bat_B2",
     "excesselectricityBus__Building2": "exEl_B2",
+    "excessshDemandBus__Building2": "exSh_B2",
     "electricityInBus__Building2": "usedEl_B2",
     "HP_SH__Building2": "HP_B2",
     "HP_DHW__Building2": "HP_B2",
@@ -140,6 +143,7 @@ labelDict = {
     "electricityDemand__Building2": "Q_el_B2",
     "spaceHeatingDemand__Building2":        "Q_sh_B2",
     "domesticHotWaterDemand__Building2": "Q_dhw_B2",
+    "excessshSourceBus__Building2": "exSh_B2",
 
     "naturalGasResource__Building3": "natGas_B3",
     "naturalGasBus__Building3": "natGas_B3",
@@ -157,6 +161,7 @@ labelDict = {
     "electricitySource__Building3": "prodEl_B3",
     "electricalStorage__Building3": "Bat_B3",
     "excesselectricityBus__Building3": "exEl_B3",
+    "excessshDemandBus__Building3": "exSh_B3",
     "electricityInBus__Building3": "usedEl_B3",
     "HP_SH__Building3": "HP_B3",
     "HP_DHW__Building3": "HP_B3",
@@ -180,6 +185,7 @@ labelDict = {
     "electricityDemand__Building3": "Q_el_B3",
     "spaceHeatingDemand__Building3":        "Q_sh_B3",
     "domesticHotWaterDemand__Building3": "Q_dhw_B3",
+    "excessshSourceBus__Building3": "exSh_B3",
 
     "naturalGasResource__Building4": "natGas_B4",
     "naturalGasBus__Building4": "natGas_B4",
@@ -197,6 +203,7 @@ labelDict = {
     "electricitySource__Building4": "prodEl_B4",
     "electricalStorage__Building4": "Bat_B4",
     "excesselectricityBus__Building4": "exEl_B4",
+    "excessshDemandBus__Building4": "exSh_B4",
     "electricityInBus__Building4": "usedEl_B4",
     "HP_SH__Building4": "HP_B4",
     "HP_DHW__Building4": "HP_B4",
@@ -220,6 +227,7 @@ labelDict = {
     "electricityDemand__Building4": "Q_el_B4",
     "spaceHeatingDemand__Building4":        "Q_sh_B4",
     "domesticHotWaterDemand__Building4": "Q_dhw_B4",
+    "excessshSourceBus__Building4": "exSh_B4",
 
     "naturalGasResource__Building5": "natGas_B5",
     "naturalGasBus__Building5": "natGas_B5",
@@ -237,6 +245,8 @@ labelDict = {
     "electricitySource__Building5": "prodEl_B5",
     "electricalStorage__Building5": "Bat_B5",
     "excesselectricityBus__Building5": "exEl_B5",
+    "excessshDemandBus__Building5": "exSh_B5",
+    "excessshSourceBus__Building5": "exSh_B5",
     "electricityInBus__Building5": "usedEl_B5",
     "HP_SH__Building5": "HP_B5",
     "HP_DHW__Building5": "HP_B5",
@@ -277,6 +287,8 @@ labelDict = {
     "electricitySource__Building6": "prodEl_B6",
     "electricalStorage__Building6": "Bat_B6",
     "excesselectricityBus__Building6": "exEl_B6",
+    "excessshDemandBus__Building6": "exSh_B6",
+    "excessshSourceBus__Building6": "exSh_B6",
     "electricityInBus__Building6": "usedEl_B6",
     "HP_SH__Building6": "HP_B6",
     "HP_DHW__Building6": "HP_B6",
@@ -326,6 +338,7 @@ labelPositionDict={
     "Q_el":	[0.999, 0.15],
     "Q_sh":	[0.999, 0.6],
     "Q_dhw":	[0.999, 0.85],
+    "exSh": [0.999, 0.4]
 	}
 
 fullPositionDict={

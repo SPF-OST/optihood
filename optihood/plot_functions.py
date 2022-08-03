@@ -141,7 +141,7 @@ def hourlyDailyPlot(data, bus, palette, new_legends):
             p_plots.append(p1)
             p_plots.append(p2)
 
-        elif "shSource" in bus[i]:
+        elif "shSource" in bus[i] or "spaceHeatingBus" in bus[i]:
             dt = data[i]
             shLinks = dt.filter(like='shLink')  # half would be el_link_out and half would be el_link_in
             dt.drop(list(dt.filter(regex='shLink')), axis=1, inplace=True)
@@ -988,6 +988,8 @@ def plot(excelFileName, figureFilePath, plotLevel, plotType, flowType, plotAnnua
         "(('shSourceBus', 'shStorage'), 'flow')": "Storage_sh_in",
         "(('spaceHeatingBus', 'spaceHeating'), 'flow')": "SH_direct_to_load",
         "(('shDemandBus', 'spaceHeatingDemand'), 'flow')": "Demand_sh",
+        "(('shDemandBus', 'excessshDemandBus'), 'flow')": "Excess SH production",
+        "(('shSourceBus', 'excessshSourceBus'), 'flow')": "Excess SH production",
         "(('CHP', 'shSourceBus'), 'flow')": "CHP_sh",
         "(('GasBoiler', 'shSourceBus'), 'flow')": "Gas_sh",
         "(('GasBoiler', 'dhwStorageBus'), 'flow')": "Gas_dhw",
