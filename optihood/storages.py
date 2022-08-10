@@ -3,6 +3,7 @@ from oemof.thermal.stratified_thermal_storage import (
     calculate_losses,
 )
 
+
 import oemof.solph as solph
 
 class ElectricalStorage(solph.components.GenericStorage):
@@ -39,10 +40,10 @@ class ThermalStorage(solph.components.GenericStorage):
         super(ThermalStorage, self).__init__(
             label=label1,
             inputs={
-                input: solph.Flow(),
+                input: solph.Flow(investment=solph.Investment(ep_costs=0)),
             },
             outputs={
-                output: solph.Flow(variable_costs=varc, env_per_flow=env_flow, )
+                output: solph.Flow(investment=solph.Investment(ep_costs=0), variable_costs=varc, env_per_flow=env_flow, )
             },
             loss_rate=loss_rate,
             initial_storage_level=initial_storage,
@@ -50,11 +51,11 @@ class ThermalStorage(solph.components.GenericStorage):
             fixed_losses_absolute=fixed_losses_absolute,
             inflow_conversion_factor=stratifiedStorageParams.at[label2, 'inflow_conversion_factor'],
             outflow_conversion_factor=stratifiedStorageParams.at[label2, 'outflow_conversion_factor'],
-            Balanced=True,
-            invest_relation_input_capacity=stratifiedStorageParams.at[label2, 'inflow_conversion_factor'],
-            invest_relation_output_capacity=stratifiedStorageParams.at[label2, 'outflow_conversion_factor'],
+            invest_relation_input_capacity=1,
+            invest_relation_output_capacity=1,
+            Balanced=False,
             investment=solph.Investment(
-                minimum=capacity_min,
+                minimum=0,
                 maximum=capacity_max,
                 ep_costs=epc,
                 existing=0,

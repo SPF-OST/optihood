@@ -192,7 +192,8 @@ class EnergyNetworkClass(solph.EnergySystem):
         logging.info("Optimization model built successfully")
         # add constraint to limit the environmental impacts
         optimizationModel, flows, transformerFlowCapacityDict, storageCapacityDict = environmentalImpactlimit(optimizationModel, keyword1="env_per_flow", keyword2="env_per_capa", limit=envImpactlimit)
-        optimizationModel = dailySHStorageConstraint(optimizationModel)
+        if clusterSize:
+            optimizationModel = dailySHStorageConstraint(optimizationModel)
         logging.info("Custom constraints successfully added to the optimization model")
         if solver == "gurobi":
             logging.info("Initiating optimization using {} solver".format(solver))
@@ -459,7 +460,7 @@ class EnergyNetworkClass(solph.EnergySystem):
                     result = pd.DataFrame.from_dict(solph.views.node(self.__optimizationResults, i)["sequences"])
                     if "shSourceBus" in i:
                         result = pd.concat([result, self._storageContentSH[i.split("__")[1]]], axis=1, sort=True)
-
+                result[result < 0.001] = 0      # to resolve the issue of very low values in the results in certain cases, values less than 1 Watt would be replaced by 0
                 result.to_excel(writer, sheet_name=i)
 
             # writing the costs and environmental impacts (of different components...) for each building
