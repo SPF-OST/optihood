@@ -23,6 +23,7 @@ def dailySHStorageConstraint(om):
 
 def environmentalImpactlimit(om, keyword1, keyword2, limit=None):
     """
+    Based on: oemof.solph.constraints.emission_limit
     Function to limit the environmental impacts during the multi-objective optimization
     :param om: model
     :param keyword1: keyword for environmental impacts per flow, placed in a solph.Flow() object
@@ -70,3 +71,57 @@ def environmentalImpactlimit(om, keyword1, keyword2, limit=None):
         pyo.Constraint(expr=(getattr(om, envImpact) <= limit)),
     )
     return om, flows, transformerFlowCapacityDict, storageCapacityDict
+
+
+def roof_area_limit(model, keyword1, keyword2, nb):
+    r"""
+    Based on: oemof.solph.constraints.additional_investment_flow_limit
+    Constraint to limit the capacity of solar panels installed considering the roof area available
+    Parameters
+    ----------
+    model : oemof.solph.Model
+        Model to which constraints are added.
+    keyword1 : attribute to consider
+        Coefficient representing the area used by one unit of capacity of a solar panel
+    keyword2 : attribute to consider
+        Total roof area available for panels.
+    nb : int
+        Number of buildings in the neighbourhood
+
+    Note
+    ----
+    The Investment attribute of the considered (Investment-)flows requires an
+    attribute named like keyword!
+    """
+
+    for b in range(1, nb+1):
+        limit = 0
+        invest_flows = {}
+        for (i, o) in model.flows:
+            if str(b) in str(i):
+                if hasattr(model.flows[i, o].investment, keyword1):
+                    invest_flows[(i, o)] = model.flows[i, o].investment
+                    limit = getattr(model.flows[i, o].investment, keyword2)
+
+        limit_name = "invest_limit_" + keyword1 + "_building" + str(b)
+
+        setattr(
+            model,
+            limit_name,
+            pyo.Expression(
+                expr=sum(
+                    model.InvestmentFlow.invest[inflow, outflow]
+                    * getattr(invest_flows[inflow, outflow], keyword1)
+                    for (inflow, outflow) in invest_flows
+                )
+            ),
+        )
+
+        setattr(
+            model,
+            limit_name + "_constraint",
+            pyo.Constraint(expr=(getattr(model, limit_name) <= limit)),
+        )
+
+
+    return model

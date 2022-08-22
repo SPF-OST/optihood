@@ -141,7 +141,7 @@ def hourlyDailyPlot(data, bus, palette, new_legends):
             p_plots.append(p1)
             p_plots.append(p2)
 
-        elif "shSource" in bus[i] or "spaceHeatingBus" in bus[i]:
+        elif "shSource" in bus[i]:
             dt = data[i]
             shLinks = dt.filter(like='shLink')  # half would be el_link_out and half would be el_link_in
             dt.drop(list(dt.filter(regex='shLink')), axis=1, inplace=True)
@@ -417,7 +417,7 @@ def resultingDataDiagram(elBus, shBus, dhwBus, costs, env, COLORS, building, new
     return fig, costs, env, production, storage
 
 
-def resultingDataDiagramLoop(elec, sh, dhw, costs, env, colors, buildings):
+def resultingDataDiagramLoop(elec, sh, dhw, costs, env, colors, buildings, newLegends):
     """
     Function inspired from the URBS platform https://github.com/ojdo/urbs/blob/1house/comp.py
     Function plotting the graph comparing the different buildings/scenarios on costs, energy produced and energy
@@ -431,9 +431,9 @@ def resultingDataDiagramLoop(elec, sh, dhw, costs, env, colors, buildings):
     :param buildings: list of str type, name of the different buildings
     :return: figure created
     """
-    n_costs, n_env, n_production, n_storage = resultingDataDiagram(elec[0], sh[0], dhw[0], costs[0], env[0], colors, buildings[0])[1:]
+    n_costs, n_env, n_production, n_storage = resultingDataDiagram(elec[0], sh[0], dhw[0], costs[0], env[0], colors, buildings[0], newLegends)[1:]
     for i in range(1, len(elec)):
-        a, b, c, d = resultingDataDiagram(elec[i], sh[i], dhw[i], costs[i], env[i], colors, buildings[i])[1:]
+        a, b, c, d = resultingDataDiagram(elec[i], sh[i], dhw[i], costs[i], env[i], colors, buildings[i],newLegends)[1:]
         n_costs = pd.concat([n_costs, a])
         n_env = pd.concat([n_env, b])
         n_production = pd.concat([n_production, c])
@@ -625,7 +625,7 @@ def resultingDataDemandDiagram(elBus, shBus, dhwBus, COLORS, building, newLegend
 
     return fig, elec, sh, dhw
 
-def resultingDataDemandDiagramLoop(elec, sh, dhw, colors, buildings):
+def resultingDataDemandDiagramLoop(elec, sh, dhw, colors, buildings, newLegends):
     """
     Function inspired from the URBS platform https://github.com/ojdo/urbs/blob/1house/comp.py
     Function plotting the graph comparing the different buildings/scenarios on costs, energy produced and energy
@@ -835,7 +835,7 @@ def loadPlottingData(resultFilePath):
     return buses, elec_names, elec_dict, sh_names, sh_dict, dhw_names, dhw_dict, costs_names, costs_dict, env_names, env_dict,\
            buildings_dict, buildings_names, buildings_number
 
-def createPlot(resultFilePath, basePath, plotLevel, plotType, flowType, plotAnnualHorizontalBar, newLegends):
+def createPlot(resultFilePath, plotLevel, plotType, flowType, plotAnnualHorizontalBar, newLegends):
     # load the plotting data from excel file into variables
     buses, elec_names, elec_dict, sh_names, sh_dict, dhw_names, dhw_dict, costs_names, costs_dict, env_names, env_dict, \
     buildings_dict, buildings_names, buildings_number = loadPlottingData(resultFilePath)
@@ -903,6 +903,7 @@ def createPlot(resultFilePath, basePath, plotLevel, plotType, flowType, plotAnnu
         else:
             plotsHourly, plotsDaily = hourlyDailyPlot(dict, names, Set1_9, newLegends)
 
+        basePath = "..\Figures\\"
         if not os.path.exists(basePath):
             os.makedirs(basePath)
 
@@ -955,12 +956,12 @@ def createPlot(resultFilePath, basePath, plotLevel, plotType, flowType, plotAnnu
             fig1 = resultingDataDiagram(elec_dict[i], sh_dict[i], dhw_dict[i], costs_dict[i], env_dict[i], COLORS, buildings_number[i])[0]
             fig2 = resultingDataDemandDiagram(elec_dict[i], sh_dict[i], dhw_dict[i], COLORS, buildings_number[i])[0]
         """
-        fig3 = resultingDataDiagramLoop(elec_dict, sh_dict, dhw_dict, costs_dict, env_dict, COLORS, buildings_number)
-        fig4 = resultingDataDemandDiagramLoop(elec_dict, sh_dict, dhw_dict, COLORS, buildings_number)
+        fig3 = resultingDataDiagramLoop(elec_dict, sh_dict, dhw_dict, costs_dict, env_dict, COLORS, buildings_number, newLegends)
+        fig4 = resultingDataDemandDiagramLoop(elec_dict, sh_dict, dhw_dict, COLORS, buildings_number,newLegends)
         plt.show()
 
 
-def plot(excelFileName, figureFilePath, plotLevel, plotType, flowType, plotAnnualHorizontalBar=False):
+def main(optMode, numberOfBuildings, plotOptim, plotLevel, plotType, flowType, plotAnnualHorizontalBar):
     #####################################
     ########## Classic plots  ###########
     #####################################
@@ -988,8 +989,6 @@ def plot(excelFileName, figureFilePath, plotLevel, plotType, flowType, plotAnnua
         "(('shSourceBus', 'shStorage'), 'flow')": "Storage_sh_in",
         "(('spaceHeatingBus', 'spaceHeating'), 'flow')": "SH_direct_to_load",
         "(('shDemandBus', 'spaceHeatingDemand'), 'flow')": "Demand_sh",
-        "(('shDemandBus', 'excessshDemandBus'), 'flow')": "Excess SH production",
-        "(('shSourceBus', 'excessshSourceBus'), 'flow')": "Excess SH production",
         "(('CHP', 'shSourceBus'), 'flow')": "CHP_sh",
         "(('GasBoiler', 'shSourceBus'), 'flow')": "Gas_sh",
         "(('GasBoiler', 'dhwStorageBus'), 'flow')": "Gas_dhw",
@@ -1004,24 +1003,29 @@ def plot(excelFileName, figureFilePath, plotLevel, plotType, flowType, plotAnnua
         "(('producedElectricity', 'electricityInBus'), 'flow')": "Self_consumption",
         "(('electricityProdBus', 'electricitySource'), 'flow')": "Battery_bypass"
     }
-    newLegends["(('electricityBus', 'electricityLink'), 'flow')"] = "electricityLink_in"
-    newLegends["(('electricityLink', 'electricityInBus'), 'flow')"] = "electricityLink_out"
+    #if optMode == "group":
+    newLegends["(('electricityBus', 'electricityLink'), 'flow')"] = "electricityLink_out"
+    newLegends["(('electricityLink', 'electricityInBus'), 'flow')"] = "electricityLink_in"
     newLegends["(('spaceHeatingBus', 'shLink'), 'flow')"] = "shLink_in"
     newLegends["(('shLink', 'shDemandBus'), 'flow')"] = "shLink_out"
 
-    createPlot(excelFileName, figureFilePath, plotLevel, plotType, flowType, plotAnnualHorizontalBar, newLegends)
+    resultFileBasePath = "..\data\Results"
+    resultFileName = f"results{numberOfBuildings}_{plotOptim}_{optMode}.xlsx"  # add the name of the excel file here for which the plots are to be made
+    if not os.path.exists(resultFileBasePath):
+        os.makedirs(resultFileBasePath)
+    resultFilePath = os.path.join(resultFileBasePath, resultFileName)
+
+    createPlot(resultFilePath, plotLevel, plotType, flowType, plotAnnualHorizontalBar, newLegends)
 
 
 if __name__ == '__main__':
-
-    optMode = "group"  # parameter defining whether the results file corresponds to "indiv" or "group" optimization
+    optMode = "indiv"  # parameter defining whether the results file corresponds to "indiv" or "group" optimization
     numberOfBuildings = 4
     plotOptim = 1  # defines the number of the optimization to plot
     plotLevel = "allMonths"  # permissible values (for energy balance plot): "allMonths" {for all months}
     # or specific month {"Jan", "Feb", "Mar", etc. three letter abbreviation of the month name}
     # or specific date {format: YYYY-MM-DD}
-    plotType = "energy balance"  # permissible values: "energy balance", "bokeh"
-    flowType = "electricity"  # permissible values: "all", "electricity", "space heat", "domestic hot water"
+    plotType = "bokeh"  # permissible values: "energy balance", "bokeh"
+    flowType = "space heat"  # permissible values: "all", "electricity", "space heat", "domestic hot water"
     plotAnnualHorizontalBar = False  # determines whether the annual horizontal bar is plot or not
-
-    plot(os.path.join(r"..\data\Results", f"results{numberOfBuildings}_{plotOptim}_{optMode}.xlsx"), r"..\data\Figures", plotLevel, plotType, flowType, plotAnnualHorizontalBar)
+    main(optMode, numberOfBuildings, plotOptim, plotLevel, plotType, flowType, plotAnnualHorizontalBar)

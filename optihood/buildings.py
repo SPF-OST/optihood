@@ -2,10 +2,9 @@ import oemof.solph as solph
 from oemof.tools import logger
 from oemof.tools import economics
 import logging
-from optihood.converters import HeatPumpLinear, CHP, SolarCollector, GasBoiler, GeothermalHeatPumpLinear
-from optihood.sources import PV
-from optihood.storages import ElectricalStorage, ThermalStorage
-from optihood.sinks import SinkRCModel
+from converters import HeatPumpLinear, CHP, SolarCollector, GasBoiler, GeothermalHeatPumpLinear
+from sources import PV
+from storages import ElectricalStorage, ThermalStorage
 
 intRate = 0.05
 
@@ -83,15 +82,16 @@ class Building:
             self.__nodesList.append(PV(s["label"], self.__buildingLabel,
                                        self.__busDict[s["to"] + '__' + self.__buildingLabel],
                                        s["peripheral_losses"], s["latitude"], s["longitude"],
-                                       s["tilt"], s["azimuth"],
+                                       s["tilt"], s["efficiency"], s["roof_area"],
+                                       s["zenith_angle"], s["azimuth"],
                                        data_timeseries['gls'],
                                        data_timeseries['str.diffus'],
                                        data_timeseries['tre200h0'], s["capacity_min"], s["capacity_max"],
                                        epc, base, env_capa, env_flow, varc))
 
-            self.__envParam[s["label"] + '__' + self.__buildingLabel] = envParam
+            self.__envParam['electricityProdBus' + '__' + self.__buildingLabel] = envParam
 
-            self.__costParam[s["label"] + '__' + self.__buildingLabel] = [self._calculateInvest(s)[0],
+            self.__costParam['electricityProdBus' + '__' + self.__buildingLabel] = [self._calculateInvest(s)[0],
                                                                           self._calculateInvest(s)[1]]
             self.__technologies.append(
                 [s["to"] + '__' + self.__buildingLabel, s["label"] + '__' + self.__buildingLabel])
@@ -122,7 +122,8 @@ class Building:
                                                    self.__busDict[s["to"] + '__' + self.__buildingLabel],
                                                    self.__busDict[s["connect"]+ '__' + self.__buildingLabel],
                                                    s["electrical_consumption"], s["peripheral_losses"], s["latitude"],
-                                                   s["longitude"], s["tilt"], s["azimuth"],
+                                                   s["longitude"], s["tilt"], s["roof_area"],
+                                                   s["zenith_angle"], s["azimuth"],
                                                    s["eta_0"], s["a_1"], s["a_2"], s["temp_collector_inlet"],
                                                    s["delta_temp_n"], data_timeseries['gls'], data_timeseries['str.diffus'],
                                                     data_timeseries['tre200h0'], s["capacity_min"], s["capacity_max"],
@@ -131,9 +132,9 @@ class Building:
             self.__nodesList.append(collector.getSolar("transformer"))
             self.__nodesList.append(collector.getSolar("sink"))
 
-            self.__envParam["heat_"+s["label"] + '__' + self.__buildingLabel] = envParam
+            self.__envParam['solarConnectBus' + '__' + self.__buildingLabel] = envParam
 
-            self.__costParam["heat_"+s["label"] + '__' + self.__buildingLabel] = [self._calculateInvest(s)[0],
+            self.__costParam['solarConnectBus' + '__' + self.__buildingLabel] = [self._calculateInvest(s)[0],
                                                                           self._calculateInvest(s)[1]]
             self.__technologies.append(
                 [s["to"] + '__' + self.__buildingLabel, s["label"] + '__' + self.__buildingLabel])
@@ -146,7 +147,7 @@ class Building:
                                                           outputs={self.__busDict[gs["to"]+'__'+self.__buildingLabel]: solph.Flow()},
                                                   conversion_factors={self.__busDict[gs["to"]+'__'+self.__buildingLabel]: gs["efficiency"]}))
 
-    def addSource(self, data, data_elec, opt):
+    def addSource(self, data, data_elec, data_cost, opt):
         # Create Source objects from table 'commodity sources'
 
         for i, cs in data.iterrows():
@@ -160,7 +161,10 @@ class Building:
                 #                 (if 'electricity' not in cs["label"]) : cs["CO2 impact"]
                 # self.__envParam is assigned the value data_elec["impact"] or cs["CO2 impact"] depending on whether ('electricity' is in cs["label"]) or not
                 if opt == "costs":
-                    varCosts = cs["variable costs"]
+                    if 'electricity' in cs["label"]:
+                        varCosts = data_cost["cost"]
+                    else:
+                        varCosts = cs["variable costs"]
                 elif 'electricity' in cs["label"]:
                     varCosts = data_elec["impact"]
                 else:
@@ -169,9 +173,11 @@ class Building:
                 if 'electricity' in cs["label"]:
                     envImpactPerFlow = data_elec["impact"]
                     envParameter = data_elec["impact"]
+                    costParameter = data_cost["cost"]
                 else:
                     envImpactPerFlow = cs["CO2 impact"]
                     envParameter = cs["CO2 impact"]
+                    costParameter = cs["variable costs"]
                     # add the inputs (natural gas, wood, etc...) to self.__inputs
                     self.__inputs.append([sourceLabel, outputBusLabel])
 
@@ -184,40 +190,28 @@ class Building:
 
                 # set environment and cost parameters
                 self.__envParam[sourceLabel] = envParameter
-                self.__costParam[sourceLabel] = cs["variable costs"]
+                self.__costParam[sourceLabel] = costParameter
 
-    def addSink(self, data, timeseries, buildingModelParams):
+    def addSink(self, data, timeseries):
         # Create Sink objects with fixed time series from 'demand' table
         for i, de in data.iterrows():
             if de["active"]:
                 sinkLabel = de["label"]+'__'+self.__buildingLabel
                 inputBusLabel = de["from"]+'__'+self.__buildingLabel
-                if de["building model"] == 'Yes':   # Should a building model be used?
-                    # Only valid for SH demands at the moment
-                    # create sink
-                    self.__nodesList.append(
-                        SinkRCModel(
-                            tAmbient=buildingModelParams['tAmb'].values,
-                            totalIrradiationHorizontal=buildingModelParams['IrrH'].values,
-                            heatGainOccupants=buildingModelParams['Qocc'].values,
-                            label=sinkLabel,
-                            inputs={self.__busDict[inputBusLabel]: solph.Flow()},
-                        )
+                # set static inflow values, if any
+                inflow_args = {"nominal_value": de["nominal value"]}
+                # get time series for node and parameter
+                for col in timeseries.columns.values:
+                    if col == de["label"]:
+                        inflow_args["fix"] = timeseries[col]
+
+                # create sink
+                self.__nodesList.append(
+                    solph.Sink(
+                        label=sinkLabel,
+                        inputs={self.__busDict[inputBusLabel]: solph.Flow(**inflow_args)},
                     )
-                else:
-                    # set static inflow values, if any
-                    inflow_args = {"nominal_value": de["nominal value"]}
-                    # get time series for node and parameter
-                    for col in timeseries.columns.values:
-                        if col == de["label"]:
-                            inflow_args["fix"] = timeseries[col]
-                    # create sink
-                    self.__nodesList.append(
-                        solph.Sink(
-                            label=sinkLabel,
-                            inputs={self.__busDict[inputBusLabel]: solph.Flow(**inflow_args)},
-                        )
-                    )
+                )
 
     def _addHeatPump(self, data, temperatureDHW, temperatureSH, temperatureAmb, opt):
         hpSHLabel = data["label"] + '__' + self.__buildingLabel
@@ -242,9 +236,9 @@ class Building:
         self.__technologies.append([outputDHWBusLabel, hpSHLabel])
         self.__technologies.append([outputSHBusLabel, hpSHLabel])
 
-        self.__costParam[inputBusLabel] = [self._calculateInvest(data)[0]*data["efficiency"], self._calculateInvest(data)[1]]
+        self.__costParam[hpSHLabel] = [self._calculateInvest(data)[0], self._calculateInvest(data)[1]]
 
-        self.__envParam[inputBusLabel] = [data["heat_impact"] * data["efficiency"], 0 * data["efficiency"], envImpactPerCapacity * data["efficiency"]]
+        self.__envParam[hpSHLabel] = [data["heat_impact"], 0, envImpactPerCapacity]
 
     def _addGeothemalHeatPump(self, data, temperatureDHW, temperatureSH, temperatureAmb, opt):
         gwhpSHLabel = data["label"] + '__' + self.__buildingLabel
@@ -253,18 +247,15 @@ class Building:
         outputDHWBusLabel = data["to"].split(",")[1] + '__' + self.__buildingLabel
         envImpactPerCapacity = data["impact_cap"] / data["lifetime"]
 
-        geothermalheatPump = GeothermalHeatPumpLinear(self.__buildingLabel, temperatureDHW, temperatureSH,
-                                                      temperatureAmb,
-                                                      self.__busDict[inputBusLabel],
-                                                      self.__busDict[outputSHBusLabel],
-                                                      self.__busDict[outputDHWBusLabel],
-                                                      data["capacity_min"], data["capacity_SH"], data["efficiency"],
-                                                      self._calculateInvest(data)[0] * (
-                                                                  opt == "costs") + envImpactPerCapacity * (
-                                                                  opt == "env"),
-                                                      self._calculateInvest(data)[1] * (opt == "costs"),
-                                                      data["heat_impact"] * (opt == "env"),
-                                                      data["heat_impact"], envImpactPerCapacity)
+        geothermalheatPump = GeothermalHeatPumpLinear(self.__buildingLabel, temperatureDHW, temperatureSH, temperatureAmb,
+                                  self.__busDict[inputBusLabel],
+                                  self.__busDict[outputSHBusLabel],
+                                  self.__busDict[outputDHWBusLabel],
+                                  data["capacity_min"], data["capacity_SH"],data["efficiency"],
+                                  self._calculateInvest(data)[0] * (opt == "costs") + envImpactPerCapacity*(opt == "env"),
+                                  self._calculateInvest(data)[1] * (opt == "costs"),
+                                  data["heat_impact"] * (opt == "env"),
+                                  data["heat_impact"], envImpactPerCapacity)
 
         self.__nodesList.append(geothermalheatPump.getHP("sh"))
 
@@ -272,9 +263,9 @@ class Building:
         self.__technologies.append([outputDHWBusLabel, gwhpSHLabel])
         self.__technologies.append([outputSHBusLabel, gwhpSHLabel])
 
-        self.__costParam[inputBusLabel] = [self._calculateInvest(data)[0] * data["efficiency"], self._calculateInvest(data)[1]]
+        self.__costParam[gwhpSHLabel] = [self._calculateInvest(data)[0], self._calculateInvest(data)[1]]
 
-        self.__envParam[inputBusLabel] = [data["heat_impact"]*data["efficiency"], 0*data["efficiency"], envImpactPerCapacity*data["efficiency"]]
+        self.__envParam[gwhpSHLabel] = [data["heat_impact"], 0, envImpactPerCapacity]
 
     def _addCHP(self, data, timesteps, opt):
         chpSHLabel = data["label"] + '__' + self.__buildingLabel
@@ -306,9 +297,9 @@ class Building:
         self.__technologies.append([outputSHBusLabel, chpSHLabel])
         self.__technologies.append([outputDHWBusLabel, chpSHLabel])
 
-        self.__costParam[inputBusLabel] = [self._calculateInvest(data)[0]*chp.avgEff, self._calculateInvest(data)[1]]
+        self.__costParam[chpSHLabel] = [self._calculateInvest(data)[0], self._calculateInvest(data)[1]]
 
-        self.__envParam[inputBusLabel] = [data["heat_impact"]*chp.avgEff, data["elec_impact"]*chp.avgEff, envImpactPerCapacity*chp.avgEff]
+        self.__envParam[chpSHLabel] = [data["heat_impact"], data["elec_impact"], envImpactPerCapacity]
 
     def _addGasBoiler(self, data, opt):
         gasBoilLabel = data["label"] + '__' + self.__buildingLabel
@@ -387,6 +378,6 @@ class Building:
         # Calculate the CAPEX and the part of the OPEX not related to energy flows (maintenance)
         c = data["installation"] + data["planification"] + 1
         m = data["maintenance"]
-        perCapacity = m * data["invest_cap"] + economics.annuity(c * data["invest_cap"], data["lifetime"], intRate)
-        base = m * data["invest_base"] + economics.annuity(c * data["invest_base"], data["lifetime"], intRate)
+        perCapacity = m*data["invest_cap"] + economics.annuity(c * data["invest_cap"], data["lifetime"], intRate)
+        base = m*data["invest_base"] + economics.annuity(c * data["invest_base"], data["lifetime"], intRate)
         return perCapacity, base

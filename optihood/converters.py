@@ -1,19 +1,21 @@
 import oemof.solph as solph
 import numpy as np
-import optihood.combined_prod as cp
+import combined_prod as cp
 from oemof.thermal.solar_thermal_collector import flat_plate_precalc
 
 class SolarCollector(solph.Transformer):
     def __init__(self, label, buildingLabel, inputs, outputs, connector, electrical_consumption, peripheral_losses, latitude,
                  longitude,
-                 collector_tilt, collector_azimuth, eta_0, a_1, a_2, temp_collector_inlet, delta_temp_n,
-                 irradiance_global,
+                 collector_tilt, roof_area, zenith_angle, collector_azimuth, eta_0, a_1, a_2, temp_collector_inlet,
+                 delta_temp_n, irradiance_global,
                  irradiance_diffuse, temp_amb_col, capacityMin, capacityMax, epc, base, env_capa, env_flow, varc):
 
         flatPlateCollectorData = flat_plate_precalc(
             latitude, longitude, collector_tilt, collector_azimuth, eta_0, a_1, a_2, temp_collector_inlet, delta_temp_n,
             irradiance_global, irradiance_diffuse, temp_amb_col
         )
+
+        self.surface_used = self._calculateArea(zenith_angle, collector_tilt, collector_azimuth)
 
         self.collectors_eta_c = flatPlateCollectorData['eta_c']
 
@@ -29,6 +31,8 @@ class SolarCollector(solph.Transformer):
                         minimum=capacityMin,
                         maximum=capacityMax,
                         nonconvex=True,
+                        space=self.surface_used,
+                        roof_area=roof_area,
                         offset=base,
                         env_per_capa=env_capa,
                     ),
@@ -63,6 +67,10 @@ class SolarCollector(solph.Transformer):
         else:
             print("Transformer label not identified...")
             return []
+
+    def _calculateArea(self, zenith_angle, collector_tilt, collector_azimuth):
+        coeff = -np.sin((zenith_angle+collector_tilt)*np.pi/180)*np.cos(collector_azimuth*np.pi/180)/np.sin(zenith_angle*np.pi/180)
+        return coeff
 
 
 class HeatPumpLinear:
@@ -105,10 +113,17 @@ class HeatPumpLinear:
                              coefQ[5] * (tHigh / 273.15) ** 2)
         WCompressor = coefW[0] + (coefW[1] * tLow / 273.15) + (coefW[2] * tHigh / 273.15) + (
                 coefW[3] * tLow / 273.15 * tHigh / 273.15) + (
-                              coefW[4] * (tLow / 273.15) ** 2) + (
+                             coefW[4] * (tLow / 273.15) ** 2) + (
                               coefW[5] * (tHigh / 273.15) ** 2)
         cop = np.divide(QCondenser, WCompressor)
         return cop
+
+    def _chargingRule(self, dataLength):
+        for t in range(dataLength):
+            if any([(t - x) % 24 == 0 for x in self.__DHWChargingTimesteps]):
+                    self.__copSH[t] = 0
+            else:
+                    self.__copDHW[t] = 0
 
     def getHP(self, type):
         if type == 'sh':
@@ -116,7 +131,6 @@ class HeatPumpLinear:
         else:
             print("Transformer label not identified...")
             return []
-
 
 class GeothermalHeatPumpLinear:
     def __init__(self, buildingLabel, temperatureDHW, temperatureSH, temperatureLow, input, outputSH, outputDHW,
@@ -158,10 +172,17 @@ class GeothermalHeatPumpLinear:
                              coefQ[5] * (tHigh / 273.15) ** 2)
         WCompressor = coefW[0] + (coefW[1] * tLow / 273.15) + (coefW[2] * tHigh / 273.15) + (
                 coefW[3] * tLow / 273.15 * tHigh / 273.15) + (
-                              coefW[4] * (tLow / 273.15) ** 2) + (
+                             coefW[4] * (tLow / 273.15) ** 2) + (
                               coefW[5] * (tHigh / 273.15) ** 2)
         cop = np.divide(QCondenser, WCompressor)
         return cop
+
+    def _chargingRule(self, dataLength):
+        for t in range(dataLength):
+            if any([(t - x) % 24 == 0 for x in self.__DHWChargingTimesteps]):
+                    self.__copSH[t] = 0
+            else:
+                    self.__copDHW[t] = 0
 
     def getHP(self, type):
         if type == 'sh':
@@ -205,12 +226,22 @@ class CHP:
                                 variable_costs=varc1,
                                 env_per_flow=env_flow1,
                             ),
+
                         },
                         efficiencies={outputSH: self._efficiencySH,
-                                      outputDHW: self._efficiencyDHW,
-                                      outputEl: self._efficiencyEl,
-                                      }
+                                    outputDHW: self._efficiencyDHW,
+                                    outputEl: self._efficiencyEl,
+                                    }
                     )
+
+    def _chargingRule(self, dataLength):
+        for t in range(dataLength):
+            if any([(t - x) % 24 == 0 for x in self.__DHWChargingTimesteps]):
+                self._efficiencyElCHPSH[t] = 0
+                self._efficiencySH[t] = 0
+            else:
+                self._efficiencyElCHPDHW[t] = 0
+                self._efficiencyDHW[t] = 0
 
     def getCHP(self, type):
         if type == 'sh':
@@ -222,32 +253,31 @@ class CHP:
 class GasBoiler(cp.CombinedTransformer):
     def __init__(self, buildingLabel, input, outputSH, outputDHW, efficiencySH, efficiencyDHW,
                  capacityMin, capacityMax, epc, base, varc, env_flow, env_capa):
-
         self.__efficiency = efficiencySH
         super(GasBoiler, self).__init__(
             label='GasBoiler'+'__'+buildingLabel,
             inputs={
                 input: solph.Flow(
                     investment=solph.Investment(
-                        ep_costs=epc * efficiencySH,
+                        ep_costs=epc*efficiencySH,
                         minimum=capacityMin/efficiencySH,
                         maximum=capacityMax/efficiencySH,
                         nonconvex=True,
                         offset=base,
-                        env_per_capa=env_capa * efficiencySH,
+                        env_per_capa=env_capa*efficiencySH,
                     ),
                 )
             },
             outputs={
                 outputSH: solph.Flow(
-                    variable_costs=varc,
-                    env_per_flow=env_flow
-                ),
+                     variable_costs=varc,
+                     env_per_flow=env_flow
+                 ),
                 outputDHW: solph.Flow(
                     variable_costs=varc,
                     env_per_flow=env_flow
                 ),
             },
             efficiencies={outputSH: efficiencySH,
-                          outputDHW: efficiencyDHW}
+                        outputDHW: efficiencyDHW}
                  )

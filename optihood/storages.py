@@ -3,7 +3,6 @@ from oemof.thermal.stratified_thermal_storage import (
     calculate_losses,
 )
 
-
 import oemof.solph as solph
 
 class ElectricalStorage(solph.components.GenericStorage):
@@ -11,7 +10,7 @@ class ElectricalStorage(solph.components.GenericStorage):
         super(ElectricalStorage, self).__init__(
             label="electricalStorage"+'__'+buildingLabel,
             inputs={
-                input: solph.Flow()
+                input: solph.Flow(investment=solph.Investment(ep_costs=0)),
             },
             outputs={
                 output: solph.Flow(variable_costs=varc, env_per_flow=env_flow, )
@@ -40,7 +39,7 @@ class ThermalStorage(solph.components.GenericStorage):
         super(ThermalStorage, self).__init__(
             label=label1,
             inputs={
-                input: solph.Flow(investment=solph.Investment(ep_costs=0)),
+                input: solph.Flow(),
             },
             outputs={
                 output: solph.Flow(investment=solph.Investment(ep_costs=0), variable_costs=varc, env_per_flow=env_flow, )
@@ -81,10 +80,10 @@ class ThermalStorage(solph.components.GenericStorage):
             tempC,
             data.at[label, 'temp_env'])
 
-        L_to_kWh = 4.186 * (tempH - tempC) / 3600  # converts L data to kWh data for oemof GenericStorage class
-        capacity_min = min * L_to_kWh
-        capacity_max = max * L_to_kWh
-        epc = volume_cost / L_to_kWh
-        env_capa = env_cap / L_to_kWh
+        L_to_kWh = 4.186*(tempH-tempC)/3600 #converts L data to kWh data for oemof GenericStorage class
+        capacity_min = min*L_to_kWh
+        capacity_max = max*L_to_kWh
+        epc = volume_cost/L_to_kWh
+        env_capa = env_cap/L_to_kWh
 
         return u_value, loss_rate, fixed_losses_relative, fixed_losses_absolute, capacity_min, capacity_max, epc, env_capa
