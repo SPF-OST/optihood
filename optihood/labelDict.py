@@ -99,6 +99,7 @@ labelDict = {
     "dhwStorage__Building1": "dhwStor_B1",
     "domesticHotWaterBus__Building1": "Q_dhw_B1",
     "electricityDemand__Building1": "Q_el_B1",
+    "emobilityDemand__Building1": "Q_mob_B1",
     "spaceHeatingDemand__Building1": "Q_sh_B1",
     "domesticHotWaterDemand__Building1": "Q_dhw_B1",
     "excessshSourceBus__Building1": "exSh_B1",
@@ -141,6 +142,7 @@ labelDict = {
     "dhwStorage__Building2": "dhwStor_B2",
     "domesticHotWaterBus__Building2": "Q_dhw_B2",
     "electricityDemand__Building2": "Q_el_B2",
+    "emobilityDemand__Building2": "Q_mob_B2",
     "spaceHeatingDemand__Building2":        "Q_sh_B2",
     "domesticHotWaterDemand__Building2": "Q_dhw_B2",
     "excessshSourceBus__Building2": "exSh_B2",
@@ -183,6 +185,7 @@ labelDict = {
     "dhwStorage__Building3": "dhwStor_B3",
     "domesticHotWaterBus__Building3": "Q_dhw_B3",
     "electricityDemand__Building3": "Q_el_B3",
+    "emobilityDemand__Building3": "Q_mob_B3",
     "spaceHeatingDemand__Building3":        "Q_sh_B3",
     "domesticHotWaterDemand__Building3": "Q_dhw_B3",
     "excessshSourceBus__Building3": "exSh_B3",
@@ -225,6 +228,7 @@ labelDict = {
     "dhwStorage__Building4": "dhwStor_B4",
     "domesticHotWaterBus__Building4": "Q_dhw_B4",
     "electricityDemand__Building4": "Q_el_B4",
+    "emobilityDemand__Building4": "Q_mob_B4",
     "spaceHeatingDemand__Building4":        "Q_sh_B4",
     "domesticHotWaterDemand__Building4": "Q_dhw_B4",
     "excessshSourceBus__Building4": "exSh_B4",
@@ -336,9 +340,10 @@ labelPositionDict={
     "dhwStor":	[0.8, 0.85],
     "exEl": [0.999, 0.25],
     "Q_el":	[0.999, 0.15],
+    "Q_mob":[0.999, 0.4],
     "Q_sh":	[0.999, 0.6],
-    "Q_dhw":	[0.999, 0.85],
-    "exSh": [0.999, 0.4]
+    "Q_dhw":[0.999, 0.85],
+    "exSh": [0.999, 0.7]
 	}
 
 fullPositionDict={
