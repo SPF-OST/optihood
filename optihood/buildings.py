@@ -242,9 +242,9 @@ class Building:
         self.__technologies.append([outputDHWBusLabel, hpSHLabel])
         self.__technologies.append([outputSHBusLabel, hpSHLabel])
 
-        self.__costParam[inputBusLabel] = [self._calculateInvest(data)[0]*data["efficiency"], self._calculateInvest(data)[1]]
+        self.__costParam[hpSHLabel] = [self._calculateInvest(data)[0], self._calculateInvest(data)[1]]
 
-        self.__envParam[inputBusLabel] = [data["heat_impact"] * data["efficiency"], 0 * data["efficiency"], envImpactPerCapacity * data["efficiency"]]
+        self.__envParam[hpSHLabel] = [data["heat_impact"], 0, envImpactPerCapacity]
 
     def _addGeothemalHeatPump(self, data, temperatureDHW, temperatureSH, temperatureAmb, opt):
         gwhpSHLabel = data["label"] + '__' + self.__buildingLabel
@@ -272,9 +272,9 @@ class Building:
         self.__technologies.append([outputDHWBusLabel, gwhpSHLabel])
         self.__technologies.append([outputSHBusLabel, gwhpSHLabel])
 
-        self.__costParam[inputBusLabel] = [self._calculateInvest(data)[0] * data["efficiency"], self._calculateInvest(data)[1]]
+        self.__costParam[gwhpSHLabel] = [self._calculateInvest(data)[0], self._calculateInvest(data)[1]]
 
-        self.__envParam[inputBusLabel] = [data["heat_impact"]*data["efficiency"], 0*data["efficiency"], envImpactPerCapacity*data["efficiency"]]
+        self.__envParam[gwhpSHLabel] = [data["heat_impact"], 0, envImpactPerCapacity]
 
     def _addCHP(self, data, timesteps, opt):
         chpSHLabel = data["label"] + '__' + self.__buildingLabel
@@ -306,9 +306,9 @@ class Building:
         self.__technologies.append([outputSHBusLabel, chpSHLabel])
         self.__technologies.append([outputDHWBusLabel, chpSHLabel])
 
-        self.__costParam[inputBusLabel] = [self._calculateInvest(data)[0]*chp.avgEff, self._calculateInvest(data)[1]]
+        self.__costParam[chpSHLabel] = [self._calculateInvest(data)[0], self._calculateInvest(data)[1]]
 
-        self.__envParam[inputBusLabel] = [data["heat_impact"]*chp.avgEff, data["elec_impact"]*chp.avgEff, envImpactPerCapacity*chp.avgEff]
+        self.__envParam[chpSHLabel] = [data["heat_impact"], data["elec_impact"], envImpactPerCapacity]
 
     def _addGasBoiler(self, data, opt):
         gasBoilLabel = data["label"] + '__' + self.__buildingLabel
@@ -333,6 +333,7 @@ class Building:
         self.__costParam[gasBoilLabel] = [self._calculateInvest(data)[0], self._calculateInvest(data)[1]]
 
         self.__envParam[gasBoilLabel] = [data["heat_impact"], 0, envImpactPerCapacity]
+
 
     def addTransformer(self, data, temperatureDHW, temperatureSH, temperatureAmb, temperatureGround, opt):
         for i, t in data.iterrows():

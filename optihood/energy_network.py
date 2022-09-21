@@ -142,10 +142,14 @@ class EnergyNetworkClass(solph.EnergySystem):
         self.__temperatureSH = data["stratified_storage"].loc["shStorage", "temp_h"]
         self.__temperatureDHW = data["stratified_storage"].loc["dhwStorage", "temp_h"]
         # Transformers conversion factors input power - output power
-        self.__chpEff = float(data["transformers"][data["transformers"]["label"] == "CHP"]["efficiency"].iloc[0].split(",")[1])
-        self.__hpEff = data["transformers"][data["transformers"]["label"] == "HP"]["efficiency"].iloc[0]
-        self.__gwhpEff = data["transformers"][data["transformers"]["label"] == "GWHP"]["efficiency"].iloc[0]
-        self.__gbEff = float(data["transformers"][data["transformers"]["label"] == "GasBoiler"]["efficiency"].iloc[0].split(",")[0])
+        if any(data["transformers"]["label"] == "CHP"):
+            self.__chpEff = float(data["transformers"][data["transformers"]["label"] == "CHP"]["efficiency"].iloc[0].split(",")[1])
+        if any(data["transformers"]["label"] == "HP"):
+            self.__hpEff = data["transformers"][data["transformers"]["label"] == "HP"]["efficiency"].iloc[0]
+        if any(data["transformers"]["label"] == "GWHP"):
+            self.__gwhpEff = data["transformers"][data["transformers"]["label"] == "GWHP"]["efficiency"].iloc[0]
+        if any(data["transformers"]["label"] == "GasBoiler"):
+            self.__gbEff = float(data["transformers"][data["transformers"]["label"] == "GasBoiler"]["efficiency"].iloc[0].split(",")[0])
         # Storage conversion L - kWh to display the L value
         self.__Lsh = 4.186 * (self.__temperatureSH - data["stratified_storage"].loc["shStorage", "temp_c"]) / 3600
         self.__Ldhw = 4.186 * (self.__temperatureDHW - data["stratified_storage"].loc["dhwStorage", "temp_c"]) / 3600
@@ -218,6 +222,18 @@ class EnergyNetworkClass(solph.EnergySystem):
 
         return envImpact, capacitiesTransformersNetwork, capacitiesStoragesNetwork
 
+    def _updateCapacityDictInputInvestment(self, transformerFlowCapacityDict):
+        components = ["CHP", "GWHP", "HP", "GasBoiler"]
+        for inflow, outflow in list(transformerFlowCapacityDict):
+            index = (inflow, outflow)
+            buildingLabel = str(inflow).split("__")[1]
+            if any(c in str(outflow) for c in components):
+                newoutFlow = f"shSourceBus__{buildingLabel}"
+                newIndex = (outflow,newoutFlow)
+                transformerFlowCapacityDict[newIndex] = transformerFlowCapacityDict.pop(index)
+
+        return transformerFlowCapacityDict
+
     def _calculateInvestedCapacities(self, optimizationModel, transformerFlowCapacityDict, storageCapacityDict):
         capacitiesInvestedTransformers = {}
         capacitiesInvestedStorages = {}
@@ -230,6 +246,9 @@ class EnergyNetworkClass(solph.EnergySystem):
 
         # Conversion into output capacity
         capacitiesInvestedTransformers = self._compensateInputCapacities(capacitiesInvestedTransformers)
+
+        # update transformerFlowCapacityDict such that investment objects with input flows are accounted properly in the results calculation
+        transformerFlowCapacityDict = self._updateCapacityDictInputInvestment(transformerFlowCapacityDict)
 
         # Update capacities
         for inflow, outflow in transformerFlowCapacityDict:
@@ -264,37 +283,40 @@ class EnergyNetworkClass(solph.EnergySystem):
 
     def _compensateInputCapacities(self, capacitiesTransformers):
         # Input capacity -> output capacity
-        for first, second in capacitiesTransformers.keys():
+        for first, second in list(capacitiesTransformers):
             if "CHP" in second:
                 for index, value in enumerate(self.nodes):
                     if second == value.label:
                         test = self.nodes[index].conversion_factors
                         for t in test.keys():
                             if "shSource" in t.label:
-                                capacitiesTransformers[(first,second)]= capacitiesTransformers[(first,second)]*self.__chpEff
-            elif "HP" in second:
-                for index, value in enumerate(self.nodes):
-                    if second == value.label:
-                        test = self.nodes[index].conversion_factors
-                        for t in test.keys():
-                            if "shSource" in t.label:
-                                capacitiesTransformers[(first, second)] = capacitiesTransformers[(first, second)]*self.__hpEff
+                                capacitiesTransformers[(second,t.label)]= capacitiesTransformers[(first,second)]*self.__chpEff
+                                del capacitiesTransformers[(first,second)]
             elif "GWHP" in second:
                 for index, value in enumerate(self.nodes):
                     if second == value.label:
                         test = self.nodes[index].conversion_factors
                         for t in test.keys():
                             if "shSource" in t.label:
-                                capacitiesTransformers[(first, second)] = capacitiesTransformers[(
-                                first, second)] * self.__gwhpEff
+                                capacitiesTransformers[(second, t.label)] = capacitiesTransformers[(first, second)] * self.__gwhpEff
+                                del capacitiesTransformers[(first, second)]
+            elif "HP" in second:
+                for index, value in enumerate(self.nodes):
+                    if second == value.label:
+                        test = self.nodes[index].conversion_factors
+                        for t in test.keys():
+                            if "shSource" in t.label:
+                                capacitiesTransformers[(second, t.label)] = capacitiesTransformers[(first, second)]*self.__hpEff
+                                del capacitiesTransformers[(first, second)]
             elif "GasBoiler" in second:
                 for index, value in enumerate(self.nodes):
                     if second == value.label:
                         test = self.nodes[index].conversion_factors
                         for t in test.keys():
                             if "shSource" in t.label:
-                                capacitiesTransformers[(first, second)] = capacitiesTransformers[(
+                                capacitiesTransformers[(second, t.label)] = capacitiesTransformers[(
                                 first, second)] * self.__gbEff
+                                del capacitiesTransformers[(first, second)]
 
         return capacitiesTransformers
 
