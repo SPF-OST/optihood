@@ -417,17 +417,17 @@ class EnergyNetworkClass(solph.EnergySystem):
         for b in range(len(self.__buildings)):
             buildingLabel = "Building" + str(b + 1)
             print("************** Optimized Capacities for {} **************".format(buildingLabel))
-            if ("electricityInBus__" + buildingLabel, "HP__" + buildingLabel) in capacitiesInvestedTransformers:
-                investSH = capacitiesInvestedTransformers[("electricityInBus__" + buildingLabel, "HP__" + buildingLabel)]
+            if ("HP__" + buildingLabel, "shSourceBus__" + buildingLabel) in capacitiesInvestedTransformers:
+                investSH = capacitiesInvestedTransformers[("HP__" + buildingLabel, "shSourceBus__" + buildingLabel)]
                 print("Invested in {} kW HP.".format(investSH))
-            if ("electricityInBus__" + buildingLabel, "GWHP__" + buildingLabel) in capacitiesInvestedTransformers:
-                investSH = capacitiesInvestedTransformers[("electricityInBus__" + buildingLabel, "GWHP__" + buildingLabel)]
+            if ("GWHP__" + buildingLabel, "shSourceBus__" + buildingLabel) in capacitiesInvestedTransformers:
+                investSH = capacitiesInvestedTransformers[("GWHP__" + buildingLabel, "shSourceBus__" + buildingLabel)]
                 print("Invested in {} kW GWHP.".format(investSH))
-            if ("naturalGasBus__" + buildingLabel, "CHP__" + buildingLabel) in capacitiesInvestedTransformers:
-                investSH = capacitiesInvestedTransformers[("naturalGasBus__" + buildingLabel, "CHP__" + buildingLabel)]
+            if ("CHP__" + buildingLabel, "shSourceBus__" + buildingLabel) in capacitiesInvestedTransformers:
+                investSH = capacitiesInvestedTransformers["CHP__" + buildingLabel, "shSourceBus__" + buildingLabel]
                 print("Invested in {} kW CHP.".format(investSH))  # + investEL))
-            if ("naturalGasBus__" + buildingLabel, "GasBoiler__" + buildingLabel) in capacitiesInvestedTransformers:
-                investSH = capacitiesInvestedTransformers[("naturalGasBus__" + buildingLabel, "GasBoiler__" + buildingLabel)]
+            if ("GasBoiler__" + buildingLabel, "shSourceBus__" + buildingLabel) in capacitiesInvestedTransformers:
+                investSH = capacitiesInvestedTransformers["GasBoiler__" + buildingLabel, "shSourceBus__" + buildingLabel]
                 print("Invested in {} kW  GasBoiler.".format(investSH))
             if ("heat_solarCollector__" + buildingLabel, "solarConnectBus__" + buildingLabel) in capacitiesInvestedTransformers:
                 invest = capacitiesInvestedTransformers[("heat_solarCollector__" + buildingLabel, "solarConnectBus__" + buildingLabel)]
