@@ -18,7 +18,7 @@ def addCapacities(nodes, dataDict, buildings, UseLabelDict):
         capTransformers=dataDict["capTransformers__Building"+str(i)]
         capStorages=dataDict["capStorages__Building"+str(i)]
         for j, k in capStorages.iterrows():
-            if k[0] < 0.001: # if the installed capacity is 0 then skip (sometimes as an error very low capacites are selected. To handle this k<0.001kW is set as the condition for comparison)
+            if k[0] < 0.01: # if the installed capacity is 0 then skip (sometimes as an error very low capacites are selected. To handle this k<0.01kW is set as the condition for comparison)
                 continue
             if UseLabelDict:
                 index=nodes.index(labelDict[j])

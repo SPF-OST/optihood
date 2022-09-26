@@ -127,7 +127,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         nodesData["building_model"] = pd.DataFrame()
         nodesData["building_model"]["tAmb"] = np.array(nodesData["weather_data"]["tre200h0"])
         nodesData["building_model"]["IrrH"] = np.array(nodesData["weather_data"]["gls"])/1000       # conversion from W/m2 to kW/m2
-        if os.path.exists(r"..\excels\Internal_gains.csv"):
+        if (nodesData['demand']['building model'] == 'Yes').any():
             nodesData["building_model"]["Qocc"] = np.array(pd.read_csv(r"..\excels\Internal_gains.csv", delimiter=';', header=0)["Total (kW)"])
 
         logging.info("Data from Excel file {} imported.".format(filePath))
