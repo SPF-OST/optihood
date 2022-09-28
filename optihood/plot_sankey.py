@@ -136,6 +136,8 @@ def createSankeyData(dataDict, keys, UseLabelDict, buildings=[]):
                                 y.append((0.5-(PositionDict[posKey][1]))/len(buildings))
                             elif "shLink" in sourceNodeName:
                                 y.append((0.5 - (PositionDict[posKey][1])) / len(buildings))
+                            elif "dhwLink" in sourceNodeName:
+                                y.append((0.5 - (PositionDict[posKey][1])) / len(buildings))
                             else:
                                 buildingNumber=buildings.index(int(sourceNodeName[-1]))
                                 temp = (PositionDict[posKey][1]) / len(buildings) + buildingNumber / len(buildings)
@@ -150,6 +152,8 @@ def createSankeyData(dataDict, keys, UseLabelDict, buildings=[]):
                             if "electricityLink" in targetNodeName or "elLink"in targetNodeName:
                                 y.append((0.5-(PositionDict[posKey][1]))/len(buildings))
                             elif "shLink" in targetNodeName:
+                                y.append((0.5 - (PositionDict[posKey][1])) / len(buildings))
+                            elif "dhwLink" in targetNodeName:
                                 y.append((0.5 - (PositionDict[posKey][1])) / len(buildings))
                             else:
                                 buildingNumber=buildings.index(int(targetNodeName[-1]))

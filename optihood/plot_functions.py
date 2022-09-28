@@ -143,7 +143,7 @@ def hourlyDailyPlot(data, bus, palette, new_legends):
 
         elif "shSource" in bus[i] or "spaceHeatingBus" in bus[i]:
             dt = data[i]
-            shLinks = dt.filter(like='shLink')  # half would be el_link_out and half would be el_link_in
+            shLinks = dt.filter(like='shLink')  # half would be sh_link_out and half would be sh_link_in
             dt.drop(list(dt.filter(regex='shLink')), axis=1, inplace=True)
             mid = int(len(shLinks.columns) / 2)
             shLinksOut = shLinks.iloc[:, 0:mid]
@@ -178,6 +178,15 @@ def hourlyDailyPlot(data, bus, palette, new_legends):
 
         else:
             dt = data[i]
+            dhwLinks = dt.filter(like='dhwLink')  # half would be dhw_link_out and half would be dhw_link_in
+            dt.drop(list(dt.filter(regex='dhwLink')), axis=1, inplace=True)
+            mid = int(len(dhwLinks.columns) / 2)
+            dhwLinksOut = dhwLinks.iloc[:, 0:mid]
+            dhwLinksIn = dhwLinks.iloc[:, mid:len(dhwLinks.columns)]
+            dhwLinksOut["(('domesticHotWaterBus', 'dhwLink'), 'flow')"] = dhwLinksOut.sum(axis=1)
+            dhwLinksIn["(('dhwLink', 'dhwDemandBus'), 'flow')"] = dhwLinksIn.sum(axis=1)
+            dt = pd.concat((dt, dhwLinksIn["(('dhwLink', 'dhwDemandBus'), 'flow')"]), axis=1)
+            dt = pd.concat((dt, dhwLinksOut["(('domesticHotWaterBus', 'dhwLink'), 'flow')"]), axis=1)
             data_day = dt.resample('1d').sum()
 
             p5 = figure(title="Hourly domestic hot water flows for " + building.replace("__", ""), x_axis_label="Date", y_axis_label="Energy (kWh)", sizing_mode="scale_both")
@@ -751,8 +760,8 @@ def loadPlottingData(resultFilePath):
         beta_bis = beta.copy()
         for j in beta:
             if j.endswith(building) and (
-                    "electricityBus" in j or "electricityInBus" in j or "electricityProdBus" in j or "spaceHeatingBus" in j or "shDemandBus" in j or "shSourceBus" in j or "domesticHotWaterBus" in j):
-                if "shDemandBus" not in j and "shSourceBus" not in j:
+                    "electricityBus" in j or "electricityInBus" in j or "electricityProdBus" in j or "spaceHeatingBus" in j or "shDemandBus" in j or "shSourceBus" in j or "domesticHotWaterBus" in j or "dhwDemandBus" in j):
+                if "shDemandBus" not in j and "shSourceBus" not in j and "dhwDemandBus" not in j:
                     alpha.append(j)
                 if ("electricityBus" in j) or ("electricityInBus" in j) or ("electricityProdBus" in j):
                     # find the index of electricity bus to merge the results of electricityBus, electricityInBus and electricityProdBus
@@ -788,7 +797,22 @@ def loadPlottingData(resultFilePath):
                         if flow in alpha_a[index].columns:
                             alpha_a[index].pop(flow)
                 else:
-                    alpha_a.append(buses[j])
+                    # find the index of domesticHotWaterBus to merge the results of domesticHotWaterBus and dhwDemandBus
+                    index = -1
+                    for ind in range(len(alpha_a)):
+                        if "domesticHotWaterBus" in alpha_a[ind].keys()[0] or "dhwDemandBus" in alpha_a[ind].keys()[0]:
+                            index = ind
+                    if index != -1:
+                        alpha_a[index] = pd.concat((alpha_a[index], buses[j]), axis=1)
+                        flow = f"(('domesticHotWater__Building{building}', 'dhwDemandBus__Building{building}'), 'flow')"
+                        if flow in alpha_a[index].columns:
+                            alpha_a[index].pop(flow)
+                    else:
+                        index = len(alpha_a)
+                        alpha_a.append(buses[j])
+                        flow = f"(('domesticHotWater__Building{building}', 'dhwDemandBus__Building{building}'), 'flow')"
+                        if flow in alpha_a[index].columns:
+                            alpha_a[index].pop(flow)
                 beta_bis.remove(j)
         if alpha != []:
             buildings_dict.append(alpha_a)
@@ -822,9 +846,16 @@ def loadPlottingData(resultFilePath):
                 if flow in sh_dict[ind].columns:
                     sh_dict[ind].pop(flow)
 
-        if "domesticHotWater" in i:
-            dhw_names.append(i)
-            dhw_dict.append(buses[i])
+        if ("domesticHotWater" in i) or ("dhwDemand" in i):
+            if "domesticHotWater" in i:
+                dhw_names.append(i)
+                dhw_dict.append(buses[i])
+            else:
+                ind = len(dhw_names) - 1
+                dhw_dict[ind] = pd.concat((dhw_dict[ind], buses[i]), axis=1)
+                flow = f"(('domesticHotWater__Building{b}', 'dhwDemandBus__Building{b}'), 'flow')"
+                if flow in dhw_dict[ind].columns:
+                    dhw_dict[ind].pop(flow)
         if "costs" in i:
             costs_names.append(i)
             costs_dict.append(buses[i])
@@ -979,7 +1010,8 @@ def plot(excelFileName, figureFilePath, plotLevel, plotType, flowType, plotAnnua
         "(('electricityResource', 'gridBus'), 'flow')": "Grid_purchase",
         "(('dhwStorage', 'domesticHotWaterBus'), 'flow')": "Storage_dhw_out",
         "(('dhwStorageBus', 'dhwStorage'), 'flow')": "Storage_dhw_in",
-        "(('domesticHotWaterBus', 'domesticHotWaterDemand'), 'flow')": "Demand_dhw",
+        "(('domesticHotWaterBus', 'domesticHotWater'), 'flow')": "dhw_direct_to_load",
+        "(('dhwDemandBus', 'domesticHotWaterDemand'), 'flow')": "Demand_dhw",
         "(('HP', 'dhwStorageBus'), 'flow')": "HP_dhw",
         "(('GWHP', 'dhwStorageBus'), 'flow')": "GWHP_dhw",
         "(('CHP', 'dhwStorageBus'), 'flow')": "CHP_dhw",
@@ -1005,10 +1037,12 @@ def plot(excelFileName, figureFilePath, plotLevel, plotType, flowType, plotAnnua
         "(('producedElectricity', 'electricityInBus'), 'flow')": "Self_consumption",
         "(('electricityProdBus', 'electricitySource'), 'flow')": "Battery_bypass"
     }
-    newLegends["(('electricityBus', 'electricityLink'), 'flow')"] = "electricityLink_in"
-    newLegends["(('electricityLink', 'electricityInBus'), 'flow')"] = "electricityLink_out"
-    newLegends["(('spaceHeatingBus', 'shLink'), 'flow')"] = "shLink_in"
-    newLegends["(('shLink', 'shDemandBus'), 'flow')"] = "shLink_out"
+    newLegends["(('electricityBus', 'electricityLink'), 'flow')"] = "electricityLink_out"
+    newLegends["(('electricityLink', 'electricityInBus'), 'flow')"] = "electricityLink_in"
+    newLegends["(('spaceHeatingBus', 'shLink'), 'flow')"] = "shLink_out"
+    newLegends["(('shLink', 'shDemandBus'), 'flow')"] = "shLink_in"
+    newLegends["(('domesticHotWaterBus', 'dhwLink'), 'flow')"] = "dhwLink_out"
+    newLegends["(('dhwLink', 'dhwDemandBus'), 'flow')"] = "dhwLink_in"
 
     createPlot(excelFileName, figureFilePath, plotLevel, plotType, flowType, plotAnnualHorizontalBar, newLegends)
 
