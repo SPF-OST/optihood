@@ -74,6 +74,7 @@ class SolarCollector(solph.Transformer):
 
 
 class HeatPumpLinear:
+    "Information about the model can be found in combined_pro.py CombinedTransformer"
     def __init__(self, buildingLabel, temperatureDHW, temperatureSH, temperatureLow, input, outputSH, outputDHW,
                  capacityMin, capacityMax, nomEff,
                  epc, base, varc, env_flow, env_capa):
@@ -133,6 +134,7 @@ class HeatPumpLinear:
             return []
 
 class GeothermalHeatPumpLinear:
+    "Information about the model can be found in combined_pro.py CombinedTransformer"
     def __init__(self, buildingLabel, temperatureDHW, temperatureSH, temperatureLow, input, outputSH, outputDHW,
                  capacityMin, capacityMax, nomEff,
                  epc, base, varc, env_flow, env_capa):
@@ -193,6 +195,7 @@ class GeothermalHeatPumpLinear:
 
 
 class CHP:
+    "Information about the model can be found in combined_pro.py CombinedCHP"
     def __init__(self, buildingLabel, input, outputEl, outputSH, outputDHW, efficiencyEl, efficiencySH, efficiencyDHW,
                  capacityMin, capacityEl, capacitySH, capacityDHW, epc, base, varc1, varc2, env_flow1, env_flow2, env_capa, timesteps):
         self._efficiencyEl = [efficiencyEl] * timesteps
@@ -251,6 +254,7 @@ class CHP:
             return []
 
 class GasBoiler(cp.CombinedTransformer):
+    "Information about the model can be found in combined_pro.py CombinedTransformer"
     def __init__(self, buildingLabel, input, outputSH, outputDHW, efficiencySH, efficiencyDHW,
                  capacityMin, capacityMax, epc, base, varc, env_flow, env_capa):
         self.__efficiency = efficiencySH
