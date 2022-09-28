@@ -49,8 +49,8 @@ class EnergyNetworkClass(solph.EnergySystem):
         logging.info("Defining the energy network from the excel file: {}".format(filePath))
         data = pd.ExcelFile(filePath)
         nodesData = self.createNodesData(data, filePath, numberOfBuildings)
-        nodesData["buses"]["excess costs"] = nodesData["buses"]["excess costs indiv"]
-        nodesData["electricity_cost"]["cost"] = nodesData["electricity_cost"]["cost indiv"]
+        # nodesData["buses"]["excess costs"] = nodesData["buses"]["excess costs indiv"]
+        # nodesData["electricity_cost"]["cost"] = nodesData["electricity_cost"]["cost indiv"]
 
         demandProfiles = {}
         if clusterSize:
@@ -87,16 +87,16 @@ class EnergyNetworkClass(solph.EnergySystem):
             "demand": data.parse("demand"),
             "storages": data.parse("storages"),
             "stratified_storage": data.parse("stratified_storage"),
-            "csv_paths": data.parse("csv_data")
+            "profiles": data.parse("profiles")
         }
         # update stratified_storage index
         nodesData["stratified_storage"].set_index("label", inplace=True)
 
         # extract input data from CSVs
-        electricityImpactPath = nodesData["csv_paths"].loc[nodesData["csv_paths"]["name"] == "electricity_impact", "path"].iloc[0]
-        electricityCostPath = nodesData["csv_paths"].loc[nodesData["csv_paths"]["name"] == "electricity_cost", "path"].iloc[0]
-        demandProfilesPath = nodesData["csv_paths"].loc[nodesData["csv_paths"]["name"] == "demand_profiles", "path"].iloc[0]
-        weatherDataPath = nodesData["csv_paths"].loc[nodesData["csv_paths"]["name"] == "weather_data", "path"].iloc[0]
+        electricityImpact = nodesData["commodity_sources"].loc[nodesData["commodity_sources"]["label"] == "electricityResource", "CO2 impact"].iloc[0]
+        electricityCost = nodesData["commodity_sources"].loc[nodesData["commodity_sources"]["label"] == "electricityResource", "variable costs"].iloc[0]
+        demandProfilesPath = nodesData["profiles"].loc[nodesData["profiles"]["name"] == "demand_profiles", "path"].iloc[0]
+        weatherDataPath = nodesData["profiles"].loc[nodesData["profiles"]["name"] == "weather_data", "path"].iloc[0]
 
         demandProfiles = {}  # dictionary of dataframes for each building's demand profiles
 
@@ -116,18 +116,34 @@ class EnergyNetworkClass(solph.EnergySystem):
                 nodesData["demandProfiles"][i + 1].set_index("timestamp", inplace=True)
                 nodesData["demandProfiles"][i + 1].index = pd.to_datetime(nodesData["demandProfiles"][i + 1].index)
 
-        if not os.path.exists(electricityImpactPath):
+        if type(electricityImpact) == np.float64:
+            # for constant impact
+            electricityImpactValue = electricityImpact
+            logging.info("Constant value for electricity impact")
+            nodesData["electricity_impact"] = pd.DataFrame()
+            nodesData["electricity_impact"]["impact"] = (nodesData["demandProfiles"][1].shape[0]) * [
+                electricityImpactValue]
+            nodesData["electricity_impact"].index = nodesData["demandProfiles"][1].index
+        elif not os.path.exists(electricityImpact):
             logging.error("Error in electricity impact file path")
         else:
-            nodesData["electricity_impact"] = pd.read_csv(electricityImpactPath, delimiter=";")
+            nodesData["electricity_impact"] = pd.read_csv(electricityImpact, delimiter=";")
             # set datetime index
             nodesData["electricity_impact"].set_index("timestamp", inplace=True)
             nodesData["electricity_impact"].index = pd.to_datetime(nodesData["electricity_impact"].index)
 
-        if not os.path.exists(electricityCostPath):
+        if type(electricityCost) == np.float64:
+            # for constant cost
+            electricityCostValue = electricityCost
+            logging.info("Constant value for electricity impact")
+            nodesData["electricity_cost"] = pd.DataFrame()
+            nodesData["electricity_cost"]["cost"] = (nodesData["demandProfiles"][1].shape[0]) * [
+                electricityCostValue]
+            nodesData["electricity_cost"].index = nodesData["demandProfiles"][1].index
+        elif not os.path.exists(electricityCost):
             logging.error("Error in electricity cost file path")
         else:
-            nodesData["electricity_cost"] = pd.read_csv(electricityCostPath, delimiter=";")
+            nodesData["electricity_cost"] = pd.read_csv(electricityCost, delimiter=";")
             # set datetime index
             nodesData["electricity_cost"].set_index("timestamp", inplace=True)
             nodesData["electricity_cost"].index = pd.to_datetime(nodesData["electricity_cost"].index)
@@ -353,7 +369,7 @@ class EnergyNetworkClass(solph.EnergySystem):
                 solph.views.node(self.__optimizationResults, i[1])["sequences"][(i[0], i[1]), "flow"] * self.__costParam[
                     i[0]]) for i in inputs})
             self.__opex[buildingLabel].update({electricitySourceLabel: (
-                        costParamGridElectricity * gridElectricityFlow).sum()})  # impact of grid electricity is added separately based on LCA data
+                        costParamGridElectricity * gridElectricityFlow).sum()})  # cost of grid electricity is added separately based on cost data
 
             # self.__opex[buildingLabel] = sum(sum(solph.views.node(self.__optimizationResults, i[1])["sequences"][(i[0], i[1]), "flow"])
             #                                         * self.__costParam[i[0]] for i in inputs + [[electricitySourceLabel, gridBusLabel]])
@@ -565,8 +581,8 @@ class EnergyNetworkGroup(EnergyNetworkClass):
         data = pd.ExcelFile(filePath)
 
         nodesData = self.createNodesData(data, filePath, numberOfBuildings)
-        nodesData["buses"]["excess costs"] = nodesData["buses"]["excess costs group"]
-        nodesData["electricity_cost"]["cost"] = nodesData["electricity_cost"]["cost group"]
+        # nodesData["buses"]["excess costs"] = nodesData["buses"]["excess costs group"]
+        # nodesData["electricity_cost"]["cost"] = nodesData["electricity_cost"]["cost group"]
 
         demandProfiles = {}
         if clusterSize:
