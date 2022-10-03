@@ -114,8 +114,10 @@ def createSankeyData(dataDict, keys, UseLabelDict, buildings=[]):
             targetNodeName =dfKeySplit[3]
 
             if UseLabelDict:
-                sourceNodeName = labelDict[sourceNodeName]
-                targetNodeName = labelDict[targetNodeName]
+                if sourceNodeName in labelDict:
+                    sourceNodeName = labelDict[sourceNodeName]
+                if targetNodeName in labelDict:
+                    targetNodeName = labelDict[targetNodeName]
                 if sourceNodeName == targetNodeName:
                     continue
                 if "exSolar" in targetNodeName:
