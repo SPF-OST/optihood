@@ -29,16 +29,6 @@ def monthlyBalance(data, bus, new_legends):
     :return:
     """
     building = "__" + bus.split("__")[1]
-    if not data.filter(like='electricityLink').empty:
-        elLinks = data.filter(like='electricityLink')  # half would be el_link_out and half would be el_link_in
-        data.drop(list(data.filter(regex='electricityLink')), axis=1, inplace=True)
-        mid = int(len(elLinks.columns) / 2)
-        elLinksOut = elLinks.iloc[:, 0:mid]
-        elLinksIn = elLinks.iloc[:, mid:len(elLinks.columns)]
-        elLinksOut["(('electricityBus', 'electricityLink'), 'flow')"] = elLinksOut.sum(axis=1)
-        elLinksIn["(('electricityLink', 'electricityInBus'), 'flow')"] = elLinksIn.sum(axis=1)
-        data = pd.concat((data, elLinksIn["(('electricityLink', 'electricityInBus'), 'flow')"]), axis=1)
-        data = pd.concat((data, elLinksOut["(('electricityBus', 'electricityLink'), 'flow')"]), axis=1)
     data_month = data.resample('1m').sum()
     monthShortNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
@@ -107,16 +97,6 @@ def hourlyDailyPlot(data, bus, palette, new_legends):
             del bus[i + 1]
             dt = data[i]
             dt.pop(f"(('electricityProdBus{building}', 'electricitySource{building}'), 'flow')")
-            elLinks = dt.filter(like='electricityLink')  #half would be el_link_out and half would be el_link_in
-            dt.drop(list(dt.filter(regex = 'electricityLink')), axis = 1, inplace = True)
-            mid = int(len(elLinks.columns)/2)
-            elLinksOut = elLinks.iloc[:, 0:mid]
-            elLinksIn = elLinks.iloc[:, mid:len(elLinks.columns)]
-            elLinksOut["(('electricityBus', 'electricityLink'), 'flow')"] = elLinksOut.sum(axis=1)
-            elLinksIn["(('electricityLink', 'electricityInBus'), 'flow')"] = elLinksIn.sum(axis=1)
-            dt = pd.concat((dt, elLinksIn["(('electricityLink', 'electricityInBus'), 'flow')"]), axis=1)
-            dt = pd.concat((dt, elLinksOut["(('electricityBus', 'electricityLink'), 'flow')"]), axis=1)
-
             data_day = dt.resample('1d').sum()
             p1 = figure(title="Hourly electricity flows for " + building.replace("__", ""), x_axis_label="Date", y_axis_label="Energy (kWh)", sizing_mode="scale_both")
             p1.add_layout(Legend(), 'right')
@@ -143,15 +123,6 @@ def hourlyDailyPlot(data, bus, palette, new_legends):
 
         elif "shSource" in bus[i] or "spaceHeatingBus" in bus[i]:
             dt = data[i]
-            shLinks = dt.filter(like='shLink')  # half would be sh_link_out and half would be sh_link_in
-            dt.drop(list(dt.filter(regex='shLink')), axis=1, inplace=True)
-            mid = int(len(shLinks.columns) / 2)
-            shLinksOut = shLinks.iloc[:, 0:mid]
-            shLinksIn = shLinks.iloc[:, mid:len(shLinks.columns)]
-            shLinksOut["(('spaceHeatingBus', 'shLink'), 'flow')"] = shLinksOut.sum(axis=1)
-            shLinksIn["(('shLink', 'shDemandBus'), 'flow')"] = shLinksIn.sum(axis=1)
-            dt = pd.concat((dt, shLinksIn["(('shLink', 'shDemandBus'), 'flow')"]), axis=1)
-            dt = pd.concat((dt, shLinksOut["(('spaceHeatingBus', 'shLink'), 'flow')"]), axis=1)
             data_day = dt.resample('1d').sum()
             p3 = figure(title="Hourly space heating flows for " + building.replace("__", ""), x_axis_label="Date", y_axis_label="Energy (kWh)", sizing_mode="scale_both")
             p3.add_layout(Legend(), 'right')
@@ -178,15 +149,6 @@ def hourlyDailyPlot(data, bus, palette, new_legends):
 
         else:
             dt = data[i]
-            dhwLinks = dt.filter(like='dhwLink')  # half would be dhw_link_out and half would be dhw_link_in
-            dt.drop(list(dt.filter(regex='dhwLink')), axis=1, inplace=True)
-            mid = int(len(dhwLinks.columns) / 2)
-            dhwLinksOut = dhwLinks.iloc[:, 0:mid]
-            dhwLinksIn = dhwLinks.iloc[:, mid:len(dhwLinks.columns)]
-            dhwLinksOut["(('domesticHotWaterBus', 'dhwLink'), 'flow')"] = dhwLinksOut.sum(axis=1)
-            dhwLinksIn["(('dhwLink', 'dhwDemandBus'), 'flow')"] = dhwLinksIn.sum(axis=1)
-            dt = pd.concat((dt, dhwLinksIn["(('dhwLink', 'dhwDemandBus'), 'flow')"]), axis=1)
-            dt = pd.concat((dt, dhwLinksOut["(('domesticHotWaterBus', 'dhwLink'), 'flow')"]), axis=1)
             data_day = dt.resample('1d').sum()
 
             p5 = figure(title="Hourly domestic hot water flows for " + building.replace("__", ""), x_axis_label="Date", y_axis_label="Energy (kWh)", sizing_mode="scale_both")
@@ -313,7 +275,7 @@ def resultingDataDiagram(elBus, shBus, dhwBus, costs, env, COLORS, building, new
     for flow in elBus.keys():
         if "Storage" in flow and "out" in newLegends[flow.replace("__Building"+str(building), "")]:
             storage[newLegends[flow.replace("__Building"+str(building), "")]] = [0, 0, sum(elBus[flow])]
-        elif optMode == "group" and "electricityLink" in flow:
+        elif optMode == "group" and ("electricityLink" in flow):
             if "_in" in newLegends[flow.replace("__Building" + str(building), "")]:
                 if newLegends[flow.replace("__Building" + str(building), "")].replace("_in", "") in list:
                     production[newLegends[flow.replace("__Building" + str(building), "")].replace("_in", "")][2] -= sum(elBus[flow])
@@ -1035,7 +997,8 @@ def plot(excelFileName, figureFilePath, plotLevel, plotType, flowType, plotAnnua
         "(('electricityInBus', 'solarCollector'), 'flow')": "SolarCollector",
         "(('gridElectricity', 'electricityInBus'), 'flow')": "Electricity_grid",
         "(('producedElectricity', 'electricityInBus'), 'flow')": "Self_consumption",
-        "(('electricityProdBus', 'electricitySource'), 'flow')": "Battery_bypass"
+        "(('electricityProdBus', 'electricitySource'), 'flow')": "Battery_bypass",
+        "(('domesticHotWaterBus', 'domesticHotWaterDemand'), 'flow')": "Demand_dhw"
     }
     newLegends["(('electricityBus', 'electricityLink'), 'flow')"] = "electricityLink_out"
     newLegends["(('electricityLink', 'electricityInBus'), 'flow')"] = "electricityLink_in"

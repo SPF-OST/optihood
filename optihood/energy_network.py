@@ -544,13 +544,13 @@ class EnergyNetworkGroup(EnergyNetworkClass):
 
         nodesData["links"]= data.parse("links")
         self._convertNodes(nodesData, opt)
-        self._addLinks(nodesData["links"])
+        self._addLinks(nodesData["links"], numberOfBuildings)
         logging.info("Nodes from Excel file {} successfully converted".format(filePath))
         self.add(*self._nodesList)
         logging.info("Nodes successfully added to the energy network")
 
 
-    def _addLinks(self, data):  # connects buses A and B (denotes a bidirectional link)
+    def _addLinks(self, data, numberOfBuildings):  # connects buses A and B (denotes a bidirectional link)
         for i, l in data.iterrows():
             if l["active"]:
                 if l["investment"]:
@@ -562,54 +562,23 @@ class EnergyNetworkGroup(EnergyNetworkClass):
                     )
                 else:
                     investment = None
-                if "sh" in l["label"]:
-                    busA = self._busDict["spaceHeatingBus" + '__Building' + str(l["buildingA"])]
-                    busB = self._busDict["spaceHeatingBus" + '__Building' + str(l["buildingB"])]
-                    busAIn = self._busDict["shDemandBus" + '__Building' + str(l["buildingA"])]
-                    busBIn = self._busDict["shDemandBus" + '__Building' + str(l["buildingB"])]
-                    self._nodesList.append(solph.Transformer(
-                        label=l["label"] + str(l["buildingA"]) + '_' + str(l["buildingB"]),
-                        inputs={busA: solph.Flow()},
-                        outputs={busBIn: solph.Flow(investment=investment)},
-                        conversion_factors={(busA, busBIn): l["efficiency from A to B"]}
-                    ))
-                    self._nodesList.append(solph.Transformer(
-                        label=l["label"] + str(l["buildingB"]) + '_' + str(l["buildingA"]),
-                        inputs={busB: solph.Flow()},
-                        outputs={busAIn: solph.Flow(investment=investment)},
-                        conversion_factors={(busB, busAIn): l["efficiency from B to A"]}
-                    ))
-                elif "dhw" in l["label"]:
-                    busA = self._busDict["domesticHotWaterBus" + '__Building' + str(l["buildingA"])]
-                    busB = self._busDict["domesticHotWaterBus" + '__Building' + str(l["buildingB"])]
-                    busAIn = self._busDict["dhwDemandBus" + '__Building' + str(l["buildingA"])]
-                    busBIn = self._busDict["dhwDemandBus" + '__Building' + str(l["buildingB"])]
-                    self._nodesList.append(solph.Transformer(
-                        label=l["label"] + str(l["buildingA"]) + '_' + str(l["buildingB"]),
-                        inputs={busA: solph.Flow()},
-                        outputs={busBIn: solph.Flow(investment=investment)},
-                        conversion_factors={(busA, busBIn): l["efficiency from A to B"]}
-                    ))
-                    self._nodesList.append(solph.Transformer(
-                        label=l["label"] + str(l["buildingB"]) + '_' + str(l["buildingA"]),
-                        inputs={busB: solph.Flow()},
-                        outputs={busAIn: solph.Flow(investment=investment)},
-                        conversion_factors={(busB, busAIn): l["efficiency from B to A"]}
-                    ))
-                else:
-                    busA = self._busDict["electricityBus" + '__Building' + str(l["buildingA"])]
-                    busB = self._busDict["electricityBus" + '__Building' + str(l["buildingB"])]
-                    busAIn = self._busDict["electricityInBus" + '__Building' + str(l["buildingA"])]
-                    busBIn = self._busDict["electricityInBus" + '__Building' + str(l["buildingB"])]
-                    self._nodesList.append(solph.Transformer(
-                        label=l["label"] + str(l["buildingA"]) + '_' + str(l["buildingB"]),
-                        inputs={busA: solph.Flow()},
-                        outputs={busBIn: solph.Flow(investment=investment)},
-                        conversion_factors={(busA, busBIn): l["efficiency from A to B"]}
-                    ))
-                    self._nodesList.append(solph.Transformer(
-                        label=l["label"] + str(l["buildingB"]) + '_' + str(l["buildingA"]),
-                        inputs={busB: solph.Flow()},
-                        outputs={busAIn: solph.Flow(investment=investment)},
-                        conversion_factors={(busB, busAIn): l["efficiency from B to A"]}
-                    ))
+                busesOut = []
+                busesIn = []
+                # add two buses for each building link_out and link_in
+                for b in range(numberOfBuildings):
+                    if "sh" in l["label"]:
+                        busesOut.append(self._busDict["spaceHeatingBus" + '__Building' + str(b+1)])
+                        busesIn.append(self._busDict["shDemandBus" + '__Building' + str(b+1)])
+                    elif "dhw" in l["label"]:
+                        busesOut.append(self._busDict["domesticHotWaterBus" + '__Building' + str(b+1)])
+                        busesIn.append(self._busDict["dhwDemandBus" + '__Building' + str(b+1)])
+                    else:
+                        busesOut.append(self._busDict["electricityBus" + '__Building' + str(b + 1)])
+                        busesIn.append(self._busDict["electricityInBus" + '__Building' + str(b + 1)])
+
+                self._nodesList.append(solph.Transformer(
+                    label=l["label"],
+                    inputs={busA: solph.Flow() for busA in busesOut},
+                    outputs={busB: solph.Flow(investment=investment) for busB in busesIn},
+                    conversion_factors={busB: l["efficiency"] for busB in busesIn}
+                ))

@@ -39,8 +39,6 @@ if __name__ == '__main__':
     # initialize parameters
     numberOfOptimizations = 5       # number of optimizations in multi objective optimization pareto front
     numberOfBuildings = 4
-    temperatureSH = 35
-    temperatureDHW = 55
 
     # solver specific command line options
     optimizationOptions = {
