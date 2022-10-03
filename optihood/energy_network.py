@@ -30,7 +30,9 @@ class EnergyNetworkClass(solph.EnergySystem):
         self.__envImpactInputs = {}                 # dictionary of dictionary of environmental impact of different inputs indexed by the building label
         self.__envImpactTechnologies = {}           # dictionary of dictionary of environmental impact of different technologies indexed by the building label
         self._busDict = {}
-        logger.define_logging(logpath=os.getcwd(), logfile=f'optihood_{datetime.now().strftime("%d.%m.%Y_%H.%M.%S")}.log')
+        if not os.path.exists(".\\log_files"):
+            os.mkdir(".\\log_files")
+        logger.define_logging(logpath=os.getcwd(), logfile=f'.\\log_files\\optihood_{datetime.now().strftime("%d.%m.%Y_%H.%M.%S")}.log')
         logging.info("Initializing the energy network")
         super(EnergyNetworkClass, self).__init__(timeindex=timestamp)
 
