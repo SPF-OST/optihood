@@ -5,6 +5,11 @@
 /docs/_templates
 *.orig
 **/.idea/
+**/.spyproject/
+**/__pycache__/*
+**/*.pyc
+**/*.xls
+**/src/
 
 # Ignore result excel and image files
 **/[Rr]esults/
@@ -15,5 +20,7 @@ venv
 
 # Ignore logs
 **/*.log.*
+**/log_files/
+**.log
 
 
