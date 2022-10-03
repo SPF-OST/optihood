@@ -31,7 +31,7 @@ if __name__ == '__main__':
     timePeriod = pd.date_range("2018-01-01 00:00:00", "2018-01-12 23:00:00", freq="60min")
 
     # define paths for input and result files
-    inputFilePath = r"..\excels"
+    inputFilePath = r"..\excels\clustering"
     inputfileName = "scenario.xls"
 
     resultFilePath =r"..\results"
@@ -39,8 +39,6 @@ if __name__ == '__main__':
 
     # initialize parameters
     numberOfBuildings = 4
-    temperatureSH = 35
-    temperatureDHW = 55
     optimizationType = "costs"  # set as "env" for environmental optimization
 
     # create an energy network and set the network parameters from an excel file

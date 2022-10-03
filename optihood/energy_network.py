@@ -30,7 +30,9 @@ class EnergyNetworkClass(solph.EnergySystem):
         self.__envImpactInputs = {}                 # dictionary of dictionary of environmental impact of different inputs indexed by the building label
         self.__envImpactTechnologies = {}           # dictionary of dictionary of environmental impact of different technologies indexed by the building label
         self._busDict = {}
-        logger.define_logging(logpath=os.getcwd(), logfile=f'optihood_{datetime.now().strftime("%d.%m.%Y_%H.%M.%S")}.log')
+        if not os.path.exists(".\\log_files"):
+            os.mkdir(".\\log_files")
+        logger.define_logging(logpath=os.getcwd(), logfile=f'.\\log_files\\optihood_{datetime.now().strftime("%d.%m.%Y_%H.%M.%S")}.log')
         logging.info("Initializing the energy network")
         super(EnergyNetworkClass, self).__init__(timeindex=timestamp)
 
@@ -127,7 +129,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         nodesData["building_model"] = pd.DataFrame()
         nodesData["building_model"]["tAmb"] = np.array(nodesData["weather_data"]["tre200h0"])
         nodesData["building_model"]["IrrH"] = np.array(nodesData["weather_data"]["gls"])/1000       # conversion from W/m2 to kW/m2
-        if os.path.exists(r"..\excels\Internal_gains.csv"):
+        if (nodesData['demand']['building model'] == 'Yes').any():
             nodesData["building_model"]["Qocc"] = np.array(pd.read_csv(r"..\excels\Internal_gains.csv", delimiter=';', header=0)["Total (kW)"])
 
         logging.info("Data from Excel file {} imported.".format(filePath))
@@ -417,17 +419,17 @@ class EnergyNetworkClass(solph.EnergySystem):
         for b in range(len(self.__buildings)):
             buildingLabel = "Building" + str(b + 1)
             print("************** Optimized Capacities for {} **************".format(buildingLabel))
-            if ("electricityInBus__" + buildingLabel, "HP__" + buildingLabel) in capacitiesInvestedTransformers:
-                investSH = capacitiesInvestedTransformers[("electricityInBus__" + buildingLabel, "HP__" + buildingLabel)]
+            if ("HP__" + buildingLabel, "shSourceBus__" + buildingLabel) in capacitiesInvestedTransformers:
+                investSH = capacitiesInvestedTransformers[("HP__" + buildingLabel, "shSourceBus__" + buildingLabel)]
                 print("Invested in {} kW HP.".format(investSH))
-            if ("electricityInBus__" + buildingLabel, "GWHP__" + buildingLabel) in capacitiesInvestedTransformers:
-                investSH = capacitiesInvestedTransformers[("electricityInBus__" + buildingLabel, "GWHP__" + buildingLabel)]
+            if ("GWHP__" + buildingLabel, "shSourceBus__" + buildingLabel) in capacitiesInvestedTransformers:
+                investSH = capacitiesInvestedTransformers[("GWHP__" + buildingLabel, "shSourceBus__" + buildingLabel)]
                 print("Invested in {} kW GWHP.".format(investSH))
-            if ("naturalGasBus__" + buildingLabel, "CHP__" + buildingLabel) in capacitiesInvestedTransformers:
-                investSH = capacitiesInvestedTransformers[("naturalGasBus__" + buildingLabel, "CHP__" + buildingLabel)]
+            if ("CHP__" + buildingLabel, "shSourceBus__" + buildingLabel) in capacitiesInvestedTransformers:
+                investSH = capacitiesInvestedTransformers["CHP__" + buildingLabel, "shSourceBus__" + buildingLabel]
                 print("Invested in {} kW CHP.".format(investSH))  # + investEL))
-            if ("naturalGasBus__" + buildingLabel, "GasBoiler__" + buildingLabel) in capacitiesInvestedTransformers:
-                investSH = capacitiesInvestedTransformers[("naturalGasBus__" + buildingLabel, "GasBoiler__" + buildingLabel)]
+            if ("GasBoiler__" + buildingLabel, "shSourceBus__" + buildingLabel) in capacitiesInvestedTransformers:
+                investSH = capacitiesInvestedTransformers["GasBoiler__" + buildingLabel, "shSourceBus__" + buildingLabel]
                 print("Invested in {} kW  GasBoiler.".format(investSH))
             if ("heat_solarCollector__" + buildingLabel, "solarConnectBus__" + buildingLabel) in capacitiesInvestedTransformers:
                 invest = capacitiesInvestedTransformers[("heat_solarCollector__" + buildingLabel, "solarConnectBus__" + buildingLabel)]
@@ -544,61 +546,41 @@ class EnergyNetworkGroup(EnergyNetworkClass):
 
         nodesData["links"]= data.parse("links")
         self._convertNodes(nodesData, opt)
-        self._addLinks(nodesData["links"])
+        self._addLinks(nodesData["links"], numberOfBuildings)
         logging.info("Nodes from Excel file {} successfully converted".format(filePath))
         self.add(*self._nodesList)
         logging.info("Nodes successfully added to the energy network")
 
 
-    def _addLinks(self, data):  # connects buses A and B (denotes a bidirectional link)
+    def _addLinks(self, data, numberOfBuildings):  # connects buses A and B (denotes a bidirectional link)
         for i, l in data.iterrows():
-            if "sh" in l["label"]:
-                if l["active"]:
-                    busA = self._busDict["spaceHeatingBus" + '__Building' + str(l["buildingA"])]
-                    busB = self._busDict["spaceHeatingBus" + '__Building' + str(l["buildingB"])]
-                    busAIn = self._busDict["shDemandBus" + '__Building' + str(l["buildingA"])]
-                    busBIn = self._busDict["shDemandBus" + '__Building' + str(l["buildingB"])]
-                    self._nodesList.append(solph.Transformer(
-                        label=l["label"] + str(l["buildingA"]) + '_' + str(l["buildingB"]),
-                        inputs={busA: solph.Flow()},
-                        outputs={busBIn: solph.Flow(
-                            investment=solph.Investment(
-                                ep_costs=l["invest_cap"],
-                                nonconvex=True,
-                                maximum=5000,
-                                offset=l["invest_base"],
-                            ),
-                        )},
-                        conversion_factors={(busA, busBIn): l["efficiency from A to B"]}
-                    ))
-                    self._nodesList.append(solph.Transformer(
-                        label=l["label"] + str(l["buildingB"]) + '_' + str(l["buildingA"]),
-                        inputs={busB: solph.Flow()},
-                        outputs={busAIn: solph.Flow(
-                            investment=solph.Investment(
-                                ep_costs=l["invest_cap"],
-                                nonconvex=True,
-                                maximum=5000,
-                                offset=l["invest_base"],
-                            ),
-                        )},
-                        conversion_factors={(busB, busAIn): l["efficiency from B to A"]}
-                    ))
-            else:
-                if l["active"]:
-                    busA = self._busDict["electricityBus" + '__Building' + str(l["buildingA"])]
-                    busB = self._busDict["electricityBus" + '__Building' + str(l["buildingB"])]
-                    busAIn = self._busDict["electricityInBus" + '__Building' + str(l["buildingA"])]
-                    busBIn = self._busDict["electricityInBus" + '__Building' + str(l["buildingB"])]
-                    self._nodesList.append(solph.Transformer(
-                        label=l["label"] + str(l["buildingA"]) + '_' + str(l["buildingB"]),
-                        inputs={busA: solph.Flow()},
-                        outputs={busBIn: solph.Flow()},
-                        conversion_factors={(busA, busBIn): l["efficiency from A to B"]}
-                    ))
-                    self._nodesList.append(solph.Transformer(
-                        label=l["label"] + str(l["buildingB"]) + '_' + str(l["buildingA"]),
-                        inputs={busB: solph.Flow()},
-                        outputs={busAIn: solph.Flow()},
-                        conversion_factors={(busB, busAIn): l["efficiency from B to A"]}
-                    ))
+            if l["active"]:
+                if l["investment"]:
+                    investment = solph.Investment(
+                        ep_costs=l["invest_cap"],
+                        nonconvex=True,
+                        maximum=500000,
+                        offset=l["invest_base"],
+                    )
+                else:
+                    investment = None
+                busesOut = []
+                busesIn = []
+                # add two buses for each building link_out and link_in
+                for b in range(numberOfBuildings):
+                    if "sh" in l["label"]:
+                        busesOut.append(self._busDict["spaceHeatingBus" + '__Building' + str(b+1)])
+                        busesIn.append(self._busDict["shDemandBus" + '__Building' + str(b+1)])
+                    elif "dhw" in l["label"]:
+                        busesOut.append(self._busDict["domesticHotWaterBus" + '__Building' + str(b+1)])
+                        busesIn.append(self._busDict["dhwDemandBus" + '__Building' + str(b+1)])
+                    else:
+                        busesOut.append(self._busDict["electricityBus" + '__Building' + str(b + 1)])
+                        busesIn.append(self._busDict["electricityInBus" + '__Building' + str(b + 1)])
+
+                self._nodesList.append(solph.Transformer(
+                    label=l["label"],
+                    inputs={busA: solph.Flow() for busA in busesOut},
+                    outputs={busB: solph.Flow(investment=investment) for busB in busesIn},
+                    conversion_factors={busB: l["efficiency"] for busB in busesIn}
+                ))

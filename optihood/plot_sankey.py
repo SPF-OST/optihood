@@ -18,7 +18,7 @@ def addCapacities(nodes, dataDict, buildings, UseLabelDict):
         capTransformers=dataDict["capTransformers__Building"+str(i)]
         capStorages=dataDict["capStorages__Building"+str(i)]
         for j, k in capStorages.iterrows():
-            if k[0] < 0.001: # if the installed capacity is 0 then skip (sometimes as an error very low capacites are selected. To handle this k<0.001kW is set as the condition for comparison)
+            if k[0] < 0.01: # if the installed capacity is 0 then skip (sometimes as an error very low capacites are selected. To handle this k<0.01kW is set as the condition for comparison)
                 continue
             if UseLabelDict:
                 index=nodes.index(labelDict[j])
@@ -114,8 +114,10 @@ def createSankeyData(dataDict, keys, UseLabelDict, buildings=[]):
             targetNodeName =dfKeySplit[3]
 
             if UseLabelDict:
-                sourceNodeName = labelDict[sourceNodeName]
-                targetNodeName = labelDict[targetNodeName]
+                if sourceNodeName in labelDict:
+                    sourceNodeName = labelDict[sourceNodeName]
+                if targetNodeName in labelDict:
+                    targetNodeName = labelDict[targetNodeName]
                 if sourceNodeName == targetNodeName:
                     continue
                 if "exSolar" in targetNodeName:
@@ -136,6 +138,8 @@ def createSankeyData(dataDict, keys, UseLabelDict, buildings=[]):
                                 y.append((0.5-(PositionDict[posKey][1]))/len(buildings))
                             elif "shLink" in sourceNodeName:
                                 y.append((0.5 - (PositionDict[posKey][1])) / len(buildings))
+                            elif "dhwLink" in sourceNodeName:
+                                y.append((0.5 - (PositionDict[posKey][1])) / len(buildings))
                             else:
                                 buildingNumber=buildings.index(int(sourceNodeName[-1]))
                                 temp = (PositionDict[posKey][1]) / len(buildings) + buildingNumber / len(buildings)
@@ -150,6 +154,8 @@ def createSankeyData(dataDict, keys, UseLabelDict, buildings=[]):
                             if "electricityLink" in targetNodeName or "elLink"in targetNodeName:
                                 y.append((0.5-(PositionDict[posKey][1]))/len(buildings))
                             elif "shLink" in targetNodeName:
+                                y.append((0.5 - (PositionDict[posKey][1])) / len(buildings))
+                            elif "dhwLink" in targetNodeName:
                                 y.append((0.5 - (PositionDict[posKey][1])) / len(buildings))
                             else:
                                 buildingNumber=buildings.index(int(targetNodeName[-1]))
