@@ -2,7 +2,7 @@ import oemof.solph as solph
 from oemof.tools import logger
 from oemof.tools import economics
 import logging
-from optihood.converters import HeatPumpLinear, CHP, SolarCollector, GasBoiler, GeothermalHeatPumpLinear
+from optihood.converters import *
 from optihood.sources import PV
 from optihood.storages import ElectricalStorage, ThermalStorage
 from optihood.sinks import SinkRCModel
@@ -348,6 +348,22 @@ class Building:
                     self._addGasBoiler(t, opt)
                 else:
                     logging.warning("Transformer label not identified...")
+
+    def addElectricRodBackup(self, opt):
+        elRodLabel = "ElectricRod"+'__'+self.__buildingLabel
+        inputBusLabel = "electricityInBus"+'__'+self.__buildingLabel
+        outputSHBusLabel = "shSourceBus"+'__' + self.__buildingLabel
+        outputDHWBusLabel = "dhwStorageBus"+'__' + self.__buildingLabel
+        shEfficiency = 1
+        dhwEfficiency = 1
+        heat_impact = 0
+        capacity = 50              # 10kW capacity is assumed to be installed as backup
+
+        self.__nodesList.append(ElectricRod(self.__buildingLabel, self.__busDict[inputBusLabel],
+                                          self.__busDict[outputSHBusLabel], self.__busDict[outputDHWBusLabel],
+                                          shEfficiency, dhwEfficiency,
+                                          heat_impact * (opt == "env"), heat_impact, capacity))
+
 
     def addStorage(self, data, stratifiedStorageParams, opt):
         for i, s in data.iterrows():

@@ -21,6 +21,46 @@ def dailySHStorageConstraint(om):
 
     return om
 
+def connectInvestmentRule(om):
+    """Constraint to equate the investment objects of all the output flows of a Link"""
+
+    elLinkOutputFlows = [(i, o) for (i, o) in om.flows if (i.label == "electricityLink" or i.label == "elLink")]
+    shLinkOutputFlows = [(i, o) for (i, o) in om.flows if i.label == "shLink"]
+    dhwLinkOutputFlows = [(i, o) for (i, o) in om.flows if i.label == "dhwLink"]
+
+    if elLinkOutputFlows:
+        first = om.InvestmentFlow.invest[next(iter(elLinkOutputFlows))]
+        for (i, o) in elLinkOutputFlows:
+            expr = (first == om.InvestmentFlow.invest[i, o])
+            setattr(
+                om,
+                "elLinkConstr_" + o.label,
+                pyo.Constraint(expr=expr),
+            )
+
+    if shLinkOutputFlows:
+        first = om.InvestmentFlow.invest[next(iter(shLinkOutputFlows))]
+        for (i, o) in shLinkOutputFlows:
+            expr = (first == om.InvestmentFlow.invest[i, o])
+            setattr(
+                om,
+                "shLinkConstr_" + o.label,
+                pyo.Constraint(expr=expr),
+            )
+
+    if dhwLinkOutputFlows:
+        first = om.InvestmentFlow.invest[next(iter(dhwLinkOutputFlows))]
+        for (i, o) in dhwLinkOutputFlows:
+            expr = (first == om.InvestmentFlow.invest[i, o])
+            setattr(
+                om,
+                "dhwLinkConstr_" + o.label,
+                pyo.Constraint(expr=expr),
+            )
+
+    return om
+
+
 def environmentalImpactlimit(om, keyword1, keyword2, limit=None):
     """
     Function to limit the environmental impacts during the multi-objective optimization

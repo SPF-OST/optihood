@@ -998,7 +998,10 @@ def plot(excelFileName, figureFilePath, plotLevel, plotType, flowType, plotAnnua
         "(('gridElectricity', 'electricityInBus'), 'flow')": "Electricity_grid",
         "(('producedElectricity', 'electricityInBus'), 'flow')": "Self_consumption",
         "(('electricityProdBus', 'electricitySource'), 'flow')": "Battery_bypass",
-        "(('domesticHotWaterBus', 'domesticHotWaterDemand'), 'flow')": "Demand_dhw"
+        "(('domesticHotWaterBus', 'domesticHotWaterDemand'), 'flow')": "Demand_dhw",
+        "(('electricityInBus', 'ElectricRod'), 'flow')": "Electric_rod",
+        "(('ElectricRod', 'shSourceBus'), 'flow')": "Electric_rod_sh",
+        "(('ElectricRod', 'dhwStorageBus'), 'flow')": "Electric_rod_dhw"
     }
     newLegends["(('electricityBus', 'electricityLink'), 'flow')"] = "electricityLink_out"
     newLegends["(('electricityLink', 'electricityInBus'), 'flow')"] = "electricityLink_in"

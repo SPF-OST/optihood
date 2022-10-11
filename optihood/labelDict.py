@@ -137,6 +137,7 @@ labelDict = {
     "spaceHeatingDemand__Building1": "Q_sh_B1",
     "domesticHotWaterDemand__Building1": "Q_dhw_B1",
     "excessshSourceBus__Building1": "exSh_B1",
+    "ElectricRod__Building1": "ElectricRod_B1",
 
     "naturalGasResource__Building2": "natGas_B2",
     "naturalGasBus__Building2": "natGas_B2",
@@ -182,6 +183,7 @@ labelDict = {
     "spaceHeatingDemand__Building2":        "Q_sh_B2",
     "domesticHotWaterDemand__Building2": "Q_dhw_B2",
     "excessshSourceBus__Building2": "exSh_B2",
+    "ElectricRod__Building2": "ElectricRod_B2",
 
     "naturalGasResource__Building3": "natGas_B3",
     "naturalGasBus__Building3": "natGas_B3",
@@ -227,6 +229,7 @@ labelDict = {
     "spaceHeatingDemand__Building3":        "Q_sh_B3",
     "domesticHotWaterDemand__Building3": "Q_dhw_B3",
     "excessshSourceBus__Building3": "exSh_B3",
+    "ElectricRod__Building3": "ElectricRod_B3",
 
     "naturalGasResource__Building4": "natGas_B4",
     "naturalGasBus__Building4": "natGas_B4",
@@ -272,6 +275,7 @@ labelDict = {
     "spaceHeatingDemand__Building4":        "Q_sh_B4",
     "domesticHotWaterDemand__Building4": "Q_dhw_B4",
     "excessshSourceBus__Building4": "exSh_B4",
+    "ElectricRod__Building4": "ElectricRod_B4",
 
     "naturalGasResource__Building5": "natGas_B5",
     "naturalGasBus__Building5": "natGas_B5",
@@ -316,6 +320,7 @@ labelDict = {
     "electricityDemand__Building5": "Q_el_B5",
     "spaceHeatingDemand__Building5":        "Q_sh_B5",
     "domesticHotWaterDemand__Building5": "Q_dhw_B5",
+    "ElectricRod__Building5": "ElectricRod_B5",
 
     "naturalGasResource__Building6": "natGas_B6",
     "naturalGasBus__Building6": "natGas_B6",
@@ -360,6 +365,7 @@ labelDict = {
     "electricityDemand__Building6": "Q_el_B6",
     "spaceHeatingDemand__Building6":        "Q_sh_B6",
     "domesticHotWaterDemand__Building6": "Q_dhw_B6",
+    "ElectricRod__Building6": "ElectricRod_B6",
 }
 
 labelPositionDict={
@@ -377,6 +383,7 @@ labelPositionDict={
     "usedEl":	[0.5, 0.2],
     "HP":	[0.6, 0.5],
     "GWHP":	[0.6, 0.2],
+    "ElectricRod": [0.6, 0.4],
     "solar":	[0.6, 0.85],
     "exSolar": [0.7, 0.95],
     "prodSH": [0.65, 0.58],
@@ -410,6 +417,7 @@ fullPositionDict={
         "electricityInBus":	[0.5, 0.2],
         "HP":	[0.6, 0.5],
         "GWHP":	[0.6, 0.2],
+        "ElectricRod": [0.6, 0.4],
         "heat_solarCollector": [0.4, 0.85],
         "solarConnect": [0.5, 0.85],
         "solarCollector_":	[0.6, 0.85],

@@ -251,3 +251,28 @@ class GasBoiler(cp.CombinedTransformer):
             efficiencies={outputSH: efficiencySH,
                           outputDHW: efficiencyDHW}
                  )
+
+class ElectricRod(cp.CombinedTransformer):
+    def __init__(self, buildingLabel, input, outputSH, outputDHW, efficiencySH, efficiencyDHW, varc, env_flow, capacity):
+
+        self.__efficiency = efficiencySH
+        super(ElectricRod, self).__init__(
+            label='ElectricRod'+'__'+buildingLabel,
+            inputs={
+                input: solph.Flow()
+            },
+            outputs={
+                outputSH: solph.Flow(
+                    variable_costs=varc,
+                    env_per_flow=env_flow,
+                    nominal_value=capacity
+                ),
+                outputDHW: solph.Flow(
+                    variable_costs=varc,
+                    env_per_flow=env_flow,
+                    nominal_value=capacity
+                ),
+            },
+            efficiencies={outputSH: efficiencySH,
+                          outputDHW: efficiencyDHW}
+                 )
