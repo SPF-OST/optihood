@@ -388,7 +388,7 @@ def resultingDataDiagram(elBus, shBus, dhwBus, costs, env, COLORS, building, new
     return fig, costs, env, production, storage
 
 
-def resultingDataDiagramLoop(elec, sh, dhw, costs, env, colors, buildings):
+def resultingDataDiagramLoop(elec, sh, dhw, costs, env, colors, buildings, newLegends):
     """
     Function inspired from the URBS platform https://github.com/ojdo/urbs/blob/1house/comp.py
     Function plotting the graph comparing the different buildings/scenarios on costs, energy produced and energy
@@ -402,9 +402,9 @@ def resultingDataDiagramLoop(elec, sh, dhw, costs, env, colors, buildings):
     :param buildings: list of str type, name of the different buildings
     :return: figure created
     """
-    n_costs, n_env, n_production, n_storage = resultingDataDiagram(elec[0], sh[0], dhw[0], costs[0], env[0], colors, buildings[0])[1:]
+    n_costs, n_env, n_production, n_storage = resultingDataDiagram(elec[0], sh[0], dhw[0], costs[0], env[0], colors, buildings[0], newLegends)[1:]
     for i in range(1, len(elec)):
-        a, b, c, d = resultingDataDiagram(elec[i], sh[i], dhw[i], costs[i], env[i], colors, buildings[i])[1:]
+        a, b, c, d = resultingDataDiagram(elec[i], sh[i], dhw[i], costs[i], env[i], colors, buildings[i],newLegends)[1:]
         n_costs = pd.concat([n_costs, a])
         n_env = pd.concat([n_env, b])
         n_production = pd.concat([n_production, c])
@@ -596,7 +596,7 @@ def resultingDataDemandDiagram(elBus, shBus, dhwBus, COLORS, building, newLegend
 
     return fig, elec, sh, dhw
 
-def resultingDataDemandDiagramLoop(elec, sh, dhw, colors, buildings):
+def resultingDataDemandDiagramLoop(elec, sh, dhw, colors, buildings, newLegends):
     """
     Function inspired from the URBS platform https://github.com/ojdo/urbs/blob/1house/comp.py
     Function plotting the graph comparing the different buildings/scenarios on costs, energy produced and energy
@@ -948,8 +948,8 @@ def createPlot(resultFilePath, basePath, plotLevel, plotType, flowType, plotAnnu
             fig1 = resultingDataDiagram(elec_dict[i], sh_dict[i], dhw_dict[i], costs_dict[i], env_dict[i], COLORS, buildings_number[i])[0]
             fig2 = resultingDataDemandDiagram(elec_dict[i], sh_dict[i], dhw_dict[i], COLORS, buildings_number[i])[0]
         """
-        fig3 = resultingDataDiagramLoop(elec_dict, sh_dict, dhw_dict, costs_dict, env_dict, COLORS, buildings_number)
-        fig4 = resultingDataDemandDiagramLoop(elec_dict, sh_dict, dhw_dict, COLORS, buildings_number)
+        fig3 = resultingDataDiagramLoop(elec_dict, sh_dict, dhw_dict, costs_dict, env_dict, COLORS, buildings_number, newLegends)
+        fig4 = resultingDataDemandDiagramLoop(elec_dict, sh_dict, dhw_dict, COLORS, buildings_number,newLegends)
         plt.show()
 
 

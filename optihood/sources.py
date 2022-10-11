@@ -6,13 +6,15 @@ import pvlib
 
 class PV(solph.Source):
     def __init__(self, label, buildingLabel, outputs, peripheral_losses, latitude, longitude,
-                 pv_tilt, pv_azimuth, irradiance_global, irradiance_diffuse, temp_amb_pv, capacityMin,
+                 pv_tilt, pv_efficiency, roof_area, zenith_angle, pv_azimuth, irradiance_global, irradiance_diffuse, temp_amb_pv, capacityMin,
                  capacityMax, epc, base, env_capa, env_flow, varc):
         # Creation of a df with 3 columns
         data = self.computePvSolarPosition(irradiance_diffuse, irradiance_global, latitude, longitude, pv_azimuth,
                                            pv_tilt, temp_amb_pv)
 
         self.pv_electricity = np.minimum(self.pv_precalc(temp_amb_pv, data['pv_ira']/1000), capacityMax + base)
+
+        self.surface_used = self._calculateArea(zenith_angle, pv_tilt, pv_azimuth, pv_efficiency)
 
         super(PV, self).__init__(label=label + '__' + buildingLabel,
                                  outputs={outputs: solph.Flow(
@@ -21,6 +23,8 @@ class PV(solph.Source):
                                          minimum=capacityMin,
                                          maximum=capacityMax,
                                          nonconvex=True,
+                                         space=self.surface_used,
+                                         roof_area=roof_area,
                                          offset=base,
                                          env_per_capa=env_capa,
                                      ),
@@ -68,3 +72,7 @@ class PV(solph.Source):
 
     def getPV(self):
         return self.__pv
+
+    def _calculateArea(self, zenith_angle, pv_tilt, pv_azimuth, pv_efficiency):
+        coeff = -np.sin((zenith_angle+pv_tilt)*np.pi/180)*np.cos(pv_azimuth*np.pi/180)/np.sin(zenith_angle*np.pi/180)/pv_efficiency
+        return coeff
