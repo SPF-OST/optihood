@@ -39,6 +39,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         self.__shGWHP = {}
         self.__dhwGWHP = {}
         self.__annualCopGWHP = {}
+        self.__elRodEff = np.nan
         if not os.path.exists(".\\log_files"):
             os.mkdir(".\\log_files")
         logger.define_logging(logpath=os.getcwd(), logfile=f'.\\log_files\\optihood_{datetime.now().strftime("%d.%m.%Y_%H.%M.%S")}.log')
@@ -245,7 +246,8 @@ class EnergyNetworkClass(solph.EnergySystem):
         # add constraint to limit the environmental impacts
         optimizationModel, flows, transformerFlowCapacityDict, storageCapacityDict = environmentalImpactlimit(optimizationModel, keyword1="env_per_flow", keyword2="env_per_capa", limit=envImpactlimit)
         #optimizationModel = roof_area_limit(optimizationModel, keyword1="space", keyword2="roof_area", nb=numberOfBuildings)
-        optimizationModel = electricRodCapacityConstaint(optimizationModel, numberOfBuildings)
+        if not np.isnan(self.__elRodEff):
+            optimizationModel = electricRodCapacityConstaint(optimizationModel, numberOfBuildings)
         if clusterSize:
             optimizationModel = dailySHStorageConstraint(optimizationModel)
         logging.info("Custom constraints successfully added to the optimization model")

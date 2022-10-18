@@ -167,10 +167,14 @@ def roof_area_limit(model, keyword1, keyword2, nb):
     return model
 
 def electricRodCapacityConstaint(om, numBuildings):
-    """constraint to set the maximum capacity of electric rod equal to the capacity selected for HP"""
+    """constraint to set the total capacity of electric rod equal to sum of total capacity selected for HP"""
     electricRodInputFlows = [(i, o) for (i, o) in om.flows if ("ElectricRod" in o.label)]
     airHeatPumpInputFlows = [(i, o) for (i, o) in om.flows if ("HP" in o.label and "CHP" not in o.label and "GSHP" not in o.label)]
     groundHeatPumpInputFlows = [(i, o) for (i, o) in om.flows if ("GSHP" in o.label)]
+
+    elRodCapacityTotal = 0
+    airHeatPumpCapacityTotal = 0
+    groundHeatPumpCapacityTotal = 0
 
     for b in range(1,numBuildings+1):
         elRodCapacity = [om.InvestmentFlow.invest[i, o] for (i, o) in electricRodInputFlows if ((f'__Building{b}') in o.label)]
@@ -180,10 +184,14 @@ def electricRodCapacityConstaint(om, numBuildings):
             elRodCapacity = elRodCapacity[0]
             airHeatPumpCapacity = airHeatPumpCapacity[0] if airHeatPumpCapacity else 0
             groundHeatPumpCapacity = groundHeatPumpCapacity[0] if groundHeatPumpCapacity else 0
-            expr = (elRodCapacity <= (airHeatPumpCapacity + groundHeatPumpCapacity))
-            setattr(
-                om,
-                "electricRodSizeConstr_" + str(b),
-                pyo.Constraint(expr=expr),
-            )
+            elRodCapacityTotal = elRodCapacityTotal + elRodCapacity
+            airHeatPumpCapacityTotal = airHeatPumpCapacityTotal + airHeatPumpCapacity
+            groundHeatPumpCapacityTotal = groundHeatPumpCapacityTotal + groundHeatPumpCapacity
+
+    expr = (elRodCapacityTotal <= (airHeatPumpCapacityTotal + groundHeatPumpCapacityTotal))
+    setattr(
+        om,
+        "electricRodSizeConstr",
+        pyo.Constraint(expr=expr),
+    )
     return om
