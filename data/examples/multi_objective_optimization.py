@@ -86,6 +86,7 @@ if __name__ == '__main__':
         # optimize the energy network
         env, capacitiesTransformers, capacitiesStorages = network.optimize(solver='gurobi',
                                                                            envImpactlimit=envImpactlimit,
+                                                                           numberOfBuildings=numberOfBuildings,
                                                                            options=optimizationOptions)
 
         # print optimization outputs i.e. costs, environmental impact and capacities selected for different components (with investment optimization)

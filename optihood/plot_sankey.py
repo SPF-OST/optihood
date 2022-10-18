@@ -54,10 +54,8 @@ def readResults(fileName, buildings, ColorDict, UseLabelDict):
     capacities = addCapacities(nodes, dataDict, buildings, UseLabelDict)
     nodesColors=pd.Series(createColorList(nodes, ColorDict))
     linksColors = nodesColors[sources]
-    dhwIndex = [a and b for a, b in zip((nodesColors[targets] == ColorDict["dhw"]), (nodesColors[sources] == ColorDict["sh"]))]
-    linksColors = np.where(dhwIndex, ColorDict["dhw"], linksColors)
-    shIndex = [a and b for a, b in zip((nodesColors[targets] == ColorDict["sh"]), (nodesColors[sources] == ColorDict["dhw"]))]
-    linksColors = np.where(shIndex, ColorDict["sh"], linksColors)
+    linksColors = np.where(nodesColors[targets] == ColorDict["dhw"], ColorDict["dhw"], linksColors)
+    linksColors = np.where(nodesColors[targets] == ColorDict["sh"], ColorDict["sh"], linksColors)
     linksColors = np.where(nodesColors[targets] == ColorDict["elec"], ColorDict["elec"], linksColors)
 
     data = [go.Sankey(
@@ -168,14 +166,14 @@ def createSankeyData(dataDict, keys, UseLabelDict, buildings=[]):
 def createColorList(inputList, ColorDict):
     colorsList=[]
     for n in inputList:
-        if "el" in n or "El" in n or "pv" in n or "grid" in n or "Bat" in n:
-            color = ColorDict["elec"]
-        elif "Gas" in n:
+        if "Gas" in n:
             color = ColorDict["gas"]
         elif "sh" in n or "SH" in n or "spaceHeating" in n:
             color = ColorDict["sh"]
-        elif "dhw" in n or "DHW" in n or "domestic" in n or "solar" or "sc" in n:
+        elif "dhw" in n or "DHW" in n or "domestic" in n or "sc" in n:
             color = ColorDict["dhw"]
+        elif ("el" in n or "El" in n or "pv" in n or "grid" in n or "Bat" in n) and 'ElectricRod' not in n:
+            color = ColorDict["elec"]
         else:
             color = ColorDict["other"]
         colorsList.append(color)
@@ -188,7 +186,7 @@ def displaySankey(fileName, UseLabelDict, buildings):
                  "gas": 'rgba' + str(colors.to_rgba("darkgray", OPACITY)),
                  "dhw": 'rgba' + str(colors.to_rgba("red", OPACITY)),
                  "sh": 'rgba' + str(colors.to_rgba("magenta", OPACITY)),
-                 "other": 'rgba' + str(colors.to_rgba("lime", OPACITY))
+                 "other": 'rgba' + str(colors.to_rgba("deeppink", OPACITY))
                  }
     data = readResults(fileName, buildings, ColorDict, UseLabelDict)
 

@@ -14,7 +14,10 @@ class PV(solph.Source):
 
         self.pv_electricity = np.minimum(self.pv_precalc(temp_amb_pv, data['pv_ira']/1000), capacityMax + base)
 
-        self.surface_used = self._calculateArea(zenith_angle, pv_tilt, pv_azimuth, pv_efficiency)
+        if not (np.isnan(roof_area) or np.isnan(zenith_angle) or np.isnan(pv_efficiency)):
+            self.surface_used = self._calculateArea(zenith_angle, pv_tilt, pv_azimuth, pv_efficiency)
+        else:
+            self.surface_used = np.nan
 
         super(PV, self).__init__(label=label + '__' + buildingLabel,
                                  outputs={outputs: solph.Flow(

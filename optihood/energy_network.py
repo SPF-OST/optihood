@@ -141,7 +141,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         if type(electricityCost) == np.float64:
             # for constant cost
             electricityCostValue = electricityCost
-            logging.info("Constant value for electricity impact")
+            logging.info("Constant value for electricity cost")
             nodesData["electricity_cost"] = pd.DataFrame()
             nodesData["electricity_cost"]["cost"] = (nodesData["demandProfiles"][1].shape[0]) * [
                 electricityCostValue]
@@ -193,6 +193,8 @@ class EnergyNetworkClass(solph.EnergySystem):
             self.__gwhpEff = data["transformers"][data["transformers"]["label"] == "GWHP"]["efficiency"].iloc[0]
         if any(data["transformers"]["label"] == "GasBoiler"):
             self.__gbEff = float(data["transformers"][data["transformers"]["label"] == "GasBoiler"]["efficiency"].iloc[0].split(",")[0])
+        if any(data["transformers"]["label"] == "ElectricRod"):
+            self.__elRodEff = data["transformers"][data["transformers"]["label"] == "ElectricRod"]["efficiency"].iloc[0]
         # Storage conversion L - kWh to display the L value
         self.__Lsh = 4.186 * (self.__temperatureSH - data["stratified_storage"].loc["shStorage", "temp_c"]) / 3600
         self.__Ldhw = 4.186 * (self.__temperatureDHW - data["stratified_storage"].loc["dhwStorage", "temp_c"]) / 3600
@@ -210,8 +212,8 @@ class EnergyNetworkClass(solph.EnergySystem):
             b.addSink(data["demand"][data["demand"]["building"] == i], data["demandProfiles"][i], data["building_model"])
             b.addTransformer(data["transformers"][data["transformers"]["building"] == i], self.__temperatureDHW,
                              self.__temperatureSH, self.__temperatureAmb, self.__temperatureGround, opt)
-            if any(data["transformers"]["label"] == "HP") or any(data["transformers"]["label"] == "GWHP"):   #add electricity rod if HP or GSHP is present in the available technology pool
-                b.addElectricRodBackup(opt)
+            #if any(data["transformers"]["label"] == "HP") or any(data["transformers"]["label"] == "GWHP"):   #add electricity rod if HP or GSHP is present in the available technology pool
+            #    b.addElectricRodBackup(opt)
             b.addStorage(data["storages"][data["storages"]["building"] == i], data["stratified_storage"], opt)
             b.addSolar(data["solar"][(data["solar"]["building"] == i) & (data["solar"]["label"] == "solarCollector")], data["weather_data"], opt)
             b.addPV(data["solar"][(data["solar"]["building"] == i) & (data["solar"]["label"] == "pv")], data["weather_data"], opt)
@@ -243,6 +245,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         # add constraint to limit the environmental impacts
         optimizationModel, flows, transformerFlowCapacityDict, storageCapacityDict = environmentalImpactlimit(optimizationModel, keyword1="env_per_flow", keyword2="env_per_capa", limit=envImpactlimit)
         #optimizationModel = roof_area_limit(optimizationModel, keyword1="space", keyword2="roof_area", nb=numberOfBuildings)
+        optimizationModel = electricRodCapacityConstaint(optimizationModel, numberOfBuildings)
         if clusterSize:
             optimizationModel = dailySHStorageConstraint(optimizationModel)
         logging.info("Custom constraints successfully added to the optimization model")
@@ -270,7 +273,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         return envImpact, capacitiesTransformersNetwork, capacitiesStoragesNetwork
 
     def _updateCapacityDictInputInvestment(self, transformerFlowCapacityDict):
-        components = ["CHP", "GWHP", "HP", "GasBoiler"]
+        components = ["CHP", "GWHP", "HP", "GasBoiler", "ElectricRod"]
         for inflow, outflow in list(transformerFlowCapacityDict):
             index = (inflow, outflow)
             buildingLabel = str(inflow).split("__")[1]
@@ -364,6 +367,15 @@ class EnergyNetworkClass(solph.EnergySystem):
                                 capacitiesTransformers[(second, t.label)] = capacitiesTransformers[(
                                 first, second)] * self.__gbEff
                                 del capacitiesTransformers[(first, second)]
+            elif "ElectricRod" in second:
+                for index, value in enumerate(self.nodes):
+                    if second == value.label:
+                        test = self.nodes[index].conversion_factors
+                        for t in test.keys():
+                            if "shSource" in t.label:
+                                capacitiesTransformers[(second, t.label)] = capacitiesTransformers[(
+                                first, second)] * self.__elRodEff
+                                del capacitiesTransformers[(first, second)]
 
         return capacitiesTransformers
 
@@ -427,13 +439,13 @@ class EnergyNetworkClass(solph.EnergySystem):
             # HP flows
             if ("HP__" + buildingLabel, "shSourceBus__" + buildingLabel) in capacityTransformers:
                 self.__elHP[buildingLabel] = sum(
-                    solph.views.node(self.__optimizationResults, 'electricityInBus__'+buildingLabel)["sequences"][
+                    solph.views.node(self._optimizationResults, 'electricityInBus__'+buildingLabel)["sequences"][
                         ('electricityInBus__'+buildingLabel, 'HP__'+buildingLabel), 'flow'])
                 self.__shHP[buildingLabel] = sum(
-                    solph.views.node(self.__optimizationResults, 'HP__' + buildingLabel)["sequences"][
+                    solph.views.node(self._optimizationResults, 'HP__' + buildingLabel)["sequences"][
                         ('HP__' + buildingLabel, 'shSourceBus__' + buildingLabel), 'flow'])
                 self.__dhwHP[buildingLabel] = sum(
-                    solph.views.node(self.__optimizationResults, 'HP__' + buildingLabel)["sequences"][
+                    solph.views.node(self._optimizationResults, 'HP__' + buildingLabel)["sequences"][
                         ('HP__' + buildingLabel, 'dhwStorageBus__' + buildingLabel), 'flow'])
                 self.__annualCopHP[buildingLabel] = (self.__shHP[buildingLabel] + self.__dhwHP[buildingLabel]) / (
                     self.__elHP[buildingLabel] + 1e-6)
@@ -441,13 +453,13 @@ class EnergyNetworkClass(solph.EnergySystem):
             # GWHP flows
             if ("GWHP__" + buildingLabel, "shSourceBus__" + buildingLabel) in capacityTransformers:
                 self.__elGWHP[buildingLabel] = sum(
-                    solph.views.node(self.__optimizationResults, 'electricityInBus__' + buildingLabel)["sequences"][
+                    solph.views.node(self._optimizationResults, 'electricityInBus__' + buildingLabel)["sequences"][
                         ('electricityInBus__' + buildingLabel, 'GWHP__' + buildingLabel), 'flow'])
                 self.__shGWHP[buildingLabel] = sum(
-                    solph.views.node(self.__optimizationResults, 'GWHP__' + buildingLabel)["sequences"][
+                    solph.views.node(self._optimizationResults, 'GWHP__' + buildingLabel)["sequences"][
                         ('GWHP__' + buildingLabel, 'shSourceBus__' + buildingLabel), 'flow'])
                 self.__dhwGWHP[buildingLabel] = sum(
-                    solph.views.node(self.__optimizationResults, 'GWHP__' + buildingLabel)["sequences"][
+                    solph.views.node(self._optimizationResults, 'GWHP__' + buildingLabel)["sequences"][
                         ('GWHP__' + buildingLabel, 'dhwStorageBus__' + buildingLabel), 'flow'])
                 self.__annualCopGWHP[buildingLabel] = (self.__shGWHP[buildingLabel] + self.__dhwGWHP[buildingLabel]) / (
                         self.__elGWHP[buildingLabel] + 1e-6)
@@ -512,6 +524,9 @@ class EnergyNetworkClass(solph.EnergySystem):
                 investSH = capacitiesInvestedTransformers[("GWHP__" + buildingLabel, "shSourceBus__" + buildingLabel)]
                 print("Invested in {} kW GWHP.".format(investSH))
                 print("     Annual COP = {}".format(self.__annualCopGWHP[buildingLabel]))
+            if ("ElectricRod__" + buildingLabel, "shSourceBus__" + buildingLabel) in capacitiesInvestedTransformers:
+                investSH = capacitiesInvestedTransformers[("ElectricRod__" + buildingLabel, "shSourceBus__" + buildingLabel)]
+                print("Invested in {} kW Electric Rod.".format(investSH))
             if ("CHP__" + buildingLabel, "shSourceBus__" + buildingLabel) in capacitiesInvestedTransformers:
                 investSH = capacitiesInvestedTransformers["CHP__" + buildingLabel, "shSourceBus__" + buildingLabel]
                 print("Invested in {} kW CHP.".format(investSH))  # + investEL))
@@ -657,7 +672,7 @@ class EnergyNetworkGroup(EnergyNetworkClass):
     def _addLinks(self, data, numberOfBuildings):  # connects buses A and B (denotes a bidirectional link)
         for i, l in data.iterrows():
             if l["active"]:
-                """if l["investment"]:
+                if l["investment"]:
                     investment = solph.Investment(
                         ep_costs=l["invest_cap"],
                         nonconvex=True,
@@ -665,7 +680,7 @@ class EnergyNetworkGroup(EnergyNetworkClass):
                         offset=l["invest_base"],
                     )
                 else:
-                    investment = None"""
+                    investment = None
                 busesOut = []
                 busesIn = []
                 # add two buses for each building link_out and link_in
@@ -683,41 +698,6 @@ class EnergyNetworkGroup(EnergyNetworkClass):
                 self._nodesList.append(Link(
                     label=l["label"],
                     inputs={busA: solph.Flow() for busA in busesOut},
-                    outputs={busB: solph.Flow() for busB in busesIn},               # solph.Flow(investment=investment)
+                    outputs={busB: solph.Flow(investment=investment) for busB in busesIn},
                     conversion_factors={busB: l["efficiency"] for busB in busesIn}
                 ))
-
-    def optimize(self, solver, numberOfBuildings, envImpactlimit=1000000, clusterSize={}, options=None):
-        if options is None:
-            options = {"gurobi": {"MIPGap": 0.01}}
-        optimizationModel = solph.Model(self)
-        logging.info("Optimization model built successfully")
-        # add constraint to limit the environmental impacts
-        optimizationModel, flows, transformerFlowCapacityDict, storageCapacityDict = environmentalImpactlimit(optimizationModel, keyword1="env_per_flow", keyword2="env_per_capa", limit=envImpactlimit)
-        if clusterSize:
-            optimizationModel = dailySHStorageConstraint(optimizationModel)
-        #optimizationModel = roof_area_limit(optimizationModel, keyword1="space", keyword2="roof_area", nb=numberOfBuildings)
-        #optimizationModel = connectInvestmentRule(optimizationModel)
-        logging.info("Custom constraints successfully added to the optimization model")
-        if solver == "gurobi":
-            logging.info("Initiating optimization using {} solver".format(solver))
-        optimizationModel.solve(solver=solver, cmdline_options=options[solver])
-        # obtain the value of the environmental impact (subject to the limit constraint)
-        # the optimization imposes an integral limit constraint on the environmental impacts
-        # total environmental impacts <= envImpactlimit
-        envImpact = optimizationModel.totalEnvironmentalImpact()
-
-        self._optimizationResults = solph.processing.results(optimizationModel)
-        self._metaResults = solph.processing.meta_results(optimizationModel)
-        logging.info("Optimization successful and results collected")
-
-        # calculate capacities invested for transformers and storages (for the entire energy network and per building)
-        capacitiesTransformersNetwork, capacitiesStoragesNetwork = self._calculateInvestedCapacities(optimizationModel, transformerFlowCapacityDict, storageCapacityDict)
-
-        if clusterSize:
-            self._postprocessingClusters(clusterSize)
-
-        # calculate results (CAPEX, OPEX, FeedIn Costs, environmental impacts etc...) for each building
-        self._calculateResultsPerBuilding()
-
-        return envImpact, capacitiesTransformersNetwork, capacitiesStoragesNetwork

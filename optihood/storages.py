@@ -13,7 +13,7 @@ class ElectricalStorage(solph.components.GenericStorage):
                 input: solph.Flow(investment=solph.Investment(ep_costs=0)),
             },
             outputs={
-                output: solph.Flow(variable_costs=varc, env_per_flow=env_flow, )
+                output: solph.Flow(investment=solph.Investment(ep_costs=0), variable_costs=varc, env_per_flow=env_flow, )
             },
             loss_rate=loss_rate,
             initial_storage_level=initial_storage,
@@ -39,7 +39,7 @@ class ThermalStorage(solph.components.GenericStorage):
         super(ThermalStorage, self).__init__(
             label=label1,
             inputs={
-                input: solph.Flow(),
+                input: solph.Flow(investment=solph.Investment(ep_costs=0)),
             },
             outputs={
                 output: solph.Flow(investment=solph.Investment(ep_costs=0), variable_costs=varc, env_per_flow=env_flow, )

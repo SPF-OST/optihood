@@ -46,7 +46,7 @@ if __name__ == '__main__':
     network.setFromExcel(os.path.join(inputFilePath, inputfileName), numberOfBuildings, clusterSize=cluster, opt=optimizationType)
 
     # optimize the energy network
-    limit, capacitiesTransformers, capacitiesStorages = network.optimize(solver='gurobi', clusterSize=cluster)
+    limit, capacitiesTransformers, capacitiesStorages = network.optimize(solver='gurobi', numberOfBuildings=numberOfBuildings, clusterSize=cluster)
 
     # print optimization outputs i.e. costs, environmental impact and capacities selected for different components (with investment optimization)
     network.printInvestedCapacities(capacitiesTransformers, capacitiesStorages)

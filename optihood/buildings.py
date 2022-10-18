@@ -1,3 +1,4 @@
+import numpy as np
 import oemof.solph as solph
 from oemof.tools import logger
 from oemof.tools import economics
@@ -80,6 +81,14 @@ class Building:
 
                 envParam = [0, s["elec_impact"], s["impact_cap"] / s["lifetime"]]
 
+            # If roof area and zenith do not exist in the excel file
+            if 'roof_area' not in s.keys():
+                s["roof_area"] = np.nan
+            if 'zenith_angle' not in s.keys():
+                s["zenith_angle"] = np.nan
+            if 'efficiency' not in s.keys():
+                s["efficiency"] = np.nan
+
             self.__nodesList.append(PV(s["label"], self.__buildingLabel,
                                        self.__busDict[s["to"] + '__' + self.__buildingLabel],
                                        s["peripheral_losses"], s["latitude"], s["longitude"],
@@ -118,6 +127,11 @@ class Building:
 
                 envParam = [s["heat_impact"], 0, env_capa]
 
+            # If roof area and zenith do not exist in the excel file
+            if 'roof_area' not in s.keys():
+                s["roof_area"] = np.nan
+            if 'zenith_angle' not in s.keys():
+                s["zenith_angle"] = np.nan
             collector=SolarCollector(s["label"], self.__buildingLabel,
                                                    self.__busDict[s["from"] + '__' + self.__buildingLabel],
                                                    self.__busDict[s["to"] + '__' + self.__buildingLabel],
@@ -338,6 +352,30 @@ class Building:
 
         self.__envParam[gasBoilLabel] = [data["heat_impact"], 0, envImpactPerCapacity]
 
+    def _addElectricRod(self, data, opt):
+        elRodLabel = data["label"] + '__' + self.__buildingLabel
+        inputBusLabel = data["from"] + '__' + self.__buildingLabel
+        outputSHBusLabel = data["to"].split(",")[0] + '__' + self.__buildingLabel
+        outputDHWBusLabel = data["to"].split(",")[1] + '__' + self.__buildingLabel
+        efficiency = float(data["efficiency"])
+        envImpactPerCapacity = data["impact_cap"] / data["lifetime"]
+
+        self.__nodesList.append(ElectricRod(self.__buildingLabel, self.__busDict[inputBusLabel],
+                                          self.__busDict[outputSHBusLabel], self.__busDict[outputDHWBusLabel],
+                                          efficiency, data["capacity_min"], data["capacity_SH"],
+                                          self._calculateInvest(data)[0] * (opt == "costs") + envImpactPerCapacity * (
+                                                      opt == "env"),
+                                          self._calculateInvest(data)[1] * (opt == "costs"),
+                                          data["heat_impact"] * (opt == "env"), data["heat_impact"],
+                                          envImpactPerCapacity))
+
+        # set technologies, environment and cost parameters
+        self.__technologies.append([outputSHBusLabel, elRodLabel])
+        self.__technologies.append([outputDHWBusLabel, elRodLabel])
+
+        self.__costParam[elRodLabel] = [self._calculateInvest(data)[0], self._calculateInvest(data)[1]]
+
+        self.__envParam[elRodLabel] = [data["heat_impact"], 0, envImpactPerCapacity]
 
     def addTransformer(self, data, temperatureDHW, temperatureSH, temperatureAmb, temperatureGround, opt):
         for i, t in data.iterrows():
@@ -350,6 +388,8 @@ class Building:
                     self._addCHP(t, len(temperatureAmb), opt)
                 elif t["label"] == "GasBoiler":
                     self._addGasBoiler(t, opt)
+                elif t["label"] == "ElectricRod":
+                    self._addElectricRod(t, opt)
                 else:
                     logging.warning("Transformer label not identified...")
 
@@ -358,14 +398,13 @@ class Building:
         inputBusLabel = "electricityInBus"+'__'+self.__buildingLabel
         outputSHBusLabel = "shSourceBus"+'__' + self.__buildingLabel
         outputDHWBusLabel = "dhwStorageBus"+'__' + self.__buildingLabel
-        shEfficiency = 1
-        dhwEfficiency = 1
+        efficiency = 1
         heat_impact = 0
         capacity = 50              # 10kW capacity is assumed to be installed as backup
 
-        self.__nodesList.append(ElectricRod(self.__buildingLabel, self.__busDict[inputBusLabel],
+        self.__nodesList.append(ElectricRodFixed(self.__buildingLabel, self.__busDict[inputBusLabel],
                                           self.__busDict[outputSHBusLabel], self.__busDict[outputDHWBusLabel],
-                                          shEfficiency, dhwEfficiency,
+                                          efficiency,
                                           heat_impact * (opt == "env"), heat_impact, capacity))
 
 

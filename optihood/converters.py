@@ -15,7 +15,10 @@ class SolarCollector(solph.Transformer):
             irradiance_global, irradiance_diffuse, temp_amb_col
         )
 
-        self.surface_used = self._calculateArea(zenith_angle, collector_tilt, collector_azimuth)
+        if not (np.isnan(roof_area) or np.isnan(zenith_angle)):
+            self.surface_used = self._calculateArea(zenith_angle, collector_tilt, collector_azimuth)
+        else:
+            self.surface_used = np.nan
 
         self.collectors_eta_c = flatPlateCollectorData['eta_c']
 
@@ -264,11 +267,41 @@ class GasBoiler(cp.CombinedTransformer):
                  )
 
 class ElectricRod(cp.CombinedTransformer):
-    def __init__(self, buildingLabel, input, outputSH, outputDHW, efficiencySH, efficiencyDHW, varc, env_flow, capacity):
+    def __init__(self, buildingLabel, input, outputSH, outputDHW, efficiency,
+                 capacityMin, capacityMax, epc, base, varc, env_flow, env_capa):
 
-        self.__efficiency = efficiencySH
+        self.__efficiency = efficiency
         super(ElectricRod, self).__init__(
             label='ElectricRod'+'__'+buildingLabel,
+            inputs={
+                input: solph.Flow(investment=solph.Investment(
+                        ep_costs=epc*efficiency,
+                        minimum=capacityMin/efficiency,
+                        maximum=capacityMax/efficiency,
+                        nonconvex=True,
+                        offset=base,
+                        env_per_capa=env_capa*efficiency,) )
+            },
+            outputs={
+                outputSH: solph.Flow(
+                    variable_costs=varc,
+                    env_per_flow=env_flow,
+                ),
+                outputDHW: solph.Flow(
+                    variable_costs=varc,
+                    env_per_flow=env_flow,
+                ),
+            },
+            efficiencies={outputSH: efficiency,
+                          outputDHW: efficiency}
+                 )
+
+class ElectricRodFixed(cp.CombinedTransformer):
+    def __init__(self, buildingLabel, input, outputSH, outputDHW, efficiency, varc, env_flow, capacity):
+
+        self.__efficiency = efficiency
+        super(ElectricRodFixed, self).__init__(
+            label='ElectricRod_fixed'+'__'+buildingLabel,
             inputs={
                 input: solph.Flow()
             },
@@ -284,6 +317,6 @@ class ElectricRod(cp.CombinedTransformer):
                     nominal_value=capacity
                 ),
             },
-            efficiencies={outputSH: efficiencySH,
-                          outputDHW: efficiencyDHW}
+            efficiencies={outputSH: efficiency,
+                          outputDHW: efficiency}
                  )
