@@ -169,8 +169,9 @@ def roof_area_limit(model, keyword1, keyword2, nb):
 def electricRodCapacityConstaint(om, numBuildings):
     """constraint to set the total capacity of electric rod equal to sum of total capacity selected for HP"""
     electricRodInputFlows = [(i, o) for (i, o) in om.flows if ("ElectricRod" in o.label)]
-    airHeatPumpInputFlows = [(i, o) for (i, o) in om.flows if ("HP" in o.label and "CHP" not in o.label and "GSHP" not in o.label)]
-    groundHeatPumpInputFlows = [(i, o) for (i, o) in om.flows if ("GSHP" in o.label)]
+    airHeatPumpInputFlows = [(i, o) for (i, o) in om.flows if ("HP" in o.label and "CHP" not in o.label and "GWHP" not in o.label)]
+    groundHeatPumpInputFlows = [(i, o) for (i, o) in om.flows if ("GWHP" in o.label and not any([c.isdigit() for c in o.label.split("__")[0]]))]
+    groundHeatPumpOutFlows = [(i, o) for (i, o) in om.flows if ("GWHP" in i.label and any([c.isdigit() for c in i.label.split("__")[0]]))]     # for splitted GSHPs
 
     elRodCapacityTotal = 0
     airHeatPumpCapacityTotal = 0
@@ -179,11 +180,17 @@ def electricRodCapacityConstaint(om, numBuildings):
     for b in range(1,numBuildings+1):
         elRodCapacity = [om.InvestmentFlow.invest[i, o] for (i, o) in electricRodInputFlows if ((f'__Building{b}') in o.label)]
         airHeatPumpCapacity = [om.InvestmentFlow.invest[i, o] for (i, o) in airHeatPumpInputFlows if ((f'__Building{b}') in o.label)]
-        groundHeatPumpCapacity = [om.InvestmentFlow.invest[i, o] for (i, o) in groundHeatPumpInputFlows if ((f'__Building{b}') in o.label)]
+        if groundHeatPumpInputFlows:
+            groundHeatPumpCapacity = [om.InvestmentFlow.invest[i, o] for (i, o) in groundHeatPumpInputFlows if ((f'__Building{b}') in o.label)]
+        else:
+            groundHeatPumpCapacity = [om.InvestmentFlow.invest[i, o] for (i, o) in groundHeatPumpOutFlows if ((f'__Building{b}') in i.label)]
         if elRodCapacity:
             elRodCapacity = elRodCapacity[0]
             airHeatPumpCapacity = airHeatPumpCapacity[0] if airHeatPumpCapacity else 0
-            groundHeatPumpCapacity = groundHeatPumpCapacity[0] if groundHeatPumpCapacity else 0
+            if groundHeatPumpInputFlows:
+                groundHeatPumpCapacity = groundHeatPumpCapacity[0] if groundHeatPumpCapacity else 0
+            else:
+                groundHeatPumpCapacity = groundHeatPumpCapacity[0] + groundHeatPumpCapacity[1] if groundHeatPumpCapacity else 0
             elRodCapacityTotal = elRodCapacityTotal + elRodCapacity
             airHeatPumpCapacityTotal = airHeatPumpCapacityTotal + airHeatPumpCapacity
             groundHeatPumpCapacityTotal = groundHeatPumpCapacityTotal + groundHeatPumpCapacity
@@ -192,6 +199,22 @@ def electricRodCapacityConstaint(om, numBuildings):
     setattr(
         om,
         "electricRodSizeConstr",
+        pyo.Constraint(expr=expr),
+    )
+    return om
+
+def totalPVCapacityConstraint(om, numBuildings):
+    pvOutFlows = [(i, o) for (i, o) in om.flows if ("pv" in i.label)]
+    pvCapacityTotal = 0
+    for b in range(1,numBuildings+1):
+        pvCapacity = [om.InvestmentFlow.invest[i, o] for (i, o) in pvOutFlows if ((f'__Building{b}') in o.label)]
+        if pvCapacity:
+            pvCapacity = pvCapacity[0]
+            pvCapacityTotal = pvCapacityTotal + pvCapacity
+    expr = (pvCapacityTotal <= 205)
+    setattr(
+        om,
+        "PVSizeConstr",
         pyo.Constraint(expr=expr),
     )
     return om

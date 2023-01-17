@@ -54,7 +54,7 @@ class ThermalStorage(solph.components.GenericStorage):
             invest_relation_output_capacity=1,
             Balanced=False,
             investment=solph.Investment(
-                minimum=0,
+                minimum=capacity_min,
                 maximum=capacity_max,
                 ep_costs=epc,
                 existing=0,

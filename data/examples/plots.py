@@ -30,7 +30,7 @@ if __name__ == '__main__':
 
     # plot sankey diagram
     snk.plot(os.path.join(resultFilePath, resultFileName), os.path.join(figureFilePath, sankeyFileName),
-                   numberOfBuildings, UseLabelDict)
+                   numberOfBuildings, UseLabelDict, labels='default', optimType='indiv')
 
     # plot detailed energy flow
     plotLevel = "allMonths"  # permissible values (for energy balance plot): "allMonths" {for all months}
@@ -39,5 +39,5 @@ if __name__ == '__main__':
     plotType = "bokeh"  # permissible values: "energy balance", "bokeh"
     flowType = "electricity"  # permissible values: "all", "electricity", "space heat", "domestic hot water"
 
-    fnc.plot(os.path.join(resultFilePath, resultFileName), figureFilePath, plotLevel, plotType, flowType)
+    fnc.plot(os.path.join(resultFilePath, resultFileName), figureFilePath, numberOfBuildings, plotLevel, plotType, flowType)
 

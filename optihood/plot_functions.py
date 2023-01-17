@@ -88,13 +88,11 @@ def hourlyDailyPlot(data, bus, palette, new_legends):
     p_plots = []
     a = []
     b = 1
-
+    bus = [x for x in bus if 'electricityProdBus' not in x and 'electricityInBus' not in x]
     for i in range(0, len(data)):
         building = '__' + bus[i].split("__")[1]
 
         if "electricity" in bus[i]:
-            del bus[i + 1]
-            del bus[i + 1]
             dt = data[i]
             dt.pop(f"(('electricityProdBus{building}', 'electricitySource{building}'), 'flow')")
             data_day = dt.resample('1d').sum()
@@ -693,7 +691,7 @@ def getData(filepath):
 
     return dict_sheet
 
-def loadPlottingData(resultFilePath):
+def loadPlottingData(resultFilePath, numberOfBuildings):
     """
     Function for loading the data from excel file into variables
     :param resultFilePath: path to the Excel containing the results of the optimization
@@ -718,120 +716,225 @@ def loadPlottingData(resultFilePath):
     for i in beta:
         alpha = []
         alpha_a = []
+        # Merged buses, if present, are assigned to Building 1 for plotting
+        if i in ["electricityBus", "electricityInBus", "domesticHotWaterBus", "dhwDemandBus", "spaceHeatingBus", "shDemandBus"]:
+            i = i + f'__Building{building}'
         building = i.split("Building")[1]  # building number
         beta_bis = beta.copy()
+        firstElBus = True
+        firstShBus = True
+        firstDhwBus = True
         for j in beta:
-            if j.endswith(building) and (
-                    "electricityBus" in j or "electricityInBus" in j or "electricityProdBus" in j or "spaceHeatingBus" in j or "shDemandBus" in j or "shSourceBus" in j or "domesticHotWaterBus" in j or "dhwDemandBus" in j):
-                if "shDemandBus" not in j and "shSourceBus" not in j and "dhwDemandBus" not in j:
-                    alpha.append(j)
-                if ("electricityBus" in j) or ("electricityInBus" in j) or ("electricityProdBus" in j):
-                    # find the index of electricity bus to merge the results of electricityBus, electricityInBus and electricityProdBus
-                    index = -1
-                    for ind in range(len(alpha_a)):
-                        if "electricityBus" in alpha_a[ind].keys()[0] or "electricityInBus" in alpha_a[ind].keys()[0] or "electricityProdBus" in alpha_a[ind].keys()[0]:
-                            index = ind
-                    if index != -1:
-                        alpha_a[index] = pd.concat((alpha_a[index], buses[j]), axis=1)
+            if any('Building' in v for v in beta) and any(f'Building{building}' in v for v in beta):
+                j_buses = j
+                # Merged buses, if present, are assigned to Building 1 for plotting
+                if j in ["electricityBus", "electricityInBus", "domesticHotWaterBus", "dhwDemandBus", "spaceHeatingBus",
+                         "shDemandBus"]:
+                    j = j + f'__Building{building}'
+                if j.endswith(building) and (
+                        "electricityBus" in j or "electricityInBus" in j or "electricityProdBus" in j or "spaceHeatingBus" in j or "shDemandBus" in j or "shSourceBus" in j or "domesticHotWaterBus" in j or "dhwDemandBus" in j):
+                    """if "shDemandBus" not in j and "shSourceBus" not in j and "dhwDemandBus" not in j:
+                        alpha.append(j)"""
+                    if firstElBus and "electricity" in j:
+                        alpha.append(f"electricityBus__Building{building}")
+                        firstElBus = False
+                    elif firstShBus and ("spaceHeatingBus" in j or "shDemandBus" in j or "shSourceBus" in j):
+                        alpha.append(f"spaceHeatingBus__Building{building}")
+                        firstShBus = False
+                    elif firstDhwBus and ("domesticHotWaterBus" in j or "dhwDemandBus" in j):
+                        alpha.append(f"domesticHotWaterBus__Building{building}")
+                        firstDhwBus = False
+                    if j_buses != j:
+                        building_df = buses[j_buses].loc[:, buses[j_buses].columns.str.contains(
+                            f'Building{building}')]  # extract columns related to a given building
+                        if building == '1':
+                            building_df = pd.concat(
+                                [building_df, buses[j_buses].loc[:, ~buses[j_buses].columns.str.contains(f'Building')]],
+                                axis=1)
                     else:
-                        alpha_a.append(buses[j])
-                elif ("spaceHeatingBus" in j) or ("shDemandBus" in j) or ("shSourceBus" in j):
-                    # find the index of spaceHeatingBus to merge the results of spaceHeatingBus, shDemandBus and shSourceBus
-                    index = -1
-                    for ind in range(len(alpha_a)):
-                        if "spaceHeatingBus" in alpha_a[ind].keys()[0] or "shDemandBus" in alpha_a[ind].keys()[0] or "shSourceBus" in alpha_a[ind].keys()[0]:
-                            index = ind
-                    if index != -1:
-                        alpha_a[index] = pd.concat((alpha_a[index], buses[j]), axis=1)
-                        flow = f"(('spaceHeating__Building{building}', 'shDemandBus__Building{building}'), 'flow')"
-                        if flow in alpha_a[index].columns:
-                            alpha_a[index].pop(flow)
-                        flow = f"(('shSourceBus__Building{building}', 'shSource__Building{building}'), 'flow')"
-                        if flow in alpha_a[index].columns:
-                            alpha_a[index].pop(flow)
+                        building_df = buses[j_buses]
+                    if ("electricityBus" in j) or ("electricityInBus" in j) or ("electricityProdBus" in j):
+                        # find the index of electricity bus to merge the results of electricityBus, electricityInBus and electricityProdBus
+                        index = -1
+                        for ind in range(len(alpha_a)):
+                            if "electricityBus" in alpha_a[ind].keys()[0] or "electricityInBus" in alpha_a[ind].keys()[0] or "electricityProdBus" in alpha_a[ind].keys()[0]:
+                                index = ind
+                        if index != -1:
+                                alpha_a[index] = pd.concat((alpha_a[index], building_df), axis=1)
+                        else:
+                            alpha_a.append(building_df)
+                    elif ("spaceHeatingBus" in j) or ("shDemandBus" in j) or ("shSourceBus" in j):
+                        # find the index of spaceHeatingBus to merge the results of spaceHeatingBus, shDemandBus and shSourceBus
+                        index = -1
+                        for ind in range(len(alpha_a)):
+                            if "spaceHeatingBus" in alpha_a[ind].keys()[0] or "shDemandBus" in alpha_a[ind].keys()[0] or "shSourceBus" in alpha_a[ind].keys()[0]:
+                                index = ind
+                        if index != -1:
+                            alpha_a[index] = pd.concat((alpha_a[index], building_df), axis=1)
+                        else:
+                            index = len(alpha_a)
+                            alpha_a.append(building_df)
+                        flows_to_delete = [
+                            f"(('spaceHeating__Building{building}', 'shDemandBus__Building{building}'), 'flow')",
+                            f"(('shSourceBus__Building{building}', 'shSource__Building{building}'), 'flow')",
+                            f"(('spaceHeating', 'shDemandBus'), 'flow')"]
+                        for flow in flows_to_delete:
+                            if flow in alpha_a[index].columns:
+                                alpha_a[index].pop(flow)
                     else:
-                        index = len(alpha_a)
-                        alpha_a.append(buses[j])
-                        flow = f"(('spaceHeating__Building{building}', 'shDemandBus__Building{building}'), 'flow')"
-                        if flow in alpha_a[index].columns:
-                            alpha_a[index].pop(flow)
-                        flow = f"(('shSourceBus__Building{building}', 'shSource__Building{building}'), 'flow')"
-                        if flow in alpha_a[index].columns:
-                            alpha_a[index].pop(flow)
-                else:
-                    # find the index of domesticHotWaterBus to merge the results of domesticHotWaterBus and dhwDemandBus
-                    index = -1
-                    for ind in range(len(alpha_a)):
-                        if "domesticHotWaterBus" in alpha_a[ind].keys()[0] or "dhwDemandBus" in alpha_a[ind].keys()[0]:
-                            index = ind
-                    if index != -1:
-                        alpha_a[index] = pd.concat((alpha_a[index], buses[j]), axis=1)
-                        flow = f"(('domesticHotWater__Building{building}', 'dhwDemandBus__Building{building}'), 'flow')"
-                        if flow in alpha_a[index].columns:
-                            alpha_a[index].pop(flow)
-                    else:
-                        index = len(alpha_a)
-                        alpha_a.append(buses[j])
-                        flow = f"(('domesticHotWater__Building{building}', 'dhwDemandBus__Building{building}'), 'flow')"
-                        if flow in alpha_a[index].columns:
-                            alpha_a[index].pop(flow)
-                beta_bis.remove(j)
+                        # find the index of domesticHotWaterBus to merge the results of domesticHotWaterBus and dhwDemandBus
+                        index = -1
+                        for ind in range(len(alpha_a)):
+                            if "domesticHotWaterBus" in alpha_a[ind].keys()[0] or "dhwDemandBus" in alpha_a[ind].keys()[0]:
+                                index = ind
+                        if index != -1:
+                            alpha_a[index] = pd.concat((alpha_a[index], building_df), axis=1)
+                        else:
+                            index = len(alpha_a)
+                            alpha_a.append(building_df)
+                        flows_to_delete = [
+                            f"(('domesticHotWater__Building{building}', 'dhwDemandBus__Building{building}'), 'flow')",
+                            f"(('domesticHotWater', 'dhwDemandBus'), 'flow')"]
+                        for flow in flows_to_delete:
+                            if flow in alpha_a[index].columns:
+                                alpha_a[index].pop(flow)
+                    beta_bis.remove(j_buses)
         if alpha != []:
             buildings_dict.append(alpha_a)
             buildings_names.append(alpha)
             buildings_number.append(building)
-        for a in alpha:
-            beta.remove(a)
+        """for a in alpha:
+            beta.remove(a)"""
+        beta = [x for x in beta if f"Building{building}" not in x]
 
+    firstShBus = True
+    firstDhwBus = True
+    mergedElBuses = []
+    mergedShBuses = []
+    mergedDhwBuses = []
+    mergedLinks = False
+    b = 1  # initial building number
     for i in buses.keys():
+        i_buses = i
+        if 'Building' in i:
+            b = int(i.split("Building")[1])  # building number
+        # Merged buses, if present, are assigned to Building 1 for plotting
+        if i in ["electricityBus", "electricityInBus", "domesticHotWaterBus", "dhwDemandBus", "spaceHeatingBus",
+                 "shDemandBus"]:
+            i = i + f'__Building{b}'
         tt = {}
-        b = int(i.split("Building")[1])  # building number
+
+        if i_buses != i:
+            if 'electricity' in i:
+                mergedElBuses.append(i_buses)
+            elif 'spaceHeating' in i or 'shDemand' in i:
+                mergedShBuses.append(i_buses)
+            else:
+                mergedDhwBuses.append(i_buses)
+            mergedLinks = True
+            building_df = buses[i_buses].loc[:, buses[i_buses].columns.str.contains(
+                f'Building{b}')]  # extract columns related to a given building
+            if b == 1:
+                building_df = pd.concat(
+                    [building_df, buses[i_buses].loc[:, ~buses[i_buses].columns.str.contains(f'Building')]], axis=1)
+        else:
+            building_df = buses[i_buses]
+
         if ("electricityBus" in i) or ("electricityInBus" in i) or ("electricityProdBus" in i):
+            if b != 1 and mergedLinks:
+                for elBusName in mergedElBuses:
+                    elec_names.append(elBusName + f"__Building{b}")
+                    mergedbus_df = buses[elBusName].loc[:, buses[elBusName].columns.str.contains(f'Building{b}')]
+                    if b <= len(
+                            elec_dict):  # to merge the data of the two electricity buses of the same  (elec_dict[0] should have all the electricity related data of building 1, and so on...)
+                        elec_dict[b - 1] = pd.concat((elec_dict[b - 1], mergedbus_df), axis=1)
+                    else:
+                        elec_dict.append(mergedbus_df)
             elec_names.append(i)
             if b <= len(
                     elec_dict):  # to merge the data of the two electricity buses of the same  (elec_dict[0] should have all the electricity related data of building 1, and so on...)
-                elec_dict[b - 1] = pd.concat((elec_dict[b - 1], buses[i]), axis=1)
+                elec_dict[b - 1] = pd.concat((elec_dict[b - 1], building_df), axis=1)
             else:
-                elec_dict.append(buses[i])
+                elec_dict.append(building_df)
+
         if ("spaceHeating" in i) or ("shDemand" in i) or ("shSource" in i):
-            if "shDemand" not in i and "spaceHeating" not in i:
+            if any(str(b) not in v for v in sh_names):
+                firstShBus=True
+            if b != 1 and mergedLinks:
+                for shBusName in mergedShBuses:
+                    mergedbus_df = buses[shBusName].loc[:, buses[shBusName].columns.str.contains(f'Building{b}')]
+                    if firstShBus:
+                        sh_names.append(i)
+                        sh_dict.append(mergedbus_df)
+                        firstShBus = False
+                    else:
+                        ind = len(sh_names) - 1
+                        sh_dict[ind] = pd.concat((sh_dict[ind], mergedbus_df), axis=1)
+                        flows_to_delete = [f"(('spaceHeating__Building{b}', 'shDemandBus__Building{b}'), 'flow')",
+                                           f"(('shSourceBus__Building{b}', 'shSource__Building{b}'), 'flow')",
+                                           f"(('spaceHeating', 'shDemandBus'), 'flow')"]
+                        for flow in flows_to_delete:
+                            if flow in sh_dict[ind].columns:
+                                sh_dict[ind].pop(flow)
+            if firstShBus:
                 sh_names.append(i)
-                sh_dict.append(buses[i])
+                sh_dict.append(building_df)
+                firstShBus = False
             else:
                 ind = len(sh_names) - 1
-                sh_dict[ind] = pd.concat((sh_dict[ind], buses[i]), axis=1)
-
-                flow = f"(('spaceHeating__Building{b}', 'shDemandBus__Building{b}'), 'flow')"
-                if flow in sh_dict[ind].columns:
-                    sh_dict[ind].pop(flow)
-                flow = f"(('shSourceBus__Building{b}', 'shSource__Building{b}'), 'flow')"
-                if flow in sh_dict[ind].columns:
-                    sh_dict[ind].pop(flow)
-
+                sh_dict[ind] = pd.concat((sh_dict[ind], building_df), axis=1)
+                flows_to_delete = [f"(('spaceHeating__Building{b}', 'shDemandBus__Building{b}'), 'flow')",
+                    f"(('shSourceBus__Building{b}', 'shSource__Building{b}'), 'flow')",
+                    f"(('spaceHeating', 'shDemandBus'), 'flow')"]
+                for flow in flows_to_delete:
+                    if flow in sh_dict[ind].columns:
+                        sh_dict[ind].pop(flow)
         if ("domesticHotWater" in i) or ("dhwDemand" in i):
-            if "domesticHotWater" in i:
+            if any(str(b) not in v for v in dhw_names):
+                firstDhwBus=True
+            if firstDhwBus:
                 dhw_names.append(i)
-                dhw_dict.append(buses[i])
+                dhw_dict.append(building_df)
+                firstDhwBus = False
             else:
                 ind = len(dhw_names) - 1
-                dhw_dict[ind] = pd.concat((dhw_dict[ind], buses[i]), axis=1)
-                flow = f"(('domesticHotWater__Building{b}', 'dhwDemandBus__Building{b}'), 'flow')"
-                if flow in dhw_dict[ind].columns:
-                    dhw_dict[ind].pop(flow)
+                dhw_dict[ind] = pd.concat((dhw_dict[ind], building_df), axis=1)
+                flows_to_delete = [f"(('domesticHotWater__Building{b}', 'dhwDemandBus__Building{b}'), 'flow')",
+                                   f"(('domesticHotWater', 'dhwDemandBus'), 'flow')"]
+                for flow in flows_to_delete:
+                    if flow in dhw_dict[ind].columns:
+                        dhw_dict[ind].pop(flow)
+        if b != 1 and mergedLinks and "dhwStorageBus" in i:
+            if any(str(b) not in v for v in dhw_names):
+                firstDhwBus=True
+            for dhwBusName in mergedDhwBuses:
+                mergedbus_df = buses[dhwBusName].loc[:, buses[dhwBusName].columns.str.contains(f'Building{b}')]
+                if firstDhwBus:
+                    dhw_names.append(f'domesticHotWaterBus__Building{b}')
+                    dhw_dict.append(mergedbus_df)
+                    firstDhwBus = False
+                else:
+                    ind = len(dhw_names) - 1
+                    dhw_dict[ind] = pd.concat((dhw_dict[ind], mergedbus_df), axis=1)
+                    flows_to_delete = [f"(('domesticHotWater__Building{b}', 'dhwDemandBus__Building{b}'), 'flow')",
+                                       f"(('domesticHotWater', 'dhwDemandBus'), 'flow')"]
+                    for flow in flows_to_delete:
+                        if flow in dhw_dict[ind].columns:
+                            dhw_dict[ind].pop(flow)
         if "costs" in i:
             costs_names.append(i)
-            costs_dict.append(buses[i])
+            costs_dict.append(buses[i_buses])
         if "env_impacts" in i:
             env_names.append(i)
-            env_dict.append(buses[i])
+            env_dict.append(buses[i_buses])
 
     return buses, elec_names, elec_dict, sh_names, sh_dict, dhw_names, dhw_dict, costs_names, costs_dict, env_names, env_dict,\
            buildings_dict, buildings_names, buildings_number
 
-def createPlot(resultFilePath, basePath, plotLevel, plotType, flowType, plotAnnualHorizontalBar, newLegends):
+def createPlot(resultFilePath, basePath, numberOfBuildings, plotLevel, plotType, flowType, plotAnnualHorizontalBar, newLegends):
     # load the plotting data from excel file into variables
     buses, elec_names, elec_dict, sh_names, sh_dict, dhw_names, dhw_dict, costs_names, costs_dict, env_names, env_dict, \
-    buildings_dict, buildings_names, buildings_number = loadPlottingData(resultFilePath)
+    buildings_dict, buildings_names, buildings_number = loadPlottingData(resultFilePath, numberOfBuildings)
 
     if flowType == "all":
         if plotType == "energy balance":
@@ -953,64 +1056,125 @@ def createPlot(resultFilePath, basePath, plotLevel, plotType, flowType, plotAnnu
         plt.show()
 
 
-def plot(excelFileName, figureFilePath, plotLevel, plotType, flowType, plotAnnualHorizontalBar=False):
+def plot(excelFileName, figureFilePath, numberOfBuildings, plotLevel, plotType, flowType, plotlabels='default', plotAnnualHorizontalBar=False):
     #####################################
     ########## Classic plots  ###########
     #####################################
     # New legends need to be defined by hand for each new flow added to the energy network
-    newLegends = {
-        "(('naturalGasResource', 'naturalGasBus'), 'flow')": "NaturalGas",
-        "(('electricityBus', 'excesselectricityBus'), 'flow')": "Feed-in",
-        "(('electricityProdBus', 'electricalStorage'), 'flow')": "Battery_in",
-        "(('electricityInBus', 'electricityDemand'), 'flow')": "Demand_elec",
-        "(('electricityInBus', 'emobilityDemand'), 'flow')": "Demand_mobility",
-        "(('electricityInBus', 'HP'), 'flow')": "HP",
-        "(('electricityInBus', 'GWHP'), 'flow')": "GWHP",
-        "(('CHP', 'electricityProdBus'), 'flow')": "CHP_elec",
-        "(('electricalStorage', 'electricityBus'), 'flow')": "Battery_out",
-        "(('electricitySource', 'electricityBus'), 'flow')": "Elect_produced (not stored)",
-        "(('electricityResource', 'gridBus'), 'flow')": "Grid_purchase",
-        "(('dhwStorage', 'domesticHotWaterBus'), 'flow')": "Storage_dhw_out",
-        "(('dhwStorageBus', 'dhwStorage'), 'flow')": "Storage_dhw_in",
-        "(('domesticHotWaterBus', 'domesticHotWater'), 'flow')": "dhw_direct_to_load",
-        "(('dhwDemandBus', 'domesticHotWaterDemand'), 'flow')": "Demand_dhw",
-        "(('HP', 'dhwStorageBus'), 'flow')": "HP_dhw",
-        "(('GWHP', 'dhwStorageBus'), 'flow')": "GWHP_dhw",
-        "(('CHP', 'dhwStorageBus'), 'flow')": "CHP_dhw",
-        "(('shSource', 'spaceHeatingBus'), 'flow')": "SH_produced (not stored)",
-        "(('shStorage', 'spaceHeatingBus'), 'flow')": "Storage_sh_out",
-        "storage_content": "Storage_content",
-        "(('shSourceBus', 'shStorage'), 'flow')": "Storage_sh_in",
-        "(('spaceHeatingBus', 'spaceHeating'), 'flow')": "SH_direct_to_load",
-        "(('shDemandBus', 'spaceHeatingDemand'), 'flow')": "Demand_sh",
-        "(('shDemandBus', 'excessshDemandBus'), 'flow')": "Excess SH production",
-        "(('shSourceBus', 'excessshSourceBus'), 'flow')": "Excess SH production",
-        "(('CHP', 'shSourceBus'), 'flow')": "CHP_sh",
-        "(('GasBoiler', 'shSourceBus'), 'flow')": "Gas_sh",
-        "(('GasBoiler', 'dhwStorageBus'), 'flow')": "Gas_dhw",
-        "(('HP', 'shSourceBus'), 'flow')": "HP_sh",
-        "(('GWHP', 'shSourceBus'), 'flow')": "GWHP_sh",
-        "(('electricityBus', 'producedElectricity'), 'flow')": "Self_consumption",
-        "(('gridBus', 'gridElectricity'), 'flow')": "Electricity_grid",
-        "(('pv', 'electricityProdBus'), 'flow')": "PV_elec",
-        "(('solarCollector', 'dhwStorageBus'), 'flow')": "SolarCollector",
-        "(('electricityInBus', 'solarCollector'), 'flow')": "SolarCollector",
-        "(('gridElectricity', 'electricityInBus'), 'flow')": "Electricity_grid",
-        "(('producedElectricity', 'electricityInBus'), 'flow')": "Self_consumption",
-        "(('electricityProdBus', 'electricitySource'), 'flow')": "Battery_bypass",
-        "(('domesticHotWaterBus', 'domesticHotWaterDemand'), 'flow')": "Demand_dhw",
-        "(('electricityInBus', 'ElectricRod'), 'flow')": "Electric_rod",
-        "(('ElectricRod', 'shSourceBus'), 'flow')": "Electric_rod_sh",
-        "(('ElectricRod', 'dhwStorageBus'), 'flow')": "Electric_rod_dhw"
-    }
-    newLegends["(('electricityBus', 'electricityLink'), 'flow')"] = "electricityLink_out"
-    newLegends["(('electricityLink', 'electricityInBus'), 'flow')"] = "electricityLink_in"
-    newLegends["(('spaceHeatingBus', 'shLink'), 'flow')"] = "shLink_out"
-    newLegends["(('shLink', 'shDemandBus'), 'flow')"] = "shLink_in"
-    newLegends["(('domesticHotWaterBus', 'dhwLink'), 'flow')"] = "dhwLink_out"
-    newLegends["(('dhwLink', 'dhwDemandBus'), 'flow')"] = "dhwLink_in"
+    if plotlabels == 'default':
+        newLegends = {
+            "(('naturalGasResource', 'naturalGasBus'), 'flow')": "NaturalGas",
+            "(('electricityBus', 'excesselectricityBus'), 'flow')": "Feed-in",
+            "(('electricityProdBus', 'electricalStorage'), 'flow')": "Battery_in",
+            "(('electricityInBus', 'electricityDemand'), 'flow')": "Demand_elec",
+            "(('electricityInBus', 'emobilityDemand'), 'flow')": "Demand_mobility",
+            "(('electricityInBus', 'HP'), 'flow')": "HP",
+            "(('electricityInBus', 'GWHP'), 'flow')": "GWHP",
+            "(('CHP', 'electricityProdBus'), 'flow')": "CHP_elec",
+            "(('electricalStorage', 'electricityBus'), 'flow')": "Battery_out",
+            "(('electricitySource', 'electricityBus'), 'flow')": "Elect_produced (not stored)",
+            "(('electricityResource', 'gridBus'), 'flow')": "Grid_purchase",
+            "(('dhwStorage', 'domesticHotWaterBus'), 'flow')": "Storage_dhw_out",
+            "(('dhwStorageBus', 'dhwStorage'), 'flow')": "Storage_dhw_in",
+            "(('domesticHotWaterBus', 'domesticHotWater'), 'flow')": "dhw_direct_to_load",
+            "(('dhwDemandBus', 'domesticHotWaterDemand'), 'flow')": "Demand_dhw",
+            "(('HP', 'dhwStorageBus'), 'flow')": "HP_dhw",
+            "(('GWHP', 'dhwStorageBus'), 'flow')": "GWHP_dhw",
+            "(('CHP', 'dhwStorageBus'), 'flow')": "CHP_dhw",
+            "(('shSource', 'spaceHeatingBus'), 'flow')": "SH_produced (not stored)",
+            "(('shStorage', 'spaceHeatingBus'), 'flow')": "Storage_sh_out",
+            "storage_content": "Storage_content",
+            "(('shSourceBus', 'shStorage'), 'flow')": "Storage_sh_in",
+            "(('spaceHeatingBus', 'spaceHeating'), 'flow')": "SH_direct_to_load",
+            "(('shDemandBus', 'spaceHeatingDemand'), 'flow')": "Demand_sh",
+            "(('shDemandBus', 'excessshDemandBus'), 'flow')": "Excess SH production",
+            "(('shSourceBus', 'excessshSourceBus'), 'flow')": "Excess SH production",
+            "(('CHP', 'shSourceBus'), 'flow')": "CHP_sh",
+            "(('GasBoiler', 'shSourceBus'), 'flow')": "Gas_sh",
+            "(('GasBoiler', 'dhwStorageBus'), 'flow')": "Gas_dhw",
+            "(('HP', 'shSourceBus'), 'flow')": "HP_sh",
+            "(('GWHP', 'shSourceBus'), 'flow')": "GWHP_sh",
+            "(('electricityBus', 'producedElectricity'), 'flow')": "Self_consumption",
+            "(('gridBus', 'gridElectricity'), 'flow')": "Electricity_grid",
+            "(('pv', 'electricityProdBus'), 'flow')": "PV_elec",
+            "(('solarCollector', 'dhwStorageBus'), 'flow')": "SolarCollector",
+            "(('electricityInBus', 'solarCollector'), 'flow')": "SolarCollector",
+            "(('gridElectricity', 'electricityInBus'), 'flow')": "Electricity_grid",
+            "(('producedElectricity', 'electricityInBus'), 'flow')": "Self_consumption",
+            "(('electricityProdBus', 'electricitySource'), 'flow')": "Battery_bypass",
+            "(('domesticHotWaterBus', 'domesticHotWaterDemand'), 'flow')": "Demand_dhw",
+            "(('electricityInBus', 'ElectricRod'), 'flow')": "Electric_rod",
+            "(('ElectricRod', 'shSourceBus'), 'flow')": "Electric_rod_sh",
+            "(('ElectricRod', 'dhwStorageBus'), 'flow')": "Electric_rod_dhw",
+            "(('electricityInBus', 'GWHP35'), 'flow')": "GWHP35",
+            "(('electricityInBus', 'GWHP60'), 'flow')": "GWHP60",
+            "(('GWHP60', 'dhwStorageBus'), 'flow')": "GWHP60_dhw",
+            "(('GWHP35', 'shSourceBus'), 'flow')": "GWHP35_sh",
+        }
+        newLegends["(('electricityBus', 'electricityLink'), 'flow')"] = "electricityLink_out"
+        newLegends["(('electricityLink', 'electricityInBus'), 'flow')"] = "electricityLink_in"
+        newLegends["(('spaceHeatingBus', 'shLink'), 'flow')"] = "shLink_out"
+        newLegends["(('shLink', 'shDemandBus'), 'flow')"] = "shLink_in"
+        newLegends["(('domesticHotWaterBus', 'dhwLink'), 'flow')"] = "dhwLink_out"
+        newLegends["(('dhwLink', 'dhwDemandBus'), 'flow')"] = "dhwLink_in"
+    else:
+        newLegends = {
+            "(('naturalGasResource', 'naturalGasBus'), 'flow')": plotlabels["naturalGas"],
+            "(('electricityBus', 'excesselectricityBus'), 'flow')": plotlabels["excessEl"],
+            "(('electricityProdBus', 'electricalStorage'), 'flow')": plotlabels["StorageEl"]+"_in",
+            "(('electricityInBus', 'electricityDemand'), 'flow')": plotlabels["DemandEl"],
+            "(('electricityInBus', 'emobilityDemand'), 'flow')": plotlabels["DemandMob"],
+            "(('electricityInBus', 'HP'), 'flow')": plotlabels["HP"],
+            "(('electricityInBus', 'GWHP'), 'flow')": plotlabels["GWHP"],
+            "(('CHP', 'electricityProdBus'), 'flow')": plotlabels["CHP"]+"_el",
+            "(('electricalStorage', 'electricityBus'), 'flow')": plotlabels["StorageEl"]+"_out",
+            "(('electricitySource', 'electricityBus'), 'flow')": plotlabels["localEl"],
+            "(('electricityResource', 'gridBus'), 'flow')": plotlabels["grid"],
+            "(('dhwStorage', 'domesticHotWaterBus'), 'flow')": plotlabels["StorageDhw"]+"_out",
+            "(('dhwStorageBus', 'dhwStorage'), 'flow')": plotlabels["StorageDhw"]+"_in",
+            "(('domesticHotWaterBus', 'domesticHotWater'), 'flow')": "DHW_direct_to_load",
+            "(('dhwDemandBus', 'domesticHotWaterDemand'), 'flow')": plotlabels["DemandDhw"],
+            "(('HP', 'dhwStorageBus'), 'flow')": plotlabels["HP"]+"_dhw",
+            "(('GWHP', 'dhwStorageBus'), 'flow')": plotlabels["GWHP"]+"_dhw",
+            "(('CHP', 'dhwStorageBus'), 'flow')": plotlabels["CHP"]+"_dhw",
+            "(('shSource', 'spaceHeatingBus'), 'flow')": plotlabels["prodSH"]+" (not stored)",
+            "(('shStorage', 'spaceHeatingBus'), 'flow')": plotlabels["StorageSh"]+"_out",
+            "storage_content": "Storage_content",
+            "(('shSourceBus', 'shStorage'), 'flow')": plotlabels["StorageSh"]+"_in",
+            "(('spaceHeatingBus', 'spaceHeating'), 'flow')": "SH_direct_to_load",
+            "(('shDemandBus', 'spaceHeatingDemand'), 'flow')": plotlabels["DemandSh"],
+            "(('shDemandBus', 'excessshDemandBus'), 'flow')": plotlabels["excessSh"],
+            "(('shSourceBus', 'excessshSourceBus'), 'flow')": plotlabels["excessSh"],
+            "(('CHP', 'shSourceBus'), 'flow')": plotlabels["CHP"]+"_sh",
+            "(('GasBoiler', 'shSourceBus'), 'flow')": plotlabels["gasBoiler"]+"_sh",
+            "(('GasBoiler', 'dhwStorageBus'), 'flow')": plotlabels["gasBoiler"]+"_dhw",
+            "(('HP', 'shSourceBus'), 'flow')": plotlabels["HP"]+"_sh",
+            "(('GWHP', 'shSourceBus'), 'flow')": plotlabels["GWHP"]+"_sh",
+            "(('electricityBus', 'producedElectricity'), 'flow')": "Self_consumption",
+            "(('gridBus', 'gridElectricity'), 'flow')": plotlabels["grid"],
+            "(('pv', 'electricityProdBus'), 'flow')": plotlabels["pv"]+"_el",
+            "(('solarCollector', 'dhwStorageBus'), 'flow')": plotlabels["solarCollector"],
+            "(('electricityInBus', 'solarCollector'), 'flow')": plotlabels["solarCollector"],
+            "(('gridElectricity', 'electricityInBus'), 'flow')": plotlabels["grid"],
+            "(('producedElectricity', 'electricityInBus'), 'flow')": "Self_consumption",
+            "(('electricityProdBus', 'electricitySource'), 'flow')": plotlabels["StorageEl"]+"_bypass",
+            "(('domesticHotWaterBus', 'domesticHotWaterDemand'), 'flow')": plotlabels["DemandDhw"],
+            "(('electricityInBus', 'ElectricRod'), 'flow')": plotlabels["ElectricRod"],
+            "(('ElectricRod', 'shSourceBus'), 'flow')": plotlabels["ElectricRod"]+"_sh",
+            "(('ElectricRod', 'dhwStorageBus'), 'flow')": plotlabels["ElectricRod"]+"_dhw",
+            "(('electricityInBus', 'GWHP35'), 'flow')": plotlabels["GWHP"]+"35",
+            "(('electricityInBus', 'GWHP60'), 'flow')": plotlabels["GWHP"]+"60",
+            "(('GWHP60', 'dhwStorageBus'), 'flow')": plotlabels["GWHP"]+"60_dhw",
+            "(('GWHP35', 'shSourceBus'), 'flow')": plotlabels["GWHP"]+"35_sh",
+        }
+        newLegends["(('electricityBus', 'electricityLink'), 'flow')"] = plotlabels["elBus"]+" Link (out)"
+        newLegends["(('electricityLink', 'electricityInBus'), 'flow')"] =plotlabels["elBus"]+" Link (in)"
+        newLegends["(('spaceHeatingBus', 'shLink'), 'flow')"] = plotlabels["shBus"]+" Link (out)"
+        newLegends["(('shLink', 'shDemandBus'), 'flow')"] = plotlabels["shBus"]+" Link (in)"
+        newLegends["(('domesticHotWaterBus', 'dhwLink'), 'flow')"] = plotlabels["dhwBus"]+" Link (out)"
+        newLegends["(('dhwLink', 'dhwDemandBus'), 'flow')"] = plotlabels["dhwBus"]+" Link (in)"
 
-    createPlot(excelFileName, figureFilePath, plotLevel, plotType, flowType, plotAnnualHorizontalBar, newLegends)
+    createPlot(excelFileName, figureFilePath, numberOfBuildings, plotLevel, plotType, flowType, plotAnnualHorizontalBar, newLegends)
 
 
 if __name__ == '__main__':

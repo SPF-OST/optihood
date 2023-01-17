@@ -1,3 +1,195 @@
+def labelDictGenerator(numBuildings, labels, optimType, mergedLinks):
+    base = {"electricityLink":"elLink", "shLink":"shLink", "dhwLink":"dhwLink", "naturalGasResource":"natGas", "naturalGasBus":"natGas", "gridBus":"grid", "pv":"pv", "electricityResource":"grid", "gridElectricity":"grid", "GasBoiler":"gasBoiler",
+    "CHP":"CHP", "electricityBus":"prodEl", "electricityProdBus":"localEl", "producedElectricity":"prodEl", "electricitySource":"localEl", "electricalStorage":"Bat", "excesselectricityBus":"exEl",
+    "excessshDemandBus":"exSh", "electricityInBus":"usedEl", "HP":"HP", "GWHP":"GWHP", "GWHP35":"GWHP35", "GWHP60":"GWHP60", "solarCollector":"solar", "solarConnectBus":"solar","heat_solarCollector":"solar", "excess_solarheat":"exSolar",
+    "shSource":"prodSH","shSourceBus":"prodSH", "spaceHeatingBus":"shBus", "spaceHeating":"shBus", "shStorage":"shStor", "shDemandBus":"shBus", "dhwStorageBus":"dhwStor", "dhwStorage":"dhwStor", "domesticHotWaterBus":"dhwBus",
+    "domesticHotWater":"dhwBus", "dhwDemandBus":"dhwBus", "electricityDemand":"Q_el", "emobilityDemand":"Q_mob", "spaceHeatingDemand":"Q_sh", "domesticHotWaterDemand":"Q_dhw", "excessshSourceBus":"exSh",
+    "ElectricRod":"ElectricRod"}
+    if not mergedLinks and optimType == 'group':
+        base['electricityInBus'] = "usedEl"
+        base['spaceHeatingBus'] = "usedSH"
+        base['domesticHotWaterBus'] = "prodDHW"
+        if labels != 'default':
+            base["electricityInBus"] = labels["usedEl"]
+            base["spaceHeatingBus"] = labels["usedSH"]
+            base["spaceHeating"] = labels["shBus"]
+            base["shDemandBus"] = labels["shBus"]
+            base["domesticHotWaterBus"] = labels["prodDHW"]
+            base['domesticHotWater'] = labels["dhwBus"]
+            base['dhwDemandBus'] = labels["dhwBus"]
+    if labels != 'default':
+        if "elBus" in labels and ((mergedLinks and optimType=='group') or optimType=='indiv'): base["electricityLink"] = labels["elBus"]
+        if "elBus" in labels and not mergedLinks and optimType=='group': base["electricityLink"] = labels["elBus"] + " Link"
+        if "shBus" in labels and ((mergedLinks and optimType=='group') or optimType=='indiv'): base["shLink"] = labels["shBus"]
+        if "shBus" in labels and not mergedLinks and optimType=='group': base["shLink"] = labels["shBus"] + " Link"
+        if "dhwBus" in labels and ((mergedLinks and optimType=='group') or optimType=='indiv'): base["dhwLink"] = labels["dhwBus"]
+        if "dhwBus" in labels and not mergedLinks and optimType=='group': base["dhwLink"] = labels["dhwBus"] + " Link"
+        if "naturalGas" in labels:
+            base["naturalGasResource"] = labels["naturalGas"]
+            base["naturalGasBus"] = labels["naturalGas"]
+        if "grid" in labels:
+            base["gridBus"] = labels["grid"]
+            base["electricityResource"] = labels["grid"]
+            base["gridElectricity"] = labels["grid"]
+        if "pv" in labels: base["pv"]=labels["pv"]
+        if "gasBoiler" in labels: base["GasBoiler"]=labels["gasBoiler"]
+        if "CHP" in labels:base["CHP"]=labels["CHP"]
+        if "prodEl" in labels:
+            base["electricityBus"]=labels["prodEl"]
+            base["producedElectricity"] = labels["prodEl"]
+        if "localEl" in labels:
+            base["electricityProdBus"]=labels["localEl"]
+            base["electricitySource"]=labels["localEl"]
+        if "StorageEl" in labels:base["electricalStorage"]=labels["StorageEl"]
+        if "excessEl" in labels:base["excesselectricityBus"]=labels["excessEl"]
+        if "excessSh" in labels:
+            base["excessshDemandBus"]=labels["excessSh"]
+            base["excessshSourceBus"]=labels["excessSh"]
+        if "elBus" in labels and (mergedLinks or optimType == 'indiv'):base["electricityInBus"]=labels["elBus"]
+        if "HP" in labels:base["HP"]=labels["HP"]
+        if "GWHP" in labels:
+            base["GWHP"]=labels["GWHP"]
+            base["GWHP35"]=labels["GWHP"]+'35'# for splitted GSHP
+            base["GWHP60"] = labels["GWHP"]+'60'
+        if "solarCollector" in labels:
+            base["solarCollector"]=labels["solarCollector"]
+            base["solarConnectBus"]=labels["solarCollector"]
+            base["heat_solarCollector"]=labels["solarCollector"]
+        if "excessSolarCollector" in labels: base["excess_solarheat"]=labels["excessSolarCollector"]
+        if "prodSH" in labels:
+            base["shSource"]=labels["prodSH"]
+            base["shSourceBus"]=labels["prodSH"]
+        if "shBus" in labels and (mergedLinks or optimType == 'indiv'):
+            base["spaceHeatingBus"]=labels["shBus"]
+            base["spaceHeating"]=labels["shBus"]
+            base["shDemandBus"] = labels["shBus"]
+        if "StorageSh" in labels:base["shStorage"]=labels["StorageSh"]
+        if "StorageDhw" in labels:
+            base["dhwStorageBus"]=labels["StorageDhw"]
+            base["dhwStorage"]=labels["StorageDhw"]
+        if "dhwBus" in labels and (mergedLinks or optimType == 'indiv'):
+            base["domesticHotWaterBus"]=labels["dhwBus"]
+            base["domesticHotWater"]=labels["dhwBus"]
+            base["dhwDemandBus"]=labels["dhwBus"]
+        if "DemandEl" in labels:base["electricityDemand"]=labels["DemandEl"]
+        if "DemandMob" in labels:base["emobilityDemand"]=labels["DemandMob"]
+        if "DemandSh" in labels:base["spaceHeatingDemand"]=labels["DemandSh"]
+        if "DemandDhw" in labels:base["domesticHotWaterDemand"]=labels["DemandDhw"]
+        if "ElectricRod" in labels:base["ElectricRod"]=labels["ElectricRod"]
+
+    labelDict = {}
+
+    for b in range(1,numBuildings+1):
+        for key in base:
+            if ("grid" in base[key] or "Grid" in base[key]) and mergedLinks:    # combine grid bus for merged links
+                value = base[key]
+                key = key + "__Building" + str(b)
+            elif mergedLinks and (all(v not in key for v in ["electricityLink", "shLink", "dhwLink", "electricityInBus", "domesticHotWater", "spaceHeatingBus", "domesticHotWaterBus", "dhwDemandBus", "spaceHeating", "shDemandBus"])
+            or any(v in key for v in ["spaceHeatingDemand", 'domesticHotWaterDemand'])):            # append suffix for all values except links
+                value = base[key]+"_B"+str(b)
+                key = key+"__Building"+str(b)
+            elif ((not mergedLinks and optimType == "group") or optimType == "indiv") and all(v not in key for v in ["electricityLink", "shLink", "dhwLink"]):
+                value = base[key] + "_B" + str(b)
+                key = key + "__Building" + str(b)
+            else:
+                value = base[key]
+                if mergedLinks and any(v in key for v in ["electricityInBus", "domesticHotWater", "spaceHeatingBus", "domesticHotWaterBus", "dhwDemandBus", "spaceHeating", "shDemandBus"]):            # append suffix for all values except links
+                    key = key+"__Building"+str(b)
+            labelDict[key] = value
+
+    return labelDict
+
+def positionDictGenerator(labels, optimType, mergedLinks):
+    labelsList = ['natGas', 'grid', 'pv', 'CHP', 'gasBoiler', 'localEl', 'prodEl', 'elLink', 'shLink', 'dhwLink', 'Bat',
+                  'usedEl', 'HP', 'GWHP', 'ElectricRod', 'solar', 'exSolar', 'prodSH', 'shStor', 'dhwStor', 'exEl',
+                  'Q_el', 'Q_mob', 'Q_sh', 'Q_dhw', 'exSh', 'dhwBus', 'shBus']
+    if not mergedLinks and optimType == 'group':
+        labelsList.extend(['usedEl', 'usedSH', 'prodDHW'])
+    if labels != 'default':
+        if "elBus" in labels and ((mergedLinks and optimType=='group') or optimType=='indiv'): labelsList[7] = labels["elBus"]
+        if "elBus" in labels and not mergedLinks and optimType == 'group': labelsList[7] = labels["elBus"] + " Link"
+        if "shBus" in labels and ((mergedLinks and optimType=='group') or optimType=='indiv'): labelsList[8] = labels["shBus"]
+        if "shBus" in labels and not mergedLinks and optimType == 'group': labelsList[8] = labels["shBus"] + " Link"
+        if "dhwBus" in labels and ((mergedLinks and optimType=='group') or optimType=='indiv'): labelsList[9] = labels["dhwBus"]
+        if "dhwBus" in labels and not mergedLinks and optimType == 'group': labelsList[9] = labels["dhwBus"] + " Link"
+        if "naturalGas" in labels: labelsList[0] = labels["naturalGas"]
+        if "grid" in labels: labelsList[1] = labels["grid"]
+        if "pv" in labels: labelsList[2]=labels["pv"]
+        if "gasBoiler" in labels: labelsList[4]=labels["gasBoiler"]
+        if "CHP" in labels:labelsList[3]=labels["CHP"]
+        if "prodEl" in labels: labelsList[6] = labels["prodEl"]
+        if "localEl" in labels: labelsList[5]=labels["localEl"]
+        if "StorageEl" in labels:labelsList[10]=labels["StorageEl"]
+        if "excessEl" in labels:labelsList[20]=labels["excessEl"]
+        if "excessSh" in labels:labelsList[25]=labels["excessSh"]
+        if "elBus" in labels:labelsList[11]=labels["elBus"]
+        if "HP" in labels:labelsList[12]=labels["HP"]
+        if "GWHP" in labels:labelsList[13]=labels["GWHP"]
+        if "solarCollector" in labels:labelsList[15]=labels["solarCollector"]
+        if "excessSolarCollector" in labels: labelsList[16]=labels["excessSolarCollector"]
+        if "prodSH" in labels:labelsList[17]=labels["prodSH"]
+        if "shBus" in labels:labelsList[27] = labels["shBus"]
+        if "StorageSh" in labels:labelsList[18]=labels["StorageSh"]
+        if "StorageDhw" in labels:labelsList[19]=labels["StorageDhw"]
+        if "dhwBus" in labels:labelsList[26]=labels["dhwBus"]
+        if "DemandEl" in labels:labelsList[21]=labels["DemandEl"]
+        if "DemandMob" in labels:labelsList[22]=labels["DemandMob"]
+        if "DemandSh" in labels:labelsList[23]=labels["DemandSh"]
+        if "DemandDhw" in labels:labelsList[24]=labels["DemandDhw"]
+        if "ElectricRod" in labels:labelsList[14]=labels["ElectricRod"]
+    positionDict = {
+        labelsList[0]: [0.001, 0.65],  # X and Y positions should never be set to 0 or 1
+        labelsList[1]: [0.001, 0.15],
+        labelsList[2]: [0.001, 0.3],
+        labelsList[3]: [0.1, 0.7],
+        labelsList[4]: [0.1, 0.7],
+        labelsList[5]: [0.15, 0.3],
+        labelsList[6]: [0.3, 0.3],
+        labelsList[10]: [0.2, 0.25],
+        labelsList[11]: [0.4, 0.2],
+        labelsList[12]: [0.55, 0.5],
+        labelsList[13]: [0.55, 0.2],
+        labelsList[13]+'35': [0.55, 0.2],
+        labelsList[13]+'60': [0.55, 0.5],
+        labelsList[14]: [0.6, 0.4],
+        labelsList[15]: [0.6, 0.85],
+        labelsList[16]: [0.7, 0.95],
+        labelsList[17]: [0.65, 0.58],
+        # "usedSH":	[0.75, 0.58],
+        labelsList[18]: [0.68, 0.37],
+        labelsList[19]: [0.65, 0.85],
+        # "usedDHW": [0.8, 0.85],
+        # "prodDHW": [0.75, 0.85],
+        labelsList[20]: [0.999, 0.25],
+        labelsList[21]: [0.999, 0.15],
+        labelsList[22]: [0.999, 0.4],
+        labelsList[23]: [0.999, 0.6],
+        labelsList[24]: [0.999, 0.85],
+        labelsList[25]: [0.999, 0.7],
+        labelsList[26]: [0.8, 0.85],
+        labelsList[27]: [0.8, 0.6]
+    }
+
+    if mergedLinks and optimType=='group':
+        positionDict[labelsList[7]]= [0.4, 0.35]
+        positionDict[labelsList[8]]= [0.8, 0.35]
+        positionDict[labelsList[9]]= [0.8, 0.5]
+    elif optimType!='indiv':
+        #links
+        positionDict[labelsList[7]] = [0.45, 0.35]
+        positionDict[labelsList[8]] = [0.77, 0.35]
+        positionDict[labelsList[9]] = [0.85, 0.5]
+        # prod DHW, used SH and used El
+        if labels != 'default':
+            labelsList[28] = labels["usedEl"]
+            labelsList[29] = labels["usedSH"]
+            labelsList[30] = labels["prodDHW"]
+        positionDict[labelsList[28]] = [0.52, 0.35]
+        positionDict[labelsList[29]] = [0.75, 0.35]
+        positionDict[labelsList[30]] = [0.7, 0.5]
+
+    return positionDict
+
 labelDict = {
     "electricityLink": "elLink",
     "electricityLink1_2": "elLink",
@@ -106,7 +298,7 @@ labelDict = {
     "electricityBus__Building1": "prodEl_B1",
     "electricityProdBus__Building1":"localEl_B1", #localEl is before the battery, prodEl after the battery but before the elLink
     "producedElectricity__Building1": "prodEl_B1",
-    "electricitySource__Building1": "prodEl_B1",
+    "electricitySource__Building1": "localEl_B1",
     "electricalStorage__Building1": "Bat_B1",
     "excesselectricityBus__Building1": "exEl_B1",
     "excessshDemandBus__Building1": "exSh_B1",
@@ -123,15 +315,15 @@ labelDict = {
     'excess_solarheat__Building1':"exSolar_B1",
     'shSource__Building1'	: "prodSH_B1",
     'shSourceBus__Building1': "prodSH_B1",
-    "spaceHeatingBus__Building1": "usedSH_B1",
-    "spaceHeating__Building1": "Q_sh_B1",
+    "spaceHeatingBus__Building1": "shBus_B1",
+    "spaceHeating__Building1": "shBus_B1",
     "shStorage__Building1": "shStor_B1",
-    "shDemandBus__Building1": "Q_sh_B1",
+    "shDemandBus__Building1": "shBus_B1",
     "dhwStorageBus__Building1": "dhwStor_B1",
     "dhwStorage__Building1": "dhwStor_B1",
-    "domesticHotWaterBus__Building1": "prodDHW_B1",
-    'domesticHotWater__Building1': "usedDHW_B1",
-    "dhwDemandBus__Building1": "Q_dhw_B1",
+    "domesticHotWaterBus__Building1": "dhwBus_B1",
+    'domesticHotWater__Building1': "dhwBus_B1",
+    "dhwDemandBus__Building1": "dhwBus_B1",
     "electricityDemand__Building1": "Q_el_B1",
     "emobilityDemand__Building1": "Q_mob_B1",
     "spaceHeatingDemand__Building1": "Q_sh_B1",
@@ -152,7 +344,7 @@ labelDict = {
     "electricityBus__Building2": "prodEl_B2",
     "electricityProdBus__Building2": "localEl_B2",
     "producedElectricity__Building2": "prodEl_B2",
-    "electricitySource__Building2": "prodEl_B2",
+    "electricitySource__Building2": "localEl_B2",
     "electricalStorage__Building2": "Bat_B2",
     "excesselectricityBus__Building2": "exEl_B2",
     "excessshDemandBus__Building2": "exSh_B2",
@@ -169,15 +361,15 @@ labelDict = {
     'excess_solarheat__Building2': "exSolar_B2",
     'shSource__Building2'	: "prodSH_B2",
     'shSourceBus__Building2': "prodSH_B2",
-    "spaceHeatingBus__Building2": "usedSH_B2",
-    "spaceHeating__Building2": "Q_sh_B2",
+    "spaceHeatingBus__Building2": "shBus_B2",
+    "spaceHeating__Building2": "shBus_B2",
     "shStorage__Building2": "shStor_B2",
-    "shDemandBus__Building2": "Q_sh_B2",
+    "shDemandBus__Building2": "shBus_B2",
     "dhwStorageBus__Building2": "dhwStor_B2",
     "dhwStorage__Building2": "dhwStor_B2",
-    "domesticHotWaterBus__Building2": "prodDHW_B2",
-    'domesticHotWater__Building2': "usedDHW_B2",
-    "dhwDemandBus__Building2": "Q_dhw_B2",
+    "domesticHotWaterBus__Building2": "dhwBus_B2",
+    'domesticHotWater__Building2': "dhwBus_B2",
+    "dhwDemandBus__Building2": "dhwBus_B2",
     "electricityDemand__Building2": "Q_el_B2",
     "emobilityDemand__Building2": "Q_mob_B2",
     "spaceHeatingDemand__Building2":        "Q_sh_B2",
@@ -198,7 +390,7 @@ labelDict = {
     "electricityBus__Building3": "prodEl_B3",
     "electricityProdBus__Building3": "localEl_B3",
     "producedElectricity__Building3": "prodEl_B3",
-    "electricitySource__Building3": "prodEl_B3",
+    "electricitySource__Building3": "localEl_B3",
     "electricalStorage__Building3": "Bat_B3",
     "excesselectricityBus__Building3": "exEl_B3",
     "excessshDemandBus__Building3": "exSh_B3",
@@ -215,15 +407,15 @@ labelDict = {
     'excess_solarheat__Building3': "exSolar_B3",
     'shSource__Building3': "prodSH_B3",
     'shSourceBus__Building3': "prodSH_B3",
-    "spaceHeatingBus__Building3": "usedSH_B3",
-    "spaceHeating__Building3": "Q_sh_B3",
+    "spaceHeatingBus__Building3": "shBus_B3",
+    "spaceHeating__Building3": "shBus_B3",
     "shStorage__Building3": "shStor_B3",
-    "shDemandBus__Building3": "Q_sh_B3",
+    "shDemandBus__Building3": "shBus_B3",
     "dhwStorageBus__Building3": "dhwStor_B3",
     "dhwStorage__Building3": "dhwStor_B3",
-    "domesticHotWaterBus__Building3": "prodDHW_B3",
-    'domesticHotWater__Building3': "usedDHW_B3",
-    "dhwDemandBus__Building3": "Q_dhw_B3",
+    "domesticHotWaterBus__Building3": "dhwBus_B3",
+    'domesticHotWater__Building3': "dhwBus_B3",
+    "dhwDemandBus__Building3": "dhwBus_B3",
     "electricityDemand__Building3": "Q_el_B3",
     "emobilityDemand__Building3": "Q_mob_B3",
     "spaceHeatingDemand__Building3":        "Q_sh_B3",
@@ -244,7 +436,7 @@ labelDict = {
     "electricityBus__Building4": "prodEl_B4",
     "electricityProdBus__Building4": "localEl_B4",
     "producedElectricity__Building4": "prodEl_B4",
-    "electricitySource__Building4": "prodEl_B4",
+    "electricitySource__Building4": "localEl_B4",
     "electricalStorage__Building4": "Bat_B4",
     "excesselectricityBus__Building4": "exEl_B4",
     "excessshDemandBus__Building4": "exSh_B4",
@@ -261,15 +453,15 @@ labelDict = {
     'excess_solarheat__Building4': "exSolar_B4",
     'shSource__Building4': "prodSH_B4",
     'shSourceBus__Building4': "prodSH_B4",
-    "spaceHeatingBus__Building4": "usedSH_B4",
-    "spaceHeating__Building4": "Q_sh_B4",
+    "spaceHeatingBus__Building4": "shBus_B4",
+    "spaceHeating__Building4": "shBus_B4",
     "shStorage__Building4": "shStor_B4",
-    "shDemandBus__Building4": "Q_sh_B4",
+    "shDemandBus__Building4": "shBus_B4",
     "dhwStorageBus__Building4": "dhwStor_B4",
     "dhwStorage__Building4": "dhwStor_B4",
-    "domesticHotWaterBus__Building4": "prodDHW_B4",
-    'domesticHotWater__Building4': "usedDHW_B4",
-    "dhwDemandBus__Building4": "Q_dhw_B4",
+    "domesticHotWaterBus__Building4": "dhwBus_B4",
+    'domesticHotWater__Building4': "dhwBus_B4",
+    "dhwDemandBus__Building4": "dhwBus_B4",
     "electricityDemand__Building4": "Q_el_B4",
     "emobilityDemand__Building4": "Q_mob_B4",
     "spaceHeatingDemand__Building4":        "Q_sh_B4",
@@ -380,24 +572,26 @@ labelPositionDict={
     "shLink": [0.8, 0.35],
     "dhwLink": [0.8, 0.5],
 	"Bat":	[0.2, 0.25],
-    "usedEl":	[0.5, 0.2],
-    "HP":	[0.6, 0.5],
-    "GWHP":	[0.6, 0.2],
+    "usedEl":	[0.4, 0.2],
+    "HP":	[0.55, 0.5],
+    "GWHP":	[0.55, 0.2],
     "ElectricRod": [0.6, 0.4],
     "solar":	[0.6, 0.85],
     "exSolar": [0.7, 0.95],
     "prodSH": [0.65, 0.58],
-    "usedSH":	[0.75, 0.58],
+    #"usedSH":	[0.75, 0.58],
     "shStor":	[0.68, 0.37],
     "dhwStor":	[0.65, 0.85],
-    "usedDHW": [0.85, 0.85],
-    "prodDHW": [0.75, 0.85],
+    #"usedDHW": [0.8, 0.85],
+    #"prodDHW": [0.75, 0.85],
     "exEl": [0.999, 0.25],
     "Q_el":	[0.999, 0.15],
     "Q_mob":[0.999, 0.4],
     "Q_sh":	[0.999, 0.6],
     "Q_dhw":[0.999, 0.85],
-    "exSh": [0.999, 0.7]
+    "exSh": [0.999, 0.7],
+    "dhwBus":[0.8, 0.85],
+    "shBus": [0.8, 0.6]
 	}
 
 fullPositionDict={

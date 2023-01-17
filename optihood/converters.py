@@ -320,3 +320,49 @@ class ElectricRodFixed(cp.CombinedTransformer):
             efficiencies={outputSH: efficiency,
                           outputDHW: efficiency}
                  )
+
+
+class GeothermalHeatPumpLinearSingleUse:
+    "Class implementing a linear model for geothermal heat pump for single use only (either DHW or SH but not both)"
+    def __init__(self, buildingLabel, temperatureH, temperatureLow, input, outputH,
+                 capacityMin, capacityMax, epc, base, varc, env_flow, env_capa):
+        self.__copH = self._calculateCop(temperatureH, temperatureLow)
+        #self.avgCopSh = (sum(self.__copH)/len(self.__copH))
+        #self.nominalEff = nomEff
+        self.__geothermalheatpump = solph.Transformer(label=f'GWHP{str(temperatureH)}' + '__' + buildingLabel,
+                                            inputs={input: solph.Flow()},
+                                            outputs={outputH: solph.Flow(
+                                                          variable_costs=varc,
+                                                          env_per_flow=env_flow,
+                                                          investment=solph.Investment(
+                                                            ep_costs=epc,
+                                                            minimum=0,
+                                                            maximum=capacityMax,
+                                                            nonconvex=True,
+                                                            offset=base,
+                                                            env_per_capa=env_capa,
+                                                          ),
+                                                      )
+                                                  },
+                                            conversion_factors={outputH: self.__copH})
+
+    def _calculateCop(self, tHigh, tLow):
+        coefW = [0.1600, -1.2369, 19.9391, 19.3448, 7.1057, -1.4048]
+        coefQ = [13.8978, 114.8358, -9.3634, -179.4227, 342.3363, -12.4969]
+        QCondenser = coefQ[0] + (coefQ[1] * tLow / 273.15) + (coefQ[2] * tHigh / 273.15) + (
+                coefQ[3] * tLow / 273.15 * tHigh / 273.15) + (
+                             coefQ[4] * (tLow / 273.15) ** 2) + (
+                             coefQ[5] * (tHigh / 273.15) ** 2)
+        WCompressor = coefW[0] + (coefW[1] * tLow / 273.15) + (coefW[2] * tHigh / 273.15) + (
+                coefW[3] * tLow / 273.15 * tHigh / 273.15) + (
+                             coefW[4] * (tLow / 273.15) ** 2) + (
+                              coefW[5] * (tHigh / 273.15) ** 2)
+        cop = np.divide(QCondenser, WCompressor)
+        return cop
+
+    def getHP(self, type):
+        if type == 'sh':
+            return self.__geothermalheatpump
+        else:
+            print("Transformer label not identified...")
+            return []
