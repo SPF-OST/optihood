@@ -187,7 +187,7 @@ class GeothermalHeatPumpLinear:
 class CHP:
     "Information about the model can be found in combined_pro.py CombinedCHP"
     def __init__(self, buildingLabel, input, outputEl, outputSH, outputDHW, efficiencyEl, efficiencySH, efficiencyDHW,
-                 capacityMin, capacityEl, capacitySH, capacityDHW, epc, base, varc1, varc2, env_flow1, env_flow2, env_capa, timesteps):
+                 capacityMin, capacitySH, epc, base, varc1, varc2, env_flow1, env_flow2, env_capa, timesteps):
         self._efficiencyEl = [efficiencyEl] * timesteps
         self._efficiencySH = [efficiencySH] * timesteps
         self._efficiencyDHW = [efficiencyDHW] * timesteps
