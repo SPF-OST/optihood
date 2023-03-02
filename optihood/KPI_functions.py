@@ -278,8 +278,6 @@ def ElecInfluenceBuilding(dataDict, buildings, PVImpact, CHPImpact, gridImpact, 
 
         elif sel_b == 'system':
             pd.set_option('display.max_rows', None)
-            print(elecTec['gridTotal'])
-            print(elecTec['PVTotal'])
             elecImpact['ElecPriceSystem'] = np.where(elecTec['PVTotal'] + elecTec['gridTotal'] > 0,
                                                     (elecTec['PVTotal'] * PVImpact
                                                    + elecTec['CHPTotal'] * CHPImpact
@@ -1357,7 +1355,6 @@ def co2_balance(dataDict, inputFileName, buildings, selected_days, gasEmission, 
     capImpact['system', "PVElecCo2"] = sum([capImpact[b,"PVElecCo2"] for b in range(1,buildings)])
     capImpact['system', "CHPElecCo2"] = sum([capImpact[b, "CHPElecCo2"] for b in range(1,buildings)])
 
-    print(capImpact)
     elecImpactBuilding = ElecInfluenceBuilding(dataDict, buildings, capImpact['system',"CHPElecCo2"],
                                                capImpact['system',"PVElecCo2"], elecGenTec['impact'], 'system', 'co2')
 
