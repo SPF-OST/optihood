@@ -139,7 +139,7 @@ def heat_gen(dataDict, buildings, timeStep):
         if timeStep == 'month':
             heatTec = heatTec.set_axis(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'], axis=0)
         elif timeStep == 'hour':
-            heatTec.index = heatTec.index + pd.offsets.DateOffset(years=3)
+            heatTec.index = heatTec.index #+ pd.offsets.DateOffset(years=3)
 
     return heatTec
 
@@ -172,7 +172,7 @@ def elec_sell(dataDict, buildings, timeStep):
         elecSell['excessTotal'] = elecSell.sum(axis=1)
     elif timeStep == 'hour':
         elecSell['excessTotal'] = elecSell.sum(axis=1)
-        elecSell.index = elecSell.index + pd.offsets.DateOffset(years=3)
+        elecSell.index = elecSell.index #+ pd.offsets.DateOffset(years=3)
 
     return elecSell
 
@@ -245,7 +245,7 @@ def elec_gen(dataDict, buildings, timeStep):#
 
 
         if timeStep == 'hour':
-            elecGenTec.index = elecGenTec.index + pd.offsets.DateOffset(years=3)
+            elecGenTec.index = elecGenTec.index #+ pd.offsets.DateOffset(years=3)
 
     return elecGenTec
 
@@ -278,6 +278,8 @@ def ElecInfluenceBuilding(dataDict, buildings, PVImpact, CHPImpact, gridImpact, 
 
         elif sel_b == 'system':
             pd.set_option('display.max_rows', None)
+            print(elecTec['gridTotal'])
+            print(elecTec['PVTotal'])
             elecImpact['ElecPriceSystem'] = np.where(elecTec['PVTotal'] + elecTec['gridTotal'] > 0,
                                                     (elecTec['PVTotal'] * PVImpact
                                                    + elecTec['CHPTotal'] * CHPImpact
@@ -354,7 +356,7 @@ def unit_elecInput(dataDict, buildings):
     hpElecInput['ElectricRodTotal'] = hpElecInput[ER_columns].sum(axis=1)
     hpElecInput['BuildingDemandElecTotal'] = hpElecInput[BD_columns].sum(axis=1)
 
-    hpElecInput.index = hpElecInput.index + pd.offsets.DateOffset(years=3)
+    hpElecInput.index = hpElecInput.index #+ pd.offsets.DateOffset(years=3)
 
     return hpElecInput
 
@@ -1696,7 +1698,8 @@ def energy_flexibility(dataDict, inputFileName, buildings, gasCost, elecCost, ga
                                                              + float(elecInput.loc[elecInput.index.isin(gridPeriods['cost', 'highPeriods'].index),
                                                                                    'HPTotal'].sum())
                                                      )
-
+    print(gridPeriods)
+    print(sotpid)
     return results
 
 def gridPeriodPlot(gridPeriods, elecImpactPara, optMode):
