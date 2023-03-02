@@ -7,7 +7,7 @@ from optihood.labelDict import labelPositionDict
 from optihood.labelDict import fullPositionDict
 import numpy as np
 import matplotlib.pyplot as plt
-import time
+import math
 
 ### read results
 def read_results(resultFileName):
@@ -278,12 +278,14 @@ def ElecInfluenceBuilding(dataDict, buildings, PVImpact, CHPImpact, gridImpact, 
 
         elif sel_b == 'system':
             pd.set_option('display.max_rows', None)
+
             elecImpact['ElecPriceSystem'] = np.where(elecTec['PVTotal'] + elecTec['gridTotal'] > 0,
                                                     (elecTec['PVTotal'] * PVImpact
                                                    + elecTec['CHPTotal'] * CHPImpact
                                                    + elecTec['gridTotal'] * gridImpact) / (
                                                      elecTec['PVTotal'] + elecTec['CHPTotal'] + elecTec['gridTotal']),
                                                                                           gridImpact)
+
         else:
             print('false definition of sel_b')
             raise NotImplementedError
@@ -294,16 +296,15 @@ def ElecInfluenceBuilding(dataDict, buildings, PVImpact, CHPImpact, gridImpact, 
         if type(sel_b) is int:
             elecImpact['Co2Impact_B' + str(sel_b)] = np.where(elecTec['PV_B'+str(sel_b)] + elecTec['Grid_B'+str(sel_b)] > 0,
                                                      ((elecTec['PV_B'+str(sel_b)] * PVImpact)/(elecTec['PV_B'+str(sel_b)].sum())
-                                                    + (elecTec['CHP_B'+str(sel_b)] * CHPImpact)/(elecTec['CHP_B'+str(sel_b)].sum())
                                                     + elecTec['Grid_B'+str(sel_b)] * gridImpact) / (
-                                                      elecTec['PV_B'+str(sel_b)] + elecTec['CHP_B'+str(sel_b)] + elecTec['Grid_B'+str(sel_b)]),
+                                                      elecTec['PV_B'+str(sel_b)]  + elecTec['Grid_B'+str(sel_b)]),
                                                      gridImpact)
 
 
         elif sel_b == 'system':
+
             elecImpact['Co2ImpactSystem'] = np.where(elecTec['PVTotal'] + elecTec['gridTotal'] > 0,
                                                 ((elecTec['PVTotal'] * PVImpact)/(elecTec['PVTotal'].sum())
-                                                + (elecTec['CHPTotal'] * CHPImpact)/(elecTec['CHPTotal'].sum())
                                                  + elecTec['gridTotal'] * gridImpact) / (
                                                      elecTec['PVTotal'] + elecTec['CHPTotal'] + elecTec['gridTotal']),
                                             gridImpact)
@@ -588,9 +589,12 @@ def npc_technology(dataDict, inputFileName, buildings, gasCost, elecCost, optMod
 
     avoidedCosts['CHPHeatAvoidedCosts'] = levelCosts['CHPHeatSystem'] * avoidedCosts['CHPHeatTotal']
 
-    levelCosts['CHPElecSystem'] = (RevenueData.loc['CHP', 'investmentCosts'] + RevenueData.loc['CHP', 'operationCosts'] -
+    if elecTec.loc['CHP', 'total'] > 0:
+        levelCosts['CHPElecSystem'] = (RevenueData.loc['CHP', 'investmentCosts'] + RevenueData.loc['CHP', 'operationCosts'] -
                                    avoidedCosts['CHPHeatAvoidedCosts'].sum()) / (
                                     elecTec.loc['CHP', 'total'])
+    else:
+        levelCosts['CHPElecSystem'] = 0
 
     SystemElecPrice['ElecPriceSystem'] = ElecInfluenceBuilding(dataDict, buildings,
                                                                levelCosts['PVElecSystem'],
@@ -1296,10 +1300,14 @@ def co2_balance(dataDict, inputFileName, buildings, selected_days, gasEmission, 
         capImpact[b,"CHPElecCo2"] = capTec.loc["CHP", "kW in " + str(b)] * CHPData['impact_cap'] \
                                     * CHPElecShare / (CHPData['lifetime'].mean())
 
+        if sum(elecGenTec['CHP_B' + str(b)]) > 0:
+            elecGenTec['CHPGasImpact' + str(b)] = gasImpactBuilding * CHPElecShare \
+                                                  * elecGenTec['CHP_B' + str(b)] / float(CHPData['efficiency'].split(",")[0])
+            elecGenTec['CHPImpact' + str(b)] = elecGenTec['CHPGasImpact' + str(b)] + capImpact[b,"CHPElecCo2"]*elecGenTec['CHP_B' + str(b)]/(elecGenTec['CHP_B' + str(b)]).sum()
 
-        elecGenTec['CHPGasImpact' + str(b)] = gasImpactBuilding * CHPElecShare \
-                                              * elecGenTec['CHP_B' + str(b)] / float(CHPData['efficiency'].split(",")[0])
-        elecGenTec['CHPImpact' + str(b)] = elecGenTec['CHPGasImpact' + str(b)] + capImpact[b,"CHPElecCo2"]*elecGenTec['CHP_B' + str(b)]/(elecGenTec['CHP_B' + str(b)]).sum()
+        else:
+            elecGenTec['CHPGasImpact' + str(b)] = 0
+            elecGenTec['CHPImpact' + str(b)] = 0
 
         ## PV
         PVData = tec_Data(sheetSolar, str(b), 'pv')
@@ -1310,9 +1318,15 @@ def co2_balance(dataDict, inputFileName, buildings, selected_days, gasEmission, 
         ## chp
         capImpact[b,"CHPHeatCo2"] = capTec.loc["CHP", "kW in " + str(b)] * CHPData['impact_cap']\
                                     * (1 - CHPElecShare) / (CHPData['lifetime'].mean())
-        heatGenTec['CHPGasImpact' + str(b)] = gasImpactBuilding * (1 - CHPElecShare) \
-                                              * heatGenTec['CHP' + str(b)] / float(CHPData['efficiency'].split(",")[1])
-        heatGenTec['CHPImpact' + str(b)] = heatGenTec['CHPGasImpact' + str(b)] + capImpact[b,"CHPHeatCo2"]*heatGenTec['CHP' + str(b)]/(heatGenTec['CHP' + str(b)]).sum()
+
+        if sum(heatGenTec['CHP' + str(b)]) > 0:
+            heatGenTec['CHPGasImpact' + str(b)] = gasImpactBuilding * (1 - CHPElecShare) \
+                                                  * heatGenTec['CHP' + str(b)] / float(CHPData['efficiency'].split(",")[1])
+            heatGenTec['CHPImpact' + str(b)] = heatGenTec['CHPGasImpact' + str(b)] + capImpact[b,"CHPHeatCo2"]*heatGenTec['CHP' + str(b)]/(heatGenTec['CHP' + str(b)]).sum()
+
+        else:
+            heatGenTec['CHPGasImpact' + str(b)] = 0
+            heatGenTec['CHPImpact' + str(b)] = 0
 
         ### impact of electricity input
         elecImpactBuilding = ElecInfluenceBuilding(dataDict, buildings, capImpact[b,"PVElecCo2"],
@@ -1547,6 +1561,7 @@ def grid_periods(dataDict, inputFileName, buildings, gasCost, elecCost, gasEmiss
     elif impactPara == 'systemData':
         if parameter == 'cost':
             _, __, ___, elecImpact = npc_technology(dataDict, inputFileName, buildings, gasCost, elecCost, optMode)
+
             elecImpact['timestamp'] = pd.to_datetime(elecImpact.index, yearfirst=True, dayfirst=False)
             elecImpact = elecImpact.set_index('timestamp')
             elecImpact = elecImpact.rename(columns={'ElecPriceSystem': 'cost ' + optMode})
@@ -1554,6 +1569,7 @@ def grid_periods(dataDict, inputFileName, buildings, gasCost, elecCost, gasEmiss
 
         elif parameter == 'co2':
             _, __, elecImpact = co2_balance(dataDict, inputFileName, buildings, selected_days, gasEmission, elecEmission, rangeToConsider)
+
             elecImpact['timestamp'] = pd.to_datetime(elecImpact.index, yearfirst=True, dayfirst=False)
             elecImpact = elecImpact.set_index('timestamp')
             elecImpact = elecImpact.rename(columns={'Co2ImpactSystem': 'impact'})
@@ -1567,8 +1583,10 @@ def grid_periods(dataDict, inputFileName, buildings, gasCost, elecCost, gasEmiss
 
         if pd.to_datetime(str(day) + ' 23:00:00' , yearfirst=True, dayfirst=False) in elecImpact.index:
             elecImpactPeriode = elecImpact.loc[startDate:endDate, :]
+
         else:
             print('index is NOT in index')
+
         upperBoundaryLP = round(elecImpactPeriode.sort_values(by=sheetImpact).iloc[0:int(len(elecImpactPeriode)*k_value),
                                 :][sheetImpact].max(),4)
         lowerBoundaryLP = round(elecImpactPeriode[sheetImpact].min(),4)
@@ -1585,28 +1603,28 @@ def grid_periods(dataDict, inputFileName, buildings, gasCost, elecCost, gasEmiss
             gridPeriods[parameter, 'lowPeriods'] = elecImpactPeriode[
                 (elecImpactPeriode.loc[:, sheetImpact] <= upperBoundaryLP) &
                 (elecImpactPeriode.loc[:, sheetImpact] >= lowerBoundaryLP) &
-                (elecImpactPeriode.loc[:, sheetImpact] < lowerBoundaryHP)
+                (elecImpactPeriode.loc[:, sheetImpact] < upperBoundaryHP)
                 ]
 
             ## HP
             gridPeriods[parameter, 'highPeriods'] = elecImpactPeriode[
-                (elecImpactPeriode.loc[:,sheetImpact] <= upperBoundaryHP) &
-                (elecImpactPeriode.loc[:,sheetImpact] >= lowerBoundaryHP) &
-                (elecImpactPeriode.loc[:,sheetImpact] > upperBoundaryLP)
+                (elecImpactPeriode.loc[:, sheetImpact] <= upperBoundaryHP) &
+                (elecImpactPeriode.loc[:, sheetImpact] >= lowerBoundaryHP) &
+                (elecImpactPeriode.loc[:, sheetImpact] > lowerBoundaryLP)
                 ]
         else:
             # expand dict
             gridPeriods[parameter, 'lowPeriods'] = pd.concat([gridPeriods[parameter, 'lowPeriods'], elecImpactPeriode[
-                (elecImpactPeriode.loc[:,sheetImpact] <= upperBoundaryLP) &
-                (elecImpactPeriode.loc[:,sheetImpact] >= lowerBoundaryLP) &
-                (elecImpactPeriode.loc[:,sheetImpact] < lowerBoundaryHP)
+                (elecImpactPeriode.loc[:, sheetImpact] <= upperBoundaryLP) &
+                (elecImpactPeriode.loc[:, sheetImpact] >= lowerBoundaryLP) &
+                (elecImpactPeriode.loc[:, sheetImpact] < upperBoundaryHP)
                 ]])
 
             ## HP
             gridPeriods[parameter, 'highPeriods'] = pd.concat([gridPeriods[parameter, 'highPeriods'], elecImpactPeriode[
-                (elecImpactPeriode.loc[:,sheetImpact] <= upperBoundaryHP) &
-                (elecImpactPeriode.loc[:,sheetImpact] >= lowerBoundaryHP) &
-                (elecImpactPeriode.loc[:,sheetImpact] > upperBoundaryLP)
+                (elecImpactPeriode.loc[:, sheetImpact] <= upperBoundaryHP) &
+                (elecImpactPeriode.loc[:, sheetImpact] >= lowerBoundaryHP) &
+                (elecImpactPeriode.loc[:, sheetImpact] > lowerBoundaryLP)
                 ]])
 
     return gridPeriods, elecImpact
@@ -1666,21 +1684,22 @@ def energy_flexibility(dataDict, inputFileName, buildings, gasCost, elecCost, ga
     if len(gridPeriods['cost', 'highPeriods']) == 0:
         print('############# cost -highPeriods are empty###########')
 
-
     if len(gridPeriods['co2', 'lowPeriods']) == 0 & len(gridPeriods['co2', 'highPeriods']) == 0:
         results['flexibilityFactor', 'co2'][iter] = 0
         print('flexbility Factor for emissions is set to 0, no periods for emissions detected')
     else:
+
         results['flexibilityFactor', 'co2'][iter] = (float(elecInput.loc[elecInput.index.isin(gridPeriods['co2', 'lowPeriods'].index),
                                                                          'HPTotal'].sum()) \
                                                      - float(elecInput.loc[elecInput.index.isin(gridPeriods['co2', 'highPeriods'].index),
                                                                            'HPTotal'].sum() )
                                                      ) / (
-                                                            float(elecInput.loc[elecInput.index.isin(gridPeriods['co2', 'lowPeriods'].index),
+                                                     float(elecInput.loc[elecInput.index.isin(gridPeriods['co2', 'lowPeriods'].index),
                                                                                 'HPTotal'].sum()) \
-                                                            + float(elecInput.loc[elecInput.index.isin(gridPeriods['co2', 'highPeriods'].index),
+                                                     + float(elecInput.loc[elecInput.index.isin(gridPeriods['co2', 'highPeriods'].index),
                                                                                   'HPTotal'].sum())
                                                     )
+
     if len(gridPeriods['cost', 'lowPeriods']) == 0 & len(gridPeriods['cost', 'highPeriods']) == 0:
         results['flexibilityFactor', 'cost'][iter] = 0
         print('flexbility Factor for costs is set to 0, no periods for cost detected')
@@ -1695,8 +1714,8 @@ def energy_flexibility(dataDict, inputFileName, buildings, gasCost, elecCost, ga
                                                              + float(elecInput.loc[elecInput.index.isin(gridPeriods['cost', 'highPeriods'].index),
                                                                                    'HPTotal'].sum())
                                                      )
-    print(gridPeriods)
-    print(sotpid)
+
+
     return results
 
 def gridPeriodPlot(gridPeriods, elecImpactPara, optMode):
@@ -1731,7 +1750,6 @@ def flexibilityBarChart(dataDict, inputFileName, buildings, gasCost, elecCost, g
 
     :return: grid periods
     """
-
 
     for impactPara in ['systemData', 'gridData']:#
         results = energy_flexibility(dataDict, inputFileName, buildings, gasCost, elecCost, gasEmission, elecEmission,
