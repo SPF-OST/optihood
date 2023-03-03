@@ -48,14 +48,14 @@ class SinkRCModel(solph.Sink):
             cIndoor=0.97,
             rWall=1.70,
             cWall=226.30,
-            areaWindows=0.09,
+            areaWindows=1.5,
             qDistributionMin=0,
             qDistributionMax=1000,
             tIndoorMin=19,
             tIndoorMax=23,
-            tIndoorInit=19,
-            tWallInit=19,
-            tDistributionInit=19,
+            tIndoorInit=21,
+            tWallInit=21,
+            tDistributionInit=21,
             **kwargs,
     ):
         super().__init__(**kwargs)

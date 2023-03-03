@@ -190,13 +190,13 @@ class EnergyNetworkClass(solph.EnergySystem):
         if any(data["transformers"]["label"] == "CHP"):
             self.__chpEff = float(data["transformers"][data["transformers"]["label"] == "CHP"]["efficiency"].iloc[0].split(",")[1])
         if any(data["transformers"]["label"] == "HP"):
-            self.__hpEff = data["transformers"][data["transformers"]["label"] == "HP"]["efficiency"].iloc[0]
+            self.__hpEff = float(data["transformers"][data["transformers"]["label"] == "HP"]["efficiency"].iloc[0])
         if any(data["transformers"]["label"] == "GWHP"):
-            self.__gwhpEff = data["transformers"][data["transformers"]["label"] == "GWHP"]["efficiency"].iloc[0]
+            self.__gwhpEff = float(data["transformers"][data["transformers"]["label"] == "GWHP"]["efficiency"].iloc[0])
         if any(data["transformers"]["label"] == "GasBoiler"):
             self.__gbEff = float(data["transformers"][data["transformers"]["label"] == "GasBoiler"]["efficiency"].iloc[0].split(",")[0])
         if any(data["transformers"]["label"] == "ElectricRod"):
-            self.__elRodEff = data["transformers"][data["transformers"]["label"] == "ElectricRod"]["efficiency"].iloc[0]
+            self.__elRodEff = float(data["transformers"][data["transformers"]["label"] == "ElectricRod"]["efficiency"].iloc[0])
         # Storage conversion L - kWh to display the L value
         self.__Lsh = 4.186 * (self.__temperatureSH - data["stratified_storage"].loc["shStorage", "temp_c"]) / 3600
         self.__Ldhw = 4.186 * (self.__temperatureDHW - data["stratified_storage"].loc["dhwStorage", "temp_c"]) / 3600
@@ -648,7 +648,7 @@ class EnergyNetworkClass(solph.EnergySystem):
     def getTotalCosts(self):
         capexNetwork = sum(self.__capex["Building" + str(b + 1)] for b in range(len(self.__buildings)))
         opexNetwork = sum(
-            sum(self.__envImpactInputs["Building" + str(b + 1)].values()) for b in range(len(self.__buildings)))
+            sum(self.__opex["Building" + str(b + 1)].values()) for b in range(len(self.__buildings)))
         feedinNetwork = sum(self.__feedIn["Building" + str(b + 1)] for b in range(len(self.__buildings)))
         return capexNetwork + opexNetwork + feedinNetwork
 
@@ -680,11 +680,14 @@ class EnergyNetworkClass(solph.EnergySystem):
                 elif mergeLinkBuses and "dhwStorageBus" in i and "sequences" in solph.views.node(self._optimizationResults, i):
                     result = pd.DataFrame.from_dict(solph.views.node(self._optimizationResults, i)["sequences"])  # result sequences of DHW storage bus
                 elif "dhwStorageBus" not in i:  # for all the other buses except DHW storage bus (as it is already considered with DHW bus)
-                    result = pd.DataFrame.from_dict(solph.views.node(self._optimizationResults, i)["sequences"])
-                    if "shSourceBus" in i and i.split("__")[1] in self._storageContentSH:
-                        result = pd.concat([result, self._storageContentSH[i.split("__")[1]]], axis=1, sort=True)
+                    if 'sequences' in solph.views.node(self._optimizationResults, i):
+                        result = pd.DataFrame.from_dict(solph.views.node(self._optimizationResults, i)["sequences"])
+                        if "shSourceBus" in i and i.split("__")[1] in self._storageContentSH:
+                            result = pd.concat([result, self._storageContentSH[i.split("__")[1]]], axis=1, sort=True)
+                    else:
+                        continue
                 result[result < 0.001] = 0      # to resolve the issue of very low values in the results in certain cases, values less than 1 Watt would be replaced by 0
-                if "dhwStorageBus" not in i:
+                if mergeLinkBuses or "dhwStorageBus" not in i:
                     result.to_excel(writer, sheet_name=i)
 
             # writing the costs and environmental impacts (of different components...) for each building
@@ -720,7 +723,7 @@ class EnergyNetworkClass(solph.EnergySystem):
             writer.save()
 
 class EnergyNetworkIndiv(EnergyNetworkClass):
-    def createScenarioFile(self, configFilePath, excelFilePath, numberOfBuildings=1):
+    def createScenarioFile(self, configFilePath, excelFilePath, building, numberOfBuildings=1):
         """function to create the input excel file from a config file
         saves the generated excel file at the path given by excelFilePath"""
         config = ConfigParser()
@@ -742,7 +745,7 @@ class EnergyNetworkIndiv(EnergyNetworkClass):
         sheetToSection = {'commodity_sources':'CommoditySources', 'solar':'Solar', 'demand':'Demands', 'transformers':'Transformers', 'storages':'Storages', 'stratified_storage':'StratifiedStorage'}
         sections = config.sections()
         profiles = pd.DataFrame(columns=['name', 'path'])
-        updatedLabels = {'weatherpath':'weather_data', 'path':'demand_profiles', 'ashp':'HP', 'gshp':'GWHP', 'electricityresource':'electricityResource', 'naturalgasresource':'naturalGasResource', 'chp':'CHP', 'gasboiler':'GasBoiler', 'electricrod':'ElectricRod', 'pv':'pv', 'solarcollector':'SolarCollector', 'electricalstorage':'electricalStorage', 'shstorage':'shStorage', 'dhwstorage':'dhwStorage', 'stratifiedstorage':'StratifiedStorage'}
+        updatedLabels = {'weatherpath':'weather_data', 'path':'demand_profiles', 'ashp':'HP', 'gshp':'GWHP', 'electricityresource':'electricityResource', 'naturalgasresource':'naturalGasResource', 'chp':'CHP', 'gasboiler':'GasBoiler', 'electricrod':'ElectricRod', 'pv':'pv', 'solarcollector':'solarCollector', 'electricalstorage':'electricalStorage', 'shstorage':'shStorage', 'dhwstorage':'dhwStorage', 'stratifiedstorage':'StratifiedStorage'}
         temp_h = {}     # to store temp_h values for stratified storage parameters sheet
         FeedinTariff = 0
         for section in config.sections():
@@ -787,14 +790,20 @@ class EnergyNetworkIndiv(EnergyNetworkClass):
                                 if sheet=='transformers' and p[0] == 'capacity_max':
                                     newRow.at[0, 'capacity_DHW'] = p[1]
                                     newRow.at[0, 'capacity_SH'] = p[1]
+                                    if updatedLabels[item[0]]=='CHP':
+                                        newRow.at[0, 'capacity_el'] = str(round(float(p[1])*float(newRow.at[0, 'efficiency'].split(',')[0])/float(newRow.at[0, 'efficiency'].split(',')[1]),0))
                                 elif sheet=='storages' and p[0] == 'temp_h':
                                     temp_h[newRow.at[0,'label']] = p[1]
                                 else:
                                     newRow.at[0,p[0]] = p[1]
                         excelData[sheet] = pd.concat([excelData[sheet], newRow])
-                elif 'path' in type:        # weather path or demand path
+                elif type=='path':       # demand path
+                    buildingFolder = [i[1] for i in configData['demands'] if i[0] == 'folders'][0].split(',')[building]
+                    buildingPath = item[1]+'\\'+ buildingFolder
+                    profiles = pd.concat([profiles, pd.DataFrame({'name': [updatedLabels[type]], 'path': [buildingPath]})])
+                elif 'path' in type:     # weather path
                     profiles = pd.concat([profiles, pd.DataFrame({'name':[updatedLabels[type]], 'path':[item[1]]})])
-                elif sheet == 'demand':
+                elif sheet == 'demand' and type!='folders':
                     newRow = pd.DataFrame(columns=columnNames[sheet])
                     for d in ['electricityDemand', 'spaceHeatingDemand', 'domesticHotWaterDemand']:
                         newRow.at[0, 'label'] = d
@@ -812,7 +821,8 @@ class EnergyNetworkIndiv(EnergyNetworkClass):
                     newRow.at[0,type] = item[1]
                     newRow.at[1,type] = item[1]
                 else: # common parameters of all the components of that section
-                    excelData[sheet][type] = item[1]
+                    if type!='folders':
+                        excelData[sheet][type] = item[1]
             if sheet == 'stratified_storage':
                 excelData[sheet] = pd.concat([excelData[sheet], newRow])
         excelData['profiles'] = profiles
@@ -899,7 +909,7 @@ class EnergyNetworkGroup(EnergyNetworkClass):
         updatedLabels = {'weatherpath': 'weather_data', 'path': 'demand_profiles', 'ashp': 'HP', 'gshp': 'GWHP',
                          'electricityresource': 'electricityResource', 'naturalgasresource': 'naturalGasResource',
                          'chp': 'CHP', 'gasboiler': 'GasBoiler', 'electricrod': 'ElectricRod', 'pv': 'pv',
-                         'solarcollector': 'SolarCollector', 'electricalstorage': 'electricalStorage',
+                         'solarcollector': 'solarCollector', 'electricalstorage': 'electricalStorage',
                          'shstorage': 'shStorage', 'dhwstorage': 'dhwStorage', 'stratifiedstorage': 'StratifiedStorage',
                          'ellink': 'electricityLink', 'shlink': 'shLink', 'dhwlink': 'dhwLink'}
         efficiencyLinks = {'ellink': 0.9999, 'shlink': 0.9, 'dhwlink': 0.9}
@@ -954,6 +964,8 @@ class EnergyNetworkGroup(EnergyNetworkClass):
                                 if sheet == 'transformers' and p[0] == 'capacity_max':
                                     newRow.at[0, 'capacity_DHW'] = p[1]
                                     newRow.at[0, 'capacity_SH'] = p[1]
+                                    if updatedLabels[item[0]]=='CHP':
+                                        newRow.at[0, 'capacity_el'] = str(round(float(p[1])*float(newRow.at[0, 'efficiency'].split(',')[0])/float(newRow.at[0, 'efficiency'].split(',')[1]),0))
                                 elif sheet == 'storages' and p[0] == 'temp_h':
                                     temp_h[newRow.at[0, 'label']] = p[1]
                                 else:
@@ -1041,7 +1053,7 @@ class EnergyNetworkGroup(EnergyNetworkClass):
                 [nodesData["electricity_cost"].loc[d] for d in clusterSize.keys()])
             weatherData = pd.concat([nodesData['weather_data'][
                                          nodesData['weather_data']['time.mm'] == int(d.split('-')[1])][
-                                         nodesData['weather_data']['time.dd'] == int(d.split('-')[2])][['gls', 'str.diffus', 'tre200h0']] for d in clusterSize.keys()])
+                                         nodesData['weather_data']['time.dd'] == int(d.split('-')[2])][['gls', 'str.diffus', 'tre200h0', 'ground_temp']] for d in clusterSize.keys()])
 
             nodesData["demandProfiles"] = demandProfiles
             nodesData["electricity_impact"] = electricityImpact
