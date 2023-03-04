@@ -259,7 +259,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         optimizationModel, flows, transformerFlowCapacityDict, storageCapacityDict = environmentalImpactlimit(
             optimizationModel, keyword1="env_per_flow", keyword2="env_per_capa", limit=envImpactlimit)
 
-        # optional contraints (available: 'roof area')
+        # optional constraints (available: 'roof area')
         if opt_constraints:
             for c in opt_constraints:
                 if c.lower() == "roof area":
@@ -273,7 +273,7 @@ class EnergyNetworkClass(solph.EnergySystem):
                                       f"please check if PV efficiency, roof area and zenith angle are present in input "
                                       f"file")
                         pass
-                if c.lower() == 'totalPVcapacity':
+                if c.lower() == 'totalpvcapacity':
                     optimizationModel = totalPVCapacityConstraint(optimizationModel, numberOfBuildings)
                     logging.info(f"Optional constraint {c} successfully added to the optimization model")
         # constraint on elRod combined with HPs:
@@ -282,7 +282,6 @@ class EnergyNetworkClass(solph.EnergySystem):
 
         if clusterSize:
             optimizationModel = dailySHStorageConstraint(optimizationModel)
-
 
         logging.info("Custom constraints successfully added to the optimization model")
 
