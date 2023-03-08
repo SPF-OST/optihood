@@ -41,7 +41,6 @@ class EnergyNetworkClass(solph.EnergySystem):
         self.__dhwGWHP = {}
         self.__annualCopGWHP = {}
         self.__elRodEff = np.nan
-        self._dispatchMode = False
         if not os.path.exists(".\\log_files"):
             os.mkdir(".\\log_files")
         logger.define_logging(logpath=os.getcwd(), logfile=f'.\\log_files\\optihood_{datetime.now().strftime("%d.%m.%Y_%H.%M.%S")}.log')
@@ -49,12 +48,11 @@ class EnergyNetworkClass(solph.EnergySystem):
         logging.info("Initializing the energy network")
         super(EnergyNetworkClass, self).__init__(timeindex=timestamp)
 
-    def setFromExcel(self, filePath, numberOfBuildings, clusterSize={}, opt="costs", mergeLinkBuses=False, dispatchMode=False):
+    def setFromExcel(self, filePath, numberOfBuildings, clusterSize={}, opt="costs", mergeLinkBuses=False):
         # does Excel file exist?
         if not filePath or not os.path.isfile(filePath):
             logging.error("Excel data file {} not found.".format(filePath))
         logging.info("Defining the energy network from the excel file: {}".format(filePath))
-        self._dispatchMode = dispatchMode
         data = pd.ExcelFile(filePath)
         nodesData = self.createNodesData(data, filePath, numberOfBuildings)
         # nodesData["buses"]["excess costs"] = nodesData["buses"]["excess costs indiv"]
@@ -220,12 +218,12 @@ class EnergyNetworkClass(solph.EnergySystem):
             b.addSource(data["commodity_sources"][data["commodity_sources"]["building"] == i], data["electricity_impact"], data["electricity_cost"], opt)
             b.addSink(data["demand"][data["demand"]["building"] == i], data["demandProfiles"][i], data["building_model"], mergeLinkBuses)
             b.addTransformer(data["transformers"][data["transformers"]["building"] == i], self.__temperatureDHW,
-                             self.__temperatureSH, self.__temperatureAmb, self.__temperatureGround, opt, mergeLinkBuses, self._dispatchMode)
+                             self.__temperatureSH, self.__temperatureAmb, self.__temperatureGround, opt, mergeLinkBuses)
             #if any(data["transformers"]["label"] == "HP") or any(data["transformers"]["label"] == "GWHP"):   #add electricity rod if HP or GSHP is present in the available technology pool
             #    b.addElectricRodBackup(opt)
-            b.addStorage(data["storages"][data["storages"]["building"] == i], data["stratified_storage"], opt, mergeLinkBuses, self._dispatchMode)
-            b.addSolar(data["solar"][(data["solar"]["building"] == i) & (data["solar"]["label"] == "solarCollector")], data["weather_data"], opt, mergeLinkBuses, self._dispatchMode)
-            b.addPV(data["solar"][(data["solar"]["building"] == i) & (data["solar"]["label"] == "pv")], data["weather_data"], opt, self._dispatchMode)
+            b.addStorage(data["storages"][data["storages"]["building"] == i], data["stratified_storage"], opt, mergeLinkBuses)
+            b.addSolar(data["solar"][(data["solar"]["building"] == i) & (data["solar"]["label"] == "solarCollector")], data["weather_data"], opt, mergeLinkBuses)
+            b.addPV(data["solar"][(data["solar"]["building"] == i) & (data["solar"]["label"] == "pv")], data["weather_data"], opt)
             self._nodesList.extend(b.getNodesList())
             self.__inputs[buildingLabel] = b.getInputs()
             self.__technologies[buildingLabel] = b.getTechnologies()
@@ -246,23 +244,52 @@ class EnergyNetworkClass(solph.EnergySystem):
             print(oobj + ":", n.label)
         print("*********************************************************")
 
-    def optimize(self, numberOfBuildings, solver, envImpactlimit=1000000, clusterSize={}, options=None, mergeLinkBuses=False):
+    def optimize(self, numberOfBuildings, solver, envImpactlimit=1000000, clusterSize={},
+                 options=None,   # solver options
+                 optConstraints=None, #optional constraints (implemented for the moment are "roof area"
+                 mergeLinkBuses=False):
+
         if options is None:
             options = {"gurobi": {"MIPGap": 0.01}}
+
         optimizationModel = solph.Model(self)
         logging.info("Optimization model built successfully")
+
         # add constraint to limit the environmental impacts
-        optimizationModel, flows, transformerFlowCapacityDict, storageCapacityDict = environmentalImpactlimit(optimizationModel, keyword1="env_per_flow", keyword2="env_per_capa", limit=envImpactlimit)
-        #optimizationModel = roof_area_limit(optimizationModel, keyword1="space", keyword2="roof_area", nb=numberOfBuildings)
+        optimizationModel, flows, transformerFlowCapacityDict, storageCapacityDict = environmentalImpactlimit(
+            optimizationModel, keyword1="env_per_flow", keyword2="env_per_capa", limit=envImpactlimit)
+
+        # optional constraints (available: 'roof area')
+        if opt_constraints:
+            for c in opt_constraints:
+                if c.lower() == "roof area":
+                    # requires 2 additional parameters in the scenario file, tab "solar", zenit angle, roof area
+                    try:
+                        optimizationModel = roof_area_limit(optimizationModel,
+                                                        keyword1="space", keyword2="roof_area", nb=numberOfBuildings)
+                        logging.info(f"Optional constraint {c} successfully added to the optimization model")
+                    except ValueError:
+                        logging.error(f"Optional constraint {c} not added to the optimization model : "
+                                      f"please check if PV efficiency, roof area and zenith angle are present in input "
+                                      f"file")
+                        pass
+                if c.lower() == 'totalpvcapacity':
+                    optimizationModel = totalPVCapacityConstraint(optimizationModel, numberOfBuildings)
+                    logging.info(f"Optional constraint {c} successfully added to the optimization model")
+        # constraint on elRod combined with HPs:
         if not np.isnan(self.__elRodEff):
             optimizationModel = electricRodCapacityConstaint(optimizationModel, numberOfBuildings)
+
         if clusterSize:
             optimizationModel = dailySHStorageConstraint(optimizationModel)
-        #optimizationModel = totalPVCapacityConstraint(optimizationModel, numberOfBuildings)
+
         logging.info("Custom constraints successfully added to the optimization model")
+
         if solver == "gurobi":
             logging.info("Initiating optimization using {} solver".format(solver))
+
         optimizationModel.solve(solver=solver, cmdline_options=options[solver])
+
         # obtain the value of the environmental impact (subject to the limit constraint)
         # the optimization imposes an integral limit constraint on the environmental impacts
         # total environmental impacts <= envImpactlimit
@@ -626,10 +653,12 @@ class EnergyNetworkClass(solph.EnergySystem):
         feedinNetwork = sum(self.__feedIn["Building" + str(b + 1)] for b in range(len(self.__buildings)))
         return capexNetwork + opexNetwork + feedinNetwork
 
-    def getEnvImpact(self):
-        envImpactInputsNetwork = sum(sum(self.__envImpactInputs["Building" + str(b + 1)].values()) for b in range(len(self.__buildings)))
-        envImpactTechnologiesNetwork = sum(sum(self.__envImpactTechnologies["Building" + str(b + 1)].values()) for b in range(len(self.__buildings)))
-        return envImpactInputsNetwork + envImpactTechnologiesNetwork
+    def getTotalEnvImpacts(self):
+        envImpactInputsNetwork = sum(
+            sum(self.__envImpactInputs["Building" + str(b + 1)].values()) for b in range(len(self.__buildings)))
+        envImpactTechnologiesNetwork = sum(
+            sum(self.__envImpactTechnologies["Building" + str(b + 1)].values()) for b in range(len(self.__buildings)))
+        return envImpactTechnologiesNetwork + envImpactInputsNetwork
 
     def exportToExcel(self, file_name, mergeLinkBuses=False):
         for i in range(1, self.__noOfBuildings+1):
