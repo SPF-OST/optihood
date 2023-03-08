@@ -79,9 +79,9 @@ def run_kpi(dataDict, inputFileName, buildings, selected_days,
     return results
 
 if __name__ == "__main__":
-    optMode = "indiv"  # parameter defining whether the results file corresponds to "indiv" or "group" optimization
+    optMode = "group"  # parameter defining whether the results file corresponds to "indiv" or "group" optimization
     numberOfBuildings = 4 # number of buildings in the scenario
-    iterOptim = 2 # number of iterations to plot
+    iterOptim = 5 # number of iterations to plot
     iterRange = [1] + list(range(iterOptim, 1, -1)) # create list to define the order of to plot the iterations
 
     UseLabelDict = True
@@ -89,16 +89,16 @@ if __name__ == "__main__":
     rangeToConsider = pd.date_range('2021-01-01 00:00:00', '2021-12-31 23:00:00', freq='H')
 
     # link to the folder
-    folder = "../data/group_sm_44ct/"
+    folder = "group_sm_8ct/"
 
     inputFileName = folder + "scenario"  # link to the scenario file
     outputFileName = folder + "Results/KPI/"
 
     # link to csv or constant value
-    elecEmission = "../data/excels/electricity_impact.csv"
-    elecCost = "../data/group_sm_44ct/excels/electricity_cost.csv"
+    elecEmission = "excels/electricity_impact.csv"
+    elecCost = "group_sm_8ct/excels/electricity_cost.csv"
     gasEmission = 0.228
-    gasCost = 0.44
+    gasCost = 0.087
 
     if not os.path.exists(outputFileName):
         os.mkdir(outputFileName)
