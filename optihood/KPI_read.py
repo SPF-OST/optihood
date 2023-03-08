@@ -62,6 +62,7 @@ def run_kpi(dataDict, inputFileName, buildings, selected_days,
             elecEmission, elecCost, gasEmission, gasCost, rangeToConsider,
             outputFileName, iter, iterRange, optMode, results):
 
+    # use the functions you need to plot
     selfsuffisant(dataDict, buildings, outputFileName, selected_days, 'month', iter, iterRange, results)
     selfsuffisant(dataDict, buildings, outputFileName, selected_days, 'hour', iter, iterRange, results)
     full_load_hour(dataDict, buildings, iter, outputFileName)
@@ -70,7 +71,7 @@ def run_kpi(dataDict, inputFileName, buildings, selected_days,
     installed_capacity(dataDict, buildings, outputFileName, iter, iterRange, results, 'building')
     results = iter_heat(dataDict, buildings, outputFileName, iter, iterRange, results)
     results = selfsuffisant(dataDict, buildings, outputFileName, selected_days, 'year', iter, iterRange, results)
-    results = installed_capacity(resultFileName, buildings, outputFileName, iter, iterRange, results, 'grouped')
+    results = installed_capacity(dataDict, buildings, outputFileName, iter, iterRange, results, 'grouped')
     stacked_full_load(dataDict, buildings, iter, outputFileName)
     flexibilityBarChart(dataDict, inputFileName, buildings, gasCost, elecCost, gasEmission, elecEmission,
                         optMode, outputFileName, selected_days, iter, iterRange, rangeToConsider, results)
