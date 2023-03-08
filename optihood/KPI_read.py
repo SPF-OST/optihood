@@ -70,6 +70,7 @@ def run_kpi(dataDict, inputFileName, buildings, selected_days,
     installed_capacity(dataDict, buildings, outputFileName, iter, iterRange, results, 'building')
     results = iter_heat(dataDict, buildings, outputFileName, iter, iterRange, results)
     results = selfsuffisant(dataDict, buildings, outputFileName, selected_days, 'year', iter, iterRange, results)
+    results = installed_capacity(resultFileName, buildings, outputFileName, iter, iterRange, results, 'grouped')
     stacked_full_load(dataDict, buildings, iter, outputFileName)
     flexibilityBarChart(dataDict, inputFileName, buildings, gasCost, elecCost, gasEmission, elecEmission,
                         optMode, outputFileName, selected_days, iter, iterRange, rangeToConsider, results)
