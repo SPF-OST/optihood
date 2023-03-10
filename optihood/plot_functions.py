@@ -1001,12 +1001,25 @@ def createPlot(resultFilePath, basePath, numberOfBuildings, plotLevel, plotType,
 
         if not os.path.exists(basePath):
             os.makedirs(basePath)
+        # increment html bokeh figure to not overwrite files
+        i = 1
+        file = f"HourlyBokehPlots({i}).html"
+        while os.path.exists(os.path.join(basePath, file)):
+            i += 1
+            file = f"HourlyBokehPlots({i}).html"
 
-        output_file(os.path.join(basePath,"HourlyBokehPlots.html"))
+        output_file(os.path.join(basePath,file))
         grid = gridplot(plotsHourly, ncols=ncols, plot_width=850, plot_height=500, sizing_mode="fixed")
         show(grid)
+
         if not any(chr.isdigit() for chr in plotLevel):
-            output_file(os.path.join(basePath,"DailyBokehPlots.html"))
+            i = 1
+            file = f"DailyBokehPlots({i}).html"
+            while os.path.exists(os.path.join(basePath, file)):
+                i += 1
+                file = f"DailyBokehPlots({i}).html"
+
+            output_file(os.path.join(basePath,file))
             grid = gridplot(plotsDaily, ncols=ncols, plot_width=850, plot_height=500, sizing_mode="fixed")
             show(grid)
     else:
