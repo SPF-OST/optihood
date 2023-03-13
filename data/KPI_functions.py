@@ -271,9 +271,10 @@ def ElecInfluenceBuilding(dataDict, buildings, PVImpact, CHPImpact, gridImpact, 
             elecImpact['ElecPrice' + str(sel_b)] = np.where(elecTec['PV_B'+str(sel_b)] + elecTec['Grid_B'+str(sel_b)] > 0,
                                                             (
                                                              elecTec['PV_B'+str(sel_b)] * PVImpact
-                                                          +  elecTec['CHP_B'+str(sel_b)] * CHPImpact
-                                                          +  elecTec['Grid_B'+str(sel_b)] * gridImpact ) / (
-                                                             elecTec['PV_B'+str(sel_b)] + elecTec['CHP_B'+str(sel_b)] + elecTec['Grid_B'+str(sel_b)]),
+                                                           + elecTec['CHP_B'+str(sel_b)] * CHPImpact
+                                                           + elecTec['Grid_B'+str(sel_b)] * gridImpact ) / (
+                                                             elecTec['PV_B'+str(sel_b)] + elecTec['CHP_B'+str(sel_b)]
+                                                           + elecTec['Grid_B'+str(sel_b)]),
                                                             gridImpact)
 
         elif sel_b == 'system':
@@ -567,14 +568,6 @@ def npc_technology(dataDict, inputFileName, buildings, gasCost, elecCost, optMod
     elif elecTec.loc['PV', 'total'] == 0:
         levelCosts['PVElecSystem'] = 0
 
-    '''
-    SystemElecPrice['ElecPriceSystem'] = ElecInfluenceBuilding(dataDict, buildings,
-                                                               levelCosts['PVElecSystem'],
-                                                               elecPrice['cost'],
-                                                               'system', 'cost')
-
-    avoidedCosts = pd.concat([elec_gen(dataDict, buildings, 'hour'), SystemElecPrice], axis=1)
-    '''
     avoidedCosts = pd.concat([elec_gen(dataDict, buildings, 'hour'), elecPrice['cost']], axis=1)
     avoidedCosts = avoidedCosts.rename(columns={'CHPTotal' : 'CHPElec'})
 
@@ -825,9 +818,9 @@ def selfsuffisant(dataDict, buildings, outputFileName, selected_days, timeStep, 
                                                + results['totalselfsuffisant'][iter]['PV']
                                                + results['totalselfsuffisant'][iter]['Excess']
                                                ) / (results['totalselfsuffisant'][iter]['CHP']
-                                                    + results['totalselfsuffisant'][iter]['PV']
-                                                    + results['totalselfsuffisant'][iter]['Excess']
-                                                    + results['totalselfsuffisant'][iter]['Grid'])
+                                                  + results['totalselfsuffisant'][iter]['PV']
+                                                  + results['totalselfsuffisant'][iter]['Excess']
+                                                  + results['totalselfsuffisant'][iter]['Grid'])
 
         if iter == iterRange[-1]:
             fig = plt.figure()

@@ -63,16 +63,27 @@ def run_kpi(dataDict, inputFileName, buildings, selected_days,
             outputFileName, iter, iterRange, optMode, results):
 
     # use the functions you need to plot
+    # electricity production balance over the months
     selfsuffisant(dataDict, buildings, outputFileName, selected_days, 'month', iter, iterRange, results)
+    # electricity production balance over the hours
     selfsuffisant(dataDict, buildings, outputFileName, selected_days, 'hour', iter, iterRange, results)
-    full_load_hour(dataDict, buildings, iter, outputFileName)
-    heat_distr(dataDict, buildings, iter, outputFileName, 'year')
-    heat_distr(dataDict, buildings, iter, outputFileName, 'month')
-    installed_capacity(dataDict, buildings, outputFileName, iter, iterRange, results, 'building')
-    results = iter_heat(dataDict, buildings, outputFileName, iter, iterRange, results)
+    # electricity production compared with all optimisation iterations
     results = selfsuffisant(dataDict, buildings, outputFileName, selected_days, 'year', iter, iterRange, results)
+    #
+    full_load_hour(dataDict, buildings, iter, outputFileName)
+    # heat production distribution of technologies over the year
+    heat_distr(dataDict, buildings, iter, outputFileName, 'year')
+    # heat production distribution of technologies over the months
+    heat_distr(dataDict, buildings, iter, outputFileName, 'month')
+    # heat production compared with all optimisation iterations
+    results = iter_heat(dataDict, buildings, outputFileName, iter, iterRange, results)
+    # installed capacity of technologies in the considered buildings
+    installed_capacity(dataDict, buildings, outputFileName, iter, iterRange, results, 'building')
+    # installed capacity of all technologies compared with all optimisation iterations
     results = installed_capacity(dataDict, buildings, outputFileName, iter, iterRange, results, 'grouped')
+    # heat production over a year in a stacked monoton decreasing graph
     stacked_full_load(dataDict, buildings, iter, outputFileName)
+    # flexibility factor bar plot
     flexibilityBarChart(dataDict, inputFileName, buildings, gasCost, elecCost, gasEmission, elecEmission,
                         optMode, outputFileName, selected_days, iter, iterRange, rangeToConsider, results)
 
