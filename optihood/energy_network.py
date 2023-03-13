@@ -41,6 +41,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         self.__dhwGWHP = {}
         self.__annualCopGWHP = {}
         self.__elRodEff = np.nan
+        self._dispatchMode = False                         
         if not os.path.exists(".\\log_files"):
             os.mkdir(".\\log_files")
         logger.define_logging(logpath=os.getcwd(), logfile=f'.\\log_files\\optihood_{datetime.now().strftime("%d.%m.%Y_%H.%M.%S")}.log')
@@ -48,10 +49,11 @@ class EnergyNetworkClass(solph.EnergySystem):
         logging.info("Initializing the energy network")
         super(EnergyNetworkClass, self).__init__(timeindex=timestamp)
 
-    def setFromExcel(self, filePath, numberOfBuildings, clusterSize={}, opt="costs", mergeLinkBuses=False):
+    def setFromExcel(self, filePath, numberOfBuildings, clusterSize={}, opt="costs", mergeLinkBuses=False, dispatchMode=False):
         # does Excel file exist?
         if not filePath or not os.path.isfile(filePath):
-            logging.error("Excel data file {} not found.".format(filePath))
+            logging.error("Excel data file {} not found.".format(filePath))                                                                               
+        self._dispatchMode = dispatchMode
         logging.info("Defining the energy network from the excel file: {}".format(filePath))
         data = pd.ExcelFile(filePath)
         nodesData = self.createNodesData(data, filePath, numberOfBuildings)
@@ -218,12 +220,12 @@ class EnergyNetworkClass(solph.EnergySystem):
             b.addSource(data["commodity_sources"][data["commodity_sources"]["building"] == i], data["electricity_impact"], data["electricity_cost"], opt)
             b.addSink(data["demand"][data["demand"]["building"] == i], data["demandProfiles"][i], data["building_model"], mergeLinkBuses)
             b.addTransformer(data["transformers"][data["transformers"]["building"] == i], self.__temperatureDHW,
-                             self.__temperatureSH, self.__temperatureAmb, self.__temperatureGround, opt, mergeLinkBuses)
+                             self.__temperatureSH, self.__temperatureAmb, self.__temperatureGround, opt, mergeLinkBuses, self._dispatchMode)
             #if any(data["transformers"]["label"] == "HP") or any(data["transformers"]["label"] == "GWHP"):   #add electricity rod if HP or GSHP is present in the available technology pool
             #    b.addElectricRodBackup(opt)
-            b.addStorage(data["storages"][data["storages"]["building"] == i], data["stratified_storage"], opt, mergeLinkBuses)
-            b.addSolar(data["solar"][(data["solar"]["building"] == i) & (data["solar"]["label"] == "solarCollector")], data["weather_data"], opt, mergeLinkBuses)
-            b.addPV(data["solar"][(data["solar"]["building"] == i) & (data["solar"]["label"] == "pv")], data["weather_data"], opt)
+            b.addStorage(data["storages"][data["storages"]["building"] == i], data["stratified_storage"], opt, mergeLinkBuses, self._dispatchMode)
+            b.addSolar(data["solar"][(data["solar"]["building"] == i) & (data["solar"]["label"] == "solarCollector")], data["weather_data"], opt, mergeLinkBuses, self._dispatchMode)
+            b.addPV(data["solar"][(data["solar"]["building"] == i) & (data["solar"]["label"] == "pv")], data["weather_data"], opt, self._dispatchMode)
             self._nodesList.extend(b.getNodesList())
             self.__inputs[buildingLabel] = b.getInputs()
             self.__technologies[buildingLabel] = b.getTechnologies()
@@ -260,8 +262,8 @@ class EnergyNetworkClass(solph.EnergySystem):
             optimizationModel, keyword1="env_per_flow", keyword2="env_per_capa", limit=envImpactlimit)
 
         # optional constraints (available: 'roof area')
-        if opt_constraints:
-            for c in opt_constraints:
+        if optConstraints:
+            for c in optConstraints:
                 if c.lower() == "roof area":
                     # requires 2 additional parameters in the scenario file, tab "solar", zenit angle, roof area
                     try:
@@ -704,19 +706,19 @@ class EnergyNetworkClass(solph.EnergySystem):
                 costsBuilding = pd.DataFrame.from_dict(costs, orient='index')
                 costsBuilding.to_excel(writer, sheet_name="costs__" + buildingLabel)
 
-                envImpact = self.__envImpactInputs[buildingLabel]
+                envImpact = self.__envImpactInputs[buildingLabel].copy()
                 envImpact.update(self.__envImpactTechnologies[buildingLabel])
 
                 envImpactBuilding = pd.DataFrame.from_dict(envImpact, orient='index')
                 envImpactBuilding.to_excel(writer, sheet_name="env_impacts__" + buildingLabel)
 
-                capacitiesStorages = self.__capacitiesStoragesBuilding[buildingLabel]
+                capacitiesStorages = self.__capacitiesStoragesBuilding[buildingLabel].copy()
                 capacitiesStorages.update(self.__capacitiesStoragesBuilding[buildingLabel])
 
                 capacitiesStoragesBuilding = pd.DataFrame.from_dict(capacitiesStorages, orient='index')
                 capacitiesStoragesBuilding.to_excel(writer, sheet_name="capStorages__" + buildingLabel)
 
-                capacitiesTransformers = self.__capacitiesTransformersBuilding[buildingLabel]
+                capacitiesTransformers = self.__capacitiesTransformersBuilding[buildingLabel].copy()
                 capacitiesTransformers.update(self.__capacitiesTransformersBuilding[buildingLabel])
 
                 capacitiesTransformersBuilding = pd.DataFrame.from_dict(capacitiesTransformers, orient='index')

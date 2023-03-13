@@ -290,12 +290,16 @@ class Building:
         outputSHBusLabel = data["to"].split(",")[0] + '__' + self.__buildingLabel
         outputDHWBusLabel = data["to"].split(",")[1] + '__' + self.__buildingLabel
         envImpactPerCapacity = float(data["impact_cap"]) / float(data["lifetime"])
+        if data["capacity_min"] == 'x':
+            capacityMinSH = float(data["capacity_SH"])
+        else:
+            capacityMinSH = float(data["capacity_min"])
 
         heatPump = HeatPumpLinear(self.__buildingLabel, temperatureDHW, temperatureSH, temperatureAmb,
                                   self.__busDict[inputBusLabel],
                                   self.__busDict[outputSHBusLabel],
                                   self.__busDict[outputDHWBusLabel],
-                                  float(data["capacity_min"]), float(data["capacity_SH"]),float(data["efficiency"]),
+                                  capacityMinSH, float(data["capacity_SH"]),float(data["efficiency"]),
                                   self._calculateInvest(data)[0] * (opt == "costs") + envImpactPerCapacity*(opt == "env"),
                                   self._calculateInvest(data)[1] * (opt == "costs"),
                                   float(data["heat_impact"]) * (opt == "env"),
@@ -320,12 +324,15 @@ class Building:
         outputSHBusLabel = data["to"].split(",")[0] + '__' + self.__buildingLabel
         outputDHWBusLabel = data["to"].split(",")[1] + '__' + self.__buildingLabel
         envImpactPerCapacity = float(data["impact_cap"]) / float(data["lifetime"])
-
+        if data["capacity_min"] == 'x':
+            capacityMinSH = float(data["capacity_SH"])
+        else:
+            capacityMinSH = float(data["capacity_min"])
         geothermalheatPump = GeothermalHeatPumpLinear(self.__buildingLabel, temperatureDHW, temperatureSH, temperatureAmb,
                                   self.__busDict[inputBusLabel],
                                   self.__busDict[outputSHBusLabel],
                                   self.__busDict[outputDHWBusLabel],
-                                  float(data["capacity_min"]), float(data["capacity_SH"]),float(data["efficiency"]),
+                                  capacityMinSH, float(data["capacity_SH"]),float(data["efficiency"]),
                                   self._calculateInvest(data)[0] * (opt == "costs") + envImpactPerCapacity*(opt == "env"),
                                   self._calculateInvest(data)[1] * (opt == "costs"),
                                   float(data["heat_impact"]) * (opt == "env"),
@@ -402,13 +409,16 @@ class Building:
         shEfficiency = float(data["efficiency"].split(",")[1])
         dhwEfficiency = float(data["efficiency"].split(",")[2])
         envImpactPerCapacity = float(data["impact_cap"]) / float(data["lifetime"])
-
+        if data["capacity_min"] == 'x':
+            capacityMinSH = float(data["capacity_SH"])
+        else:
+            capacityMinSH = float(data["capacity_min"])
         chp = CHP(self.__buildingLabel, self.__busDict[inputBusLabel],
                   self.__busDict[outputElBusLabel],
                   self.__busDict[outputSHBusLabel],
                   self.__busDict[outputDHWBusLabel],
                   elEfficiency, shEfficiency,
-                  dhwEfficiency, float(data["capacity_min"]),
+                  dhwEfficiency, capacityMinSH,
                   float(data["capacity_SH"]),
                   self._calculateInvest(data)[0] * (opt == "costs") + envImpactPerCapacity * (opt == "env"),
                   self._calculateInvest(data)[1] * (opt == "costs"), float(data["elec_impact"]) * (opt == "env"),
@@ -434,11 +444,14 @@ class Building:
         shEfficiency = float(data["efficiency"].split(",")[0])
         dhwEfficiency = float(data["efficiency"].split(",")[1])
         envImpactPerCapacity = float(data["impact_cap"]) / float(data["lifetime"])
-
+        if data["capacity_min"] == 'x':
+            capacityMinSH = float(data["capacity_SH"])
+        else:
+            capacityMinSH = float(data["capacity_min"])
 
         self.__nodesList.append(GasBoiler(self.__buildingLabel, self.__busDict[inputBusLabel],
                   self.__busDict[outputSHBusLabel], self.__busDict[outputDHWBusLabel],
-                  shEfficiency, dhwEfficiency, float(data["capacity_min"]), float(data["capacity_SH"]),
+                  shEfficiency, dhwEfficiency, capacityMinSH, float(data["capacity_SH"]),
                   self._calculateInvest(data)[0] * (opt == "costs") + envImpactPerCapacity * (opt == "env"),
                   self._calculateInvest(data)[1] * (opt == "costs"), float(data["heat_impact"]) * (opt == "env"), float(data["heat_impact"]), envImpactPerCapacity, dispatchMode))
 
@@ -460,10 +473,14 @@ class Building:
         outputDHWBusLabel = data["to"].split(",")[1] + '__' + self.__buildingLabel
         efficiency = float(data["efficiency"])
         envImpactPerCapacity = float(data["impact_cap"]) / float(data["lifetime"])
+        if data["capacity_min"] == 'x':
+            capacityMinSH = float(data["capacity_SH"])
+        else:
+            capacityMinSH = float(data["capacity_min"])
 
         self.__nodesList.append(ElectricRod(self.__buildingLabel, self.__busDict[inputBusLabel],
                                           self.__busDict[outputSHBusLabel], self.__busDict[outputDHWBusLabel],
-                                          efficiency, float(data["capacity_min"]), float(data["capacity_SH"]),
+                                          efficiency, capacityMinSH, float(data["capacity_SH"]),
                                           self._calculateInvest(data)[0] * (opt == "costs") + envImpactPerCapacity * (
                                                       opt == "env"),
                                           self._calculateInvest(data)[1] * (opt == "costs"),
