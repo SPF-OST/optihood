@@ -278,9 +278,11 @@ class EnergyNetworkClass(solph.EnergySystem):
                 if c.lower() == 'totalpvcapacity':
                     optimizationModel = totalPVCapacityConstraint(optimizationModel, numberOfBuildings)
                     logging.info(f"Optional constraint {c} successfully added to the optimization model")
-        # constraint on elRod combined with HPs:
-        if not np.isnan(self.__elRodEff):
-            optimizationModel = electricRodCapacityConstaint(optimizationModel, numberOfBuildings)
+
+                # constraint on elRod combined with HPs:
+                if c.lower() == 'elrodcapacity' and not np.isnan(self.__elRodEff):
+                    optimizationModel = electricRodCapacityConstaint(optimizationModel, numberOfBuildings)
+                    logging.info(f"Optional constraint {c} successfully added to the optimization model")
 
         if clusterSize:
             optimizationModel = dailySHStorageConstraint(optimizationModel)
