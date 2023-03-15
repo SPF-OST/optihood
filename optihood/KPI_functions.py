@@ -43,21 +43,34 @@ def heat_gen(dataDict, buildings, timeStep):
 
 
     for b in range(1, buildings+1):
-        shGenList = ["(('CHP__Building" + str(b) + "', 'shSourceBus__Building" + str(b) + "'), 'flow')",
-                     "(('GWHP__Building" + str(b) + "', 'shSourceBus__Building" + str(b) + "'), 'flow')",
-                     "(('GasBoiler__Building" + str(b) + "', 'shSourceBus__Building" + str(b) + "'), 'flow')",
-                     "(('HP__Building" + str(b) + "', 'shSourceBus__Building" + str(b) + "'), 'flow')",
-                     "(('ElectricRod__Building" + str(b) + "', 'shSourceBus__Building" + str(b) + "'), 'flow')"]
+        if "(('ElectricRod__Building" + str(b) + "', 'shSourceBus__Building" + str(b) + "'), 'flow')" in list(dataDict["shSourceBus__Building" + str(b)]):
+            shGenList = ["(('CHP__Building" + str(b) + "', 'shSourceBus__Building" + str(b) + "'), 'flow')",
+                         "(('GWHP__Building" + str(b) + "', 'shSourceBus__Building" + str(b) + "'), 'flow')",
+                         "(('GasBoiler__Building" + str(b) + "', 'shSourceBus__Building" + str(b) + "'), 'flow')",
+                         "(('HP__Building" + str(b) + "', 'shSourceBus__Building" + str(b) + "'), 'flow')",
+                         "(('ElectricRod__Building" + str(b) + "', 'shSourceBus__Building" + str(b) + "'), 'flow')"]
 
-        dhwGenList = ["(('CHP__Building" + str(b) + "', 'dhwStorageBus__Building" + str(b) + "'), 'flow')",
-                      "(('GWHP__Building" + str(b) + "', 'dhwStorageBus__Building" + str(b) + "'), 'flow')",
-                      "(('GasBoiler__Building" + str(b) + "', 'dhwStorageBus__Building" + str(b) + "'), 'flow')",
-                      "(('HP__Building" + str(b) + "', 'dhwStorageBus__Building" + str(b) + "'), 'flow')",
-                      "(('ElectricRod__Building" + str(b) + "', 'dhwStorageBus__Building" + str(b) + "'), 'flow')",
-                      "(('solarCollector__Building" + str(b) + "', 'dhwStorageBus__Building" + str(b) + "'), 'flow')"]
+            dhwGenList = ["(('CHP__Building" + str(b) + "', 'dhwStorageBus__Building" + str(b) + "'), 'flow')",
+                          "(('GWHP__Building" + str(b) + "', 'dhwStorageBus__Building" + str(b) + "'), 'flow')",
+                          "(('GasBoiler__Building" + str(b) + "', 'dhwStorageBus__Building" + str(b) + "'), 'flow')",
+                          "(('HP__Building" + str(b) + "', 'dhwStorageBus__Building" + str(b) + "'), 'flow')",
+                          "(('ElectricRod__Building" + str(b) + "', 'dhwStorageBus__Building" + str(b) + "'), 'flow')",
+                          "(('solarCollector__Building" + str(b) + "', 'dhwStorageBus__Building" + str(b) + "'), 'flow')"]
+            SHUnitIndex = ['CHPsh', "GWHPsh", "GasBoilersh", "HPsh", "ElectricRodsh"]
+            DHWUnitIndex = ['CHPdhw', "GWHPdhw", "GasBoilerdhw", "HPdhw", "ElectricRoddhw", "solarCollectordhw"]
+        else:
+            shGenList = ["(('CHP__Building" + str(b) + "', 'shSourceBus__Building" + str(b) + "'), 'flow')",
+                         "(('GWHP__Building" + str(b) + "', 'shSourceBus__Building" + str(b) + "'), 'flow')",
+                         "(('GasBoiler__Building" + str(b) + "', 'shSourceBus__Building" + str(b) + "'), 'flow')",
+                         "(('HP__Building" + str(b) + "', 'shSourceBus__Building" + str(b) + "'), 'flow')"]
 
-        SHUnitIndex = ['CHPsh', "GWHPsh", "GasBoilersh", "HPsh", "ElectricRodsh"]
-        DHWUnitIndex = ['CHPdhw', "GWHPdhw", "GasBoilerdhw", "HPdhw", "ElectricRoddhw", "solarCollectordhw"]
+            dhwGenList = ["(('CHP__Building" + str(b) + "', 'dhwStorageBus__Building" + str(b) + "'), 'flow')",
+                          "(('GWHP__Building" + str(b) + "', 'dhwStorageBus__Building" + str(b) + "'), 'flow')",
+                          "(('GasBoiler__Building" + str(b) + "', 'dhwStorageBus__Building" + str(b) + "'), 'flow')",
+                          "(('HP__Building" + str(b) + "', 'dhwStorageBus__Building" + str(b) + "'), 'flow')",
+                          "(('solarCollector__Building" + str(b) + "', 'dhwStorageBus__Building" + str(b) + "'), 'flow')"]
+            SHUnitIndex = ['CHPsh', "GWHPsh", "GasBoilersh", "HPsh"]
+            DHWUnitIndex = ['CHPdhw', "GWHPdhw", "GasBoilerdhw", "HPdhw", "solarCollectordhw"]
 
         if timeStep == "year":
             shHeatTec[labelDict["shSourceBus__Building"+str(b)]] = dataDict["shSourceBus__Building" + str(b)][shGenList].sum(axis=0).reset_index(drop=True)
@@ -106,35 +119,55 @@ def heat_gen(dataDict, buildings, timeStep):
             GWHPsh_columns.append('GWHPshSourceBus_B'+str(b))
             GasBoilersh_columns.append('GasBoilershSourceBus_B'+str(b))
             HPsh_columns.append('HPshSourceBus_B'+str(b))
-            ERsh_columns.append('ElectricRodshSourceBus_B'+str(b))
+            try:
+                ERsh_columns.append('ElectricRodshSourceBus_B'+str(b))
+                ERdhw_columns.append('ElectricRoddhwStorageBus_B'+str(b))
+            except:
+                None
             chpdhw_columns.append('CHPdhwStorageBus_B'+str(b))
             GWHPdhw_columns.append('GWHPdhwStorageBus_B'+str(b))
             GasBoilerdhw_columns.append('GasBoilerdhwStorageBus_B'+str(b))
             HPdhw_columns.append('HPdhwStorageBus_B'+str(b))
-            ERdhw_columns.append('ElectricRoddhwStorageBus_B'+str(b))
+
             solarCollectordhw_columns.append('solarCollectordhw_B'+str(b))
 
             for tec in ["CHP", "GWHP", "GasBoiler", "HP", "ElectricRod"]:
                 heatTec[str(tec) + str(b)] = heatTec[str(tec) + 'shSourceBus_B' +str(b)] + heatTec[str(tec) + 'dhwStorageBus_B'+str(b)]
 
-        heatTec['CHPshTotal'] = heatTec[chpsh_columns].sum(axis=1)
+            try:
+                heatTec[str("CHP") + str(b)] = heatTec[str("CHP") + 'shSourceBus_B' +str(b)] + heatTec[str("CHP") + 'dhwStorageBus_B'+str(b)]
+            except:
+                None
+            try:
+                heatTec[str("ElectricRod") + str(b)] = heatTec[str("ElectricRod") + 'shSourceBus_B' +str(b)] + heatTec[str("ElectricRod") + 'dhwStorageBus_B'+str(b)]
+            except:
+                None
+
         heatTec['GWHPshTotal'] = heatTec[GWHPsh_columns].sum(axis=1)
         heatTec['GasBoilershTotal'] = heatTec[GasBoilersh_columns].sum(axis=1)
         heatTec['HPshTotal'] = heatTec[HPsh_columns].sum(axis=1)
-        heatTec['ElectricRodshTotal'] = heatTec[ERsh_columns].sum(axis=1)
-        heatTec['CHPdhwTotal'] = heatTec[chpdhw_columns].sum(axis=1)
         heatTec['GWHPdhwTotal'] = heatTec[GWHPdhw_columns].sum(axis=1)
         heatTec['GasBoilerdhwTotal'] = heatTec[GasBoilerdhw_columns].sum(axis=1)
         heatTec['HPdhwTotal'] = heatTec[HPdhw_columns].sum(axis=1)
-        heatTec['ElectricRoddhwTotal'] = heatTec[ERdhw_columns].sum(axis=1)
         heatTec['solarCollectordhwTotal'] = heatTec[solarCollectordhw_columns].sum(axis=1)
-
-        heatTec['CHPTotal'] = heatTec['CHPshTotal'] + heatTec['CHPdhwTotal']
         heatTec['GWHPTotal'] = heatTec['GWHPshTotal'] + heatTec['GWHPdhwTotal']
         heatTec['GasBoilerTotal'] = heatTec['GasBoilershTotal'] + heatTec['GasBoilerdhwTotal']
         heatTec['HPTotal'] = heatTec['HPshTotal'] + heatTec['HPdhwTotal']
-        heatTec['ElectricRodTotal'] = heatTec['ElectricRodshTotal'] + heatTec['ElectricRoddhwTotal']
         heatTec['solarCollectorTotal'] = heatTec['solarCollectordhwTotal']
+
+        try:
+            heatTec['CHPshTotal'] = heatTec[chpsh_columns].sum(axis=1)
+            heatTec['CHPdhwTotal'] = heatTec[chpdhw_columns].sum(axis=1)
+            heatTec['CHPTotal'] = heatTec['CHPshTotal'] + heatTec['CHPdhwTotal']
+        except:
+            None
+
+        try:
+            heatTec['ElectricRodshTotal'] = heatTec[ERsh_columns].sum(axis=1)
+            heatTec['ElectricRoddhwTotal'] = heatTec[ERdhw_columns].sum(axis=1)
+            heatTec['ElectricRodTotal'] = heatTec['ElectricRodshTotal'] + heatTec['ElectricRoddhwTotal']
+        except:
+            None
 
         if timeStep == 'month':
             heatTec = heatTec.set_axis(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'], axis=0)
@@ -172,12 +205,12 @@ def elec_sell(dataDict, buildings, timeStep):
         elecSell['excessTotal'] = elecSell.sum(axis=1)
     elif timeStep == 'hour':
         elecSell['excessTotal'] = elecSell.sum(axis=1)
-        elecSell.index = elecSell.index #+ pd.offsets.DateOffset(years=3)
+        elecSell.index = elecSell.index
 
     return elecSell
 
 
-def elec_gen(dataDict, buildings, timeStep):#
+def elec_gen(dataDict, buildings, timeStep):
     """
     Function to calculate total elec generation per technology
     :param :
@@ -271,9 +304,10 @@ def ElecInfluenceBuilding(dataDict, buildings, PVImpact, CHPImpact, gridImpact, 
             elecImpact['ElecPrice' + str(sel_b)] = np.where(elecTec['PV_B'+str(sel_b)] + elecTec['Grid_B'+str(sel_b)] > 0,
                                                             (
                                                              elecTec['PV_B'+str(sel_b)] * PVImpact
-                                                          +  elecTec['CHP_B'+str(sel_b)] * CHPImpact
-                                                          +  elecTec['Grid_B'+str(sel_b)] * gridImpact ) / (
-                                                             elecTec['PV_B'+str(sel_b)] + elecTec['CHP_B'+str(sel_b)] + elecTec['Grid_B'+str(sel_b)]),
+                                                           + elecTec['CHP_B'+str(sel_b)] * CHPImpact
+                                                           + elecTec['Grid_B'+str(sel_b)] * gridImpact ) / (
+                                                             elecTec['PV_B'+str(sel_b)] + elecTec['CHP_B'+str(sel_b)]
+                                                           + elecTec['Grid_B'+str(sel_b)]),
                                                             gridImpact)
 
         elif sel_b == 'system':
@@ -328,16 +362,25 @@ def unit_elecInput(dataDict, buildings):
     hpElecInput = pd.DataFrame()
 
     for b in range(1, buildings+1):
-        ElecList = ["(('electricityInBus__Building" + str(b) + "', 'GWHP__Building" + str(b) + "'), 'flow')",
-                      "(('electricityInBus__Building" + str(b) + "', 'HP__Building" + str(b) + "'), 'flow')",
-                      "(('electricityInBus__Building" + str(b) + "', 'ElectricRod__Building" + str(b) + "'), 'flow')",
-                      "(('electricityInBus__Building" + str(b) + "', 'electricityDemand__Building" + str(b) + "'), 'flow')"]
+        try:
+            ElecList = ["(('electricityInBus__Building" + str(b) + "', '" + str(tec) + "__Building" + str(b) + "'), 'flow')"
+                    for tec in ["GWHP", "HP", "ElectricRod", "electricityDemand"]]
+            columndict = {ElecList[c]: app_labeldict(labelDict, ElecList[c])[1]
+                          for c in range(len(ElecList))}
+            hpElecInput = pd.concat([hpElecInput,
+                                     dataDict["electricityInBus__Building" + str(b)][ElecList]], axis=1).rename(
+                columns=columndict)
+        except:
+            ElecList = ["(('electricityInBus__Building" + str(b) + "', '" + str(tec) + "__Building" + str(b) + "'), 'flow')"
+                        for tec in ["GWHP", "HP", "electricityDemand"]]
 
-        columndict = {ElecList[c]: app_labeldict(labelDict, ElecList[c])[1]
-                      for c in range(len(ElecList))}
-        hpElecInput = pd.concat([hpElecInput,
-                                dataDict["electricityInBus__Building" + str(b)][ElecList]], axis=1).rename(
-            columns=columndict)
+            columndict = {ElecList[c]: app_labeldict(labelDict, ElecList[c])[1]
+                          for c in range(len(ElecList))}
+            hpElecInput = pd.concat([hpElecInput,
+                                    dataDict["electricityInBus__Building" + str(b)][ElecList]], axis=1).rename(
+                columns=columndict)
+
+
 
         hp_columns = []
         gwhp_columns = []
@@ -352,10 +395,13 @@ def unit_elecInput(dataDict, buildings):
 
     hpElecInput['GWHPTotal'] = hpElecInput[gwhp_columns].sum(axis=1)
     hpElecInput['HPTotal'] = hpElecInput[hp_columns].sum(axis=1)
-    hpElecInput['ElectricRodTotal'] = hpElecInput[ER_columns].sum(axis=1)
+    try:
+        hpElecInput['ElectricRodTotal'] = hpElecInput[ER_columns].sum(axis=1)
+    except:
+        None
     hpElecInput['BuildingDemandElecTotal'] = hpElecInput[BD_columns].sum(axis=1)
 
-    hpElecInput.index = hpElecInput.index #+ pd.offsets.DateOffset(years=3)
+    hpElecInput.index = hpElecInput.index
 
     return hpElecInput
 
@@ -376,17 +422,20 @@ def res_cons(dataDict, buildings):
 
         gasUseList = ["(('naturalGasBus__Building" + str(b) + "', 'CHP__Building" + str(b) + "'), 'flow')",
                      "(('naturalGasBus__Building" + str(b) + "', 'GasBoiler__Building" + str(b) + "'), 'flow')"]
-
-        elecUseList = ["(('electricityInBus__Building" + str(b) + "', 'GWHP__Building" + str(b) + "'), 'flow')",
-                       "(('electricityInBus__Building" + str(b) + "', 'HP__Building" + str(b) + "'), 'flow')",
-                       "(('electricityInBus__Building" + str(b) + "', 'ElectricRod__Building" + str(b) + "'), 'flow')",
-                       "(('electricityInBus__Building" + str(b) + "', 'solarCollector__Building" + str(b) + "'), 'flow')",]
+        try:
+            elecUseList = ["(('electricityInBus__Building" + str(b) + "', '" + str(tec) + "__Building" + str(b) + "'), 'flow')"
+                           for tec in ["GWHP", "HP", "ElectricRod", "solarCollector"]]
+            elecAxis = ["GWHP", "HP", "ElectricRod", "solarCollector"]
+        except:
+            elecUseList = ["(('electricityInBus__Building" + str(b) + "', '" + str(tec) + "__Building" + str(b) + "'), 'flow')"
+                           for tec in ["GWHP", "HP", "solarCollector"]]
+            elecAxis = ["GWHP", "HP", "solarCollector"]
 
         gasUse[labelDict["naturalGasBus__Building" + str(b)]] = dataDict["naturalGasBus__Building" + str(b)][gasUseList].sum(axis=0).reset_index(drop=True)
         elecUse[labelDict["electricityInBus__Building" + str(b)]] = dataDict["electricityInBus__Building" + str(b)][elecUseList].sum(axis=0).reset_index(drop=True)
 
     gasUse = gasUse.set_axis(["CHP", "GasBoiler"], axis=0)
-    elecUse = elecUse.set_axis(["GWHP",  "HP", "ElectricRod", "solarCollector"], axis=0)
+    elecUse = elecUse.set_axis(elecAxis, axis=0)
     gasUse['gasTotal'] = gasUse.sum(axis = 1)
     elecUse['elecTotal'] = elecUse.sum(axis = 1)
     resCons = pd.concat([gasUse, elecUse], axis =1).fillna(0).astype(float)
@@ -412,7 +461,10 @@ def cap_technology(dataDict, buildings, energy):
         capTec["kW in " +str(b)] = dataDict['capTransformers__Building'+str(b)].rename(index=labelDict)
 
     if energy == 'heat':
-        capTec = capTec.loc[['CHP', 'GasBoiler', 'GWHP', 'HP', 'ElectricRod', 'solarConnectBus'], :]
+        try:
+            capTec = capTec.loc[['CHP', 'GasBoiler', 'GWHP', 'HP', 'ElectricRod', 'solarConnectBus'], :]
+        except:
+            capTec = capTec.loc[['CHP', 'GasBoiler', 'GWHP', 'HP', 'solarConnectBus'], :]
 
     elif energy == 'elec':
         capTec = capTec.loc[['CHP', 'PV'], :]
@@ -423,7 +475,7 @@ def cap_technology(dataDict, buildings, energy):
 
     return capTec
 
-def npc_technology(dataDict, inputFileName, buildings, gasCost, elecCost, optMode, rangeToConsider):
+def npc_technology(dataDict, inputFileName, buildings, gasCost, elecCost, optMode):
 
     """
     Function to calculate net preset costs per technology selected in the scenario
@@ -537,27 +589,31 @@ def npc_technology(dataDict, inputFileName, buildings, gasCost, elecCost, optMod
                                   1 - (1 + interest)**(-1*timelife[tec])) for tec in capTec.index
                           }
 
+    if "ElectricRodTotal" in HeatTecHour:
+        tecInResults = ['CHP', 'GasBoiler', 'GWHP', 'HP', 'ElectricRod', 'solarCollector', 'PV']
+    else:
+        tecInResults = ['CHP', 'GasBoiler', 'GWHP', 'HP', 'solarCollector', 'PV']
+
     operationCosts = [
                       gasCostsVariable * sum(HeatTecHour.loc[:, tec + 'Total'])/tecHeatEff[tec] if tec in ['CHP', 'GasBoiler']
                       else sum(elecInput.loc[:,tec + 'Total'] * elecPrice['cost']) if tec in ['GWHP', 'HP']
                       else 0
-                      for tec in ['CHP', 'GasBoiler', 'GWHP', 'HP', 'ElectricRod', 'solarCollector', 'PV']
+                      for tec in tecInResults
                       ]
 
     techInBuilding = {tec: np.count_nonzero(list(capTec.loc[tec, 'kW in 1': 'kW in ' + str(buildings)]))
-                     for tec in ['CHP', 'GasBoiler', 'GWHP', 'HP', 'ElectricRod', 'solarCollector', 'PV']}
+                     for tec in tecInResults}
 
     RevenueData = pd.DataFrame({'investmentCosts' :
                                 [(techInBuilding[tec] * capCostsBase[tec] + capTec.loc[tec, 'total'] * capCostsVariable[tec]) * amortisationsValue[tec]
                                      if capTec.loc[tec, 'total'] > 0 else 0 for tec in capTec.index ]
                                 },
-                               index = ['CHP', 'GasBoiler', 'GWHP', 'HP', 'ElectricRod',
-                                        'solarCollector', 'PV']
+                               index = tecInResults
                                    )
 
     RevenueData['operationCosts'] = operationCosts
     RevenueData['Maintenance'] = {tec: capCostsMaintenance[tec] * RevenueData.loc[tec, 'investmentCosts']
-                                  for tec in ['CHP', 'GasBoiler', 'GWHP', 'HP', 'ElectricRod', 'solarCollector', 'PV']}
+                                  for tec in tecInResults}
 
 
     if elecTec.loc['PV', 'total'] > 0:
@@ -567,14 +623,6 @@ def npc_technology(dataDict, inputFileName, buildings, gasCost, elecCost, optMod
     elif elecTec.loc['PV', 'total'] == 0:
         levelCosts['PVElecSystem'] = 0
 
-    '''
-    SystemElecPrice['ElecPriceSystem'] = ElecInfluenceBuilding(dataDict, buildings,
-                                                               levelCosts['PVElecSystem'],
-                                                               elecPrice['cost'],
-                                                               'system', 'cost')
-
-    avoidedCosts = pd.concat([elec_gen(dataDict, buildings, 'hour'), SystemElecPrice], axis=1)
-    '''
     avoidedCosts = pd.concat([elec_gen(dataDict, buildings, 'hour'), elecPrice['cost']], axis=1)
     avoidedCosts = avoidedCosts.rename(columns={'CHPTotal' : 'CHPElec'})
 
@@ -621,14 +669,16 @@ def npc_technology(dataDict, inputFileName, buildings, gasCost, elecCost, optMod
 
     levelCosts['HPHeatSystemGrid'] = (RevenueData.loc['HP', 'investmentCosts'] + RevenueData.loc['HP', 'operationCosts']) / (
                 HeatTec.loc['HPsh', 'total'] + HeatTec.loc['HPdhw', 'total']).sum()
+    try:
+        EROperationCosts = SystemElecPrice['ElecPriceSystem'] * elecInput['ElectricRodTotal']
 
-    EROperationCosts = SystemElecPrice['ElecPriceSystem'] * elecInput['ElectricRodTotal']
+        levelCosts['ElectricRodHeatSystem'] = (RevenueData.loc['ElectricRod', 'investmentCosts'] + EROperationCosts.sum()) / (
+                HeatTec.loc['ElectricRodsh', 'total'] + HeatTec.loc['ElectricRoddhw', 'total']).sum()
 
-    levelCosts['ElectricRodHeatSystem'] = (RevenueData.loc['ElectricRod', 'investmentCosts'] + EROperationCosts.sum()) / (
-            HeatTec.loc['ElectricRodsh', 'total'] + HeatTec.loc['ElectricRoddhw', 'total']).sum()
-
-    levelCosts['ElectricRodHeatSystemGrid'] = (RevenueData.loc['ElectricRod', 'investmentCosts'] + RevenueData.loc[
-        'ElectricRod', 'operationCosts']) / (HeatTec.loc['ElectricRodsh', 'total'] + HeatTec.loc['ElectricRoddhw', 'total']).sum()
+        levelCosts['ElectricRodHeatSystemGrid'] = (RevenueData.loc['ElectricRod', 'investmentCosts'] + RevenueData.loc[
+            'ElectricRod', 'operationCosts']) / (HeatTec.loc['ElectricRodsh', 'total'] + HeatTec.loc['ElectricRoddhw', 'total']).sum()
+    except:
+        None
 
     levelCosts['solarCollectorHeatSystem'] = (RevenueData.loc['solarCollector', 'investmentCosts'] +
                                     RevenueData.loc['solarCollector', 'operationCosts']) / (
@@ -825,9 +875,9 @@ def selfsuffisant(dataDict, buildings, outputFileName, selected_days, timeStep, 
                                                + results['totalselfsuffisant'][iter]['PV']
                                                + results['totalselfsuffisant'][iter]['Excess']
                                                ) / (results['totalselfsuffisant'][iter]['CHP']
-                                                    + results['totalselfsuffisant'][iter]['PV']
-                                                    + results['totalselfsuffisant'][iter]['Excess']
-                                                    + results['totalselfsuffisant'][iter]['Grid'])
+                                                  + results['totalselfsuffisant'][iter]['PV']
+                                                  + results['totalselfsuffisant'][iter]['Excess']
+                                                  + results['totalselfsuffisant'][iter]['Grid'])
 
         if iter == iterRange[-1]:
             fig = plt.figure()
@@ -862,8 +912,11 @@ def heat_distr(dataDict, buildings, iter, outputFileName, timeStep):
                         'GWHP': int(heatTec.loc['GWHPsh', 'total']) + int(heatTec.loc['GWHPdhw', 'total']),
                         'GasBoiler': int(heatTec.loc['GasBoilersh', 'total'])+ int(heatTec.loc['GasBoilerdhw', 'total']),
                         'HP': int(heatTec.loc['HPsh', 'total']) + int(heatTec.loc['HPdhw', 'total']),
-                        'ElectricRod': int(heatTec.loc['ElectricRodsh', 'total']) + int(heatTec.loc['ElectricRoddhw', 'total']),
                         'solarCollector': int(heatTec.loc['solarCollectordhw', 'total'])}
+        try:
+            totalHeatTec['ElectricRod'] = int(heatTec.loc['ElectricRodsh', 'total']) + int(heatTec.loc['ElectricRoddhw', 'total']),
+        except:
+            None
 
         fig = plt.figure()
         plt.bar(range(len(totalHeatTec)), [i//1000 for i in list(totalHeatTec.values())], align='center')
@@ -880,8 +933,10 @@ def heat_distr(dataDict, buildings, iter, outputFileName, timeStep):
         heatTec = heat_gen(dataDict, buildings, 'month')#
 
         ### divided into sh and dhw
-        heatTecToPlot = heatTec[['CHPshTotal', 'GWHPshTotal', 'GasBoilershTotal', 'HPshTotal', 'ElectricRodshTotal']]/1000
-
+        try:
+            heatTecToPlot = heatTec[['CHPshTotal', 'GWHPshTotal', 'GasBoilershTotal', 'HPshTotal', 'ElectricRodshTotal']]/1000
+        except:
+            heatTecToPlot = heatTec[['CHPshTotal', 'GWHPshTotal', 'GasBoilershTotal', 'HPshTotal']]/1000
         fig = plt.figure()
         heatTecToPlot.rename(columns=labelDict).plot(
             kind='bar', stacked=True, title="Source of heat supply",
@@ -891,24 +946,27 @@ def heat_distr(dataDict, buildings, iter, outputFileName, timeStep):
         plt.savefig(outputFileName + "Optimization" + str(iter) + '/shDistrMonth.png', bbox_inches='tight')
         fig.clf()
         plt.close()
-
-        heatTecToPlot = heatTec[['CHPdhwTotal', 'GWHPdhwTotal', 'GasBoilerdhwTotal', 'HPdhwTotal', 'ElectricRoddhwTotal']]/1000
-
+        try:
+            heatTecToPlot = heatTec[['CHPdhwTotal', 'GWHPdhwTotal', 'GasBoilerdhwTotal', 'HPdhwTotal', 'ElectricRoddhwTotal']]/1000
+        except:
+            heatTecToPlot = heatTec[['CHPdhwTotal', 'GWHPdhwTotal', 'GasBoilerdhwTotal', 'HPdhwTotal']]/1000
         fig = plt.figure()
         heatTecToPlot.rename(columns=labelDict).plot(
             kind='bar', stacked=True, title="Source of heat supply", xlabel='Month', ylabel='Dhw per source in MWh')
-        plt.legend(loc=(1.04, 0)) #  ['CHP', 'GWHP', 'Gas Boiler', 'HP', 'solar Collector']
+        plt.legend(loc=(1.04, 0))
         plt.savefig(outputFileName + "Optimization" + str(iter) + '/dhwDistrMonth.png', bbox_inches='tight')
         fig.clf()
         plt.close()
 
-
-        heatTecToPlot = heatTec[['CHPTotal', 'GWHPTotal', 'GasBoilerTotal', 'HPTotal', 'ElectricRodTotal']]/1000
+        try:
+            heatTecToPlot = heatTec[['CHPTotal', 'GWHPTotal', 'GasBoilerTotal', 'HPTotal', 'ElectricRodTotal']]/1000
+        except:
+            heatTecToPlot = heatTec[['CHPTotal', 'GWHPTotal', 'GasBoilerTotal', 'HPTotal']]/1000
 
         fig = plt.figure()
         heatTecToPlot.rename(columns=labelDict).plot(
             kind='bar', stacked=True, title="Source of heat supply", xlabel='Month', ylabel='Heat per source in MWh')
-        plt.legend(loc=(1.04, 0) ) # ['CHP', 'GWHP', 'Gas Boiler', 'HP', 'solar Collector']
+        plt.legend(loc=(1.04, 0) )
         plt.savefig(outputFileName + "Optimization" + str(iter) + '/heatDistrMonth.png', bbox_inches='tight')
         fig.clf()
         plt.close()
@@ -931,30 +989,50 @@ def full_load_hour(dataDict, buildings, iter, outputFileName):
     dhwHeatProd = pd.DataFrame()
 
     for b in range(1,buildings+1):
-        shGenList = ["(('CHP__Building" + str(b) + "', 'shSourceBus__Building" + str(b) + "'), 'flow')",
-                     "(('GWHP__Building" + str(b) + "', 'shSourceBus__Building" + str(b) + "'), 'flow')",
-                     "(('GasBoiler__Building" + str(b) + "', 'shSourceBus__Building" + str(b) + "'), 'flow')",
-                     "(('HP__Building" + str(b) + "', 'shSourceBus__Building" + str(b) + "'), 'flow')",
-                     "(('ElectricRod__Building" + str(b) + "', 'shSourceBus__Building" + str(b) + "'), 'flow')"]
+        try:
+            shGenList = ["(('"+ str(tec) + "__Building" + str(b) + "', 'shSourceBus__Building" + str(b) + "'), 'flow')"
+                         for tec in ["CHP", "GWHP", "GasBoiler", "HP", "ElectricRod"]]
+            shColumns = ["CHPsh" + str(b), "GWHPsh" + str(b), "GasBoilersh" + str(b), "HPsh" + str(b), "ElectricRodsh" + str(b)]
 
-        dhwGenList = ["(('CHP__Building" + str(b) + "', 'dhwStorageBus__Building" + str(b) + "'), 'flow')",
-                      "(('GWHP__Building" + str(b) + "', 'dhwStorageBus__Building" + str(b) + "'), 'flow')",
-                      "(('GasBoiler__Building" + str(b) + "', 'dhwStorageBus__Building" + str(b) + "'), 'flow')",
-                      "(('HP__Building" + str(b) + "', 'dhwStorageBus__Building" + str(b) + "'), 'flow')",
-                      "(('ElectricRod__Building" + str(b) + "', 'dhwStorageBus__Building" + str(b) + "'), 'flow')",
-                      "(('solarCollector__Building" + str(b) + "', 'dhwStorageBus__Building" + str(b) + "'), 'flow')"]
+            dhwGenList = ["(('"+ str(tec) + "__Building" + str(b) + "', 'dhwStorageBus__Building" + str(b) + "'), 'flow')"
+                        for tec in ["CHP", "GWHP", "GasBoiler", "HP", "ElectricRod", "solarCollector"]]
 
-        shBuilding = dataDict["shSourceBus__Building" + str(b)][shGenList]
-        shColumns = ["CHPsh" + str(b), "GWHPsh" + str(b), "GasBoilersh" + str(b), "HPsh" + str(b), "ElectricRodsh" + str(b)]
-        shBuilding.columns = shColumns
-        shHeatProd = pd.concat([shHeatProd, shBuilding], axis=1)
+            dhwColumns = ["CHPdhw" + str(b), "GWHPdhw" + str(b), "GasBoilerdhw" + str(b), "HPdhw" + str(b),
+                          "ElectricRoddhw" + str(b), "solarCollectordhw" + str(b)]
+            shBuilding = dataDict["shSourceBus__Building" + str(b)][shGenList]
 
-        dhwBuilding = dataDict["domesticHotWaterBus__Building" + str(b)][dhwGenList]
-        dhwColumns = ["CHPdhw" + str(b), "GWHPdhw" + str(b), "GasBoilerdhw" + str(b), "HPdhw" + str(b),
-                      "ElectricRoddhw" + str(b), "solarCollectordhw" + str(b)]
-        dhwBuilding.columns = dhwColumns
-        dhwHeatProd = pd.concat([dhwHeatProd, dhwBuilding], axis=1)
+            shBuilding.columns = shColumns
+            shHeatProd = pd.concat([shHeatProd, shBuilding], axis=1)
 
+            dhwBuilding = dataDict["domesticHotWaterBus__Building" + str(b)][dhwGenList]
+
+            dhwBuilding.columns = dhwColumns
+            dhwHeatProd = pd.concat([dhwHeatProd, dhwBuilding], axis=1)
+
+            tecInResults = ['CHP', 'GWHP', 'GasBoiler', 'HP', 'ElectricRod']
+            ElectecInResults = ["GWHP", "HP", "ElectricRod"]
+        except:
+            shGenList = ["(('"+ str(tec) + "__Building" + str(b) + "', 'shSourceBus__Building" + str(b) + "'), 'flow')"
+                         for tec in ["CHP", "GWHP", "GasBoiler", "HP"]]
+            shColumns = ["CHPsh" + str(b), "GWHPsh" + str(b), "GasBoilersh" + str(b), "HPsh" + str(b)]
+
+            dhwGenList = ["(('"+ str(tec) + "__Building" + str(b) + "', 'dhwStorageBus__Building" + str(b) + "'), 'flow')"
+                          for tec in ["CHP", "GWHP", "GasBoiler", "HP", "solarCollector"]]
+            dhwColumns = ["CHPdhw" + str(b), "GWHPdhw" + str(b), "GasBoilerdhw" + str(b), "HPdhw" + str(b),
+                          "solarCollectordhw" + str(b)]
+
+            shBuilding = dataDict["shSourceBus__Building" + str(b)][shGenList]
+
+            shBuilding.columns = shColumns
+            shHeatProd = pd.concat([shHeatProd, shBuilding], axis=1)
+
+            dhwBuilding = dataDict["domesticHotWaterBus__Building" + str(b)][dhwGenList]
+
+            dhwBuilding.columns = dhwColumns
+            dhwHeatProd = pd.concat([dhwHeatProd, dhwBuilding], axis=1)
+
+            tecInResults = ['CHP', 'GWHP', 'GasBoiler', 'HP']
+            ElectecInResults = ["GWHP", "HP"]
 
     heatProd = pd.concat([shHeatProd, dhwHeatProd], axis=1)
 
@@ -987,7 +1065,7 @@ def full_load_hour(dataDict, buildings, iter, outputFileName):
     else:
         None
 
-    for tec in ['CHP', 'GWHP', 'GasBoiler', 'HP', 'ElectricRod']:
+    for tec in tecInResults:
         for h in ['sh', 'dhw']:
             if capTec.loc[str(tec), 'total']>0:
                 fig = plt.figure()
@@ -1038,7 +1116,7 @@ def full_load_hour(dataDict, buildings, iter, outputFileName):
         else:
             None
 
-    for tec in ['GWHP', 'HP', 'ElectricRod']:
+    for tec in ElectecInResults:
         if capTec.loc[str(tec), 'total']>0:
             fig = plt.figure()
             plt.plot(range(len(heatProd.index)), heatProd[[str(tec) + "_B" + str(b+1)
@@ -1073,7 +1151,7 @@ def full_load_hour(dataDict, buildings, iter, outputFileName):
                                                            for b in range(buildings)]].sum(axis=1)
                      .sort_values(ascending=False)/capTec.loc[str(tec), 'total'], label=tec + " (" + str(int(capTec.loc[tec,'total'])) + "kW)")
 
-    for tec in ['GWHP', 'HP', 'ElectricRod']:
+    for tec in ElectecInResults:
         plt.plot(range(len(heatProd.index)), heatProd[[str(tec) + '_B' + str(b+1)
                                                            for b in range(buildings)]].sum(axis=1)
                      .sort_values(ascending=False)/capTec.loc[str(tec), 'total'], label=tec + " (" + str(int(capTec.loc[tec,'total'])) + "kW)")
@@ -1099,8 +1177,12 @@ def stacked_full_load(dataDict, buildings, iter, outputFileName):
     :return: plot
     """
     heatGen = heat_gen(dataDict, buildings, 'hour')
-    heatGen['heatTotal'] = heatGen['CHPTotal'] + heatGen['GWHPTotal'] + heatGen['GasBoilerTotal'] + \
-                           heatGen['HPTotal'] + heatGen['solarCollectorTotal']
+    try:
+        heatGen['heatTotal'] = heatGen['CHPTotal'] + heatGen['GWHPTotal'] + heatGen['GasBoilerTotal'] + \
+                               heatGen['HPTotal'] + heatGen['ElectricRod'] + heatGen['solarCollectorTotal']
+    except:
+        heatGen['heatTotal'] = heatGen['CHPTotal'] + heatGen['GWHPTotal'] + heatGen['GasBoilerTotal'] + \
+                               heatGen['HPTotal'] + heatGen['solarCollectorTotal']
 
     fig = plt.figure()
     plt.plot(range(len(heatGen.index)), heatGen.sum(axis=1).sort_values(ascending=False))
@@ -1111,18 +1193,30 @@ def stacked_full_load(dataDict, buildings, iter, outputFileName):
     plt.close()
 
     fig = plt.figure()
-    plt.stackplot(range(len(heatGen)),
-                  list(heatGen.sort_values(by='heatTotal', ascending=False)['CHPTotal']/1000),
-                  list(heatGen.sort_values(by='heatTotal', ascending=False)['GWHPTotal']/1000),
-                  list(heatGen.sort_values(by='heatTotal', ascending=False)['HPTotal']/1000),
-                  list(heatGen.sort_values(by='heatTotal', ascending=False)['ElectricRodTotal']/1000),
-                  list(heatGen.sort_values(by='heatTotal', ascending=False)['GasBoilerTotal']/1000),
-                  list(heatGen.sort_values(by='heatTotal', ascending=False)['solarCollectorTotal']/1000),
-                  baseline ='zero',
-                  colors =['blue', 'orange', 'green', 'brown', 'red', 'yellow'])
+    try:
+        plt.stackplot(range(len(heatGen)),
+                      list(heatGen.sort_values(by='heatTotal', ascending=False)['CHPTotal']/1000),
+                      list(heatGen.sort_values(by='heatTotal', ascending=False)['GWHPTotal']/1000),
+                      list(heatGen.sort_values(by='heatTotal', ascending=False)['HPTotal']/1000),
+                      list(heatGen.sort_values(by='heatTotal', ascending=False)['ElectricRodTotal']/1000),
+                      list(heatGen.sort_values(by='heatTotal', ascending=False)['GasBoilerTotal']/1000),
+                      list(heatGen.sort_values(by='heatTotal', ascending=False)['solarCollectorTotal']/1000),
+                      baseline ='zero',
+                      colors =['blue', 'orange', 'green', 'brown', 'red', 'yellow'])
+        plt.legend(['CHP', 'GWHP', 'HP', 'ElectricRod', 'Gas Boiler', 'solar Collector'])
+    except:
+        plt.stackplot(range(len(heatGen)),
+                      list(heatGen.sort_values(by='heatTotal', ascending=False)['CHPTotal']/1000),
+                      list(heatGen.sort_values(by='heatTotal', ascending=False)['GWHPTotal']/1000),
+                      list(heatGen.sort_values(by='heatTotal', ascending=False)['HPTotal']/1000),
+                      list(heatGen.sort_values(by='heatTotal', ascending=False)['GasBoilerTotal']/1000),
+                      list(heatGen.sort_values(by='heatTotal', ascending=False)['solarCollectorTotal']/1000),
+                      baseline ='zero',
+                      colors =['blue', 'orange', 'green', 'red', 'yellow'])
+        plt.legend(['CHP', 'GWHP', 'HP', 'Gas Boiler', 'solar Collector'])
 
-    plt.legend(loc=(1.04, 0) ) # ['CHP', 'GWHP', 'HP', 'ElectricRod', 'Gas Boiler', 'solar Collector']
-    plt.legend(['CHP', 'GWHP', 'HP', 'ElectricRod', 'Gas Boiler', 'solar Collector'])
+    plt.legend(loc=(1.04, 0) )
+
     plt.title('Heat generation operation')
     plt.xlabel('Hour of the year')
     plt.ylabel('Heat generation in MWh')
@@ -1345,10 +1439,13 @@ def co2_balance(dataDict, inputFileName, buildings, selected_days, gasEmission, 
         heatGenTec['HPImpact' + str(b)] = heatGenTec['HPHeatElecImpact' + str(b)] + capImpact[b,"HPHeatCo2"]*heatGenTec['HP' + str(b)]/(heatGenTec['HP' + str(b)]).sum()
 
         ## ER
-        ERData = tec_Data(sheetTrans, str(b), 'ElectricRod')
-        capImpact[b,"ElectricRodHeatCo2"] = capTec.loc["ElectricRod", "kW in " + str(b)] * ERData['impact_cap'] /(ERData['lifetime'].mean())
-        heatGenTec['ElectricRodHeatElecImpact' + str(b)] = elecImpactBuilding['Co2Impact_B' + str(b)] * hpElecInput['ElectricRod_B' + str(b)]
-        heatGenTec['ElectricRodImpact' + str(b)] = heatGenTec['ElectricRodHeatElecImpact' + str(b)] + capImpact[b,"ElectricRodHeatCo2"]*heatGenTec['ElectricRod' + str(b)]/(heatGenTec['ElectricRod' + str(b)]).sum()
+        try:
+            ERData = tec_Data(sheetTrans, str(b), 'ElectricRod')
+            capImpact[b,"ElectricRodHeatCo2"] = capTec.loc["ElectricRod", "kW in " + str(b)] * ERData['impact_cap'] /(ERData['lifetime'].mean())
+            heatGenTec['ElectricRodHeatElecImpact' + str(b)] = elecImpactBuilding['Co2Impact_B' + str(b)] * hpElecInput['ElectricRod_B' + str(b)]
+            heatGenTec['ElectricRodImpact' + str(b)] = heatGenTec['ElectricRodHeatElecImpact' + str(b)] + capImpact[b,"ElectricRodHeatCo2"]*heatGenTec['ElectricRod' + str(b)]/(heatGenTec['ElectricRod' + str(b)]).sum()
+        except:
+            None
 
         ## Gas Boiler
         GasBoilerData = tec_Data(sheetTrans, str(b), 'GasBoiler')
@@ -1377,12 +1474,15 @@ def co2_balance(dataDict, inputFileName, buildings, selected_days, gasEmission, 
     heatGenTec['CHPHeatImpactTotal'] = heatGenTec[['CHPImpact' + str(b) for b in range(1,buildings+1)]].sum(axis=1)
     heatGenTec['GasBoilerImpactTotal'] = heatGenTec[['GasBoilerImpact' + str(b) for b in range(1,buildings+1)]].sum(axis=1)
     heatGenTec['HPImpactTotal'] = heatGenTec[['HPImpact' + str(b) for b in range(1,buildings+1)]].sum(axis=1)
-    heatGenTec['ElectricRodImpactTotal'] = heatGenTec[['ElectricRodImpact' + str(b) for b in range(1,buildings+1)]].sum(axis=1)
+    try:
+        heatGenTec['ElectricRodImpactTotal'] = heatGenTec[['ElectricRodImpact' + str(b) for b in range(1,buildings+1)]].sum(axis=1)
+    except:
+        None
     heatGenTec['SolarCollectorImpactTotal'] = heatGenTec[['SolarCollectorImpact' + str(b) for b in range(1,buildings+1)]].sum(axis=1)
 
     return heatGenTec, elecGenTec, elecImpactBuilding
 
-def co2_balance_barplot(dataDict, inputFileName, buildings, selected_days, elecEmission, iter, outputFileName, rangeToConsider):
+def co2_balance_barplot(dataDict, inputFileName, buildings, selected_days, elecEmission, iter, outputFileName):
 
     """
     Function to GHG emission impact for different technologies
@@ -1428,19 +1528,22 @@ def co2_balance_barplot(dataDict, inputFileName, buildings, selected_days, elecE
     plt.close()
 
     ### Combine heat and elec in one bar chart
-    heatElecGenTec = pd.concat([heatGenTec[['CHPHeatImpactTotal', 'GWHPImpactTotal', 'HPImpactTotal',
-                                            'ElectricRodImpactTotal','GasBoilerImpactTotal', 'SolarCollectorImpactTotal']],
-                                elecGenTec[['CHPElecImpactTotal', 'PVImpactTotal', 'GridImpactTotal']]], axis=1)
+    try:
+        heatElecGenTec = pd.concat([heatGenTec[['CHPHeatImpactTotal', 'GWHPImpactTotal', 'HPImpactTotal',
+                                                'ElectricRodImpactTotal','GasBoilerImpactTotal', 'SolarCollectorImpactTotal']],
+                                    elecGenTec[['CHPElecImpactTotal', 'PVImpactTotal', 'GridImpactTotal']]], axis=1)
+    except:
+        heatElecGenTec = pd.concat([heatGenTec[['CHPHeatImpactTotal', 'GWHPImpactTotal', 'HPImpactTotal',
+                                                'GasBoilerImpactTotal', 'SolarCollectorImpactTotal']],
+                                    elecGenTec[['CHPElecImpactTotal', 'PVImpactTotal', 'GridImpactTotal']]], axis=1)
 
     heatElecGenTec['CHPImpactTotal'] = heatElecGenTec['CHPElecImpactTotal'] + heatElecGenTec['CHPHeatImpactTotal']
 
-    heatElecGenTecToPlot = heatElecGenTec[['CHPImpactTotal', 'GWHPImpactTotal', 'HPImpactTotal', 'ElectricRodImpactTotal',
-                                           'GasBoilerImpactTotal', 'SolarCollectorImpactTotal', 'PVImpactTotal', 'GridImpactTotal']]
     fig = plt.figure()
     (heatElecGenTec.rename(columns=labelDict)).plot(
         kind='bar', stacked=True, title="CO2 impact for heat and electricity supply", xlabel='Hours', ylabel='CO2 equivance per source in ')
 
-    plt.legend(loc=(1.04, 0)) # ['CHP', 'GWHP', 'HP', 'Gas Boiler', 'Solar collector', 'PV', 'Grid']
+    plt.legend(loc=(1.04, 0)) #
     ax = plt.gca()
     ax.axes.xaxis.set_ticklabels([])
     plt.savefig(outputFileName + "Optimization" + str(iter) + '/hourly_co1impact.png', bbox_inches='tight')
@@ -1462,27 +1565,34 @@ def co2_balance_barplot(dataDict, inputFileName, buildings, selected_days, elecE
         plt.close()
 
         fig = plt.figure()
-        (heatGenTec[['CHPHeatImpactTotal', 'GWHPImpactTotal', 'HPImpactTotal', 'ElectricRodImpactTotal', 'GasBoilerImpactTotal',
-                     'SolarCollectorImpactTotal']].rename(columns=labelDict).loc[days:days + pd.offsets.DateOffset(hour=23)]).reset_index(drop=True).plot(
-             kind='bar', stacked=True, title="CO2 impact for heat generation", xlabel='Hours', ylabel='CO2 equivance per source in ')
-
+        try:
+            (heatGenTec[['CHPHeatImpactTotal', 'GWHPImpactTotal', 'HPImpactTotal', 'ElectricRodImpactTotal', 'GasBoilerImpactTotal',
+                         'SolarCollectorImpactTotal']].rename(columns=labelDict).loc[days:days + pd.offsets.DateOffset(hour=23)]).reset_index(drop=True).plot(
+                 kind='bar', stacked=True, title="CO2 impact for heat generation", xlabel='Hours', ylabel='CO2 equivance per source in ')
+        except:
+            heatElecGenTec = pd.concat([heatGenTec[['CHPHeatImpactTotal', 'GWHPImpactTotal', 'HPImpactTotal',
+                                                    'GasBoilerImpactTotal', 'SolarCollectorImpactTotal']],
+                                        elecGenTec[['CHPElecImpactTotal', 'PVImpactTotal', 'GridImpactTotal']]], axis=1)
         plt.legend(loc=(1.04, 0) ) # ['CHP', 'GWHP', 'HP', 'Gas Boiler', 'Solar collector']
-        #ax = plt.gca()
-        #ax.axes.xaxis.set_ticklabels([])
+
         plt.savefig(outputFileName + "Optimization" + str(iter) + '/hourly_co1impact_heat_' + str(days)[0:10] + '.png', bbox_inches='tight')
         fig.clf()
         plt.close()
 
         fig = plt.figure()
-        (heatElecGenTec[['CHPImpactTotal', 'GWHPImpactTotal', 'HPImpactTotal', 'ElectricRodImpactTotal',
-                         'GasBoilerImpactTotal', 'SolarCollectorImpactTotal',
-                         'PVImpactTotal', 'GridImpactTotal']].rename(columns=labelDict).loc[days:days + pd.offsets.DateOffset(hour=23)]).reset_index(drop=True).plot(
-            kind='bar', stacked=True, title="CO2 impact for heat and electricity generation", xlabel='Hours',
-            ylabel='CO2 equivance per source in ')
-
+        try:
+            (heatElecGenTec[['CHPImpactTotal', 'GWHPImpactTotal', 'HPImpactTotal', 'ElectricRodImpactTotal',
+                             'GasBoilerImpactTotal', 'SolarCollectorImpactTotal',
+                             'PVImpactTotal', 'GridImpactTotal']].rename(columns=labelDict).loc[days:days + pd.offsets.DateOffset(hour=23)]).reset_index(drop=True).plot(
+                kind='bar', stacked=True, title="CO2 impact for heat and electricity generation", xlabel='Hours',
+                ylabel='CO2 equivance per source in ')
+        except:
+            (heatElecGenTec[['CHPImpactTotal', 'GWHPImpactTotal', 'HPImpactTotal',
+                             'GasBoilerImpactTotal', 'SolarCollectorImpactTotal',
+                             'PVImpactTotal', 'GridImpactTotal']].rename(columns=labelDict).loc[days:days + pd.offsets.DateOffset(hour=23)]).reset_index(drop=True).plot(
+                kind='bar', stacked=True, title="CO2 impact for heat and electricity generation", xlabel='Hours',
+                ylabel='CO2 equivance per source in ')
         plt.legend(loc=(1.04, 0) ) # ['CHP', 'GWHP', 'HP', 'Gas Boiler', 'Solar collector', 'PV', 'Grid']
-        #ax = plt.gca()
-        #ax.axes.xaxis.set_ticklabels([])
         plt.savefig(outputFileName + "Optimization" + str(iter) + '/hourly_co1impact_' + str(days)[0:10] + '.png', bbox_inches='tight')
         fig.clf()
         plt.close()
@@ -1560,7 +1670,7 @@ def grid_periods(dataDict, inputFileName, buildings, gasCost, elecCost, gasEmiss
 
     elif impactPara == 'systemData':
         if parameter == 'cost':
-            _, __, ___, elecImpact = npc_technology(dataDict, inputFileName, buildings, gasCost, elecCost, optMode, rangeToConsider)
+            _, __, ___, elecImpact = npc_technology(dataDict, inputFileName, buildings, gasCost, elecCost, optMode)
 
             elecImpact['timestamp'] = pd.to_datetime(elecImpact.index, yearfirst=True, dayfirst=False)
             elecImpact = elecImpact.set_index('timestamp')
