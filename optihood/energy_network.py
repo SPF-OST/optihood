@@ -41,7 +41,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         self.__dhwGWHP = {}
         self.__annualCopGWHP = {}
         self.__elRodEff = np.nan
-        self._dispatchMode = False                         
+        self._dispatchMode = False
         if not os.path.exists(".\\log_files"):
             os.mkdir(".\\log_files")
         logger.define_logging(logpath=os.getcwd(), logfile=f'.\\log_files\\optihood_{datetime.now().strftime("%d.%m.%Y_%H.%M.%S")}.log')
@@ -52,7 +52,7 @@ class EnergyNetworkClass(solph.EnergySystem):
     def setFromExcel(self, filePath, numberOfBuildings, clusterSize={}, opt="costs", mergeLinkBuses=False, dispatchMode=False):
         # does Excel file exist?
         if not filePath or not os.path.isfile(filePath):
-            logging.error("Excel data file {} not found.".format(filePath))                                                                               
+            logging.error("Excel data file {} not found.".format(filePath))
         self._dispatchMode = dispatchMode
         logging.info("Defining the energy network from the excel file: {}".format(filePath))
         data = pd.ExcelFile(filePath)
@@ -286,8 +286,7 @@ class EnergyNetworkClass(solph.EnergySystem):
 
         if clusterSize:
             optimizationModel = dailySHStorageConstraint(optimizationModel)
-
-        logging.info("Custom constraints successfully added to the optimization model")
+            logging.info("Custom constraints for clustering successfully added to the optimization model")
 
         if solver == "gurobi":
             logging.info("Initiating optimization using {} solver".format(solver))
