@@ -477,9 +477,6 @@ class EnergyNetworkClass(solph.EnergySystem):
             self.__opex[buildingLabel].update({electricitySourceLabel: (
                         costParamGridElectricity * gridElectricityFlow).sum()})  # cost of grid electricity is added separately based on cost data
 
-            # self.__opex[buildingLabel] = sum(sum(solph.views.node(self._optimizationResults, i[1])["sequences"][(i[0], i[1]), "flow"])
-            #                                         * self.__costParam[i[0]] for i in inputs + [[electricitySourceLabel, gridBusLabel]])
-
             # Feed-in electricity cost (value will be in negative to signify monetary gain...)
             if (mergeLinkBuses and buildingLabel=='Building1') or not mergeLinkBuses:
                 self.__feedIn[buildingLabel] = sum(solph.views.node(self._optimizationResults, electricityBusLabel)
@@ -591,45 +588,44 @@ class EnergyNetworkClass(solph.EnergySystem):
             print("************** Optimized Capacities for {} **************".format(buildingLabel))
             if ("HP__" + buildingLabel, "shSourceBus__" + buildingLabel) in capacitiesInvestedTransformers:
                 investSH = capacitiesInvestedTransformers[("HP__" + buildingLabel, "shSourceBus__" + buildingLabel)]
-                print("Invested in {} kW HP.".format(investSH))
-                print("     Annual COP = {}".format(self.__annualCopHP[buildingLabel]))
+                print("Invested in {:.1f} kW HP.".format(investSH))
+                print("     Annual COP = {:.1f}".format(self.__annualCopHP[buildingLabel]))
             if ("GWHP__" + buildingLabel, "shSourceBus__" + buildingLabel) in capacitiesInvestedTransformers:
                 investSH = capacitiesInvestedTransformers[("GWHP__" + buildingLabel, "shSourceBus__" + buildingLabel)]
-                print("Invested in {} kW GWHP.".format(investSH))
-                print("     Annual COP = {}".format(self.__annualCopGWHP[buildingLabel]))
+                print("Invested in {:.1f} kW GWHP.".format(investSH))
+                print("     Annual COP = {:.1f}".format(self.__annualCopGWHP[buildingLabel]))
             if (f"GWHP{str(self.__temperatureSH)}__" + buildingLabel, "shSourceBus__" + buildingLabel) in capacitiesInvestedTransformers:
                 investSH = capacitiesInvestedTransformers[(f"GWHP{str(self.__temperatureSH)}__" + buildingLabel, "shSourceBus__" + buildingLabel)]
-                print("Invested in {} kW GWHP{}.".format(investSH, str(self.__temperatureSH)))
-                print("     Annual COP = {}".format(self.__annualCopGWHP[buildingLabel][0]))
+                print("Invested in {:.1f} kW GWHP{}.".format(investSH, str(self.__temperatureSH)))
+                print("     Annual COP = {:.1f}".format(self.__annualCopGWHP[buildingLabel][0]))
             if (f"GWHP{str(self.__temperatureDHW)}__" + buildingLabel, "dhwStorageBus__" + buildingLabel) in capacitiesInvestedTransformers:
                 investSH = capacitiesInvestedTransformers[(f"GWHP{str(self.__temperatureDHW)}__" + buildingLabel, "dhwStorageBus__" + buildingLabel)]
-                print("Invested in {} kW GWHP{}.".format(investSH, str(self.__temperatureDHW)))
-                print("     Annual COP = {}".format(self.__annualCopGWHP[buildingLabel][1]))
+                print("Invested in {:.1f} kW GWHP{}.".format(investSH, str(self.__temperatureDHW)))
+                print("     Annual COP = {:.1f}".format(self.__annualCopGWHP[buildingLabel][1]))
             if ("ElectricRod__" + buildingLabel, "shSourceBus__" + buildingLabel) in capacitiesInvestedTransformers:
                 investSH = capacitiesInvestedTransformers[("ElectricRod__" + buildingLabel, "shSourceBus__" + buildingLabel)]
-                print("Invested in {} kW Electric Rod.".format(investSH))
+                print("Invested in {:.1f} kW Electric Rod.".format(investSH))
             if ("CHP__" + buildingLabel, "shSourceBus__" + buildingLabel) in capacitiesInvestedTransformers:
                 investSH = capacitiesInvestedTransformers["CHP__" + buildingLabel, "shSourceBus__" + buildingLabel]
-                print("Invested in {} kW CHP.".format(investSH))  # + investEL))
+                print("Invested in {:.1f} kW CHP.".format(investSH))  # + investEL))
             if ("GasBoiler__" + buildingLabel, "shSourceBus__" + buildingLabel) in capacitiesInvestedTransformers:
                 investSH = capacitiesInvestedTransformers["GasBoiler__" + buildingLabel, "shSourceBus__" + buildingLabel]
-                print("Invested in {} kW  GasBoiler.".format(investSH))
+                print("Invested in {:.1f} kW GasBoiler.".format(investSH))
             if ("heat_solarCollector__" + buildingLabel, "solarConnectBus__" + buildingLabel) in capacitiesInvestedTransformers:
                 invest = capacitiesInvestedTransformers[("heat_solarCollector__" + buildingLabel, "solarConnectBus__" + buildingLabel)]
-                print("Invested in {} m² SolarCollector.".format(invest))
+                print("Invested in {:.1f} m² SolarCollector.".format(invest))
             if ("pv__" + buildingLabel, "electricityProdBus__" + buildingLabel) in capacitiesInvestedTransformers:
                 invest = capacitiesInvestedTransformers[("pv__" + buildingLabel, "electricityProdBus__" + buildingLabel)]
-                print("Invested in {} kWp  PV.".format(invest))
+                print("Invested in {:.1f} kWp  PV.".format(invest))
             if "electricalStorage__" + buildingLabel in capacitiesInvestedStorages:
                 invest = capacitiesInvestedStorages["electricalStorage__" + buildingLabel]
-                print("Invested in {} kWh Electrical Storage.".format(invest))
+                print("Invested in {:.1f} kWh Electrical Storage.".format(invest))
             if "dhwStorage__" + buildingLabel in capacitiesInvestedStorages:
                 invest = capacitiesInvestedStorages["dhwStorage__" + buildingLabel]
-                print("Invested in {} L DHW Storage Tank.".format(invest))
+                print("Invested in {:.1f} L DHW Storage Tank.".format(invest))
             if "shStorage__" + buildingLabel in capacitiesInvestedStorages:
                 invest = capacitiesInvestedStorages["shStorage__" + buildingLabel]
-                print("Invested in {} L SH Storage Tank.".format(invest))
-            print("")
+                print("Invested in {:.1f} L SH Storage Tank.".format(invest))
 
     def printCosts(self):
         capexNetwork = sum(self.__capex["Building" + str(b + 1)] for b in range(len(self.__buildings)))
