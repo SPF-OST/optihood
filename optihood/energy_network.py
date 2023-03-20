@@ -17,7 +17,7 @@ from optihood.links import Link
 
 
 class EnergyNetworkClass(solph.EnergySystem):
-    def __init__(self, timestamp):
+    def __init__(self, timestamp, temperatureLevels=False):
         self._nodesList = []
         self._storageContentSH = {}
         self.__inputs = {}                          # dictionary of list of inputs indexed by the building label
@@ -41,7 +41,8 @@ class EnergyNetworkClass(solph.EnergySystem):
         self.__dhwGWHP = {}
         self.__annualCopGWHP = {}
         self.__elRodEff = np.nan
-        self._dispatchMode = False                         
+        self._temperatureLevels = temperatureLevels
+        self._dispatchMode = False
         if not os.path.exists(".\\log_files"):
             os.mkdir(".\\log_files")
         logger.define_logging(logpath=os.getcwd(), logfile=f'.\\log_files\\optihood_{datetime.now().strftime("%d.%m.%Y_%H.%M.%S")}.log')
@@ -53,6 +54,10 @@ class EnergyNetworkClass(solph.EnergySystem):
         # does Excel file exist?
         if not filePath or not os.path.isfile(filePath):
             logging.error("Excel data file {} not found.".format(filePath))                                                                               
+        if mergeLinkBuses and self._temperatureLevels:
+            logging.error("The options mergeLinkBuses and temperatureLevels should not be set True at the same time. "
+                          "This use case is not supported in the present version of optihood. Only one of "
+                          "mergeLinkBuses and temperatureLevels should be set to True.")
         self._dispatchMode = dispatchMode
         logging.info("Defining the energy network from the excel file: {}".format(filePath))
         data = pd.ExcelFile(filePath)
@@ -188,6 +193,10 @@ class EnergyNetworkClass(solph.EnergySystem):
         self.__temperatureGround = np.array(data["weather_data"]["ground_temp"])
         self.__temperatureSH = data["stratified_storage"].loc["shStorage", "temp_h"]
         self.__temperatureDHW = data["stratified_storage"].loc["dhwStorage", "temp_h"]
+        if self._temperatureLevels:
+            self.__operationTempertures = [self.__temperatureSH, 50, self.__temperatureDHW]
+        else:
+            self.__operationTempertures = [self.__temperatureSH, self.__temperatureDHW]
         # Transformers conversion factors input power - output power
         if any(data["transformers"]["label"] == "CHP"):
             self.__chpEff = float(data["transformers"][data["transformers"]["label"] == "CHP"]["efficiency"].iloc[0].split(",")[1])
@@ -218,13 +227,10 @@ class EnergyNetworkClass(solph.EnergySystem):
                 b.addToBusDict(busDictBuilding1)
             b.addGridSeparation(data["grid_connection"][data["grid_connection"]["building"] == i], mergeLinkBuses)
             b.addSource(data["commodity_sources"][data["commodity_sources"]["building"] == i], data["electricity_impact"], data["electricity_cost"], opt)
-            b.addSink(data["demand"][data["demand"]["building"] == i], data["demandProfiles"][i], data["building_model"], mergeLinkBuses)
-            b.addTransformer(data["transformers"][data["transformers"]["building"] == i], self.__temperatureDHW,
-                             self.__temperatureSH, self.__temperatureAmb, self.__temperatureGround, opt, mergeLinkBuses, self._dispatchMode)
-            #if any(data["transformers"]["label"] == "HP") or any(data["transformers"]["label"] == "GWHP"):   #add electricity rod if HP or GSHP is present in the available technology pool
-            #    b.addElectricRodBackup(opt)
-            b.addStorage(data["storages"][data["storages"]["building"] == i], data["stratified_storage"], opt, mergeLinkBuses, self._dispatchMode)
-            b.addSolar(data["solar"][(data["solar"]["building"] == i) & (data["solar"]["label"] == "solarCollector")], data["weather_data"], opt, mergeLinkBuses, self._dispatchMode)
+            b.addSink(data["demand"][data["demand"]["building"] == i], data["demandProfiles"][i], data["building_model"], mergeLinkBuses, self._temperatureLevels)
+            b.addTransformer(data["transformers"][data["transformers"]["building"] == i], self.__operationTempertures, self.__temperatureAmb, self.__temperatureGround, opt, mergeLinkBuses, self._dispatchMode, self._temperatureLevels)
+            b.addStorage(data["storages"][data["storages"]["building"] == i], data["stratified_storage"], opt, mergeLinkBuses, self._dispatchMode, self._temperatureLevels)
+            b.addSolar(data["solar"][(data["solar"]["building"] == i) & (data["solar"]["label"] == "solarCollector")], data["weather_data"], opt, mergeLinkBuses, self._dispatchMode, self._temperatureLevels)
             b.addPV(data["solar"][(data["solar"]["building"] == i) & (data["solar"]["label"] == "pv")], data["weather_data"], opt, self._dispatchMode)
             self._nodesList.extend(b.getNodesList())
             self.__inputs[buildingLabel] = b.getInputs()
