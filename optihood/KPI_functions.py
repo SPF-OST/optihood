@@ -505,7 +505,7 @@ def npc_technology(dataDict, inputFileName, buildings, gasCost, elecCost, optMod
     if type(elecCost) == str:
         elecPrice = pd.read_csv(elecCost, sep=';', index_col ='timestamp')
         elecPrice.index = pd.to_datetime(elecPrice.index, yearfirst=True)
-        elecPrice['cost'] = elecPrice['cost ' + str(optMode)]
+        elecPrice['cost'] = elecPrice['cost']
     elif type(elecCost) == int or type(elecCost) == float:
         elecPrice = pd.DataFrame(index=rangeToConsider)
         elecPrice["cost"] = elecCost
@@ -914,7 +914,7 @@ def heat_distr(dataDict, buildings, iter, outputFileName, timeStep):
                         'HP': int(heatTec.loc['HPsh', 'total']) + int(heatTec.loc['HPdhw', 'total']),
                         'solarCollector': int(heatTec.loc['solarCollectordhw', 'total'])}
         try:
-            totalHeatTec['ElectricRod'] = int(heatTec.loc['ElectricRodsh', 'total']) + int(heatTec.loc['ElectricRoddhw', 'total']),
+            totalHeatTec['ElectricRod'] = int(heatTec.loc['ElectricRodsh', 'total']) + int(heatTec.loc['ElectricRoddhw', 'total'])
         except:
             None
 
@@ -1628,7 +1628,7 @@ def grid_periods(dataDict, inputFileName, buildings, gasCost, elecCost, gasEmiss
 
     if parameter == 'cost':
         sheetCol = 'variable costs'
-        sheetImpact = "cost " + str(optMode)
+        sheetImpact = "cost"
 
         print('costs')
     elif parameter == 'co2':
@@ -1648,7 +1648,7 @@ def grid_periods(dataDict, inputFileName, buildings, gasCost, elecCost, gasEmiss
                 elecImpact = elecImpact.loc[rangeToConsider,:]
             elif type(elecCost) == int or type(elecCost) == float:
                 elecImpact = pd.DataFrame(index=rangeToConsider)
-                elecImpact["cost " + str(optMode)] = elecCost
+                elecImpact["cost"] = elecCost
                 elecImpact.index.name = "timestamp"
                 elecImpact = elecImpact.loc[rangeToConsider,:]
 
@@ -1674,7 +1674,7 @@ def grid_periods(dataDict, inputFileName, buildings, gasCost, elecCost, gasEmiss
 
             elecImpact['timestamp'] = pd.to_datetime(elecImpact.index, yearfirst=True, dayfirst=False)
             elecImpact = elecImpact.set_index('timestamp')
-            elecImpact = elecImpact.rename(columns={'ElecPriceSystem': 'cost ' + optMode})
+            elecImpact = elecImpact.rename(columns={'ElecPriceSystem': 'cost'})
             elecImpact = elecImpact.loc[rangeToConsider,:]
 
         elif parameter == 'co2':
