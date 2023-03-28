@@ -39,6 +39,7 @@ Table of contents
    guide/defining_an_energy_network
    guide/optimizing_the_energy_network
    guide/processing_results
+   guide/models
    guide/advanced_under_development_features
    Code Reference <modules>
 
