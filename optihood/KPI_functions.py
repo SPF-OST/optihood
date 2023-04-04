@@ -9,11 +9,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 
-### read results
+# plt.rcParams['figure.figsize'] = [8.0, 8.0]
+plt.rcParams['figure.dpi'] = 600
+
 def read_results(resultFileName):
     dataDict = getData(resultFileName)
     keys=dataDict.keys()
     return dataDict
+
 
 def app_labeldict(labelDict, test_str):
     res = test_str.replace("(", "").replace(")", "").replace("'", "").replace('"', '')
@@ -132,16 +135,18 @@ def heat_gen(dataDict, buildings, timeStep):
             solarCollectordhw_columns.append('solarCollectordhw_B'+str(b))
 
             for tec in ["CHP", "GWHP", "GasBoiler", "HP", "ElectricRod"]:
-                heatTec[str(tec) + str(b)] = heatTec[str(tec) + 'shSourceBus_B' +str(b)] + heatTec[str(tec) + 'dhwStorageBus_B'+str(b)]
-
-            try:
-                heatTec[str("CHP") + str(b)] = heatTec[str("CHP") + 'shSourceBus_B' +str(b)] + heatTec[str("CHP") + 'dhwStorageBus_B'+str(b)]
-            except:
-                None
-            try:
-                heatTec[str("ElectricRod") + str(b)] = heatTec[str("ElectricRod") + 'shSourceBus_B' +str(b)] + heatTec[str("ElectricRod") + 'dhwStorageBus_B'+str(b)]
-            except:
-                None
+                try:
+                    heatTec[str(tec) + str(b)] = heatTec[str(tec) + 'shSourceBus_B' +str(b)] + heatTec[str(tec) + 'dhwStorageBus_B'+str(b)]
+                except:
+                    None
+            # try:
+            #     heatTec[str("CHP") + str(b)] = heatTec[str("CHP") + 'shSourceBus_B' +str(b)] + heatTec[str("CHP") + 'dhwStorageBus_B'+str(b)]
+            # except:
+            #     None
+            # try:
+            #     heatTec[str("ElectricRod") + str(b)] = heatTec[str("ElectricRod") + 'shSourceBus_B' +str(b)] + heatTec[str("ElectricRod") + 'dhwStorageBus_B'+str(b)]
+            # except:
+            #     None
 
         heatTec['GWHPshTotal'] = heatTec[GWHPsh_columns].sum(axis=1)
         heatTec['GasBoilershTotal'] = heatTec[GasBoilersh_columns].sum(axis=1)
@@ -175,6 +180,7 @@ def heat_gen(dataDict, buildings, timeStep):
             heatTec.index = heatTec.index #+ pd.offsets.DateOffset(years=3)
 
     return heatTec
+
 
 def elec_sell(dataDict, buildings, timeStep):
     """
@@ -349,6 +355,7 @@ def ElecInfluenceBuilding(dataDict, buildings, PVImpact, CHPImpact, gridImpact, 
 
     return elecImpact
 
+
 def unit_elecInput(dataDict, buildings):
     """
     Function to read electricity supplied to the heat pumps
@@ -404,6 +411,7 @@ def unit_elecInput(dataDict, buildings):
     hpElecInput.index = hpElecInput.index
 
     return hpElecInput
+
 
 def res_cons(dataDict, buildings):
     """
@@ -470,13 +478,35 @@ def cap_technology(dataDict, buildings, energy):
         capTec = capTec.loc[['CHP', 'PV'], :]
 
         for b in range(1,buildings+1):
-            capTec.loc['CHP', "kW in " +str(b)] = capTec.loc['CHP', "kW in " +str(b)] * (0.25/0.6)
+            capTec.loc['CHP', "kW in " +str(b)] = capTec.loc['CHP', "kW in " +str(b)] * (0.25/0.6) # !!!! should be changed with parametrised efficiency
         capTec = capTec.rename(index={'CHP': 'CHPe'})
 
     return capTec
 
-def npc_technology(dataDict, inputFileName, buildings, gasCost, elecCost, optMode):
 
+def cap_storage(dataDict, buildings):
+    """
+    Function to calculate total capacity per storage technology selected in the scenario
+    :param :
+            dataDict: full result file
+            buildings: number of buildings
+            energy: type str of energy form (heat, elec)
+
+    :return: capSto: capacity per storage
+    """
+
+    capSto = pd.DataFrame(index=dataDict['capStorages__Building' + str(1)].rename(index=labelDict).index)
+    capSto["kWh in " + str(1)] = pd.DataFrame(dataDict['capStorages__Building' + str(1)].rename(index=labelDict))
+
+    for b in range(2, buildings + 1):
+        capSto["kWh in " + str(b)] = dataDict['capStorages__Building' + str(b)].rename(index=labelDict)
+    # convert L to kWh
+    capSto.loc[capSto.index == 'dhwStorage'] = capSto.loc[capSto.index == 'dhwStorage'] * 4.18 * 45 / 3600
+    capSto.loc[capSto.index == 'shStorage'] = capSto.loc[capSto.index == 'shStorage'] * 4.18 * 8 / 3600
+    return capSto
+
+
+def npc_technology(dataDict, inputFileName, buildings, gasCost, elecCost, optMode):
     """
     Function to calculate net preset costs per technology selected in the scenario
     :param :
@@ -714,8 +744,8 @@ def npc_technology(dataDict, inputFileName, buildings, gasCost, elecCost, optMod
 
     return HeatLevelCostsSum, elecLevelCostsSum, levelCosts, SystemElecPrice
 
-def levelizedCostsPlot(dataDict, buildings, gasCost, elecCost, iter):
 
+def levelizedCostsPlot(dataDict, buildings, gasCost, elecCost, iter):
     """
     Function to plot the levelized costs
     :param :
@@ -858,7 +888,7 @@ def selfsuffisant(dataDict, buildings, outputFileName, selected_days, timeStep, 
         if iter == iterRange[-1]:
             fig = plt.figure()
             (pd.DataFrame(results['totalselfsuffisant'])/1000).T.plot(kind="bar", stacked=True)
-            plt.title("Electricity source of each iteration")
+            plt.title("Electricity source of each optimization")
             plt.xlabel('Optimization iteration')
             plt.ylabel('Electricity supply per technology in MWh')
             plt.legend(loc=(1.04, 0) )
@@ -895,7 +925,6 @@ def selfsuffisant(dataDict, buildings, outputFileName, selected_days, timeStep, 
 
 
 def heat_distr(dataDict, buildings, iter, outputFileName, timeStep):
-
     """
     Function to visualize the heat distribution for each technology and selected time step
     :param :
@@ -971,8 +1000,8 @@ def heat_distr(dataDict, buildings, iter, outputFileName, timeStep):
         fig.clf()
         plt.close()
 
-
         return heatTec
+
 
 def full_load_hour(dataDict, buildings, iter, outputFileName):
     """
@@ -1164,8 +1193,8 @@ def full_load_hour(dataDict, buildings, iter, outputFileName):
     fig.clf()
     plt.close()
 
-def stacked_full_load(dataDict, buildings, iter, outputFileName):
 
+def stacked_full_load(dataDict, buildings, iter, outputFileName):
     """
     create plot chart of the heat generation in the system
     :param :
@@ -1224,20 +1253,25 @@ def stacked_full_load(dataDict, buildings, iter, outputFileName):
     fig.clf()
     plt.close()
 
-def installed_capacity(dataDict, buildings, outputFileName, iter, iterRange, results, system):
 
+def installed_capacity(dataDict, buildings, outputFileName, iter, iterRange, results, system, xlabels=None):
     """
-    Function to plot installated capacity of all optimzation iterations
+    Function to plot installed capacity of all optimzation iterations
     :param :
             dataDict: full result file
             outputFileName: type str of link to output file
             building: number of buildings
             iter: optimization iteration
-            iterRange: list of ploting order of optimization iterations
+            iterRange: list of plotting order of optimization iterations
             results: dict where iteration results are stored
             system: how to plot the capacity: type str building or grouped
+            xlabels: labels to use on the x axis, iterable or None, if None, xlabels = iter
     :return: plot
     """
+
+    # set xlabels to iter if None:
+    if not xlabels:
+        xlabels = iter
 
     if system == 'building':
         capTecHeat = cap_technology(dataDict, buildings, 'heat')
@@ -1246,9 +1280,11 @@ def installed_capacity(dataDict, buildings, outputFileName, iter, iterRange, res
         fig = plt.figure()
         capTecHeat.T.plot(kind='bar', stacked=True)
         plt.title("Installed capacity in each building")
+        xticks = plt.xticks()
+        plt.xticks(xticks[0], xlabels)
         plt.xlabel('Building')
         plt.ylabel('Capacity in kW')
-        plt.legend(loc=(1.04, 0) )
+        plt.legend(loc=(1.04, 0))
         plt.savefig(outputFileName + "Optimization" + str(iter) + '/installedCapHeat.png', bbox_inches='tight')
         fig.clf()
         plt.close()
@@ -1257,44 +1293,79 @@ def installed_capacity(dataDict, buildings, outputFileName, iter, iterRange, res
 
         fig = plt.figure()
         capTecElec.T.plot(kind='bar', stacked=True)
+        xticks = plt.xticks()
+        plt.xticks(xticks[0], xlabels)
         plt.title("Installed capacity in each building")
         plt.xlabel('Building')
         plt.ylabel('Capacity in kW')
-        plt.legend(loc=(1.04, 0) )
+        plt.legend(loc=(1.04, 0))
         plt.savefig(outputFileName + "Optimization" + str(iter) + '/installedCapElec.png', bbox_inches='tight')
         fig.clf()
         plt.close()
 
+        capSto = cap_storage(dataDict, buildings)
+
+        fig = plt.figure()
+        capSto.T.plot(kind='bar', stacked=True)
+        xticks = plt.xticks()
+        plt.xticks(xticks[0], xlabels)
+        plt.title("Installed capacity in each building")
+        plt.xticks(xlabels)
+        plt.xlabel('Building')
+        plt.ylabel('Capacity in kWh')
+        plt.legend(loc=(1.04, 0))
+        plt.savefig(outputFileName + "Optimization" + str(iter) + '/installedCapSto.png', bbox_inches='tight',dpi=600)
+        fig.clf()
+        plt.close()
 
     elif system == 'grouped':
         if iter == iterRange[0]:
             results['totalCap', 'elec'] = {}
             results['totalCap', 'heat'] = {}
+            results['totalCap', 'sto'] = {}
         else:
             None
 
         results['totalCap', 'elec'][iter] = cap_technology(dataDict, buildings, 'elec').sum(axis=1)
         results['totalCap', 'heat'][iter] = cap_technology(dataDict, buildings, 'heat').sum(axis=1)
-        results['totalCap', 'heat'][iter] = results['totalCap', 'heat'][iter].rename(index={"solarConnectBus":"solarCollector"})
+        results['totalCap', 'heat'][iter] = results['totalCap', 'heat'][iter].rename(
+            index={"solarConnectBus": "solarCollector"})
+        results['totalCap', 'sto'][iter] = cap_storage(dataDict, buildings).sum(axis=1)
 
         if iter == iterRange[-1]:
             fig = plt.figure()
             pd.DataFrame(results['totalCap', 'heat']).T.plot(kind="bar", stacked=True)
-            plt.title("Installed capacity of each iteration")
+            xticks = plt.xticks()
+            plt.xticks(xticks[0], xlabels)
+            plt.title("Installed capacity of each optimization")
             plt.xlabel('Optimization iteration')
             plt.ylabel('Installed capacity per technology in kW')
-            plt.legend(loc=(1.04, 0) )
+            plt.legend(loc=(1.04, 0))
             plt.savefig(outputFileName + 'installedCapHeat_iterative.png', bbox_inches='tight')
             fig.clf()
             plt.close()
 
             fig = plt.figure()
             pd.DataFrame(results['totalCap','elec']).T.plot(kind="bar", stacked=True)
-            plt.title("Installed capacity of each iteration")
+            xticks = plt.xticks()
+            plt.xticks(xticks[0], xlabels)
+            plt.title("Installed capacity of each optimization")
             plt.xlabel('Optimization iteration')
             plt.ylabel('Installed capacity per technology in kW')
-            plt.legend(loc=(1.04, 0) )
+            plt.legend(loc=(1.04, 0))
             plt.savefig(outputFileName + 'installedCapElec_iterative.png', bbox_inches='tight')
+            fig.clf()
+            plt.close()
+
+            fig = plt.figure()
+            pd.DataFrame(results['totalCap', 'sto']).T.plot(kind="bar", stacked=True)
+            xticks = plt.xticks()
+            plt.xticks(xticks[0], xlabels)
+            plt.title("Installed capacity of each optimization")
+            plt.xlabel('Optimization iteration')
+            plt.ylabel('Installed capacity per technology in kWh')
+            plt.legend(loc=(1.04, 0))
+            plt.savefig(outputFileName + 'installedCapSto_iterative.png', bbox_inches='tight')
             fig.clf()
             plt.close()
 
@@ -1302,6 +1373,7 @@ def installed_capacity(dataDict, buildings, outputFileName, iter, iterRange, res
         None
 
     return results
+
 
 def iter_heat(dataDict, buildings, outputFileName, iter, iterRange, results):
     """
@@ -1327,7 +1399,7 @@ def iter_heat(dataDict, buildings, outputFileName, iter, iterRange, results):
     if iter == iterRange[-1]:
         fig = plt.figure()
         (pd.DataFrame(results['totalHeatTec'])/1000).T.plot(kind="bar", stacked=True)
-        plt.title("Heat production of each iteration")
+        plt.title("Heat production of each optimization")
         plt.xlabel('Optimization iteration')
         plt.ylabel('Heat generation per technology in MWh')
         plt.legend(loc=(1.04, 0) )
@@ -1339,6 +1411,7 @@ def iter_heat(dataDict, buildings, outputFileName, iter, iterRange, results):
         None
 
     return results
+
 
 def co2_balance(dataDict, inputFileName, buildings, selected_days, gasEmission, elecEmission, rangeToConsider):
     """
@@ -1482,6 +1555,7 @@ def co2_balance(dataDict, inputFileName, buildings, selected_days, gasEmission, 
 
     return heatGenTec, elecGenTec, elecImpactBuilding
 
+
 def co2_balance_barplot(dataDict, inputFileName, buildings, selected_days, elecEmission, iter, outputFileName):
 
     """
@@ -1598,10 +1672,11 @@ def co2_balance_barplot(dataDict, inputFileName, buildings, selected_days, elecE
         plt.close()
 
 
-### Flexibility KPIs
+# Flexibility KPIs
+
+
 def grid_periods(dataDict, inputFileName, buildings, gasCost, elecCost, gasEmission, elecEmission, impactDayPeriode,
                  selected_days, k_value, impactPara, optMode, parameter, rangeToConsider):
-
     """
     Function to GHG emission impact for different technologies
     :param :
@@ -1742,7 +1817,6 @@ def grid_periods(dataDict, inputFileName, buildings, gasCost, elecCost, gasEmiss
 
 def energy_flexibility(dataDict, inputFileName, buildings, gasCost, elecCost, gasEmission, elecEmission, optMode,
                        impactPara, selected_days, iter, iterRange, rangeToConsider, results):
-
     """
     Function to GHG emission impact for different technologies
     :param :
@@ -1900,6 +1974,7 @@ def flexibilityBarChart(dataDict, inputFileName, buildings, gasCost, elecCost, g
             plt.savefig(outputFileName + '/c02_flexiblity' + impactPara + '.png', bbox_inches='tight')
             fig.clf()
             plt.close()
+
 
 def tec_Data(sheet, building, tech):
     tecData = sheet[(sheet['label'] == tech) & (
