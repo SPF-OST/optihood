@@ -1370,7 +1370,7 @@ def installed_capacity(dataDict, buildings, outputFileName, iter, iterRange, res
     return results
 
 
-def iter_heat(dataDict, buildings, outputFileName, iter, iterRange, results):
+def iter_heat(dataDict, buildings, outputFileName, iter, iterRange, results, xlabels=None):
     """
     Plot heat generation of all optimsation iterations
     :param :
@@ -1384,6 +1384,10 @@ def iter_heat(dataDict, buildings, outputFileName, iter, iterRange, results):
     :return: plot
     """
 
+    # set xlabels to iterRange if None:
+    if not xlabels:
+        xlabels = iterRange
+
     if iter == iterRange[0]:
         results['totalHeatTec'] = {}
     else:
@@ -1394,6 +1398,8 @@ def iter_heat(dataDict, buildings, outputFileName, iter, iterRange, results):
     if iter == iterRange[-1]:
         fig = plt.figure()
         (pd.DataFrame(results['totalHeatTec'])/1000).T.plot(kind="bar", stacked=True)
+        xticks = plt.xticks()
+        plt.xticks(xticks[0], xlabels)
         plt.title("Heat production of each optimization")
         plt.xlabel('Optimization iteration')
         plt.ylabel('Heat generation per technology in MWh')
