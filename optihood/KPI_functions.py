@@ -1256,7 +1256,7 @@ def stacked_full_load(dataDict, buildings, iter, outputFileName):
 
 def installed_capacity(dataDict, buildings, outputFileName, iter, iterRange, results, system, xlabels=None):
     """
-    Function to plot installed capacity of all optimzation iterations
+    Function to plot installed capacity of all optimization iterations
     :param :
             dataDict: full result file
             outputFileName: type str of link to output file
@@ -1269,9 +1269,10 @@ def installed_capacity(dataDict, buildings, outputFileName, iter, iterRange, res
     :return: plot
     """
 
-    # set xlabels to iter if None:
+    # set xlabels to iterRange if None:
     if not xlabels:
-        xlabels = iter
+        xlabels = iterRange
+
 
     if system == 'building':
         capTecHeat = cap_technology(dataDict, buildings, 'heat')
@@ -1280,8 +1281,6 @@ def installed_capacity(dataDict, buildings, outputFileName, iter, iterRange, res
         fig = plt.figure()
         capTecHeat.T.plot(kind='bar', stacked=True)
         plt.title("Installed capacity in each building")
-        xticks = plt.xticks()
-        plt.xticks(xticks[0], xlabels)
         plt.xlabel('Building')
         plt.ylabel('Capacity in kW')
         plt.legend(loc=(1.04, 0))
@@ -1293,8 +1292,6 @@ def installed_capacity(dataDict, buildings, outputFileName, iter, iterRange, res
 
         fig = plt.figure()
         capTecElec.T.plot(kind='bar', stacked=True)
-        xticks = plt.xticks()
-        plt.xticks(xticks[0], xlabels)
         plt.title("Installed capacity in each building")
         plt.xlabel('Building')
         plt.ylabel('Capacity in kW')
@@ -1307,8 +1304,6 @@ def installed_capacity(dataDict, buildings, outputFileName, iter, iterRange, res
 
         fig = plt.figure()
         capSto.T.plot(kind='bar', stacked=True)
-        xticks = plt.xticks()
-        plt.xticks(xticks[0], xlabels)
         plt.title("Installed capacity in each building")
         plt.xticks(xlabels)
         plt.xlabel('Building')
@@ -1904,9 +1899,9 @@ def energy_flexibility(dataDict, inputFileName, buildings, gasCost, elecCost, ga
 
 def gridPeriodPlot(gridPeriods, elecImpactPara, optMode):
     fig = plt.figure()
-    plt.plot(elecImpactPara['cost']['cost ' + str(optMode)])
-    plt.scatter(gridPeriods['cost', 'highPeriods'].index, gridPeriods['cost', 'highPeriods']['cost ' + str(optMode)])
-    plt.scatter(gridPeriods['cost', 'lowPeriods'].index, gridPeriods['cost', 'lowPeriods']['cost ' + str(optMode)])
+    plt.plot(elecImpactPara['cost']['cost'])
+    plt.scatter(gridPeriods['cost', 'highPeriods'].index, gridPeriods['cost', 'highPeriods']['cost'])
+    plt.scatter(gridPeriods['cost', 'lowPeriods'].index, gridPeriods['cost', 'lowPeriods']['cost'])
     fig.clf()
     plt.close()
 
