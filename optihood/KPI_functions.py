@@ -776,7 +776,7 @@ def levelizedCostsPlot(dataDict, buildings, gasCost, elecCost, iter):
     plt.close()
 
 
-def selfsuffisant(dataDict, buildings, outputFileName, selected_days, timeStep, iter, iterRange, results):
+def selfsuffisant(dataDict, buildings, outputFileName, selected_days, timeStep, iter, iterRange, results, xlabels=None):
     """
     Function to plot electricty supply from self production and the grid
     :param :
@@ -888,6 +888,8 @@ def selfsuffisant(dataDict, buildings, outputFileName, selected_days, timeStep, 
         if iter == iterRange[-1]:
             fig = plt.figure()
             (pd.DataFrame(results['totalselfsuffisant'])/1000).T.plot(kind="bar", stacked=True)
+            xticks = plt.xticks()
+            plt.xticks(xticks[0], xlabels)
             plt.title("Electricity source of each optimization")
             plt.xlabel('Optimization iteration')
             plt.ylabel('Electricity supply per technology in MWh')
@@ -912,6 +914,8 @@ def selfsuffisant(dataDict, buildings, outputFileName, selected_days, timeStep, 
         if iter == iterRange[-1]:
             fig = plt.figure()
             plt.plot([str(x) for x in list(results['ratioselfsuffisant'].keys())], list(results['ratioselfsuffisant'].values()))
+            xticks = plt.xticks()
+            plt.xticks(xticks[0], xlabels)
             plt.title("Ratio of electricity production (excl. injected to grid) to consumption")
             plt.xlabel('Optimization iteration')
             plt.ylabel('Ratio')
