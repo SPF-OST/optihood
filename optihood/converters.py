@@ -1,6 +1,6 @@
 import oemof.solph as solph
 import numpy as np
-import optihood.combined_prod as cp
+import optihood.optihood.combined_prod as cp
 from oemof.thermal.solar_thermal_collector import flat_plate_precalc
 
 class SolarCollector(solph.Transformer):
@@ -115,7 +115,7 @@ class HeatPumpLinear:
         outputTempertures = {}
         for i in range(len(output)):
             outputTempertures[output[i]] = operationTempertures[i]
-        self.__cop = {o:self._calculateCop(t, temperatureLow) for o,t in outputTempertures}
+        self.__cop = {o:self._calculateCop(t, temperatureLow) for o,t in outputTempertures.items()}
         self.avgCopSh = (sum(self.__cop[output[0]])/len(self.__cop[output[0]])) # cop at lowest temperature, i.e. temperature of space heating
         self.nominalEff = nomEff
         if dispatchMode:
@@ -168,7 +168,7 @@ class GeothermalHeatPumpLinear:
         outputTempertures = {}
         for i in range(len(output)):
             outputTempertures[output[i]] = operationTempertures[i]
-        self.__cop = {o: self._calculateCop(t, temperatureLow) for o, t in outputTempertures}
+        self.__cop = {o: self._calculateCop(t, temperatureLow) for o, t in outputTempertures.items()}
         self.avgCopSh = (sum(self.__cop[output[0]]) / len(self.__cop[output[0]]))  # cop at lowest temperature, i.e. temperature of space heating
         self.nominalEff = nomEff
         if dispatchMode:

@@ -21,6 +21,42 @@ def dailySHStorageConstraint(om):
 
     return om
 
+def multiTemperatureStorageCapacityConstaint(om, nodeList, optType):
+    """Constraint on thermal storage capacity when multiple temperature levels exist"""
+    storageCapacityDict = {}
+    storageMaxCapacity = {}
+    storageMinCapacity = {}
+    storageBaseInvestment = {}
+    storageNodes = [node for node in nodeList if 'thermalStorage' in node.label]
+    for x in om.GenericInvestmentStorageBlock.INVESTSTORAGES:
+        if "thermalStorage" in x.label:
+            if x.label.split("__")[1] not in storageCapacityDict:
+                storageCapacityDict[x.label.split("__")[1]] = [x]
+                storageMaxCapacity[x.label.split("__")[1]] = [s.capacityMax for s in storageNodes if x.label.split("__")[1] in s.label][0]
+                storageMinCapacity[x.label.split("__")[1]] = [s.capacityMin for s in storageNodes if x.label.split("__")[1] in s.label][0]
+                storageBaseInvestment[x.label.split("__")[1]] = [s.baseInvestment for s in storageNodes if x.label.split("__")[1] in s.label][0]
+            else:
+                storageCapacityDict[x.label.split("__")[1]].append(x)
+
+    for building in storageCapacityDict:
+        storageCapacity =sum(om.GenericInvestmentStorageBlock.invest[x] for x in storageCapacityDict[building])
+        setattr(
+            om,
+             "ThermalStorage_maxConstraint" + building[8:],
+            pyo.Constraint(expr=(storageCapacity <= storageMaxCapacity[building])),
+        )
+        setattr(
+            om,
+            "ThermalStorage_minConstraint" + building[8:],
+            pyo.Constraint(expr=(storageCapacity >= storageMinCapacity[building])),
+        )
+        # if storage is selected then add offset to objective function
+        if optType == "costs":
+            offsetThermalStorage = storageBaseInvestment[building]*(storageCapacity>0.001)
+            om.objective += offsetThermalStorage
+
+    return om
+
 def connectInvestmentRule(om):
     """Constraint to equate the investment objects of all the output flows of a Link"""
 

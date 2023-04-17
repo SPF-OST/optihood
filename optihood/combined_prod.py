@@ -154,8 +154,8 @@ class CombinedCHPBlock(SimpleBlock):
                         )
                     else:
                         rhs = (
-                            m.flow[g, g.outputSH, t] / g.efficiency_sq[0][t]
-                            + m.flow[g, g.outputDHW, t] / g.efficiency_sq[1][t]
+                            m.flow[g, g.outputT0, t] / g.efficiency_sq[0][t]
+                            + m.flow[g, g.outputT1, t] / g.efficiency_sq[1][t]
                         )
                     block.input_heat_relation.add((g, t), (lhs == rhs))
 

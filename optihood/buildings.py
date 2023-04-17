@@ -3,10 +3,11 @@ import oemof.solph as solph
 from oemof.tools import logger
 from oemof.tools import economics
 import logging
-from optihood.converters import *
-from optihood.sources import PV
-from optihood.storages import ElectricalStorage, ThermalStorage
-from optihood.sinks import SinkRCModel
+from optihood.optihood.converters import *
+from optihood.optihood.sources import PV
+from optihood.optihood.storages import *
+from optihood.optihood.sinks import SinkRCModel
+from optihood.optihood.links import LinkTemperatureDemand
 
 intRate = 0.05
 
@@ -260,8 +261,9 @@ class Building:
                 sinkLabel = de["label"]+'__'+self.__buildingLabel
                 if mergeLinkBuses and de["from"] in self.__linkBuses:
                     inputBusLabel = de["from"]
-                elif temperatureLevels:
+                elif temperatureLevels and "," in de["from"]:
                     inputBusLabel = [bus+'__'+self.__buildingLabel for bus in de["from"].split(",")]
+                    weights = {self.__busDict[b]: float(w) for b,w in zip(inputBusLabel, de["weight"].split(","))}
                 else:
                     inputBusLabel = de["from"]+'__'+self.__buildingLabel
 
@@ -291,8 +293,20 @@ class Building:
                     for col in timeseries.columns.values:
                         if col == de["label"]:
                             inflow_args["fix"] = timeseries[col]
-                    if temperatureLevels:
-                        inputBusDict = {self.__busDict[k]: solph.Flow(**inflow_args) for k in inputBusLabel}
+                            if temperatureLevels and "," in de["from"]:
+                                demandInputLabel = col + "Bus" + '__' + self.__buildingLabel
+                                bus = solph.Bus(label=demandInputLabel)
+                                self.__nodesList.append(bus)
+                                self.__busDict[demandInputLabel] = bus
+                    if temperatureLevels and "," in de["from"]:
+                        inputDummyBusDict = {self.__busDict[k]: solph.Flow() for k in inputBusLabel}
+                        self.__nodesList.append(LinkTemperatureDemand(
+                            label="dummy_"+sinkLabel,
+                            inputs=inputDummyBusDict,
+                            outputs={self.__busDict[demandInputLabel]: solph.Flow()},
+                            conversion_factors={k: weights[k] for k in inputDummyBusDict}
+                        ))
+                        inputBusDict = {self.__busDict[demandInputLabel]: solph.Flow(**inflow_args)}
                     else:
                         inputBusDict = {self.__busDict[inputBusLabel]: solph.Flow(**inflow_args)}
                     # create sink
@@ -573,11 +587,15 @@ class Building:
         for i, s in data.iterrows():
             if s["active"]:
                 storageLabel = s["label"]+'__'+self.__buildingLabel
-                inputBusLabel = s["from"]+'__'+self.__buildingLabel
-                if mergeLinkBuses and s["to"] in self.__linkBuses:
-                    outputBusLabel = s["to"]
+                if temperatureLevels and s["label"] == "thermalStorage":
+                    inputBuses = [self.__busDict[iLabel + '__' + self.__buildingLabel] for iLabel in s["from"].split(",")]
+                    outputBuses = [self.__busDict[oLabel + '__' + self.__buildingLabel] for oLabel in s["to"].split(",")]
                 else:
-                    outputBusLabel = s["to"]+'__'+self.__buildingLabel
+                    inputBusLabel = s["from"] + '__' + self.__buildingLabel
+                    if mergeLinkBuses and s["to"] in self.__linkBuses:
+                        outputBusLabel = s["to"]
+                    else:
+                        outputBusLabel = s["to"] + '__' + self.__buildingLabel
                 envImpactPerCapacity = float(s["impact_cap"]) / float(s["lifetime"])         # annualized value
                 # set technologies, environment and cost parameters
                 self.__costParam[storageLabel] = [self._calculateInvest(s)[0], self._calculateInvest(s)[1]]
@@ -595,8 +613,8 @@ class Building:
                                                             float(s["elec_impact"])*(opt == "env"),
                                                             float(s["elec_impact"]), envImpactPerCapacity, dispatchMode))
 
-                elif s["label"] == "dhwStorage" or s["label"] == "shStorage":
-                    self.__nodesList.append(ThermalStorage(storageLabel, s["label"],
+                elif (s["label"] == "dhwStorage" or s["label"] == "shStorage") and not temperatureLevels:
+                    self.__nodesList.append(ThermalStorage(storageLabel,
                                                            stratifiedStorageParams, self.__busDict[inputBusLabel],
                                                            self.__busDict[outputBusLabel],
                                                         float(s["initial capacity"]), float(s["capacity min"]),
@@ -604,8 +622,25 @@ class Building:
                                                         self._calculateInvest(s)[0]*(opt == "costs") + envImpactPerCapacity*(opt == "env"),
                                                         self._calculateInvest(s)[1]*(opt == "costs"), float(s["heat_impact"])*(opt == "env"),
                                                         float(s["heat_impact"]), envImpactPerCapacity, dispatchMode))
+                elif s["label"] == "thermalStorage" and temperatureLevels:
+                    storage = ThermalStorageTemperatureLevels(storageLabel,
+                               stratifiedStorageParams, inputBuses,
+                               outputBuses,
+                               float(s["initial capacity"]), float(s["capacity min"]),
+                               float(s["capacity max"]),
+                               self._calculateInvest(s)[0] * (
+                                           opt == "costs") + envImpactPerCapacity * (
+                                           opt == "env"),
+                               self._calculateInvest(s)[1] * (opt == "costs"),
+                               float(s["heat_impact"]) * (opt == "env"),
+                               float(s["heat_impact"]), envImpactPerCapacity, dispatchMode)
+                    for i in range(len(inputBuses)):
+                        self.__nodesList.append(storage.getStorageLevel(i))
                 else:
-                    logging.warning("Storage label not identified")
+                    logging.error("One of the following issues were encountered: (i) Storage label not identified. Storage label"
+                                  "should match one of the following: electricalStorage, dhwStorage, shStorage or thermalStorage."
+                                  "(ii) Separate dhwStorage and/or shStorage selected when temperatureLevels is set as True."
+                                  "Either set temperatureLevels to False or rename the storage label to thermalStorage.")
 
     def _calculateInvest(self, data):
         # Calculate the CAPEX and the part of the OPEX not related to energy flows (maintenance)

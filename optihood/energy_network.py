@@ -11,9 +11,9 @@ try:
     import matplotlib.pyplot as plt
 except ImportError:
     plt = None
-from optihood.constraints import *
-from optihood.buildings import Building
-from optihood.links import Link
+from optihood.optihood.constraints import *
+from optihood.optihood.buildings import Building
+from optihood.optihood.links import Link
 
 
 class EnergyNetworkClass(solph.EnergySystem):
@@ -59,6 +59,7 @@ class EnergyNetworkClass(solph.EnergySystem):
                           "This use case is not supported in the present version of optihood. Only one of "
                           "mergeLinkBuses and temperatureLevels should be set to True.")
         self._dispatchMode = dispatchMode
+        self._optimizationType = opt
         logging.info("Defining the energy network from the excel file: {}".format(filePath))
         data = pd.ExcelFile(filePath)
         nodesData = self.createNodesData(data, filePath, numberOfBuildings)
@@ -191,11 +192,18 @@ class EnergyNetworkClass(solph.EnergySystem):
         ################## !!!
         self.__temperatureAmb = np.array(data["weather_data"]["tre200h0"])
         self.__temperatureGround = np.array(data["weather_data"]["ground_temp"])
-        self.__temperatureSH = data["stratified_storage"].loc["shStorage", "temp_h"]
-        self.__temperatureDHW = data["stratified_storage"].loc["dhwStorage", "temp_h"]
         if self._temperatureLevels:
-            self.__operationTempertures = [self.__temperatureSH, 50, self.__temperatureDHW]
+            try:
+                self.__operationTempertures = [float(t) for t in data["stratified_storage"].loc["thermalStorage", "temp_h"].split(",")] # temperatures should be saved from low to high separated by commas in the excel input file
+            except AttributeError:
+                logging.error("The column temp_h of stratified_storage excel sheet should contain comma separated temperatures"
+                              "when temperatureLevels is set to True. The temperatures should be ordered starting from low"
+                              "to high and the label of storage should be thermalStorage.")
+            self.__temperatureSH = self.__operationTempertures[0]
+            self.__temperatureDHW = self.__operationTempertures[2]
         else:
+            self.__temperatureSH = data["stratified_storage"].loc["shStorage", "temp_h"]
+            self.__temperatureDHW = data["stratified_storage"].loc["dhwStorage", "temp_h"]
             self.__operationTempertures = [self.__temperatureSH, self.__temperatureDHW]
         # Transformers conversion factors input power - output power
         if any(data["transformers"]["label"] == "CHP"):
@@ -209,8 +217,11 @@ class EnergyNetworkClass(solph.EnergySystem):
         if any(data["transformers"]["label"] == "ElectricRod"):
             self.__elRodEff = float(data["transformers"][data["transformers"]["label"] == "ElectricRod"]["efficiency"].iloc[0])
         # Storage conversion L - kWh to display the L value
-        self.__Lsh = 4.186 * (self.__temperatureSH - data["stratified_storage"].loc["shStorage", "temp_c"]) / 3600
-        self.__Ldhw = 4.186 * (self.__temperatureDHW - data["stratified_storage"].loc["dhwStorage", "temp_c"]) / 3600
+        if self._temperatureLevels:
+            self.__Ltank = 4.186 * (self.__temperatureDHW - data["stratified_storage"].loc["thermalStorage", "temp_c"]) / 3600
+        else:
+            self.__Lsh = 4.186 * (self.__temperatureSH - data["stratified_storage"].loc["shStorage", "temp_c"]) / 3600
+            self.__Ldhw = 4.186 * (self.__temperatureDHW - data["stratified_storage"].loc["dhwStorage", "temp_c"]) / 3600
         self._addBuildings(data, opt, mergeLinkBuses)
 
     def _addBuildings(self, data, opt, mergeLinkBuses):
@@ -266,6 +277,10 @@ class EnergyNetworkClass(solph.EnergySystem):
         # add constraint to limit the environmental impacts
         optimizationModel, flows, transformerFlowCapacityDict, storageCapacityDict = environmentalImpactlimit(
             optimizationModel, keyword1="env_per_flow", keyword2="env_per_capa", limit=envImpactlimit)
+
+        if self._temperatureLevels:
+            # add constraint on storage volume capacity
+            optimizationModel = multiTemperatureStorageCapacityConstaint(optimizationModel, self._nodesList, self._optimizationType)
 
         # optional constraints (available: 'roof area')
         if optConstraints:
@@ -436,6 +451,8 @@ class EnergyNetworkClass(solph.EnergySystem):
                 capacitiesStorages[storage] = capacitiesStorages[storage] / self.__Lsh
             elif "dhw" in storage:
                 capacitiesStorages[storage] = capacitiesStorages[storage] / self.__Ldhw
+            elif "thermal" in storage:
+                capacitiesStorages[storage] = capacitiesStorages[storage] / self.__Ltank
         return capacitiesStorages
 
     def _postprocessingClusters(self, clusterSize):
@@ -1042,6 +1059,7 @@ class EnergyNetworkGroup(EnergyNetworkClass):
             logging.error("Excel data file {} not found.".format(filePath))
         logging.info("Defining the energy network from the excel file: {}".format(filePath))
         self._dispatchMode = dispatchMode
+        self._optimizationType = opt
         data = pd.ExcelFile(filePath)
 
         nodesData = self.createNodesData(data, filePath, numberOfBuildings)
@@ -1093,11 +1111,14 @@ class EnergyNetworkGroup(EnergyNetworkClass):
                 # add two buses for each building link_out and link_in
                 for b in range(numberOfBuildings):
                     if "sh" in l["label"]:
-                        busesOut.append(self._busDict["spaceHeatingBus" + '__Building' + str(b+1)])
-                        busesIn.append(self._busDict["shDemandBus" + '__Building' + str(b+1)])
+                            busesOut.append(self._busDict["spaceHeatingBus" + '__Building' + str(b+1)])
+                            busesIn.append(self._busDict["shDemandBus" + '__Building' + str(b+1)])
                     elif "dhw" in l["label"]:
                         busesOut.append(self._busDict["domesticHotWaterBus" + '__Building' + str(b+1)])
                         busesIn.append(self._busDict["dhwDemandBus" + '__Building' + str(b+1)])
+                    elif "heat" in l["label"]:
+                        busesOut.append(self._busDict["heatBus" + l["label"][-1] + '__Building' + str(b + 1)])
+                        busesIn.append(self._busDict["heatDemandBus" + l["label"][-1] + '__Building' + str(b + 1)])
                     else:
                         busesOut.append(self._busDict["electricityBus" + '__Building' + str(b + 1)])
                         busesIn.append(self._busDict["electricityInBus" + '__Building' + str(b + 1)])

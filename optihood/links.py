@@ -47,3 +47,46 @@ class LinkBlock(SimpleBlock):
                     block.input_output_relation.add((g, t), (lhs == rhs))
 
         self.input_output_relation_build = BuildAction(rule=_input_output_relation)
+
+class LinkTemperatureDemand(solph_network.Transformer):
+    r"""
+        A transformer to model links between different different temperature levels and demand sink component
+        The constraint defined in a new constraint block equates the weighted sum of all the input flows
+        to the output flow.
+        """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def constraint_group(self):
+        return LinkTemperatureDemandBlock
+
+
+class LinkTemperatureDemandBlock(SimpleBlock):
+    r"""Block for the linear relation of nodes of type LinkTemperatureDemand"""
+    CONSTRAINT_GROUP = True
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def _create(self, group=None):
+        """Creates the two linear constraints for nodes of type Link
+        """
+        if group is None:
+            return None
+
+        m = self.parent_block()
+        in_flows = {n: [i for i in n.inputs.keys()] for n in group}
+        out_flows = {n: [o for o in n.outputs.keys()] for n in group}
+
+        def _input_output_relation(block):
+            """Constraint defining the relation between input and outputs."""
+            self.input_output_relation = Constraint(group, m.TIMESTEPS, noruleinit=True)
+
+            for t in m.TIMESTEPS:
+                for g in group:
+                    lhs = sum(m.flow[i, g, t]*g.conversion_factors[i][t] for i in in_flows[g])
+                    rhs = sum(m.flow[g, o, t] for o in out_flows[g])
+                    block.input_output_relation.add((g, t), (lhs == rhs))
+
+        self.input_output_relation_build = BuildAction(rule=_input_output_relation)
