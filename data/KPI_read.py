@@ -12,7 +12,7 @@ labelDict['SolarCollectorImpactTotal'] = 'SolarCollector'
 
 labelDict['CHPImpactTotal'] = 'CHP'
 labelDict['CHPElecImpactTotal'] = 'CHPe'
-labelDict['PVImpactTotal'] = 'PV'
+labelDict['PVImpactTotal'] = 'pv'
 labelDict['GridImpactTotal'] = 'Grid'
 
 labelDict['CHPshTotal'] = 'CHPh'
@@ -32,7 +32,7 @@ labelDict['GWHPTotal'] = 'GWHP'
 labelDict['GasBoilerTotal'] = 'GasBoiler'
 labelDict['HPTotal'] = 'HP'
 labelDict['ElectricRodTotal'] = 'ElectricRod'
-labelDict['PVTotal'] = 'PV'
+labelDict['PVTotal'] = 'pv'
 labelDict['gridTotal'] = 'Grid'
 labelDict['excessTotal'] = 'Excess'
 
@@ -48,14 +48,12 @@ for b in range(6):
     labelDict["(('solarCollector__Building" + str(b+1) + "', 'dhwStorageBus__Building" + str(b+1) + "'), 'flow')"] = "solarCollectordhw_B" + str(b+1)
 
     labelDict["('heat_solarCollector__Building" + str(b+1) + "', 'solarConnectBus__Building" + str(b+1) + "')"] = "solarConnectBus"
-    labelDict["('pv__Building" + str(b+1) + "', 'electricityProdBus__Building" + str(b+1) + "')"] = "PV"
+    labelDict["('pv__Building" + str(b+1) + "', 'electricityProdBus__Building" + str(b+1) + "')"] = "pv"
     labelDict["('CHP__Building" + str(b+1) + "', 'shSourceBus__Building" + str(b+1) + "')"] = 'CHP'
     labelDict["('GasBoiler__Building" + str(b+1) + "', 'shSourceBus__Building" + str(b+1) + "')"] = "GasBoiler"
     labelDict["('GWHP__Building" + str(b+1) + "', 'shSourceBus__Building" + str(b+1) + "')"] = 'GWHP'
     labelDict["('HP__Building" + str(b+1) + "', 'shSourceBus__Building" + str(b+1) + "')"] = 'HP'
     labelDict["('ElectricRod__Building" + str(b+1) + "', 'shSourceBus__Building" + str(b+1) + "')"] = 'ElectricRod'
-
-
 
 
 def run_kpi(dataDict, inputFileName, buildings, selected_days,
@@ -92,7 +90,7 @@ def run_kpi(dataDict, inputFileName, buildings, selected_days,
 if __name__ == "__main__":
     optMode = "group"  # parameter defining whether the results file corresponds to "indiv" or "group" optimization
     numberOfBuildings = 4 # number of buildings in the scenario
-    iterOptim = 5 # number of iterations to plot
+    iterOptim = 7 # number of iterations to plot
     iterRange = [1] + list(range(iterOptim, 1, -1)) # create list to define the order of to plot the iterations
 
     UseLabelDict = True
@@ -100,14 +98,14 @@ if __name__ == "__main__":
     rangeToConsider = pd.date_range('2021-01-01 00:00:00', '2021-12-31 23:00:00', freq='H')
 
     # link to the folder
-    folder = "group_sm_8ct/"
+    folder = "case_study/RE_initial/"
 
-    inputFileName = folder + "scenario"  # link to the scenario file
+    inputFileName = folder + "initial_scenario"  # link to the scenario file
     outputFileName = folder + "Results/KPI/"
 
     # link to csv or constant value
-    elecEmission = "excels/electricity_impact.csv"
-    elecCost = "group_sm_8ct/excels/electricity_cost.csv"
+    elecEmission = folder + "excels/electricity_impact.csv"
+    elecCost = folder + "excels/elC_2021_group_peak.csv"
     gasEmission = 0.228
     gasCost = 0.087
 
@@ -131,3 +129,4 @@ if __name__ == "__main__":
         results = run_kpi(dataDict, inputFileName, numberOfBuildings, selected_days,
                           elecEmission, elecCost, gasEmission, gasCost, rangeToConsider,
                           outputFileName, iter, iterRange, optMode, results)
+

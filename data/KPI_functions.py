@@ -193,11 +193,13 @@ def elec_gen(dataDict, buildings, timeStep):
     for b in range(1, buildings+1):
         elecGenList = []
         for tec in ["CHP", "pv"]:
-            if tec not in tec_considered:
-                tec_considered.append(tec)
-            tec_column = "(('" + str(tec) + "__Building" + str(b) + "', 'electricityProdBus__Building" + str(b) + "'), 'flow')"
+            tec_column = "(('" + str(tec) + "__Building" + str(b) + "', 'electricityProdBus__Building" + str(
+                b) + "'), 'flow')"
+
             if tec_column in list(dataDict["electricityProdBus__Building" + str(b)]):
                 elecGenList.append(tec_column)
+                if tec not in tec_considered:
+                    tec_considered.append(tec)
 
         if timeStep == "year":
             elecGenTec[labelDict["electricityProdBus__Building" + str(b)]] = dataDict["electricityProdBus__Building" + str(b)][elecGenList].sum(axis=0).reset_index(drop=True)
@@ -387,14 +389,15 @@ def unit_elecInput(dataDict, buildings):
     if "GWHP" in tec_considered:
         hpElecInput['GWHPTotal'] = hpElecInput[gwhp_columns].sum(axis=1)
     if "HP" in tec_considered:
-        hpElecInput['HPTotal'] = hpElecInput[hp_columns].sum(axis=1)
+        hpElecInput['HPTotal'] = hpElecInput[Totalhp_columns].sum(axis=1)
     if "ElectricRod" in tec_considered:
         hpElecInput['ElectricRodTotal'] = hpElecInput[ER_columns].sum(axis=1)
 
     hpElecInput['BuildingDemandElecTotal'] = hpElecInput[BD_columns].sum(axis=1)
 
     hpElecInput.index = hpElecInput.index
-
+    hpElecInput['ElecHeatTotal'] = sum([hpElecInput[str(tec) + 'Total']
+                                        for tec in ['GWHP', 'HP', 'ElectricRod'] if tec in tec_considered])
     return hpElecInput
 
 def res_cons(dataDict, buildings):
@@ -459,7 +462,7 @@ def cap_technology(dataDict, buildings, energy):
         capTec = capTec.loc[heat_tec_considered, :]
 
     elif energy == 'elec':
-        elec_tec_considered = [tec for tec in ['CHP', 'PV']
+        elec_tec_considered = [tec for tec in ['CHP', 'pv']
                                if tec in capTec.index]
         capTec = capTec.loc[elec_tec_considered, :]
 
@@ -516,7 +519,9 @@ def npc_technology(dataDict, inputFileName, buildings, gasCost, elecCost, optMod
 
     capTecHeat = cap_technology(dataDict, buildings, 'heat')
     capTecElec = cap_technology(dataDict, buildings, 'elec')
-    capTec = pd.concat([capTecHeat, capTecElec], axis=0).drop(index='CHPe')
+    capTec = pd.concat([capTecHeat, capTecElec], axis=0)
+    if "CHPe" in capTecElec.index:
+        capTec.drop(index='CHPe')
     capTec['total'] = capTec.sum(axis=1)
 
     sheetTrans = pd.read_excel(inputFileName + str(buildings) + ".xls", sheet_name="transformers")
@@ -705,7 +710,7 @@ def npc_technology(dataDict, inputFileName, buildings, gasCost, elecCost, optMod
                                           for tec in ["CHP", "GWHP", "GasBoiler", "HP", "solarCollector"]
                                           if tec in tec_considered])
                                      ) / (
-                                    sum([HeatTecHour['CHPTotal'].fillna(0)
+                                    sum([HeatTecHour[str(tec) + 'Total'].fillna(0)
                                         for tec in ["CHP", "GWHP", "GasBoiler", "HP", "solarCollector"]
                                         if tec in tec_considered])
                                     )
@@ -1096,7 +1101,7 @@ def full_load_hour(dataDict, buildings, iter, outputFileName):
 
 
     for tec in ['CHP', 'GasBoiler']:
-        if capTec.loc[str(tec), 'total']>0:
+        if str(tec) in capTec.index:
             fig = plt.figure()
             plt.plot(range(len(heatProd.index)), heatProd[[str(tec) + str(h) + str(b+1) for h in ['sh', 'dhw']
                                                                for b in range(buildings)]].sum(axis=1)
@@ -1120,7 +1125,7 @@ def full_load_hour(dataDict, buildings, iter, outputFileName):
             None
 
     for tec in ElectecInResults:
-        if capTec.loc[str(tec), 'total']>0:
+        if str(tec) in capTec.index:
             fig = plt.figure()
             plt.plot(range(len(heatProd.index)), heatProd[[str(tec) + "_B" + str(b+1)
                                                                for b in range(buildings)]].sum(axis=1)
@@ -1150,13 +1155,13 @@ def full_load_hour(dataDict, buildings, iter, outputFileName):
 
 
     for tec in ['CHP',  'GasBoiler']:
-        if capTec.loc[str(tec), 'total']>0:
+        if str(tec) in capTec.index:
             plt.plot(range(len(heatProd.index)), heatProd[[str(tec) + str(h) + str(b+1) for h in ['sh', 'dhw']
                                                            for b in range(buildings)]].sum(axis=1)
                      .sort_values(ascending=False)/capTec.loc[str(tec), 'total'], label=tec + " (" + str(int(capTec.loc[tec,'total'])) + "kW)")
 
     for tec in ElectecInResults:
-        if capTec.loc[str(tec), 'total']>0:
+        if str(tec) in capTec.index:
             plt.plot(range(len(heatProd.index)), heatProd[[str(tec) + '_B' + str(b+1)
                                                            for b in range(buildings)]].sum(axis=1)
                      .sort_values(ascending=False)/capTec.loc[str(tec), 'total'], label=tec + " (" + str(int(capTec.loc[tec,'total'])) + "kW)")
@@ -1381,19 +1386,19 @@ def co2_balance(dataDict, inputFileName, buildings, selected_days, gasEmission, 
 
         gasImpactBuilding = gasEmission
 
-
-        CHPData = tec_Data(sheetTrans, str(b), 'CHP')
-        CHPElecShare = 1/(float(CHPData['efficiency'].split(",")[1]) + float(CHPData['efficiency'].split(",")[0]))\
-                         * float(CHPData['efficiency'].split(",")[0])
-        capImpact[b,"CHPElecCo2"] = capTec.loc["CHP", "kW in " + str(b)] * CHPData['impact_cap'] \
-                                    * CHPElecShare / (CHPData['lifetime'].mean())
-
         if 'CHP_B' + str(b) in elecGenTec.columns:
+            CHPData = tec_Data(sheetTrans, str(b), 'CHP')
+            CHPElecShare = 1/(float(CHPData['efficiency'].split(",")[1]) + float(CHPData['efficiency'].split(",")[0]))\
+                             * float(CHPData['efficiency'].split(",")[0])
+            capImpact[b,"CHPElecCo2"] = capTec.loc["CHP", "kW in " + str(b)] * CHPData['impact_cap'] \
+                                        * CHPElecShare / (CHPData['lifetime'].mean())
+
             elecGenTec['CHPGasImpact' + str(b)] = gasImpactBuilding * CHPElecShare \
                                                   * elecGenTec['CHP_B' + str(b)] / float(CHPData['efficiency'].split(",")[0])
             elecGenTec['CHPImpact' + str(b)] = elecGenTec['CHPGasImpact' + str(b)] + capImpact[b,"CHPElecCo2"]*elecGenTec['CHP_B' + str(b)]/(elecGenTec['CHP_B' + str(b)]).sum()
 
         else:
+            capImpact[b, "CHPElecCo2"] = 0
             elecGenTec['CHPGasImpact' + str(b)] = 0
             elecGenTec['CHPImpact' + str(b)] = 0
 
@@ -1417,13 +1422,12 @@ def co2_balance(dataDict, inputFileName, buildings, selected_days, gasEmission, 
             heatGenTec['CHPImpact' + str(b)] = heatGenTec['CHPGasImpact' + str(b)] + capImpact[b,"CHPHeatCo2"]*heatGenTec['CHP' + str(b)]/(heatGenTec['CHP' + str(b)]).sum()
 
         else:
+            capImpact[b, "CHPHeatCo2"] = 0
             heatGenTec['CHPGasImpact' + str(b)] = 0
             heatGenTec['CHPImpact' + str(b)] = 0
 
         ### impact of electricity input
-        print(capImpact[b,"pvElecCo2"])
-        print(capImpact[b,"CHPElecCo2"])
-        print(elecGenTec['impact'])
+
         elecImpactBuilding = ElecInfluenceBuilding(dataDict, buildings, capImpact[b,"pvElecCo2"],
                                                    capImpact[b,"CHPElecCo2"], elecGenTec['impact'], b, 'co2')
 
@@ -1798,14 +1802,14 @@ def energy_flexibility(dataDict, inputFileName, buildings, gasCost, elecCost, ga
     else:
 
         results['flexibilityFactor', 'co2'][iter] = (float(elecInput.loc[elecInput.index.isin(gridPeriods['co2', 'lowPeriods'].index),
-                                                                         'HPTotal'].sum()) \
+                                                                         'ElecHeatTotal'].sum()) \
                                                      - float(elecInput.loc[elecInput.index.isin(gridPeriods['co2', 'highPeriods'].index),
-                                                                           'HPTotal'].sum() )
+                                                                           'ElecHeatTotal'].sum() )
                                                      ) / (
                                                      float(elecInput.loc[elecInput.index.isin(gridPeriods['co2', 'lowPeriods'].index),
-                                                                                'HPTotal'].sum()) \
+                                                                                'ElecHeatTotal'].sum()) \
                                                      + float(elecInput.loc[elecInput.index.isin(gridPeriods['co2', 'highPeriods'].index),
-                                                                                  'HPTotal'].sum())
+                                                                                  'ElecHeatTotal'].sum())
                                                     )
 
     if len(gridPeriods['cost', 'lowPeriods']) == 0 & len(gridPeriods['cost', 'highPeriods']) == 0:
@@ -1813,14 +1817,14 @@ def energy_flexibility(dataDict, inputFileName, buildings, gasCost, elecCost, ga
         print('flexbility Factor for costs is set to 0, no periods for cost detected')
     else:
         results['flexibilityFactor', 'cost'][iter] = (float(elecInput.loc[elecInput.index.isin(gridPeriods['cost', 'lowPeriods'].index),
-                                                                          'HPTotal'].sum()) \
+                                                                          'ElecHeatTotal'].sum()) \
                                                       - float(elecInput.loc[elecInput.index.isin(gridPeriods['cost', 'highPeriods'].index),
-                                                                            'HPTotal'].sum() )
+                                                                            'ElecHeatTotal'].sum() )
                                                       ) / (
                                                              float(elecInput.loc[elecInput.index.isin(gridPeriods['cost', 'lowPeriods'].index),
-                                                                                 'HPTotal'].sum()) \
+                                                                                 'ElecHeatTotal'].sum()) \
                                                              + float(elecInput.loc[elecInput.index.isin(gridPeriods['cost', 'highPeriods'].index),
-                                                                                   'HPTotal'].sum())
+                                                                                   'ElecHeatTotal'].sum())
                                                      )
 
 
