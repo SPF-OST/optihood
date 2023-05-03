@@ -6,7 +6,20 @@ from oemof.thermal.stratified_thermal_storage import (
 import oemof.solph as solph
 
 class ElectricalStorage(solph.components.GenericStorage):
-    def __init__(self, buildingLabel, input, output, loss_rate, initial_storage, efficiency_in, efficiency_out, capacity_min, capacity_max, epc, base, varc, env_flow, env_capa):
+    def __init__(self, buildingLabel, input, output, loss_rate, initial_storage, efficiency_in, efficiency_out, capacity_min, capacity_max, epc, base, varc, env_flow, env_capa, dispatchMode):
+        if dispatchMode:
+            investArgs = {'minimum':capacity_min,
+                    'maximum':capacity_max,
+                    'ep_costs':epc,
+                    'env_per_capa':env_capa}
+        else:
+            investArgs = {'minimum':capacity_min,
+                    'maximum':capacity_max,
+                    'ep_costs':epc,
+                    'existing':0,
+                    'nonconvex':True,
+                    'offset':base,
+                    'env_per_capa':env_capa}
         super(ElectricalStorage, self).__init__(
             label="electricalStorage"+'__'+buildingLabel,
             inputs={
@@ -22,20 +35,26 @@ class ElectricalStorage(solph.components.GenericStorage):
             Balanced=False,
             invest_relation_input_capacity=efficiency_in,
             invest_relation_output_capacity=efficiency_out,
-            investment=solph.Investment(
-                minimum=capacity_min,
-                maximum=capacity_max,
-                ep_costs=epc,
-                existing=0,
-                nonconvex=True,
-                offset=base,
-                env_per_capa=env_capa,
-            ),
+            investment=solph.Investment(**investArgs),
         )
 
 class ThermalStorage(solph.components.GenericStorage):
-    def __init__(self, label1, label2, stratifiedStorageParams, input, output, initial_storage, min, max, volume_cost, base, varc, env_flow, env_cap):
+    def __init__(self, label1, label2, stratifiedStorageParams, input, output, initial_storage, min, max, volume_cost, base, varc, env_flow, env_cap, dispatchMode):
         u_value, loss_rate, fixed_losses_relative, fixed_losses_absolute, capacity_min, capacity_max, epc, env_capa = self._precalculate(stratifiedStorageParams,label2,min,max,volume_cost,env_cap)
+        if dispatchMode:
+            investArgs={'minimum':capacity_min,
+                'maximum':capacity_max,
+                'ep_costs':epc,
+                'env_per_capa':env_capa}
+        else:
+            investArgs={'minimum':capacity_min,
+                'maximum':capacity_max,
+                'ep_costs':epc,
+                'existing':0,
+                'nonconvex':True,
+                'offset':base,
+                'env_per_capa':env_capa}
+
         super(ThermalStorage, self).__init__(
             label=label1,
             inputs={
@@ -53,15 +72,7 @@ class ThermalStorage(solph.components.GenericStorage):
             invest_relation_input_capacity=1,
             invest_relation_output_capacity=1,
             Balanced=False,
-            investment=solph.Investment(
-                minimum=capacity_min,
-                maximum=capacity_max,
-                ep_costs=epc,
-                existing=0,
-                nonconvex=True,
-                offset=base,
-                env_per_capa=env_capa,
-            ),
+            investment=solph.Investment(**investArgs),
         )
 
     def _precalculate(self, data, label,min,max,volume_cost,env_cap):

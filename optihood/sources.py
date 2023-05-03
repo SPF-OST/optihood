@@ -7,7 +7,7 @@ import pvlib
 class PV(solph.Source):
     def __init__(self, label, buildingLabel, outputs, peripheral_losses, latitude, longitude,
                  pv_tilt, pv_efficiency, roof_area, zenith_angle, pv_azimuth, irradiance_global, irradiance_diffuse, temp_amb_pv, capacityMin,
-                 capacityMax, epc, base, env_capa, env_flow, varc):
+                 capacityMax, epc, base, env_capa, env_flow, varc, dispatchMode):
         # Creation of a df with 3 columns
         data = self.computePvSolarPosition(irradiance_diffuse, irradiance_global, latitude, longitude, pv_azimuth,
                                            pv_tilt, temp_amb_pv)
@@ -18,19 +18,25 @@ class PV(solph.Source):
             self.surface_used = self._calculateArea(zenith_angle, pv_tilt, pv_azimuth, pv_efficiency)
         else:
             self.surface_used = np.nan
-
+        if dispatchMode:
+            investArgs = {'ep_costs':epc,
+                         'minimum':capacityMin,
+                         'maximum':capacityMax,
+                         'space':self.surface_used,
+                         'roof_area':roof_area,
+                         'env_per_capa':env_capa}
+        else:
+            investArgs={'ep_costs':epc,
+                         'minimum':capacityMin,
+                         'maximum':capacityMax,
+                         'nonconvex':True,
+                         'space':self.surface_used,
+                         'roof_area':roof_area,
+                         'offset':base,
+                         'env_per_capa':env_capa}
         super(PV, self).__init__(label=label + '__' + buildingLabel,
                                  outputs={outputs: solph.Flow(
-                                     investment=solph.Investment(
-                                         ep_costs=epc,
-                                         minimum=capacityMin,
-                                         maximum=capacityMax,
-                                         nonconvex=True,
-                                         space=self.surface_used,
-                                         roof_area=roof_area,
-                                         offset=base,
-                                         env_per_capa=env_capa,
-                                     ),
+                                     investment=solph.Investment(**investArgs),
                                      variable_costs=varc,
                                      env_per_flow=env_flow,
                                      max=self.pv_electricity
