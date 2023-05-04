@@ -1,6 +1,6 @@
 import oemof.solph as solph
 import numpy as np
-import optihood.combined_prod as cp
+import optihood.optihood.combined_prod as cp
 from oemof.thermal.solar_thermal_collector import flat_plate_precalc
 
 class SolarCollector(solph.Transformer):
@@ -165,10 +165,12 @@ class GeothermalHeatPumpLinear:
                         'offset':base,
                         'env_per_capa':env_capa*nomEff,
                     }
+        inputDict = {input[0]: solph.Flow(investment=solph.Investment(**investArgs))}
+        if len(input)>1:
+            # Two input HP, second input is for Q condensor
+            inputDict.update({input[1]:solph.Flow()})
         self.__geothermalheatpump = cp.CombinedTransformer(label='GWHP' + '__' + buildingLabel,
-                                            inputs={input: solph.Flow(
-                                                investment=solph.Investment(**investArgs),
-                                            )},
+                                            inputs=inputDict,
                                             outputs={outputSH: solph.Flow(
                                                           variable_costs=varc,
                                                           env_per_flow=env_flow,
@@ -201,7 +203,6 @@ class GeothermalHeatPumpLinear:
         else:
             print("Transformer label not identified...")
             return []
-
 
 class CHP:
     "Information about the model can be found in combined_pro.py CombinedCHP"

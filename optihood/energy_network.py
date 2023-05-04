@@ -11,9 +11,9 @@ try:
     import matplotlib.pyplot as plt
 except ImportError:
     plt = None
-from optihood.constraints import *
-from optihood.buildings import Building
-from optihood.links import Link
+from optihood.optihood.constraints import *
+from optihood.optihood.buildings import Building
+from optihood.optihood.links import Link
 
 
 class EnergyNetworkClass(solph.EnergySystem):
@@ -174,7 +174,12 @@ class EnergyNetworkClass(solph.EnergySystem):
         nodesData["building_model"]["tAmb"] = np.array(nodesData["weather_data"]["tre200h0"])
         nodesData["building_model"]["IrrH"] = np.array(nodesData["weather_data"]["gls"])/1000       # conversion from W/m2 to kW/m2
         if (nodesData['demand']['building model'].notna().any()) and (nodesData['demand']['building model'] == 'Yes').any():
-            nodesData["building_model"]["Qocc"] = np.array(pd.read_csv(r"..\excels\Internal_gains.csv", delimiter=';', header=0)["Total (kW)"])
+            internalGainsPath = nodesData["profiles"].loc[nodesData["profiles"]["name"] == "internal_gains", "path"].iloc[0]
+            if not os.path.exists(internalGainsPath):
+                logging.error("Error in internal gains file path for building model.")
+            internalGains = pd.read_csv(internalGainsPath, delimiter=';')
+            for i in range(numBuildings):
+                nodesData["building_model"][f"Qocc {i+1}"] = internalGains[f'Total (kW) {i+1}'].values
         else:
             logging.info("Building model either not selected or invalid string value entered")
         logging.info("Data from Excel file {} imported.".format(filePath))
@@ -199,6 +204,8 @@ class EnergyNetworkClass(solph.EnergySystem):
             self.__gbEff = float(data["transformers"][data["transformers"]["label"] == "GasBoiler"]["efficiency"].iloc[0].split(",")[0])
         if any(data["transformers"]["label"] == "ElectricRod"):
             self.__elRodEff = float(data["transformers"][data["transformers"]["label"] == "ElectricRod"]["efficiency"].iloc[0])
+        if any(data["transformers"]["label"] == "Chiller"):
+            self.__chillerEff = float(data["transformers"][data["transformers"]["label"] == "Chiller"]["efficiency"].iloc[0])
         # Storage conversion L - kWh to display the L value
         self.__Lsh = 4.186 * (self.__temperatureSH - data["stratified_storage"].loc["shStorage", "temp_c"]) / 3600
         self.__Ldhw = 4.186 * (self.__temperatureDHW - data["stratified_storage"].loc["dhwStorage", "temp_c"]) / 3600
@@ -313,7 +320,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         return envImpact, capacitiesTransformersNetwork, capacitiesStoragesNetwork
 
     def _updateCapacityDictInputInvestment(self, transformerFlowCapacityDict):
-        components = ["CHP", "GWHP", "HP", "GasBoiler", "ElectricRod"]
+        components = ["CHP", "GWHP", "HP", "GasBoiler", "ElectricRod", "Chiller"]
         for inflow, outflow in list(transformerFlowCapacityDict):
             index = (inflow, outflow)
             if "__" in str(inflow):
@@ -321,7 +328,10 @@ class EnergyNetworkClass(solph.EnergySystem):
             elif "__" in str(outflow):
                 buildingLabel = str(outflow).split("__")[1]
             if any(c in str(outflow) for c in components):
-                newoutFlow = f"shSourceBus__{buildingLabel}"
+                if "Chiller" in str(outflow):
+                    newoutFlow = f"gridBus__{buildingLabel}"
+                else:
+                    newoutFlow = f"shSourceBus__{buildingLabel}"
                 newIndex = (outflow,newoutFlow)
                 transformerFlowCapacityDict[newIndex] = transformerFlowCapacityDict.pop(index)
 
@@ -419,6 +429,14 @@ class EnergyNetworkClass(solph.EnergySystem):
                             if "shSource" in t.label:
                                 capacitiesTransformers[(second, t.label)] = capacitiesTransformers[(
                                 first, second)] * self.__elRodEff
+                                del capacitiesTransformers[(first, second)]
+            elif "Chiller" in second:
+                for index, value in enumerate(self.nodes):
+                    if second == value.label:
+                        test = self.nodes[index].inputs
+                        for t in test.keys():
+                            if "grid" in t.label or "electricity" in t.label:
+                                capacitiesTransformers[(second, t.label)] = capacitiesTransformers[(first, second)] * self.__chillerEff
                                 del capacitiesTransformers[(first, second)]
 
         return capacitiesTransformers
@@ -549,10 +567,19 @@ class EnergyNetworkClass(solph.EnergySystem):
             self.__envImpactTechnologies[buildingLabel].update({i: capacityTransformers[(i, o)] * self.__envParam[i][2] +
                                                                    sum(sum(solph.views.node(self._optimizationResults,
                                                                                             t[0])["sequences"][((t[1], t[0]), "flow")] *
-                                                                           self.__envParam[t[1]][1] * ('electricityBus' in t[0]) + \
+                                                                           self.__envParam[t[1]][1] * ('electricityBus' in t[0] or 'gridBus' in t[0])*('Chiller' not in t[1]) + \
+                                                                           solph.views.node(self._optimizationResults,
+                                                                                            t[0])["sequences"][
+                                                                               ((t[1], t[0]), "flow")] *self.__chillerEff*
+                                                                           self.__envParam[t[1]][1] * (
+                                                                                       'electricityBus' in t[0] or 'gridBus' in t[0]) * (
+                                                                                       'Chiller' in t[1]) +
                                                                            solph.views.node(self._optimizationResults,
                                                                                             t[0])["sequences"][((t[1], t[0]), "flow")] *
-                                                                           self.__envParam[t[1]][0] * ('electricityBus' not in t[0]))
+                                                                           self.__envParam[t[1]][0] * ('electricityBus' not in t[0] or 'gridBus' not in t[0])*('Chiller' not in t[1])
+                                                                           + solph.views.node(self._optimizationResults,
+                                                                                            t[0])["sequences"][((t[1], t[0]), "flow")] *self.__chillerEff *
+                                                                           self.__envParam[t[1]][0] * ('electricityBus' not in t[0] or 'gridBus' not in t[0])*('Chiller' in t[1]))
                                                                        for t in technologies if t[1] == i)
                                                                 for i, o in capacityTransformers})
             self.__envImpactTechnologies[buildingLabel].update({x: capacityStorages[x] * self.__envParam[x][2] +

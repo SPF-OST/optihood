@@ -3,10 +3,10 @@ import oemof.solph as solph
 from oemof.tools import logger
 from oemof.tools import economics
 import logging
-from optihood.converters import *
-from optihood.sources import PV
-from optihood.storages import ElectricalStorage, ThermalStorage
-from optihood.sinks import SinkRCModel
+from optihood.optihood.converters import *
+from optihood.optihood.sources import PV
+from optihood.optihood.storages import ElectricalStorage, ThermalStorage
+from optihood.optihood.sinks import SinkRCModel, Chiller
 
 intRate = 0.05
 
@@ -257,13 +257,16 @@ class Building:
                 if de["building model"] == 'Yes':   # Should a building model be used?
                     # Only valid for SH demands at the moment
                     # create sink
+                    # Building model with a possibility of output bus
+                    outputBusLabel = de['building model out']+'__'+self.__buildingLabel
                     self.__nodesList.append(
                         SinkRCModel(
                             tAmbient=buildingModelParams['tAmb'].values,
                             totalIrradiationHorizontal=buildingModelParams['IrrH'].values,
-                            heatGainOccupants=buildingModelParams['Qocc'].values,
+                            heatGainOccupants=buildingModelParams[f"Qocc {de['building']}"].values,
                             label=sinkLabel,
                             inputs={self.__busDict[inputBusLabel]: solph.Flow()},
+                            outputs={self.__busDict[outputBusLabel]: solph.Flow()}
                         )
                     )
                 else:
@@ -318,9 +321,10 @@ class Building:
     def _addGeothemalHeatPump(self, data, temperatureDHW, temperatureSH, temperatureAmb, opt, mergeLinkBuses, dispatchMode):
         gwhpSHLabel = data["label"] + '__' + self.__buildingLabel
         if mergeLinkBuses and data["from"] in self.__linkBuses:
-            inputBusLabel = data["from"]
+            inputBusLabel = [data["from"]]
         else:
-            inputBusLabel = data["from"] + '__' + self.__buildingLabel
+            inputBusLabel = [i + '__' + self.__buildingLabel for i in data["from"].split(",")]
+        inputBuses = [self.__busDict[i] for i in inputBusLabel]
         outputSHBusLabel = data["to"].split(",")[0] + '__' + self.__buildingLabel
         outputDHWBusLabel = data["to"].split(",")[1] + '__' + self.__buildingLabel
         envImpactPerCapacity = float(data["impact_cap"]) / float(data["lifetime"])
@@ -329,7 +333,7 @@ class Building:
         else:
             capacityMinSH = float(data["capacity_min"])
         geothermalheatPump = GeothermalHeatPumpLinear(self.__buildingLabel, temperatureDHW, temperatureSH, temperatureAmb,
-                                  self.__busDict[inputBusLabel],
+                                  inputBuses,
                                   self.__busDict[outputSHBusLabel],
                                   self.__busDict[outputDHWBusLabel],
                                   capacityMinSH, float(data["capacity_SH"]),float(data["efficiency"]),
@@ -495,6 +499,33 @@ class Building:
 
         self.__envParam[elRodLabel] = [float(data["heat_impact"]), 0, envImpactPerCapacity]
 
+    def _addChiller(self, data, temperatureSH, temperatureGround, opt, mergeLinkBuses, dispatchMode):
+        chillerLabel = data["label"] + '__' + self.__buildingLabel
+        if mergeLinkBuses and data["from"] in self.__linkBuses:
+            inputBusLabel = [data["from"]]
+        else:
+            inputBusLabel = [i + '__' + self.__buildingLabel for i in data["from"].split(",")]
+        inputBuses = [self.__busDict[i] for i in inputBusLabel]
+        envImpactPerCapacity = float(data["impact_cap"]) / float(data["lifetime"])
+        if data["capacity_min"] == 'x':
+            capacityMinSH = float(data["capacity_SH"])
+        else:
+            capacityMinSH = float(data["capacity_min"])
+        self.__nodesList.append(Chiller(label=chillerLabel,
+                          tSH=temperatureSH,
+                          tGround=temperatureGround,
+                          inputBuses=inputBuses,
+                          nomEff=float(data['efficiency']), capacityMin=capacityMinSH, capacityMax=float(data["capacity_SH"]),
+                          epc=self._calculateInvest(data)[0] * (opt == "costs") + envImpactPerCapacity*(opt == "env"), base=self._calculateInvest(data)[1] * (opt == "costs"), env_capa=envImpactPerCapacity,
+                          dispatchMode=dispatchMode
+                        ))
+        elecInputBusLabel = [i for i in inputBusLabel if "grid" in i or "electricity" in i][0]
+        self.__technologies.append([elecInputBusLabel, chillerLabel])
+
+        self.__costParam[chillerLabel] = [self._calculateInvest(data)[0], self._calculateInvest(data)[1]]
+
+        self.__envParam[chillerLabel] = [float(data["heat_impact"]), 0, envImpactPerCapacity]
+
     def addTransformer(self, data, temperatureDHW, temperatureSH, temperatureAmb, temperatureGround, opt, mergeLinkBuses, dispatchMode):
         for i, t in data.iterrows():
             if t["active"]:
@@ -510,6 +541,8 @@ class Building:
                     self._addGasBoiler(t, opt, dispatchMode)
                 elif t["label"] == "ElectricRod":
                     self._addElectricRod(t, opt, mergeLinkBuses, dispatchMode)
+                elif t["label"] == "Chiller":
+                    self._addChiller(t, temperatureSH, temperatureGround, opt, mergeLinkBuses, dispatchMode)
                 else:
                     logging.warning("Transformer label not identified...")
 

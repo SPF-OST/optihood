@@ -42,6 +42,10 @@ class CombinedTransformerBlock(SimpleBlock):
 
         for n in group:
             n.inflow = list(n.inputs)[0]
+            if len(list(n.inputs)) > 1:
+                n.inflowQcond = list(n.inputs)[1]
+            else:
+                n.inflowQcond = 0
             n.flowSH = [k for k, v in n.efficiency.items()][0]
             n.flowDHW = [k for k, v in n.efficiency.items()][1]
             n.outputSH = [o for o in n.outputs if n.flowSH == o][0]
@@ -65,6 +69,21 @@ class CombinedTransformerBlock(SimpleBlock):
         )
         self.input_output_relation_build = BuildAction(
             rule=_input_output_relation_rule
+        )
+
+        def _second_input_relation_rule(block):
+            """Constraint for evaluation of Q_condensor i.e. the second input"""
+            for t in m.TIMESTEPS:
+                for g in group:
+                    lhs = (len(list(g.inputs)) > 1) * m.flow[g.inflowQcond, g, t]
+                    rhs = (len(list(g.inputs)) > 1) * (m.flow[g, g.outputSH, t] + m.flow[g, g.outputDHW, t] - m.flow[g.inflow, g, t])
+                    block.input_relation.add((g, t), (lhs == rhs))
+
+        self.input_relation = Constraint(
+            group, m.TIMESTEPS, noruleinit=True
+        )
+        self.input_relation_build = BuildAction(
+            rule=_second_input_relation_rule
         )
 
 

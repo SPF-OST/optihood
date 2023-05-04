@@ -11,10 +11,11 @@ from pyomo.environ import Expression
 from pyomo.environ import NonNegativeReals, Reals, Boolean
 from pyomo.environ import Set
 from pyomo.environ import Var
+import numpy as np
 
 class SinkRCModel(solph.Sink):
     """
-    Building RC Model implemented as a custom Sink component
+    Building RC Model with a possibility of heat outflow (through chiller) as well
 
     Parameters
     ----------
@@ -95,9 +96,10 @@ class SinkRCModelBlock(SimpleBlock):
 
         m = self.parent_block()
 
-        # for all Sink RC model components get inflow from a bus
+        # for all Sink RC model components get inflow and outflow
         for n in group:
             n.inflow = list(n.inputs)[0]
+            n.outflow = list(n.outputs)[0]
 
         #  ************* SET OF CUSTOM SINK COMPONENTS *****************************
 
@@ -238,6 +240,32 @@ class SinkRCModelBlock(SimpleBlock):
         self.q_distribution_lower_limit = Constraint(group, m.TIMESTEPS, noruleinit=True)
         self.q_distribution_lower_limit_build = BuildAction(rule=_q_distribution_lower_limit_rule)
 
+        def _q_out_upper_limit_rule(block):
+            """q out < = maximum limit
+            """
+            for t in m.TIMESTEPS:
+                for g in group:
+                    lhs = m.flow[g, g.outflow, t]
+                    rhs = g.qDistributionMax
+                    # rhs = g.qDistributionMax * self.Xsc_dis[g, t]
+                    block.q_out_upper_limit.add((g, t), (lhs <= rhs))
+
+        self.q_out_upper_limit = Constraint(group, m.TIMESTEPS, noruleinit=True)
+        self.q_out_upper_limit_build = BuildAction(rule=_q_out_upper_limit_rule)
+
+        def _q_out_lower_limit_rule(block):
+            """q out > = minimum limit
+            """
+            for t in m.TIMESTEPS:
+                for g in group:
+                    lhs = m.flow[g, g.outflow, t]
+                    rhs = g.qDistributionMin
+                    # rhs = g.qDistributionMin * self.Xsc_dis[g, t]
+                    block.q_out_lower_limit.add((g, t), (lhs >= rhs))
+
+        self.q_out_lower_limit = Constraint(group, m.TIMESTEPS, noruleinit=True)
+        self.q_out_lower_limit_build = BuildAction(rule=_q_out_lower_limit_rule)
+
         def _indoor_temperature_equation_rule(block):
             """discrete state space equation for tIndoor
             """
@@ -281,8 +309,87 @@ class SinkRCModelBlock(SimpleBlock):
                 for t in m.TIMESTEPS:
                     if t != m.TIMESTEPS[-1]:
                         lhs = self.tDistribution[g, t + 1]
-                        rhs = c1 * self.tIndoor[g, t] + c2 * self.tDistribution[g, t] + c3 * m.flow[g.inflow, g, t]
+                        rhs = c1 * self.tIndoor[g, t] + c2 * self.tDistribution[g, t] + c3 * (m.flow[g.inflow, g, t] - m.flow[g, g.outflow, t])
                         block.distribution_temperature_equation.add((g, t), (lhs == rhs))
 
         self.distribution_temperature_equation = Constraint(group, m.TIMESTEPS, noruleinit=True)
         self.distribution_temperature_equation_build = BuildAction(rule=_distribution_temperature_equation_rule)
+
+
+class Chiller(solph.Sink):
+    r"""
+       Chiller is a sink with two input flows, W_elec and Q_heat
+       The input relation constraint is defined in a new constraint block
+       """
+    def __init__(self, tSH, tGround, nomEff, epc, capacityMin, capacityMax, env_capa, base, inputBuses, dispatchMode, *args, **kwargs):
+        self.cop = sequence(self._calculateCop(tSH,tGround))
+        if dispatchMode:
+            investArgs= {'ep_costs':epc*nomEff,
+                        'minimum':capacityMin/nomEff,
+                        'maximum':capacityMax/nomEff,
+                        'env_per_capa':env_capa*nomEff,
+                    }
+        else:
+            investArgs= {'ep_costs':epc*nomEff,
+                        'minimum':capacityMin/nomEff,
+                        'maximum':capacityMax/nomEff,
+                        'nonconvex':True,
+                        'offset':base,
+                        'env_per_capa':env_capa*nomEff,
+                    }
+
+        inputDict = {i: solph.Flow(investment=solph.Investment(**investArgs)) for i in inputBuses if "gridBus" in i.label or "electricity" in i.label}
+        inputDict.update({i: solph.Flow() for i in inputBuses if "gridBus" not in i.label and "electricity" not in i.label})
+        super().__init__(inputs=inputDict, *args, **kwargs)
+
+    def _calculateCop(self, tHigh, tLow):
+        coefW = [0.1600, -1.2369, 19.9391, 19.3448, 7.1057, -1.4048]
+        coefQ = [13.8978, 114.8358, -9.3634, -179.4227, 342.3363, -12.4969]
+        QCondenser = coefQ[0] + (coefQ[1] * tLow / 273.15) + (coefQ[2] * tHigh / 273.15) + (
+                coefQ[3] * tLow / 273.15 * tHigh / 273.15) + (
+                             coefQ[4] * (tLow / 273.15) ** 2) + (
+                             coefQ[5] * (tHigh / 273.15) ** 2)
+        WCompressor = coefW[0] + (coefW[1] * tLow / 273.15) + (coefW[2] * tHigh / 273.15) + (
+                coefW[3] * tLow / 273.15 * tHigh / 273.15) + (
+                             coefW[4] * (tLow / 273.15) ** 2) + (
+                              coefW[5] * (tHigh / 273.15) ** 2)
+        cop = np.divide(QCondenser, WCompressor)
+        return cop
+
+    def constraint_group(self):
+        return ChillerBlock
+
+class ChillerBlock(SimpleBlock):
+    r"""Block for the linear relation between input flows of chiller
+        """
+    CONSTRAINT_GROUP = True
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def _create(self, group=None):
+        """Creates the linear constraint
+        """
+        if group is None:
+            return None
+
+        m = self.parent_block()
+
+        for n in group:
+            n.inflowElec = list(n.inputs)[0]
+            n.inflowQcond = list(n.inputs)[1]
+
+        def _input_relation_rule(block):
+            """Connection between input and outputs."""
+            for t in m.TIMESTEPS:
+                for g in group:
+                    lhs = m.flow[g.inflowElec, g, t]*(g.cop[t]-1)
+                    rhs = m.flow[g.inflowQcond, g, t]
+                    block.input_relation.add((g, t), (lhs == rhs))
+
+        self.input_relation = Constraint(
+            group, m.TIMESTEPS, noruleinit=True
+        )
+        self.input_relation_build = BuildAction(
+            rule=_input_relation_rule
+        )
