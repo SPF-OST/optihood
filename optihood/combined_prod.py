@@ -43,9 +43,9 @@ class CombinedTransformerBlock(SimpleBlock):
         for n in group:
             n.inflow = list(n.inputs)[0]
             if len(list(n.inputs)) > 1:
-                n.inflowQcond = list(n.inputs)[1]
+                n.inflowQevap = list(n.inputs)[1]
             else:
-                n.inflowQcond = 0
+                n.inflowQevap = 0
             n.flowSH = [k for k, v in n.efficiency.items()][0]
             n.flowDHW = [k for k, v in n.efficiency.items()][1]
             n.outputSH = [o for o in n.outputs if n.flowSH == o][0]

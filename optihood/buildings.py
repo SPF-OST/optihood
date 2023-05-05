@@ -6,7 +6,7 @@ import logging
 from optihood.optihood.converters import *
 from optihood.optihood.sources import PV
 from optihood.optihood.storages import ElectricalStorage, ThermalStorage
-from optihood.optihood.sinks import SinkRCModel, Chiller
+from optihood.optihood.sinks import SinkRCModel
 
 intRate = 0.05
 
@@ -271,7 +271,9 @@ class Building:
                     )
                 else:
                     # set static inflow values, if any
-                    inflow_args = {"nominal_value": float(de["nominal value"])}
+                    inflow_args = {}
+                    if int(de["fixed"])==1:
+                        inflow_args["nominal_value"]: float(de["nominal value"])
                     # get time series for node and parameter
                     for col in timeseries.columns.values:
                         if col == de["label"]:
@@ -506,6 +508,7 @@ class Building:
         else:
             inputBusLabel = [i + '__' + self.__buildingLabel for i in data["from"].split(",")]
         inputBuses = [self.__busDict[i] for i in inputBusLabel]
+        outputBus = self.__busDict[data['to']+ '__' + self.__buildingLabel]
         envImpactPerCapacity = float(data["impact_cap"]) / float(data["lifetime"])
         if data["capacity_min"] == 'x':
             capacityMinSH = float(data["capacity_SH"])
@@ -515,6 +518,7 @@ class Building:
                           tSH=temperatureSH,
                           tGround=temperatureGround,
                           inputBuses=inputBuses,
+                          outputBus= outputBus,
                           nomEff=float(data['efficiency']), capacityMin=capacityMinSH, capacityMax=float(data["capacity_SH"]),
                           epc=self._calculateInvest(data)[0] * (opt == "costs") + envImpactPerCapacity*(opt == "env"), base=self._calculateInvest(data)[1] * (opt == "costs"), env_capa=envImpactPerCapacity,
                           dispatchMode=dispatchMode
