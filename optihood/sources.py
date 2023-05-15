@@ -70,13 +70,13 @@ class PV(solph.Source):
         data['pv_ira'] = total_irradiation['poa_global']
         return data
 
-    # model according to Energy management algorithms description. D6.2 v1.0
+    # model according to TriHP Energy management algorithms description. D6.2 v1.0
     # nominal power is 1 KW due to the normed optimizer
     def pv_precalc(self, temp_amb, i_H_t, a1=17.23292, a2=0.451708, a3=22.706, a4=-0.062059,
                    a5=0.04277774, a6=9.692792, a7=-1.885868, a8=6.6):
 
         temp_cell = a1 + a2 * temp_amb + a3 * i_H_t
-        pvPower = np.maximum(0, (a4*i_H_t + a5)*temp_cell+a6 * i_H_t+a7) / a8
+        pvPower = np.maximum(0, (a4*i_H_t + a5)*temp_cell + a6*i_H_t + a7) / a8
         return pvPower
 
     def getPV(self):

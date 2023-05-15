@@ -42,7 +42,7 @@ class Building:
     def getEnvParam(self):
         return self.__envParam
 
-    def addBus(self, data, opt, mergeLinkBuses):
+    def addBus(self, data, opt, mergeLinkBuses, electricityImpact, includeCarbonBenefits):
         # Create Bus objects from buses table
         for i, b in data.iterrows():
             if b["active"]:
@@ -55,14 +55,16 @@ class Building:
                     bus = solph.Bus(label=label)
                     self.__nodesList.append(bus)
                     self.__busDict[label] = bus
-
+                    if opt=='costs': varcost=float(b["excess costs"])
+                    elif opt=='env' and includeCarbonBenefits:varcost=-electricityImpact['impact']
+                    else: varcost=0
                     if b["excess"]:
                         self.__nodesList.append(
                             solph.Sink(
                                 label="excess"+label,
                                 inputs={
                                     self.__busDict[label]: solph.Flow(
-                                        variable_costs=float(b["excess costs"])*(opt == "costs")  # if opt = "env" variable costs should be zero
+                                        variable_costs=varcost
                                     )}))
                     # add the excess production cost to self.__costParam
                     self.__costParam["excess"+label] = float(b["excess costs"])

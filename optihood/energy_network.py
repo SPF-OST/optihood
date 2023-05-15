@@ -49,14 +49,14 @@ class EnergyNetworkClass(solph.EnergySystem):
         logging.info("Initializing the energy network")
         super(EnergyNetworkClass, self).__init__(timeindex=timestamp)
 
-    def setFromExcel(self, filePath, numberOfBuildings, clusterSize={}, opt="costs", mergeLinkBuses=False, dispatchMode=False):
+    def setFromExcel(self, filePath, numberOfBuildings, clusterSize={}, opt="costs", mergeLinkBuses=False, dispatchMode=False, includeCarbonBenefits=False):
         # does Excel file exist?
         if not filePath or not os.path.isfile(filePath):
             logging.error("Excel data file {} not found.".format(filePath))                                                                               
         self._dispatchMode = dispatchMode
         logging.info("Defining the energy network from the excel file: {}".format(filePath))
         data = pd.ExcelFile(filePath)
-        nodesData = self.createNodesData(data, filePath, numberOfBuildings)
+        nodesData = self.createNodesData(data, filePath, numberOfBuildings, clusterSize)
         # nodesData["buses"]["excess costs"] = nodesData["buses"]["excess costs indiv"]
         # nodesData["electricity_cost"]["cost"] = nodesData["electricity_cost"]["cost indiv"]
 
@@ -79,12 +79,12 @@ class EnergyNetworkClass(solph.EnergySystem):
             nodesData["electricity_cost"] = electricityCost
             nodesData["weather_data"] = weatherData
 
-        self._convertNodes(nodesData, opt, mergeLinkBuses)
+        self._convertNodes(nodesData, opt, mergeLinkBuses, includeCarbonBenefits)
         logging.info("Nodes from Excel file {} successfully converted".format(filePath))
         self.add(*self._nodesList)
         logging.info("Nodes successfully added to the energy network")
 
-    def createNodesData(self, data, filePath, numBuildings):
+    def createNodesData(self, data, filePath, numBuildings, clusterSize):
         self.__noOfBuildings = numBuildings
         nodesData = {
             "buses": data.parse("buses"),
@@ -178,9 +178,15 @@ class EnergyNetworkClass(solph.EnergySystem):
         else:
             logging.info("Building model either not selected or invalid string value entered")
         logging.info("Data from Excel file {} imported.".format(filePath))
+        if clusterSize:
+            self._numberOfDays = len(nodesData['weather_data'].groupby(nodesData['weather_data'].index.date).size())
+            for k in ["solar", "transformers", "storages", "links"]:
+                for col in ["invest_base", 'invest_cap', 'impact_cap']:
+                    if k in nodesData and col in nodesData[k]:
+                            nodesData[k][col] = nodesData[k][col]*len(clusterSize)/self._numberOfDays
         return nodesData
 
-    def _convertNodes(self, data, opt, mergeLinkBuses):
+    def _convertNodes(self, data, opt, mergeLinkBuses, includeCarbonBenefits):
         if not data:
             logging.error("Nodes data is missing.")
         ################## !!!
@@ -202,18 +208,18 @@ class EnergyNetworkClass(solph.EnergySystem):
         # Storage conversion L - kWh to display the L value
         self.__Lsh = 4.186 * (self.__temperatureSH - data["stratified_storage"].loc["shStorage", "temp_c"]) / 3600
         self.__Ldhw = 4.186 * (self.__temperatureDHW - data["stratified_storage"].loc["dhwStorage", "temp_c"]) / 3600
-        self._addBuildings(data, opt, mergeLinkBuses)
+        self._addBuildings(data, opt, mergeLinkBuses, includeCarbonBenefits)
 
-    def _addBuildings(self, data, opt, mergeLinkBuses):
+    def _addBuildings(self, data, opt, mergeLinkBuses, includeCarbonBenefits):
         numberOfBuildings = max(data["buses"]["building"])
         self.__buildings = [Building('Building' + str(i + 1)) for i in range(numberOfBuildings)]
         for b in self.__buildings:
             buildingLabel = b.getBuildingLabel()
             i = int(buildingLabel[8:])
             if i == 1:
-                busDictBuilding1 = b.addBus(data["buses"][data["buses"]["building"] == i], opt, mergeLinkBuses)
+                busDictBuilding1 = b.addBus(data["buses"][data["buses"]["building"] == i], opt, mergeLinkBuses, data["electricity_impact"], includeCarbonBenefits)
             else:
-                b.addBus(data["buses"][data["buses"]["building"] == i], opt, mergeLinkBuses)
+                b.addBus(data["buses"][data["buses"]["building"] == i], opt, mergeLinkBuses, data["electricity_impact"], includeCarbonBenefits)
             if mergeLinkBuses and i!=1:
                 b.addToBusDict(busDictBuilding1)
             b.addGridSeparation(data["grid_connection"][data["grid_connection"]["building"] == i], mergeLinkBuses)
@@ -437,6 +443,16 @@ class EnergyNetworkClass(solph.EnergySystem):
         mfactor = np.repeat(list(clusterSize.values()), 24)
         for flow in flows:
             self._optimizationResults[flow]['sequences'] = self._optimizationResults[flow]['sequences'].mul(mfactor, axis=0)
+        # re-adjust cost and environmental parameters
+        mfactor = self._numberOfDays/len(clusterSize)
+        for b in self.__buildings:
+            buildingLabel = b.getBuildingLabel()
+            for i, o in self.__capacitiesTransformersBuilding[buildingLabel]:
+                self.__costParam[i] = [x * mfactor for x in self.__costParam[i]]
+                self.__envParam[i][2] *= mfactor
+            for i, o in self.__capacitiesStoragesBuilding[buildingLabel]:
+                self.__costParam[i] = [x * mfactor for x in self.__costParam[i]]
+                self.__envParam[i][2] *= mfactor
 
 
     def _calculateResultsPerBuilding(self, mergeLinkBuses):
@@ -1030,7 +1046,7 @@ class EnergyNetworkGroup(EnergyNetworkClass):
             writer.save()
             writer.close()
 
-    def setFromExcel(self, filePath, numberOfBuildings, clusterSize={}, opt="costs", mergeLinkBuses=False, dispatchMode = False):
+    def setFromExcel(self, filePath, numberOfBuildings, clusterSize={}, opt="costs", mergeLinkBuses=False, dispatchMode=False, includeCarbonBenefits=False):
         # does Excel file exist?
         if not filePath or not os.path.isfile(filePath):
             logging.error("Excel data file {} not found.".format(filePath))
@@ -1038,7 +1054,7 @@ class EnergyNetworkGroup(EnergyNetworkClass):
         self._dispatchMode = dispatchMode
         data = pd.ExcelFile(filePath)
 
-        nodesData = self.createNodesData(data, filePath, numberOfBuildings)
+        nodesData = self.createNodesData(data, filePath, numberOfBuildings, clusterSize)
         # nodesData["buses"]["excess costs"] = nodesData["buses"]["excess costs group"]
         # nodesData["electricity_cost"]["cost"] = nodesData["electricity_cost"]["cost group"]
 
@@ -1061,7 +1077,7 @@ class EnergyNetworkGroup(EnergyNetworkClass):
             nodesData["weather_data"] = weatherData
 
         nodesData["links"]= data.parse("links")
-        self._convertNodes(nodesData, opt, mergeLinkBuses)
+        self._convertNodes(nodesData, opt, mergeLinkBuses, includeCarbonBenefits)
         self._addLinks(nodesData["links"], numberOfBuildings, mergeLinkBuses)
         logging.info("Nodes from Excel file {} successfully converted".format(filePath))
         self.add(*self._nodesList)
