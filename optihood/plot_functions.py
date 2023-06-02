@@ -1009,7 +1009,7 @@ def createPlot(resultFilePath, basePath, numberOfBuildings, plotLevel, plotType,
             file = f"HourlyBokehPlots({i}).html"
 
         output_file(os.path.join(basePath,file))
-        grid = gridplot(plotsHourly, ncols=ncols, plot_width=850, plot_height=500, sizing_mode="fixed")
+        grid = gridplot(plotsHourly, ncols=ncols, width=850, height=500, sizing_mode="fixed")
         show(grid)
 
         if not any(chr.isdigit() for chr in plotLevel):
@@ -1020,7 +1020,7 @@ def createPlot(resultFilePath, basePath, numberOfBuildings, plotLevel, plotType,
                 file = f"DailyBokehPlots({i}).html"
 
             output_file(os.path.join(basePath,file))
-            grid = gridplot(plotsDaily, ncols=ncols, plot_width=850, plot_height=500, sizing_mode="fixed")
+            grid = gridplot(plotsDaily, ncols=ncols, width=850, height=500, sizing_mode="fixed")
             show(grid)
     else:
         raise ValueError("Illegal value for the parameter plot type")

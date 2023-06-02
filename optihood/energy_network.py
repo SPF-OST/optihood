@@ -741,9 +741,17 @@ class EnergyNetworkIndiv(EnergyNetworkClass):
                        'storages': ['label', 'building', 'active', 'from', 'to', 'efficiency inflow', 'efficiency outflow', 'initial capacity', 'capacity min', 'capacity max', 'capacity loss', 'lifetime', 'maintenance', 'installation', 'planification', 'invest_base', 'invest_cap', 'heat_impact', 'elec_impact', 'impact_cap'],
                        'stratified_storage': ['label', 'diameter', 'temp_h', 'temp_c', 'temp_env', 'inflow_conversion_factor', 'outflow_conversion_factor', 's_iso', 'lamb_iso', 'alpha_inside', 'alpha_outside']
                        }
-        buses = {'naturalgasresource': ['naturalGasBus', '', ''], 'electricityresource': ['gridBus', '', ''], 'solarcollector': ['dhwStorageBus', 'electricityInBus', 'solarConnectBus'],    # [to, from, connect] columns in the excel file
-                 'pv': ['electricityProdBus', '', ''], 'electricitydemand': ['', 'electricityInBus', ''], 'spaceheatingdemand': ['', 'shDemandBus', ''],
-                 'domestichotwaterdemand': ['', 'domesticHotWaterBus', ''], 'gasboiler': ['shSourceBus,dhwStorageBus', 'naturalGasBus', ''], 'electricrod': ['shSourceBus,dhwStorageBus', 'electricityInBus', ''],
+        buses = {'naturalgasresource': ['naturalGasBus', '', ''],
+                 'electricityresource': ['gridBus', '', ''],
+                 'solarcollector': ['dhwStorageBus', 'electricityInBus', 'solarConnectBus'],
+                 # [to, from, connect] columns in the excel file
+                 'pv': ['electricityProdBus', '', ''],
+                 'electricitydemand': ['', 'electricityInBus', ''],
+                 'spaceheatingdemand': ['', 'shDemandBus', ''],
+                 'domestichotwaterdemand': ['', 'dhwDemandBus', ''],
+                 'gasboiler': ['shSourceBus,dhwStorageBus', 'naturalGasBus',
+                               ''], 'electricrod': ['shSourceBus,dhwStorageBus',
+                                                    'electricityInBus', ''],
                  'chp': ['electricityProdBus,shSourceBus,dhwStorageBus', 'naturalGasBus', ''], 'ashp': ['shSourceBus,dhwStorageBus', 'electricityInBus', ''], 'gshp': ['shSourceBus,dhwStorageBus', 'electricityInBus', ''],
                  'electricalstorage': ['electricityBus', 'electricityProdBus', ''], 'shstorage': ['spaceHeatingBus', 'shSourceBus', ''], 'dhwstorage': ['domesticHotWaterBus', 'dhwStorageBus', '']}
         sheetToSection = {'commodity_sources':'CommoditySources', 'solar':'Solar', 'demand':'Demands', 'transformers':'Transformers', 'storages':'Storages', 'stratified_storage':'StratifiedStorage'}
@@ -802,8 +810,8 @@ class EnergyNetworkIndiv(EnergyNetworkClass):
                                     newRow.at[0,p[0]] = p[1]
                         excelData[sheet] = pd.concat([excelData[sheet], newRow])
                 elif type=='path':       # demand path
-                    buildingFolder = [i[1] for i in configData['demands'] if i[0] == 'folders'][0].split(',')[building]
-                    buildingPath = item[1]+'\\'+ buildingFolder
+                    #buildingFolder = [i[1] for i in configData['demands'] if i[0] == 'folders'][0].split(',')[building]
+                    buildingPath = item[1]#+'\\'+ buildingFolder
                     profiles = pd.concat([profiles, pd.DataFrame({'name': [updatedLabels[type]], 'path': [buildingPath]})])
                 elif 'path' in type:     # weather path
                     profiles = pd.concat([profiles, pd.DataFrame({'name':[updatedLabels[type]], 'path':[item[1]]})])
@@ -859,7 +867,7 @@ class EnergyNetworkIndiv(EnergyNetworkClass):
             for sheet, data in excelData.items():
                 data.to_excel(writer, sheet_name=sheet, index=False)
             writer.save()
-            writer.close()
+            #writer.close()
 
 
 class EnergyNetworkGroup(EnergyNetworkClass):
