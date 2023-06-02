@@ -749,11 +749,14 @@ class EnergyNetworkIndiv(EnergyNetworkClass):
                  'electricitydemand': ['', 'electricityInBus', ''],
                  'spaceheatingdemand': ['', 'shDemandBus', ''],
                  'domestichotwaterdemand': ['', 'dhwDemandBus', ''],
-                 'gasboiler': ['shSourceBus,dhwStorageBus', 'naturalGasBus',
-                               ''], 'electricrod': ['shSourceBus,dhwStorageBus',
-                                                    'electricityInBus', ''],
-                 'chp': ['electricityProdBus,shSourceBus,dhwStorageBus', 'naturalGasBus', ''], 'ashp': ['shSourceBus,dhwStorageBus', 'electricityInBus', ''], 'gshp': ['shSourceBus,dhwStorageBus', 'electricityInBus', ''],
-                 'electricalstorage': ['electricityBus', 'electricityProdBus', ''], 'shstorage': ['spaceHeatingBus', 'shSourceBus', ''], 'dhwstorage': ['domesticHotWaterBus', 'dhwStorageBus', '']}
+                 'gasboiler': ['shSourceBus,dhwStorageBus', 'naturalGasBus', ''],
+                 'electricrod': ['shSourceBus,dhwStorageBus', 'electricityInBus', ''],
+                 'chp': ['electricityProdBus,shSourceBus,dhwStorageBus', 'naturalGasBus', ''],
+                 'ashp': ['shSourceBus,dhwStorageBus', 'electricityInBus', ''],
+                 'gshp': ['shSourceBus,dhwStorageBus', 'electricityInBus', ''],
+                 'electricalstorage': ['electricityBus', 'electricityProdBus', ''],
+                 'shstorage': ['spaceHeatingBus', 'shSourceBus', ''],
+                 'dhwstorage': ['domesticHotWaterBus', 'dhwStorageBus', '']}
         sheetToSection = {'commodity_sources':'CommoditySources', 'solar':'Solar', 'demand':'Demands', 'transformers':'Transformers', 'storages':'Storages', 'stratified_storage':'StratifiedStorage'}
         sections = config.sections()
         profiles = pd.DataFrame(columns=['name', 'path'])
@@ -838,7 +841,11 @@ class EnergyNetworkIndiv(EnergyNetworkClass):
             if sheet == 'stratified_storage':
                 excelData[sheet] = pd.concat([excelData[sheet], newRow])
         excelData['profiles'] = profiles
-        excelData['grid_connection'] = pd.DataFrame({'label':['gridElectricity','electricitySource','producedElectricity','shSource','spaceHeating'], 'building':[1,1,1,1,1], 'from':['gridBus','electricityProdBus','electricityBus','shSourceBus','spaceHeatingBus'], 'to':['electricityInBus','electricityBus','electricityInBus','spaceHeatingBus','shDemandBus'], 'efficiency':[1,1,1,1,1]})
+        excelData['grid_connection'] = pd.DataFrame(
+            {'label':['gridElectricity','electricitySource','producedElectricity', 'domesticHotWater','shSource','spaceHeating'],
+             'building':[1,1,1,1,1,1],
+             'from':['gridBus','electricityProdBus','electricityBus','domesticHotWaterBus', 'shSourceBus','spaceHeatingBus'],
+             'to':['electricityInBus','electricityBus','electricityInBus', 'dhwDemandBus', 'spaceHeatingBus','shDemandBus'], 'efficiency':[1,1,1,1,1,1]})
 
         df = pd.DataFrame(columns=['buses'])
         for sheet, data in excelData.items():
