@@ -1048,7 +1048,7 @@ class EnergyNetworkGroup(EnergyNetworkClass):
             for sheet, data in excelData.items():
                 data.to_excel(writer, sheet_name=sheet, index=False)
             writer.save()
-            writer.close()
+#            writer.close()
 
     def setFromExcel(self, filePath, numberOfBuildings, clusterSize={}, opt="costs", mergeLinkBuses=False, dispatchMode = False):
         # does Excel file exist?
