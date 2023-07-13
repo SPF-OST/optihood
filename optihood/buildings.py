@@ -94,11 +94,19 @@ class Building:
 
                 envParam = [0, float(s["elec_impact"]), float(s["impact_cap"]) / float(s["lifetime"])]
 
+            #zenith_angle or altitude_angle
+            if 'zenith_angle' in s.keys():
+                print("Warning : 'zenith_angle is not the correct way to name this angle. It should be named 'altitude_angle'")
+            elif 'altitude_angle' in s.keys():
+                s = s.rename(index={'altitude_angle': 'zenith_angle'})
+
+
             # If roof area and zenith do not exist in the excel file
             if 'roof_area' not in s.keys():
                 s["roof_area"] = np.nan
             if 'zenith_angle' not in s.keys():
                 s["zenith_angle"] = np.nan
+                print("Missing value in config file for zenith_angle")
             if 'efficiency' not in s.keys():
                 s["efficiency"] = np.nan
 
@@ -553,8 +561,8 @@ class Building:
 
     def _calculateInvest(self, data):
         # Calculate the CAPEX and the part of the OPEX not related to energy flows (maintenance)
-        c = data["installation"] + data["planification"] + 1
-        m = data["maintenance"]
-        perCapacity = m * data["invest_cap"] + economics.annuity(c * data["invest_cap"], data["lifetime"], intRate)
+        c = data["installation"] + data["planification"] + 1  # installation and planification are defined as percentages of invest_base
+        m = data["maintenance"]  # percentage of invest_base
+        perCapacity = m * data["invest_cap"] + economics.annuity(c * data["invest_cap"], data["lifetime"], intRate)  # invest_cap = CHF/kW installed
         base = m * data["invest_base"] + economics.annuity(c * data["invest_base"], data["lifetime"], intRate)
         return perCapacity, base
