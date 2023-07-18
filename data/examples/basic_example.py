@@ -55,6 +55,9 @@ if __name__ == '__main__':
     figureFilePath = r"..\figures"
     sankeyFileName = f"Sankey_{numberOfBuildings}_{optimizationType}.html"
 
+    if not os.path.exists(figureFilePath):
+        os.makedirs(figureFilePath)
+
     snk.plot(os.path.join(resultFilePath, resultFileName), os.path.join(figureFilePath, sankeyFileName),
                    numberOfBuildings, UseLabelDict, labels='default', optimType='indiv')
 
