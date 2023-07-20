@@ -239,10 +239,12 @@ def elec_gen(dataDict, buildings, timeStep):
                                     ], axis=1)
         elif timeStep == 'hour':
             elecGenTec = pd.concat([elecGenTec,
-                                    dataDict["electricityProdBus__Building" + str(b)][elecGenList]], axis=1)
+                                    dataDict["electricityProdBus__Building" + str(b)][elecGenList]],
+                                   axis=1)
             elecGenTec = pd.concat([elecGenTec, dataDict["gridBus__Building" + str(b)].loc[:,
                                    "(('electricityResource__Building" + str(b) + "', 'gridBus__Building" + str(b) + "'), 'flow')"
-                                   ]], axis=1)
+                                   ]],
+                                   axis=1)
     tec_considered.append("Grid")
     if timeStep == "year":
         elecGenTec.loc["Grid"] = elecGrid
@@ -866,7 +868,7 @@ def selfsuffisant(dataDict, buildings, outputFileName, selected_days, timeStep, 
 
         fig = plt.figure()
         elecGenTecToPlot.rename(columns=labelDict).plot(
-            kind='bar', stacked=True, title="Source of electricity supply", xlabel='Month', ylabel='Electricity per source in MWh')
+            kind='bar', stacked=True, title="Source of electricity supply", xlabel='Month', ylabel='Electricity per source (MWh)')
 
         plt.legend(loc=(1.04, 0)) #, ['CHP', 'pv', 'Grid', 'Sold']
         ax = plt.gca()
@@ -965,7 +967,7 @@ def selfsuffisant(dataDict, buildings, outputFileName, selected_days, timeStep, 
             plt.xticks(xticks[0], xlabels)
             plt.title("Electricity source of each optimization")
             plt.xlabel('Optimization iteration')
-            plt.ylabel('Electricity supply per technology in MWh')
+            plt.ylabel('Electricity supply per technology (MWh)')
             plt.legend(loc=(1.04, 0) )
             plt.tight_layout()
             plt.savefig(outputFileName + 'selfsuffisant_iterative.png', bbox_inches='tight')
