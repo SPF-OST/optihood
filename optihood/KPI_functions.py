@@ -528,8 +528,8 @@ def cap_storage(dataDict, buildings):
     for b in range(2, buildings + 1):
         capSto["kWh in " + str(b)] = dataDict['capStorages__Building' + str(b)].rename(index=labelDict)
     # convert L to kWh
-    capSto.loc[capSto.index == 'dhwStorage'] = capSto.loc[capSto.index == 'dhwStorage'] * 4.18 * 45 / 3600
-    capSto.loc[capSto.index == 'shStorage'] = capSto.loc[capSto.index == 'shStorage'] * 4.18 * 8 / 3600
+    capSto.loc[capSto.index == 'dhwStor_B1'] = capSto.loc[capSto.index == 'dhwStor_B1'] * 4.18 * 45 / 3600
+    capSto.loc[capSto.index == 'shStor_B1'] = capSto.loc[capSto.index == 'shStor_B1'] * 4.18 * 15 / 3600
     return capSto
 
 def use_storage(dataDict, buildings):
@@ -1399,8 +1399,8 @@ def installed_capacity(dataDict, buildings, outputFileName, iter, iterRange, res
             pd.DataFrame(results['totalCap', 'heat']).T.plot(kind="bar", stacked=True)
             xticks = plt.xticks()
             plt.xticks(xticks[0], xlabels)
-            plt.title("Installed capacity of each optimization")
-            plt.xlabel('Optimization iteration')
+            plt.title("Installed capacity of each environmental optimization result")
+            plt.xlabel('Optimal environmental result')
             plt.ylabel('Installed capacity per technology in kW')
             plt.legend(loc=(1.04, 0))
             plt.savefig(outputFileName + 'installedCapHeat_iterative.png', bbox_inches='tight')
@@ -1412,8 +1412,8 @@ def installed_capacity(dataDict, buildings, outputFileName, iter, iterRange, res
             pd.DataFrame(results['totalCap','elec']).T.plot(kind="bar", stacked=True)
             xticks = plt.xticks()
             plt.xticks(xticks[0], xlabels)
-            plt.title("Installed capacity of each optimization")
-            plt.xlabel('Optimization iteration')
+            plt.title("Installed capacity for each environmental optimization result")
+            plt.xlabel('Optimal environmental result')
             plt.ylabel('Installed capacity per technology in kW')
             plt.legend(loc=(1.04, 0))
             plt.savefig(outputFileName + 'installedCapElec_iterative.png', bbox_inches='tight')
@@ -1424,8 +1424,8 @@ def installed_capacity(dataDict, buildings, outputFileName, iter, iterRange, res
             pd.DataFrame(results['totalCap', 'sto']).T.plot(kind="bar", stacked=True)
             xticks = plt.xticks()
             plt.xticks(xticks[0], xlabels)
-            plt.title("Installed capacity of each optimization")
-            plt.xlabel('Optimization iteration')
+            plt.title("Installed capacity for each environmental optimization result")
+            plt.xlabel('Optimal environmental result')
             plt.ylabel('Installed capacity per technology in kWh')
             plt.legend(loc=(1.04, 0))
             plt.savefig(outputFileName + 'installedCapSto_iterative.png', bbox_inches='tight')
