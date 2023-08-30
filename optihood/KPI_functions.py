@@ -529,7 +529,7 @@ def cap_storage(dataDict, buildings):
         capSto["kWh in " + str(b)] = dataDict['capStorages__Building' + str(b)].rename(index=labelDict)
     # convert L to kWh
     capSto.loc[capSto.index == 'dhwStor_B1'] = capSto.loc[capSto.index == 'dhwStor_B1'] * 4.18 * 45 / 3600
-    capSto.loc[capSto.index == 'shStor_B1'] = capSto.loc[capSto.index == 'shStor_B1'] * 4.18 * 15 / 3600
+    capSto.loc[capSto.index == 'shStor_B1'] = capSto.loc[capSto.index == 'shStor_B1'] * 4.18 * 20 / 3600
     return capSto
 
 def use_storage(dataDict, buildings):
