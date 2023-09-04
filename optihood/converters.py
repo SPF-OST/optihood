@@ -271,8 +271,8 @@ class ChillerBlock(SimpleBlock):
         m = self.parent_block()
 
         for n in group:
-            n.inflowElec = list(n.inputs)[0]
-            n.inflowQcond = list(n.inputs)[1]
+            n.inflowElec = [i for i in list(n.inputs) if "electricity" in i.label][0]
+            n.inflowQcond = [i for i in list(n.inputs) if "electricity" not in i.label][0]
             n.outflow = list(n.outputs)[0]
 
         def _input_output_relation_rule(block):

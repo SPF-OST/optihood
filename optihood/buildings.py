@@ -20,6 +20,7 @@ class Building:
         self.__busDict = {}
         self.__buildingLabel = label
         self.__linkBuses = ["electricityBus", "electricityInBus", "domesticHotWaterBus", "dhwDemandBus", "spaceHeatingBus", "shDemandBus"]
+        self.__heatSourceSinkBuses = ["heatSourceBus", "heatSinkBus"]
 
     def getBuildingLabel(self):
         return self.__buildingLabel
@@ -42,16 +43,16 @@ class Building:
     def getEnvParam(self):
         return self.__envParam
 
-    def addBus(self, data, opt, mergeLinkBuses):
+    def addBus(self, data, opt, mergeLinkBuses, mergeHeatSourceSink):
         # Create Bus objects from buses table
         for i, b in data.iterrows():
             if b["active"]:
-                if mergeLinkBuses and b["label"] in self.__linkBuses:
+                if (mergeLinkBuses and b["label"] in self.__linkBuses) or (mergeHeatSourceSink and b["label"] in self.__heatSourceSinkBuses):
                     label = b["label"]
                 else:
                     label = b["label"] + '__' + self.__buildingLabel
 
-                if not mergeLinkBuses or (mergeLinkBuses and (self.__buildingLabel=='Building1' or label not in self.__linkBuses)):
+                if ((not mergeLinkBuses and not mergeHeatSourceSink) or (mergeLinkBuses and (self.__buildingLabel=='Building1' or label not in self.__linkBuses))) or ((not mergeHeatSourceSink and not mergeLinkBuses) or (mergeHeatSourceSink and (self.__buildingLabel=='Building1' or label not in self.__heatSourceSinkBuses))):
                     bus = solph.Bus(label=label)
                     self.__nodesList.append(bus)
                     self.__busDict[label] = bus
@@ -66,11 +67,15 @@ class Building:
                                     )}))
                     # add the excess production cost to self.__costParam
                     self.__costParam["excess"+label] = float(b["excess costs"])
-        if mergeLinkBuses and self.__buildingLabel=='Building1':
+        if (mergeLinkBuses or mergeHeatSourceSink) and self.__buildingLabel=='Building1':
             return self.__busDict
 
-    def addToBusDict(self, busDictBuilding1):
-        for label in self.__linkBuses:
+    def addToBusDict(self, busDictBuilding1, mergeType):
+        if mergeType=='links':
+            buses = self.__linkBuses
+        elif mergeType =='heatSourceSink':
+            buses = self.__heatSourceSinkBuses
+        for label in buses:
             self.__busDict[label] = busDictBuilding1[label]
 
     def addPV(self, data, data_timeseries, opt, dispatchMode):
@@ -199,13 +204,16 @@ class Building:
                                                               outputs={self.__busDict[outputBusLabel]: solph.Flow()},
                                                       conversion_factors={self.__busDict[outputBusLabel]: float(gs["efficiency"])}))
 
-    def addSource(self, data, data_elec, data_cost, opt):
+    def addSource(self, data, data_elec, data_cost, opt, mergeHeatSourceSink):
         # Create Source objects from table 'commodity sources'
 
         for i, cs in data.iterrows():
             if cs["active"]:
                 sourceLabel = cs["label"]+'__' + self.__buildingLabel
-                outputBusLabel = cs["to"] + '__' + self.__buildingLabel
+                if mergeHeatSourceSink and cs["to"] in self.__heatSourceSinkBuses:
+                    outputBusLabel = cs["to"]
+                else:
+                    outputBusLabel = cs["to"] + '__' + self.__buildingLabel
                 # variable costs = (if opt == "costs") : cs["variable costs"]
                 #                  (if opt == "env") and ('electricity' in cs["label"]): data_elec["impact"]
                 #                  (if opt == "env") and ('electricity' not in cs["label"]): cs["CO2 impact"]
@@ -244,12 +252,12 @@ class Building:
                 self.__envParam[sourceLabel] = envParameter
                 self.__costParam[sourceLabel] = costParameter
 
-    def addSink(self, data, timeseries, buildingModelParams, mergeLinkBuses):
+    def addSink(self, data, timeseries, buildingModelParams, mergeLinkBuses, mergeHeatSourceSink):
         # Create Sink objects with fixed time series from 'demand' table
         for i, de in data.iterrows():
             if de["active"]:
                 sinkLabel = de["label"]+'__'+self.__buildingLabel
-                if mergeLinkBuses and de["from"] in self.__linkBuses:
+                if (mergeLinkBuses and de["from"] in self.__linkBuses) or (mergeHeatSourceSink and de["from"] in self.__heatSourceSinkBuses):
                     inputBusLabel = de["from"]
                 else:
                     inputBusLabel = de["from"]+'__'+self.__buildingLabel
@@ -259,25 +267,39 @@ class Building:
                     # create sink
                     # Building model with a possibility of output bus
                     outputBusLabel = de['building model out']+'__'+self.__buildingLabel
-                    self.__nodesList.append(
-                        SinkRCModel(
-                            tAmbient=buildingModelParams['tAmb'].values,
-                            totalIrradiationHorizontal=buildingModelParams['IrrH'].values,
-                            heatGainOccupants=buildingModelParams[f"Qocc {de['building']}"].values,
-                            label=sinkLabel,
-                            inputs={self.__busDict[inputBusLabel]: solph.Flow()},
-                            outputs={self.__busDict[outputBusLabel]: solph.Flow()}
-                        )
-                    )
+                    args = {'label': sinkLabel,
+                            'inputs': {self.__busDict[inputBusLabel]: solph.Flow()},
+                            'outputs': {self.__busDict[outputBusLabel]: solph.Flow()},
+                            'tAmbient': buildingModelParams["timeseries"]['tAmb'].values,
+                            'totalIrradiationHorizontal': buildingModelParams["timeseries"]['IrrH'].values,
+                            'heatGainOccupants': buildingModelParams["timeseries"]["Qocc"].values,
+                            }
+                    paramList = ['gAreaWindows', 'rDistribution', 'cDistribution', 'rWall', 'cWall', 'rIndoor',
+                              'cIndoor', 'qDistributionMin', 'qDistributionMax', 'tIndoorMin', 'tIndoorMax',
+                              'tIndoorInit', 'tWallInit', 'tDistributionInit']
+                    for param in paramList:
+                        if 'tIndoorSet' in buildingModelParams['timeseries'].columns and param in ['tIndoorMin', 'tIndoorMax']:
+                            continue
+                        if buildingModelParams[param] != '' and param != 'tIndoorMin':
+                            args.update({param:buildingModelParams[param]})
+                        elif param == 'tIndoorMin':
+                            tIndoorNight = 20
+                            tIndoorDay = 22
+                            tlow = [tIndoorNight, tIndoorNight, tIndoorNight, tIndoorNight, tIndoorNight, tIndoorNight,
+                                  tIndoorNight, tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay,
+                                  tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay,
+                                  tIndoorNight, tIndoorNight, tIndoorNight, tIndoorNight]*365
+                            args.update({'tIndoorMin': np.array(tlow)})
+                    self.__nodesList.append(SinkRCModel(**args))
                 else:
                     # set static inflow values, if any
                     inflow_args = {}
                     if int(de["fixed"])==1:
-                        inflow_args["nominal_value"]: float(de["nominal value"])
-                    # get time series for node and parameter
-                    for col in timeseries.columns.values:
-                        if col == de["label"]:
-                            inflow_args["fix"] = timeseries[col]
+                        inflow_args["nominal_value"] = float(de["nominal value"])
+                        # get time series for node and parameter
+                        for col in timeseries.columns.values:
+                            if col == de["label"]:
+                                inflow_args["fix"] = timeseries[col]
                     # create sink
                     self.__nodesList.append(
                         solph.Sink(
@@ -320,10 +342,13 @@ class Building:
 
         self.__envParam[hpSHLabel] = [float(data["heat_impact"]), 0, envImpactPerCapacity]
 
-    def _addGeothemalHeatPump(self, data, temperatureDHW, temperatureSH, temperatureAmb, opt, mergeLinkBuses, dispatchMode):
+    def _addGeothemalHeatPump(self, data, temperatureDHW, temperatureSH, temperatureAmb, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode):
         gwhpSHLabel = data["label"] + '__' + self.__buildingLabel
         if mergeLinkBuses and data["from"] in self.__linkBuses:
             inputBusLabel = [data["from"]]
+        elif mergeHeatSourceSink and any([b in self.__heatSourceSinkBuses for b in data["from"].split(',')]):
+            inputBusLabel = [i + '__' + self.__buildingLabel for i in data["from"].split(",") if i not in self.__heatSourceSinkBuses]
+            inputBusLabel.extend([i for i in data["from"].split(",") if i in self.__heatSourceSinkBuses])
         else:
             inputBusLabel = [i + '__' + self.__buildingLabel for i in data["from"].split(",")]
         inputBuses = [self.__busDict[i] for i in inputBusLabel]
@@ -334,6 +359,7 @@ class Building:
             capacityMinSH = float(data["capacity_SH"])
         else:
             capacityMinSH = float(data["capacity_min"])
+
         geothermalheatPump = GeothermalHeatPumpLinear(self.__buildingLabel, temperatureDHW, temperatureSH, temperatureAmb,
                                   inputBuses,
                                   self.__busDict[outputSHBusLabel],
@@ -501,14 +527,18 @@ class Building:
 
         self.__envParam[elRodLabel] = [float(data["heat_impact"]), 0, envImpactPerCapacity]
 
-    def _addChiller(self, data, temperatureSH, temperatureGround, opt, mergeLinkBuses, dispatchMode):
+    def _addChiller(self, data, temperatureSH, temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode):
         chillerLabel = data["label"] + '__' + self.__buildingLabel
-        if mergeLinkBuses and data["from"] in self.__linkBuses:
+        if (mergeLinkBuses and data["from"] in self.__linkBuses):
             inputBusLabel = [data["from"]]
         else:
             inputBusLabel = [i + '__' + self.__buildingLabel for i in data["from"].split(",")]
         inputBuses = [self.__busDict[i] for i in inputBusLabel]
-        outputBus = self.__busDict[data['to']+ '__' + self.__buildingLabel]
+        if (mergeHeatSourceSink and data["to"] in self.__heatSourceSinkBuses):
+            outputBusLabel = data['to']
+        else:
+            outputBusLabel = data['to']+ '__' + self.__buildingLabel
+        outputBus = self.__busDict[outputBusLabel]
         envImpactPerCapacity = float(data["impact_cap"]) / float(data["lifetime"])
         if data["capacity_min"] == 'x':
             capacityMinSH = float(data["capacity_SH"])
@@ -523,20 +553,39 @@ class Building:
                           epc=self._calculateInvest(data)[0] * (opt == "costs") + envImpactPerCapacity*(opt == "env"), base=self._calculateInvest(data)[1] * (opt == "costs"), env_capa=envImpactPerCapacity,
                           dispatchMode=dispatchMode
                         ))
-        elecInputBusLabel = [i for i in inputBusLabel if "grid" in i or "electricity" in i][0]
-        self.__technologies.append([elecInputBusLabel, chillerLabel])
+        self.__technologies.append([outputBusLabel, chillerLabel])
 
         self.__costParam[chillerLabel] = [self._calculateInvest(data)[0], self._calculateInvest(data)[1]]
 
         self.__envParam[chillerLabel] = [float(data["heat_impact"]), 0, envImpactPerCapacity]
 
-    def addTransformer(self, data, temperatureDHW, temperatureSH, temperatureAmb, temperatureGround, opt, mergeLinkBuses, dispatchMode):
+    def _addGenericTransformer(self, data):
+        inputBusLabel = data['from']+ '__Building1'
+        outputBusLabels = data['to'].split(",")
+
+        self.__nodesList.append(solph.Transformer(label=data['label'] + '__Building1',
+                                                  inputs={self.__busDict[inputBusLabel]: solph.Flow()},
+                                                  outputs={self.__busDict[outputBusLabels[0]]: solph.Flow(
+                                                      variable_costs=0,
+                                                      env_per_flow=0,
+                                                      nominal_value=100000000000,
+                                                  ),
+                                                  self.__busDict[outputBusLabels[1]]: solph.Flow(
+                                                      variable_costs=0,
+                                                      env_per_flow=0,
+                                                      nominal_value=100000000000,
+                                                  ),
+                                                  },
+                                                  conversion_factors={self.__busDict[outputBusLabels[0]]: 1,
+                                                                      self.__busDict[outputBusLabels[0]]: 1}))
+
+    def addTransformer(self, data, temperatureDHW, temperatureSH, temperatureAmb, temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode):
         for i, t in data.iterrows():
             if t["active"]:
                 if t["label"] == "HP":
                     self._addHeatPump(t, temperatureDHW, temperatureSH, temperatureAmb, opt, mergeLinkBuses, dispatchMode)
                 elif t["label"] == "GWHP":
-                    self._addGeothemalHeatPump(t, temperatureDHW, temperatureSH, temperatureGround, opt, mergeLinkBuses, dispatchMode)
+                    self._addGeothemalHeatPump(t, temperatureDHW, temperatureSH, temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode)
                 elif t["label"] == "GWHP split":
                     self._addGeothemalHeatPumpSplit(t, temperatureDHW, temperatureSH, temperatureGround, opt, mergeLinkBuses, dispatchMode)
                 elif t["label"] == "CHP":
@@ -546,9 +595,9 @@ class Building:
                 elif t["label"] == "ElectricRod":
                     self._addElectricRod(t, opt, mergeLinkBuses, dispatchMode)
                 elif t["label"] == "Chiller":
-                    self._addChiller(t, temperatureSH, temperatureGround, opt, mergeLinkBuses, dispatchMode)
+                    self._addChiller(t, temperatureSH, temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode)
                 else:
-                    logging.warning("Transformer label not identified...")
+                    self._addGenericTransformer(t)
 
     def addStorage(self, data, stratifiedStorageParams, opt, mergeLinkBuses, dispatchMode):
         for i, s in data.iterrows():

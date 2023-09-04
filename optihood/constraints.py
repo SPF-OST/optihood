@@ -80,9 +80,10 @@ def environmentalImpactlimit(om, keyword1, keyword2, limit=None):
         if hasattr(om.flows[i, o].investment, keyword2):
             transformerFlowCapacityDict[(i, o)] = om.flows[i, o].investment
 
-    for x in om.GenericInvestmentStorageBlock.INVESTSTORAGES:
-        if hasattr(x.investment, keyword2):
-            storageCapacityDict[x] = om.GenericInvestmentStorageBlock.invest[x]
+    if hasattr(om, 'GenericInvestmentStorageBlock'):
+        for x in om.GenericInvestmentStorageBlock.INVESTSTORAGES:
+            if hasattr(x.investment, keyword2):
+                storageCapacityDict[x] = om.GenericInvestmentStorageBlock.invest[x]
 
     envImpact = "totalEnvironmentalImpact"
 
