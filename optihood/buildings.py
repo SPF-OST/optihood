@@ -3,10 +3,10 @@ import oemof.solph as solph
 from oemof.tools import logger
 from oemof.tools import economics
 import logging
-from optihood.optihood.converters import *
-from optihood.optihood.sources import PV
-from optihood.optihood.storages import ElectricalStorage, ThermalStorage
-from optihood.optihood.sinks import SinkRCModel
+from optihood.converters import *
+from optihood.sources import PV
+from optihood.storages import ElectricalStorage, ThermalStorage
+from optihood.sinks import SinkRCModel
 
 intRate = 0.05
 

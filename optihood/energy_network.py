@@ -11,9 +11,9 @@ try:
     import matplotlib.pyplot as plt
 except ImportError:
     plt = None
-from optihood.optihood.constraints import *
-from optihood.optihood.buildings import Building
-from optihood.optihood.links import Link
+from optihood.constraints import *
+from optihood.buildings import Building
+from optihood.links import Link
 
 
 class EnergyNetworkClass(solph.EnergySystem):
