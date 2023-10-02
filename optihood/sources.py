@@ -83,5 +83,6 @@ class PV(solph.Source):
         return self.__pv
 
     def _calculateArea(self, zenith_angle, pv_tilt, pv_azimuth, pv_efficiency):
+        # Coefficient representing the area used by one unit of capacity of a solar panel
         coeff = -np.sin((zenith_angle+pv_tilt)*np.pi/180)*np.cos(pv_azimuth*np.pi/180)/np.sin(zenith_angle*np.pi/180)/pv_efficiency
         return coeff

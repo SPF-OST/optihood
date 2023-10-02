@@ -218,3 +218,24 @@ def totalPVCapacityConstraint(om, numBuildings):
         pyo.Constraint(expr=expr),
     )
     return om
+
+def PVTElectricalThermalCapacityConstraint(om, numBuildings):
+    pvtElOutFlows = [(i, o) for (i, o) in om.flows if ("elSource_pvt" in i.label)]
+    pvtThOutFlows = [(i, o) for (i, o) in om.flows if ("heatSource_pvt" in i.label)]
+    for b in range(1, numBuildings + 1):
+        elCapacity = [om.InvestmentFlow.invest[i, o] for (i, o) in pvtElOutFlows if ((f'__Building{b}') in o.label)]
+        thCapacity = [om.InvestmentFlow.invest[i, o] for (i, o) in pvtThOutFlows if ((f'__Building{b}') in o.label)]
+        areaUnitCapEl = [getattr(om.flows[i, o].investment, 'space_el') for (i, o) in pvtElOutFlows if ((f'__Building{b}') in o.label)]
+        areaUnitCapTh = [getattr(om.flows[i, o].investment, 'space') for (i, o) in pvtThOutFlows if ((f'__Building{b}') in o.label)]
+        if elCapacity or thCapacity:
+            elCapacity = elCapacity[0]
+            thCapacity = thCapacity[0]
+            areaUnitCapEl = areaUnitCapEl[0]
+            areaUnitCapTh = areaUnitCapTh[0]
+            expr = (elCapacity*areaUnitCapEl == thCapacity*areaUnitCapTh)
+            setattr(
+                om,
+                "PVTSizeConstr_B"+str(b),
+                pyo.Constraint(expr=expr),
+            )
+    return om

@@ -1,5 +1,6 @@
 import numpy as np
 import oemof.solph as solph
+import pandas as pd
 from oemof.tools import logger
 from oemof.tools import economics
 import logging
@@ -42,7 +43,7 @@ class Building:
     def getEnvParam(self):
         return self.__envParam
 
-    def addBus(self, data, opt, mergeLinkBuses, electricityImpact, includeCarbonBenefits):
+    def addBus(self, data, opt, mergeLinkBuses, electricityImpact, clusterSize, includeCarbonBenefits):
         # Create Bus objects from buses table
         for i, b in data.iterrows():
             if b["active"]:
@@ -55,7 +56,16 @@ class Building:
                     bus = solph.Bus(label=label)
                     self.__nodesList.append(bus)
                     self.__busDict[label] = bus
-                    if opt=='costs': varcost=float(b["excess costs"])
+                    if opt=='costs':
+                        if not clusterSize: varcost=float(b["excess costs"])
+                        else:
+                            varcost = None
+                            for d in clusterSize:
+                                temp = pd.Series(np.tile([float(b["excess costs"])*clusterSize[d]], 24))
+                                if varcost is not None:
+                                    varcost = varcost.append(temp, ignore_index=True)
+                                else:
+                                    varcost = temp
                     elif opt=='env' and includeCarbonBenefits:varcost=-electricityImpact['impact']
                     else: varcost=0
                     if b["excess"]:
@@ -66,8 +76,8 @@ class Building:
                                     self.__busDict[label]: solph.Flow(
                                         variable_costs=varcost
                                     )}))
-                    # add the excess production cost to self.__costParam
-                    self.__costParam["excess"+label] = float(b["excess costs"])
+                        # add the excess production cost to self.__costParam
+                        self.__costParam["excess"+label] = float(b["excess costs"])
         if mergeLinkBuses and self.__buildingLabel=='Building1':
             return self.__busDict
 
@@ -174,6 +184,63 @@ class Building:
             self.__technologies.append(
                 [s["to"] + '__' + self.__buildingLabel, s["label"] + '__' + self.__buildingLabel])
 
+    def addPVT(self, data, data_timeseries, opt, mergeLinkBuses, dispatchMode):
+        # Create Source objects from table 'commodity sources'
+        for i, s in data.iterrows():
+            if s["active"]:
+                if mergeLinkBuses and s["from"] in self.__linkBuses:
+                    inputBusLabel = s["from"]
+                else:
+                    inputBusLabel = s["from"] + '__' + self.__buildingLabel
+
+                outputBusLabels = [self.__busDict[s["to"].split(",")[0] + '__' + self.__buildingLabel], self.__busDict[s["to"].split(",")[1] + '__' + self.__buildingLabel]]
+
+                if opt == "costs":
+                    epc = self._calculateInvest(s)[0]
+                    base = self._calculateInvest(s)[1]
+                    env_capa = float(s["impact_cap"]) / float(s["lifetime"])
+                    env_flow = float(s["heat_impact"])
+                    varc = 0  # variable cost is only passed for environmental optimization if there are emissions per kWh of energy produced from the unit
+
+                    envParam = [env_flow, 0, env_capa]
+
+                elif opt == "env":
+                    epc = float(s["impact_cap"]) / float(s["lifetime"])
+                    base = 0
+                    env_capa = float(s["impact_cap"]) / float(s["lifetime"])
+                    env_flow = float(s["heat_impact"])
+                    varc = float(s[
+                                     "heat_impact"])  # variable cost is only passed for environmental optimization if there are emissions per kWh of energy produced from the unit
+
+                    envParam = [env_flow, 0, env_capa]
+
+                # If roof area does not exist in the excel file
+                if 'roof_area' not in s.keys():
+                    s["roof_area"] = np.nan
+                else:
+                    s["roof_area"] = float(s["roof_area"])
+                pvtcollector = PVT(s["label"], self.__buildingLabel,
+                                                       self.__busDict[inputBusLabel],
+                                                       outputBusLabels,
+                                                       self.__busDict[s["connect"]+ '__' + self.__buildingLabel],
+                                                       float(s["electrical_consumption"]), float(s["peripheral_losses"]), float(s["latitude"]),
+                                                       float(s["longitude"]), float(s["tilt"]), s["roof_area"],
+                                                       float(s["zenith_angle"]), float(s["azimuth"]),
+                                                       float(s["eta_0"]), float(s["a_1"]), float(s["a_2"]), float(s["temp_collector_inlet"]),data_timeseries['tre200h0'],
+                                                       float(s["delta_temp_n"]), data_timeseries['gls'], data_timeseries['str.diffus'], float(s["capacity_min"]), float(s["capacity_max"]),
+                                                       epc, base, env_capa, env_flow, varc, dispatchMode,
+                                                        float(s["pv_efficiency"]))
+                self.__nodesList.append(pvtcollector.getPVT("el_source"))
+                self.__nodesList.append(pvtcollector.getPVT("heat_source"))
+                self.__nodesList.append(pvtcollector.getPVT("heat_transformer"))
+                self.__nodesList.append(pvtcollector.getPVT("excess_heat_sink"))
+
+                self.__envParam['heatSource_' + s['label'] + '__' + self.__buildingLabel] = envParam
+                self.__costParam['heatSource_' + s['label'] + '__' + self.__buildingLabel] = [self._calculateInvest(s)[0],
+                                                                                            self._calculateInvest(s)[1]]
+                self.__technologies.append(
+                    [s["to"] + '__' + self.__buildingLabel, s["label"] + '__' + self.__buildingLabel])
+
     def addGridSeparation(self, dataGridSeparation, mergeLinkBuses):
         if not dataGridSeparation.empty:
             for i, gs in dataGridSeparation.iterrows():
@@ -201,7 +268,7 @@ class Building:
                                                               outputs={self.__busDict[outputBusLabel]: solph.Flow()},
                                                       conversion_factors={self.__busDict[outputBusLabel]: float(gs["efficiency"])}))
 
-    def addSource(self, data, data_elec, data_cost, opt):
+    def addSource(self, data, data_elimpact, data_elcost, data_natGascost, data_natGasImpact, opt):
         # Create Source objects from table 'commodity sources'
 
         for i, cs in data.iterrows():
@@ -216,18 +283,26 @@ class Building:
                 # self.__envParam is assigned the value data_elec["impact"] or cs["CO2 impact"] depending on whether ('electricity' is in cs["label"]) or not
                 if opt == "costs":
                     if 'electricity' in cs["label"]:
-                        varCosts = data_cost["cost"]
+                        varCosts = data_elcost["cost"]
+                    elif 'naturalGas' in cs['label']:
+                        varCosts = data_natGascost["cost"]
                     else:
                         varCosts = float(cs["variable costs"])
                 elif 'electricity' in cs["label"]:
-                    varCosts = data_elec["impact"]
+                    varCosts = data_elimpact["impact"]
+                elif 'naturalGas' in cs["label"]:
+                    varCosts = data_natGasImpact["impact"]
                 else:
                     varCosts = float(cs["CO2 impact"])
 
                 if 'electricity' in cs["label"]:
-                    envImpactPerFlow = data_elec["impact"]
-                    envParameter = data_elec["impact"]
-                    costParameter = data_cost["cost"]
+                    envImpactPerFlow = data_elimpact["impact"]
+                    envParameter = data_elimpact["impact"]
+                    costParameter = data_elcost["cost"]
+                elif 'naturalGas' in cs['label']:
+                    envImpactPerFlow = data_natGasImpact["impact"]
+                    envParameter = data_natGasImpact["impact"]
+                    costParameter = data_natGascost["cost"]
                 else:
                     envImpactPerFlow = float(cs["CO2 impact"])
                     envParameter = float(cs["CO2 impact"])
