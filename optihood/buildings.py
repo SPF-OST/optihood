@@ -19,7 +19,7 @@ class Building:
         self.__envParam = {}
         self.__busDict = {}
         self.__buildingLabel = label
-        self.__linkBuses = ["electricityBus", "electricityInBus", "domesticHotWaterBus", "dhwDemandBus", "spaceHeatingBus", "shDemandBus"]
+        self.__linkBuses = ["electricityBus", "electricityInBus"] #, "domesticHotWaterBus", "dhwDemandBus", "spaceHeatingBus", "shDemandBus"]
 
     def getBuildingLabel(self):
         return self.__buildingLabel
@@ -46,6 +46,7 @@ class Building:
         # Create Bus objects from buses table
         for i, b in data.iterrows():
             if b["active"]:
+                #
                 if mergeLinkBuses and b["label"] in self.__linkBuses:
                     label = b["label"]
                 else:
@@ -184,7 +185,8 @@ class Building:
         if not dataGridSeparation.empty:
             for i, gs in dataGridSeparation.iterrows():
                 if mergeLinkBuses:
-                    if gs["label"] in ['gridElectricity','electricitySource','shSource']:
+                    if gs["label"] in ['gridElectricity', 'electricitySource', 'shSource',
+                                       'domesticHotWater', 'spaceHeating']: #orignal ['gridElectricity','electricitySource','shSource']:
                         label = gs["label"]+'__'+self.__buildingLabel
                     else:
                         label = gs["label"]
