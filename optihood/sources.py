@@ -4,7 +4,7 @@ import pandas as pd
 import pvlib
 
 
-class PV(solph.Source):
+class PV(solph.components.Source):
     def __init__(self, label, buildingLabel, outputs, peripheral_losses, latitude, longitude,
                  pv_tilt, pv_efficiency, roof_area, zenith_angle, pv_azimuth, irradiance_global, irradiance_diffuse, temp_amb_pv, capacityMin,
                  capacityMax, epc, base, env_capa, env_flow, varc, dispatchMode):

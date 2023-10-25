@@ -6,6 +6,7 @@ from oemof.thermal.stratified_thermal_storage import (
 )
 
 import oemof.solph as solph
+from optihood.optihood.links import LinkStorageDummyInput, Link
 
 class ElectricalStorage(solph.components.GenericStorage):
     def __init__(self, buildingLabel, input, output, loss_rate, initial_storage, efficiency_in, efficiency_out, capacity_min, capacity_max, epc, base, varc, env_flow, env_capa, dispatchMode):
@@ -13,7 +14,7 @@ class ElectricalStorage(solph.components.GenericStorage):
             investArgs = {'minimum':capacity_min,
                     'maximum':capacity_max,
                     'ep_costs':epc,
-                    'env_per_capa':env_capa}
+                    'custom_attributes': {'env_per_capa': env_capa}}
         else:
             investArgs = {'minimum':capacity_min,
                     'maximum':capacity_max,
@@ -21,20 +22,20 @@ class ElectricalStorage(solph.components.GenericStorage):
                     'existing':0,
                     'nonconvex':True,
                     'offset':base,
-                    'env_per_capa':env_capa}
+                    'custom_attributes': {'env_per_capa': env_capa}}
         super(ElectricalStorage, self).__init__(
             label="electricalStorage"+'__'+buildingLabel,
             inputs={
                 input: solph.Flow(investment=solph.Investment(ep_costs=0)),
             },
             outputs={
-                output: solph.Flow(investment=solph.Investment(ep_costs=0), variable_costs=varc, env_per_flow=env_flow, )
+                output: solph.Flow(investment=solph.Investment(ep_costs=0), variable_costs=varc, custom_attributes={'env_per_flow':env_flow} )
             },
             loss_rate=loss_rate,
             initial_storage_level=initial_storage,
             inflow_conversion_factor=efficiency_in,
             outflow_conversion_factor=efficiency_out,
-            Balanced=False,
+            balanced=False,
             invest_relation_input_capacity=efficiency_in,
             invest_relation_output_capacity=efficiency_out,
             investment=solph.Investment(**investArgs),
@@ -48,7 +49,7 @@ class ThermalStorage(solph.components.GenericStorage):
             investArgs={'minimum':capacity_min,
                 'maximum':capacity_max,
                 'ep_costs':epc,
-                'env_per_capa':env_capa}
+                'custom_attributes': {'env_per_capa': env_capa}}
         else:
             investArgs={'minimum':capacity_min,
                 'maximum':capacity_max,
@@ -56,7 +57,7 @@ class ThermalStorage(solph.components.GenericStorage):
                 'existing':0,
                 'nonconvex':True,
                 'offset':base,
-                'env_per_capa':env_capa}
+                'custom_attributes': {'env_per_capa': env_capa}}
 
         super(ThermalStorage, self).__init__(
             label=label,
@@ -64,7 +65,7 @@ class ThermalStorage(solph.components.GenericStorage):
                 input: solph.Flow(investment=solph.Investment(ep_costs=0)),
             },
             outputs={
-                output: solph.Flow(investment=solph.Investment(ep_costs=0), variable_costs=varc, env_per_flow=env_flow, )
+                output: solph.Flow(investment=solph.Investment(ep_costs=0), variable_costs=varc, custom_attributes={'env_per_flow':env_flow} )
             },
             loss_rate=loss_rate,
             initial_storage_level=initial_storage,
@@ -74,7 +75,7 @@ class ThermalStorage(solph.components.GenericStorage):
             outflow_conversion_factor=stratifiedStorageParams.at[storageLabel, 'outflow_conversion_factor'],
             invest_relation_input_capacity=1,
             invest_relation_output_capacity=1,
-            Balanced=False,
+            balanced=False,
             investment=solph.Investment(**investArgs),
         )
 
@@ -108,33 +109,65 @@ class ThermalStorageTemperatureLevels:
         self._label = label
         storageLabel = label.split("__")[0]
         self.__TempH, self.__TempC = self._calcTemperatures(stratifiedStorageParams, storageLabel)
-        capacity_min, capacity_max, epc, env_capa = self._conversionCapacities(self.__TempH[-1], self.__TempC, min, max, volume_cost, env_cap)
+        capacity_min, capacity_max, epc, env_capa = self._conversionCapacities(self.__TempH[-1], self.__TempC[0], min, max, volume_cost, env_cap)
         # capacity_min, capacity_max should be on the whole storage not individual temperature levels
         self.__capacityMin = capacity_min
         self.__capacityMax = capacity_max
         self.__baseInvestment=base # offset should be added only once for the whole storage, not for each temperature level
+        self._numberOfLevels = len(stratifiedStorageParams.at[storageLabel, 'temp_h'].split(","))
         if dispatchMode:
             investArgs={'ep_costs':epc,
-                'env_per_capa':env_capa}
+                'custom_attributes': {'env_per_capa': env_capa}}
         else:
             investArgs={'ep_costs':epc,
                 'existing':0,
-                'nonconvex':True,
+                'minimum': self.__capacityMin/self._numberOfLevels,
                 'maximum':self.__capacityMax,
                 'offset':0,
-                'env_per_capa':env_capa}
-        self._numberOfLevels = len(stratifiedStorageParams.at[storageLabel, 'temp_h'].split(","))
+                'custom_attributes': {'env_per_capa': env_capa}}
         self._s = []  # list of storage volumes
+        self._dummyComponents = [] # list of dummy inputs for flow of volume from storage level at lower temperature to higher temperature
+        self._dummyInBus = []
+        self._dummyOutBus = []
         for i in range(self._numberOfLevels):
             u_value, loss_rate, fixed_losses_relative, fixed_losses_absolute = self._precalculate(stratifiedStorageParams, label.split("__")[0], i)
-            newLabel = storageLabel + str(self.__TempH[i]) + "__" + label.split("__")[1]
+            newLabel = storageLabel + str(int(self.__TempH[i])) + "__" + label.split("__")[1]
+            if i == 0:
+                storageInput = {inputs[i]: solph.Flow(investment=solph.Investment(ep_costs=0))}
+                dummyInBus = solph.Bus(label="dummyInBus_" + newLabel)
+                dummyOutBus = solph.Bus(label="dummyOutBus_" + newLabel)   #Special bus to dummy component for level 0 as GenericStorage can have only one output
+                self._dummyInBus.append(dummyInBus)
+                self._dummyOutBus.append(dummyOutBus)
+                storageOutput = {dummyOutBus: solph.Flow(investment=solph.Investment(ep_costs=0))}
+                specialOut = {outputs[0]: solph.Flow(),
+                              dummyInBus: solph.Flow()}
+                self._dummyComponents.append(Link(                              # special component at the output of storage level 0
+                    label="dummy_"+newLabel,
+                    inputs={dummyOutBus: solph.Flow()},
+                    outputs=specialOut,
+                    conversion_factors={b: 1 for b in specialOut}
+                ))
+            else:
+                if i != self._numberOfLevels - 1:
+                    dummyInBus = solph.Bus(label="dummyInBus_"+newLabel)
+                    self._dummyInBus.append(dummyInBus)
+                dummyOutBus = solph.Bus(label="dummyOutBus_" + newLabel)
+                self._dummyOutBus.append(dummyOutBus)
+                storageInput = {dummyOutBus: solph.Flow(investment=solph.Investment(ep_costs=0))}
+                if i == self._numberOfLevels - 1:
+                    storageOutput = {
+                        outputs[-1]: solph.Flow(investment=solph.Investment(ep_costs=0), variable_costs=varc,
+                                               custom_attributes={'env_per_flow':env_flow})}
+                else:
+                    storageOutput = {dummyInBus: solph.Flow(investment=solph.Investment(ep_costs=0))}
+                self._dummyComponents.append(LinkStorageDummyInput(label="dummy_"+newLabel,
+                            inputs={inputs[i]: solph.Flow(),
+                                    self._dummyInBus[i-1]: solph.Flow()},
+                            outputs={dummyOutBus: solph.Flow()},
+                            conversion_factors={k: 1 for k in [inputs[i], self._dummyInBus[i-1]]}))
             self._s.append(solph.components.GenericStorage(label=newLabel,
-                                                inputs={
-                                                    inputs[i]: solph.Flow(investment=solph.Investment(ep_costs=0)),
-                                                },
-                                                outputs={
-                                                    outputs[i]: solph.Flow(investment=solph.Investment(ep_costs=0), variable_costs=varc, env_per_flow=env_flow)
-                                                },
+                                                inputs=storageInput,
+                                                outputs=storageOutput,
                                                 loss_rate=loss_rate,
                                                 initial_storage_level=initial_storage,      # initial storage is applied to each temperature level (if specified)
                                                 fixed_losses_relative=fixed_losses_relative,
@@ -143,7 +176,7 @@ class ThermalStorageTemperatureLevels:
                                                 outflow_conversion_factor=stratifiedStorageParams.at[storageLabel, 'outflow_conversion_factor'],
                                                 invest_relation_input_capacity=1,
                                                 invest_relation_output_capacity=1,
-                                                Balanced=False,
+                                                balanced=False,
                                                 investment=solph.Investment(**investArgs),))
 
     @property
@@ -164,7 +197,10 @@ class ThermalStorageTemperatureLevels:
 
     def _calcTemperatures(self, data, label):
         tempH = [float(t) for t in data.at[label, 'temp_h'].split(",")]
-        tempC = float(data.at[label, 'temp_c'])
+        tempC = [float(data.at[label, 'temp_c'])]
+        for i in range(len(tempH)):
+            if i != len(tempH)-1:
+                tempC.append(tempH[i])
         return tempH, tempC
 
     def _conversionCapacities(self, tempH, tempC, min, max, volume_cost, env_cap):
@@ -185,7 +221,7 @@ class ThermalStorageTemperatureLevels:
             u_value,
             data.at[label, 'diameter'],
             self.__TempH[level],
-            self.__TempC,
+            self.__TempC[level],
             data.at[label, 'temp_env'])
         if level==0 or level==self._numberOfLevels-1:
             fixed_losses_absolute /= 2
@@ -198,4 +234,12 @@ class ThermalStorageTemperatureLevels:
             logging.error("Inconsistency in number of storage level buses and temp_h values.")
         else:
             return self._s[level]
+
+    def getDummyComponents(self, level):
+        if level>=self._numberOfLevels:
+            logging.error("Inconsistency in number of storage level buses and temp_h values.")
+        elif level == self._numberOfLevels - 1:
+            return [self._dummyOutBus[level], self._dummyComponents[level]]
+        else:
+            return [self._dummyInBus[level], self._dummyOutBus[level], self._dummyComponents[level]]
 

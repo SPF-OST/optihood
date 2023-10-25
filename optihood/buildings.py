@@ -20,7 +20,8 @@ class Building:
         self.__envParam = {}
         self.__busDict = {}
         self.__buildingLabel = label
-        self.__linkBuses = ["electricityBus", "electricityInBus", "domesticHotWaterBus", "dhwDemandBus", "spaceHeatingBus", "shDemandBus"]
+        self.__linkBuses = ["electricityBus", "electricityInBus", "domesticHotWaterBus", "dhwDemandBus",
+                            "spaceHeatingBus", "shDemandBus", "heatBus0", "heatDemandBus0", "heatBus2", "heatDemandBus2"]
 
     def getBuildingLabel(self):
         return self.__buildingLabel
@@ -59,7 +60,7 @@ class Building:
 
                     if b["excess"]:
                         self.__nodesList.append(
-                            solph.Sink(
+                            solph.components.Sink(
                                 label="excess"+label,
                                 inputs={
                                     self.__busDict[label]: solph.Flow(
@@ -204,7 +205,7 @@ class Building:
                     outputBusLabel = gs["to"] + '__' + self.__buildingLabel
 
                 if (self.__buildingLabel in label) or (mergeLinkBuses and self.__buildingLabel=='Building1'):
-                    self.__nodesList.append(solph.Transformer(label=label,
+                    self.__nodesList.append(solph.components.Transformer(label=label,
                                                               inputs={self.__busDict[inputBusLabel]: solph.Flow()},
                                                               outputs={self.__busDict[outputBusLabel]: solph.Flow()},
                                                       conversion_factors={self.__busDict[outputBusLabel]: float(gs["efficiency"])}))
@@ -243,11 +244,11 @@ class Building:
                     # add the inputs (natural gas, wood, etc...) to self.__inputs
                     self.__inputs.append([sourceLabel, outputBusLabel])
 
-                self.__nodesList.append(solph.Source(
+                self.__nodesList.append(solph.components.Source(
                     label=sourceLabel,
                     outputs={self.__busDict[outputBusLabel]: solph.Flow(
                             variable_costs=varCosts,
-                            env_per_flow=envImpactPerFlow,
+                            custom_attributes={'env_per_flow': envImpactPerFlow},
                         )}))
 
                 # set environment and cost parameters
@@ -311,7 +312,7 @@ class Building:
                         inputBusDict = {self.__busDict[inputBusLabel]: solph.Flow(**inflow_args)}
                     # create sink
                     self.__nodesList.append(
-                        solph.Sink(
+                        solph.components.Sink(
                             label=sinkLabel,
                             inputs=inputBusDict,
                         )
@@ -351,6 +352,8 @@ class Building:
         # set technologies, environment and cost parameters
         self.__technologies.append([outputBusLabel2, hpSHLabel])
         self.__technologies.append([outputBusLabel1, hpSHLabel])
+        if temperatureLevels:
+            self.__technologies.append([outputBusLabel3, hpSHLabel])
 
         self.__costParam[hpSHLabel] = [self._calculateInvest(data)[0], self._calculateInvest(data)[1]]
 
@@ -584,6 +587,7 @@ class Building:
                     logging.warning("Transformer label not identified...")
 
     def addStorage(self, data, stratifiedStorageParams, opt, mergeLinkBuses, dispatchMode, temperatureLevels):
+        sList = []
         for i, s in data.iterrows():
             if s["active"]:
                 storageLabel = s["label"]+'__'+self.__buildingLabel
@@ -634,13 +638,16 @@ class Building:
                                self._calculateInvest(s)[1] * (opt == "costs"),
                                float(s["heat_impact"]) * (opt == "env"),
                                float(s["heat_impact"]), envImpactPerCapacity, dispatchMode)
+                    sList.append(storage)
                     for i in range(len(inputBuses)):
                         self.__nodesList.append(storage.getStorageLevel(i))
+                        self.__nodesList.extend(storage.getDummyComponents(i))
                 else:
                     logging.error("One of the following issues were encountered: (i) Storage label not identified. Storage label"
                                   "should match one of the following: electricalStorage, dhwStorage, shStorage or thermalStorage."
                                   "(ii) Separate dhwStorage and/or shStorage selected when temperatureLevels is set as True."
                                   "Either set temperatureLevels to False or rename the storage label to thermalStorage.")
+        return sList
 
     def _calculateInvest(self, data):
         # Calculate the CAPEX and the part of the OPEX not related to energy flows (maintenance)

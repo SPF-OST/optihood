@@ -1,12 +1,12 @@
-from pyomo.core.base.block import SimpleBlock
+from pyomo.core.base.block import ScalarBlock
 from pyomo.environ import BuildAction
 from pyomo.environ import Constraint
 
-from oemof.solph import network as solph_network
-from oemof.solph.plumbing import sequence as solph_sequence
+from oemof.solph import components as solph_components
+from oemof.solph._plumbing import sequence as solph_sequence
 
 
-class CombinedTransformer(solph_network.Transformer):
+class CombinedTransformer(solph_components.Transformer):
     r"""
     A transformer able to produce both SH and DHW in the same timestep
     Pelec_in = Qsh/efficiencySH + Qdhw/efficiencyDHW
@@ -23,7 +23,7 @@ class CombinedTransformer(solph_network.Transformer):
         return CombinedTransformerBlock
 
 
-class CombinedTransformerBlock(SimpleBlock):
+class CombinedTransformerBlock(ScalarBlock):
     r"""Block for the linear relation of nodes
     """
 
@@ -81,7 +81,7 @@ class CombinedTransformerBlock(SimpleBlock):
         )
 
 
-class CombinedCHP(solph_network.Transformer):
+class CombinedCHP(solph_components.Transformer):
     r"""
     A CHP able to produce both SH and DHW in the same timestep
     Pelec_in = Qsh/efficiencySH + Qdhw/efficiencyDHW
@@ -99,7 +99,7 @@ class CombinedCHP(solph_network.Transformer):
         return CombinedCHPBlock
 
 
-class CombinedCHPBlock(SimpleBlock):
+class CombinedCHPBlock(ScalarBlock):
     r"""Block for the linear relation of nodes
     """
 

@@ -3,7 +3,7 @@ import numpy as np
 import optihood.optihood.combined_prod as cp
 from oemof.thermal.solar_thermal_collector import flat_plate_precalc
 
-class SolarCollector(solph.Transformer):
+class SolarCollector(solph.components.Transformer):
     def __init__(self, label, buildingLabel, inputs, outputs, connector, electrical_consumption, peripheral_losses, latitude,
                  longitude,
                  collector_tilt, roof_area, zenith_angle, collector_azimuth, eta_0, a_1, a_2, temp_collector_inlet,
@@ -37,7 +37,7 @@ class SolarCollector(solph.Transformer):
                         'maximum':capacityMax,
                         'space':self.surface_used,
                         'roof_area':roof_area,
-                        'env_per_capa':env_capa}
+                        'custom_attributes': {'env_per_capa': env_capa}}
         else:
             investArgs = {'ep_costs':epc,
                         'minimum':capacityMin,
@@ -46,13 +46,13 @@ class SolarCollector(solph.Transformer):
                         'space':self.surface_used,
                         'roof_area':roof_area,
                         'offset':base,
-                        'env_per_capa':env_capa}
+                        'custom_attributes': {'env_per_capa': env_capa}}
         if isinstance(delta_temp_n, float):
             connectorOutputDict = {connector: solph.Flow(
                 fix=self.collectors_heat,
                 investment=solph.Investment(**investArgs),
                 variable_costs=varc,
-                env_per_flow=env_flow,
+                custom_attributes={'env_per_flow':env_flow},
             )}
             connectorInputDict  = {connector: solph.Flow()}
             TransformerInputDict = {connector: solph.Flow(), inputs: solph.Flow()}
@@ -65,7 +65,7 @@ class SolarCollector(solph.Transformer):
                 fix=self.collectors_heat[c],
                 investment=solph.Investment(**investArgs),
                 variable_costs=varc,
-                env_per_flow=env_flow,
+                custom_attributes={'env_per_flow':env_flow},
             ) for c in connector}
             connectorInputDict = {c: solph.Flow() for c in connector}
             TransformerInputDict = connectorInputDict.copy()
@@ -75,16 +75,16 @@ class SolarCollector(solph.Transformer):
             convFactors = {c: factor['connector'] for c in connector}
             convFactors.update({inputs: factor['inputs']})
             convFactors.update({o: factor['outputs'] for o in outputs})
-        self.__collector_source = solph.Source(
+        self.__collector_source = solph.components.Source(
             label='heat_'+label + "__" + buildingLabel,
             outputs=connectorOutputDict,
         )
 
-        self.__collector_excess_heat = solph.Sink(
+        self.__collector_excess_heat = solph.components.Sink(
             label='excess_solarheat' + "__" + buildingLabel, inputs=connectorInputDict
         )
 
-        self.__collector_transformer = solph.Transformer(
+        self.__collector_transformer = solph.components.Transformer(
             label=label + '__' + buildingLabel,
             inputs=TransformerInputDict,
             outputs=TransformerOutputDict,
@@ -122,15 +122,16 @@ class HeatPumpLinear:
             investArgs = {'ep_costs' : epc * nomEff,
             'minimum' : capacityMin / nomEff,
             'maximum' : capacityMax / nomEff,
-            'env_per_capa' : env_capa * nomEff}
+            'custom_attributes': {'env_per_capa': env_capa * nomEff}}
         else:
             investArgs = {'ep_costs' : epc * nomEff,
             'minimum' : capacityMin / nomEff,
             'maximum' : capacityMax / nomEff,
             'nonconvex' : True,
             'offset' : base,
-            'env_per_capa' : env_capa * nomEff}
-        outputDict = {k:solph.Flow(variable_costs=varc,env_per_flow=env_flow) for k in output}
+            'custom_attributes' : {'env_per_capa': env_capa * nomEff}}
+        outputDict = {k:solph.Flow(variable_costs=varc, nominal_value=capacityMax,  min=0, max=1, nonconvex=solph.NonConvex(),
+                                   custom_attributes={'env_per_flow': env_flow}, ) for k in output}
         self.__heatpump = cp.CombinedTransformer(label='HP' + '__' + buildingLabel,
                                             inputs={input: solph.Flow(
                                                 investment=solph.Investment(**investArgs),
@@ -175,7 +176,7 @@ class GeothermalHeatPumpLinear:
             investArgs= {'ep_costs':epc*nomEff,
                         'minimum':capacityMin/nomEff,
                         'maximum':capacityMax/nomEff,
-                        'env_per_capa':env_capa*nomEff,
+                        'custom_attributes': {'env_per_capa': env_capa * nomEff}
                     }
         else:
             investArgs= {'ep_costs':epc*nomEff,
@@ -183,9 +184,10 @@ class GeothermalHeatPumpLinear:
                         'maximum':capacityMax/nomEff,
                         'nonconvex':True,
                         'offset':base,
-                        'env_per_capa':env_capa*nomEff,
+                        'custom_attributes': {'env_per_capa': env_capa * nomEff}
                     }
-        outputDict = {k: solph.Flow(variable_costs=varc, env_per_flow=env_flow) for k in output}
+        outputDict = {k: solph.Flow(variable_costs=varc, nominal_value=capacityMax,  min=0, max=1, nonconvex=solph.NonConvex(),
+                                   custom_attributes={'env_per_flow': env_flow}, ) for k in output}
         self.__geothermalheatpump = cp.CombinedTransformer(label='GWHP' + '__' + buildingLabel,
                                             inputs={input: solph.Flow(
                                                 investment=solph.Investment(**investArgs),
@@ -227,14 +229,14 @@ class CHP:
             investArgs = {'ep_costs': epc * self.avgEff,
                           'minimum': capacityMin / self.avgEff,
                           'maximum': capacitySH / self.avgEff,
-                          'env_per_capa': env_capa * self.avgEff}
+                          'custom_attributes': {'env_per_capa': env_capa * self.avgEff}}
         else:
             investArgs={'ep_costs':epc*self.avgEff,
                         'minimum':capacityMin/self.avgEff,
                         'maximum':capacitySH/self.avgEff,
                         'nonconvex':True,
                         'offset':base,
-                        'env_per_capa':env_capa*self.avgEff}
+                        'custom_attributes': {'env_per_capa': env_capa * self.avgEff}}
         outputDict = {k: solph.Flow(variable_costs=varc2, env_per_flow=env_flow2) for k in output if k!=output[0]}
         outputDict[output[0]] = solph.Flow(variable_costs=varc1, env_per_flow=env_flow1)
         self.__CHP = cp.CombinedCHP(
@@ -267,14 +269,14 @@ class GasBoiler(cp.CombinedTransformer):
             investArgs= {'ep_costs':epc*efficiency[0],
                         'minimum':capacityMin/efficiency[0],
                         'maximum':capacityMax/efficiency[0],
-                        'env_per_capa':env_capa*efficiency[0]}
+                        'custom_attributes': {'env_per_capa': env_capa * efficiency[0]}}
         else:
             investArgs= {'ep_costs':epc*efficiency[0],
                         'minimum':capacityMin/efficiency[0],
                         'maximum':capacityMax/efficiency[0],
                         'nonconvex':True,
                         'offset':base,
-                        'env_per_capa':env_capa*efficiency[0]}
+                        'custom_attributes': {'env_per_capa': env_capa * efficiency[0]}}
         outputDict = {k: solph.Flow(variable_costs=varc, env_per_flow=env_flow) for k in output}
         super(GasBoiler, self).__init__(
             label='GasBoiler'+'__'+buildingLabel,
@@ -298,14 +300,14 @@ class ElectricRod(cp.CombinedTransformer):
             investArgs = {'ep_costs': epc * efficiency,
                           'minimum': capacityMin / efficiency,
                           'maximum': capacityMax / efficiency,
-                          'env_per_capa': env_capa * efficiency}
+                          'custom_attributes': {'env_per_capa': env_capa * efficiency}}
         else:
             investArgs={'ep_costs':epc*efficiency,
                         'minimum':capacityMin/efficiency,
                         'maximum':capacityMax/efficiency,
                         'nonconvex':True,
                         'offset':base,
-                        'env_per_capa':env_capa*efficiency}
+                        'custom_attributes': {'env_per_capa': env_capa * efficiency}}
         outputDict = {k: solph.Flow(variable_costs=varc, env_per_flow=env_flow) for k in output}
         super(ElectricRod, self).__init__(
             label='ElectricRod'+'__'+buildingLabel,
@@ -327,15 +329,15 @@ class GeothermalHeatPumpLinearSingleUse:
             investArgs = {'ep_costs':epc,
                             'minimum':0,
                             'maximum':capacityMax,
-                            'env_per_capa':env_capa}
+                            'custom_attributes': {'env_per_capa': env_capa}}
         else:
             investArgs = {'ep_costs':epc,
                             'minimum':0,
                             'maximum':capacityMax,
                             'nonconvex':True,
                             'offset':base,
-                            'env_per_capa':env_capa}
-        self.__geothermalheatpump = solph.Transformer(label=f'GWHP{str(temperatureH)}' + '__' + buildingLabel,
+                             'custom_attributes': {'env_per_capa': env_capa}}
+        self.__geothermalheatpump = solph.components.Transformer(label=f'GWHP{str(temperatureH)}' + '__' + buildingLabel,
                                             inputs={input: solph.Flow()},
                                             outputs={outputH: solph.Flow(
                                                           variable_costs=varc,

@@ -3,8 +3,8 @@ under-development component for a linear RC model for heating a Building
 """
 
 import oemof.solph as solph
-from oemof.solph.plumbing import sequence
-from pyomo.core.base.block import SimpleBlock
+from oemof.solph._plumbing import sequence
+from pyomo.core.base.block import ScalarBlock
 from pyomo.environ import BuildAction
 from pyomo.environ import Constraint
 from pyomo.environ import Expression
@@ -12,7 +12,7 @@ from pyomo.environ import NonNegativeReals, Reals, Boolean
 from pyomo.environ import Set
 from pyomo.environ import Var
 
-class SinkRCModel(solph.Sink):
+class SinkRCModel(solph.components.Sink):
     """
     Building RC Model implemented as a custom Sink component
 
@@ -80,7 +80,7 @@ class SinkRCModel(solph.Sink):
     def constraint_group(self):
         return SinkRCModelBlock
 
-class SinkRCModelBlock(SimpleBlock):
+class SinkRCModelBlock(ScalarBlock):
     """
     Constraints for SinkRCModel Class
     """
