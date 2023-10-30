@@ -41,7 +41,7 @@ class CombinedTransformerBlock(SimpleBlock):
         m = self.parent_block()
 
         for n in group:
-            n.inflow = [i for i in list(n.inputs) if "electricity" in i.label][0]
+            n.inflow = [i for i in list(n.inputs) if "electricity" in i.label or "naturalGasBus" in i.label][0]
             if len(list(n.inputs)) > 1:
                 n.inflowQevap = [i for i in list(n.inputs) if "electricity" not in i.label][0]
             else:

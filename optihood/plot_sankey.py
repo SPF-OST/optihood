@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 import pandas as pd
 from optihood.plot_functions import getData
 import numpy as np
-from optihood.optihood.labelDict import labelDictGenerator, positionDictGenerator
+from optihood.labelDict import labelDictGenerator, positionDictGenerator
 from matplotlib import colors
 
 def addCapacities(nodes, dataDict, buildings, UseLabelDict, labelDict, mergedLinks):
@@ -173,14 +173,16 @@ def createSankeyData(dataDict, keys, UseLabelDict, labelDict, PositionDict, buil
 def createColorList(inputList, ColorDict, labels):
     colorsList=[]
     for n in inputList:
-        if (labels!='default' and labels["naturalGas"] in n) or (labels=='default' and "natGas" in n):           # Check for whether labels of a specific type are defined or not should be added here
-            color = ColorDict["gas"]
-        elif (labels!='default' and (labels["excessSh"] in n or labels["prodSH"] in n or labels["shBus"] in n or labels["StorageSh"] in n or labels["DemandSh"] in n)) or (labels=='default' and any(v in n for v in ["shLink", "prodSH", "shBus", "shStor", "Q_sh", "exSh", "usedSH"])):
+        if (labels!='default' and labels["qSource"] in n) or (labels=='default' and "qSource" in n):           # Check for whether labels of a specific type are defined or not should be added here
+            color = ColorDict["qs"]
+        elif (labels!='default' and (labels["excessSh"] in n or labels["GWHP"] in n or labels["prodSH"] in n or labels["shBus"] in n or labels["StorageSh"] in n or labels["DemandSh"] in n)) or (labels=='default' and "GWHP" in n or any(v in n for v in ["shLink", "prodSH", "shBus", "shStor", "Q_sh", "exSh", "usedSH"])):
             color = ColorDict["sh"]
         elif (labels!='default' and (labels["solarCollector"] in n or labels["excessSolarCollector"] in n or labels["StorageDhw"] in n or labels["dhwBus"] in n or labels["DemandDhw"] in n)) or (labels=='default' and any(v in n for v in ["dhwLink", "solar", "exSolar", "dhwStor", "dhwBus", "Q_dhw", "prodDHW"])):
             color = ColorDict["dhw"]
-        elif (labels!='default' and (labels["elBus"] in n or labels["grid"] in n or labels["pv"] in n or labels["prodEl"] in n or labels["localEl"] in n or labels["StorageEl"] in n or labels["excessEl"] in n or labels["DemandEl"] in n or labels["DemandMob"] in n))  or (labels=='default' and any(v in n for v in ["elLink", "grid", "pv", "prodEl", "localEl", "Bat", "exEl", "usedEl", "Q_el", "Q_mob"])):
+        elif (labels!='default' and (labels["elBus"] in n or labels["grid"] in n or labels["pv"] in n or labels["prodEl"] in n or labels["localEl"] in n or labels["StorageEl"] in n or labels["excessEl"] in n or labels["DemandEl"] in n or labels["DemandMob"] in n))  or (labels=='default' and any(v in n for v in ["excesselectricityProdBus", "eMobilityDemand", "elLink", "grid", "pv", "prodEl", "localEl", "Bat", "exEl", "usedEl", "Q_el", "Q_mob"])):
             color = ColorDict["elec"]
+        elif (labels!='default' and labels["hSB"] in n) or (labels=='default' and "hSB" in n):
+            color = ColorDict["hs"]
         else:
             color = ColorDict["other"]
         colorsList.append(color)
@@ -193,7 +195,9 @@ def displaySankey(fileName, UseLabelDict, labelDict, positionDict, labels, build
                  "gas": 'rgba' + str(colors.to_rgba("darkgray", OPACITY)),
                  "dhw": 'rgba' + str(colors.to_rgba("red", OPACITY)),
                  "sh": 'rgba' + str(colors.to_rgba("magenta", OPACITY)),
-                 "other": 'rgba' + str(colors.to_rgba("deeppink", OPACITY))
+                 "other": 'rgba' + str(colors.to_rgba("deeppink", OPACITY)),
+                 "hs": 'rgba' + str(colors.to_rgba("yellow", OPACITY)),
+                 "qs": 'rgba' + str(colors.to_rgba("green", OPACITY))
                  }
     data = readResults(fileName, buildings, ColorDict, UseLabelDict, labelDict, positionDict, labels, mergedLinks)
 

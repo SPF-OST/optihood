@@ -44,7 +44,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         self._dispatchMode = False                         
         if not os.path.exists(".\\log_files"):
             os.mkdir(".\\log_files")
-        logger.define_logging(logpath=os.getcwd(), logfile=f'.\\log_files\\optihood_{datetime.now().strftime("%d.%m.%Y_%H.%M.%S")}.log')
+        logger.define_logging(logpath=os.getcwd(), logfile=f'.\\log_files\\optihood_{datetime.now().strftime("%d.%m.%Y %H.%M.%S")}.log')
         logging.info("Initializing the energy network")
         super(EnergyNetworkClass, self).__init__(timeindex=timestamp)
 
@@ -105,7 +105,6 @@ class EnergyNetworkClass(solph.EnergySystem):
         demandProfilesPath = nodesData["profiles"].loc[nodesData["profiles"]["name"] == "demand_profiles", "path"].iloc[0]
         weatherDataPath = nodesData["profiles"].loc[nodesData["profiles"]["name"] == "weather_data", "path"].iloc[0]
 
-
         demandProfiles = {}  # dictionary of dataframes for each building's demand profiles
 
         if (not os.listdir(demandProfilesPath)) or (not os.path.exists(demandProfilesPath)):
@@ -122,7 +121,7 @@ class EnergyNetworkClass(solph.EnergySystem):
             nodesData["demandProfiles"] = demandProfiles
             # set datetime index
             for i in range(numBuildings):
-                nodesData["demandProfiles"][i + 1].timestamp = pd.to_datetime(nodesData["demandProfiles"][i + 1].timestamp, format = '%Y-%m-%d %H:%M:%S')
+                nodesData["demandProfiles"][i + 1].timestamp = pd.to_datetime(nodesData["demandProfiles"][i + 1].timestamp, format='%d.%m.%Y %H:%M')
                 nodesData["demandProfiles"][i + 1].set_index("timestamp", inplace=True)
                 nodesData["demandProfiles"][i + 1] = nodesData["demandProfiles"][i + 1][self.timeindex[0]:self.timeindex[-1]]
 
@@ -168,7 +167,7 @@ class EnergyNetworkClass(solph.EnergySystem):
                 nodesData['weather_data'].at[index, 'timestamp'] = datetime.strptime(time, "%Y.%m.%d  %H:%M:%S")
                 #set datetime index
             nodesData["weather_data"].timestamp = pd.to_datetime(nodesData["weather_data"].timestamp,
-                                                                          format='%Y-%m-%d %H:%M:%S')
+                                                                          format='%Y.%m.%d %H:%M:%S')
             nodesData["weather_data"].set_index("timestamp", inplace=True)
             nodesData["weather_data"] = nodesData["weather_data"][self.timeindex[0]:self.timeindex[-1]]
 
@@ -509,11 +508,11 @@ class EnergyNetworkClass(solph.EnergySystem):
             electricitySourceLabel = "electricityResource" + '__' + buildingLabel
             gridBusLabel = "gridBus" + '__' + buildingLabel
             if mergeLinkBuses:
-                electricityBusLabel = "electricityBus"
-                excessElectricityBusLabel = "excesselectricityBus"
+                electricityProdBusLabel = "electricityProdBus"
+                excessElectricityProdBusLabel = "excesselectricityProdBus"
             else:
-                electricityBusLabel = "electricityBus" + '__' + buildingLabel
-                excessElectricityBusLabel = "excesselectricityBus" + '__' + buildingLabel
+                electricityProdBusLabel = "electricityProdBus" + '__' + buildingLabel
+                excessElectricityProdBusLabel = "excesselectricityProdBus" + '__' + buildingLabel
 
             costParamGridElectricity = self.__costParam[electricitySourceLabel].copy()
             costParamGridElectricity.reset_index(inplace=True, drop=True)
@@ -530,8 +529,8 @@ class EnergyNetworkClass(solph.EnergySystem):
 
             # Feed-in electricity cost (value will be in negative to signify monetary gain...)
             if (mergeLinkBuses and buildingLabel=='Building1') or not mergeLinkBuses:
-                self.__feedIn[buildingLabel] = sum(solph.views.node(self._optimizationResults, electricityBusLabel)
-                                                   ["sequences"][(electricityBusLabel, excessElectricityBusLabel), "flow"]) * self.__costParam[excessElectricityBusLabel]
+                self.__feedIn[buildingLabel] = sum(solph.views.node(self._optimizationResults, electricityProdBusLabel)
+                                                   ["sequences"][(electricityProdBusLabel, excessElectricityProdBusLabel), "flow"]) * self.__costParam[excessElectricityProdBusLabel]
             else: # in case of merged links feed in for all buildings except Building1 is set to 0 (to avoid repetition)
                 self.__feedIn[buildingLabel] = 0
             if mergeLinkBuses:
@@ -597,20 +596,20 @@ class EnergyNetworkClass(solph.EnergySystem):
             self.__envImpactTechnologies[buildingLabel].update({i: capacityTransformers[(i, o)] * self.__envParam[i][2] +
                                                                    sum(sum(solph.views.node(self._optimizationResults,
                                                                                             t[0])["sequences"][((t[1], t[0]), "flow")] *
-                                                                           self.__envParam[t[1]][1] * ('electricityBus' in t[0]) + \
+                                                                           self.__envParam[t[1]][1] * ('electricityProdBus' in t[0]) + \
                                                                            solph.views.node(self._optimizationResults,
                                                                                             t[0])["sequences"][((t[1], t[0]), "flow")] *
-                                                                           self.__envParam[t[1]][0] * ('electricityBus' not in t[0]))
+                                                                           self.__envParam[t[1]][0] * ('electricityProdBus' not in t[0]))
                                                                        for t in technologies if t[1] == i)
                                                                 for i, o in capacityTransformers})
             self.__envImpactTechnologies[buildingLabel].update({x: capacityStorages[x] * self.__envParam[x][2] +
                                                                    sum(sum(
                                                                        solph.views.node(self._optimizationResults,
                                                                                         t[0])["sequences"][((t[1], t[0]), "flow")] *
-                                                                       self.__envParam[t[1]][1] * ('electricityBus' in t[0]) + \
+                                                                       self.__envParam[t[1]][1] * ('electricityProdBus' in t[0]) + \
                                                                        solph.views.node(self._optimizationResults,
                                                                                         t[0])["sequences"][((t[1], t[0]), "flow")] *
-                                                                       self.__envParam[t[1]][0] * ('electricityBus' not in t[0]))
+                                                                       self.__envParam[t[1]][0] * ('electricityProdBus' not in t[0]))
                                                                        for t in technologies if t[1] == x)
                                                                 for x in capacityStorages})
 
@@ -759,7 +758,6 @@ class EnergyNetworkClass(solph.EnergySystem):
 
                 capacitiesTransformersBuilding = pd.DataFrame.from_dict(capacitiesTransformers, orient='index')
                 capacitiesTransformersBuilding.to_excel(writer, sheet_name="capTransformers__" + buildingLabel)
-            writer.save()
 
 class EnergyNetworkIndiv(EnergyNetworkClass):
     def createScenarioFile(self, configFilePath, excelFilePath, building, numberOfBuildings=1):
@@ -879,7 +877,7 @@ class EnergyNetworkIndiv(EnergyNetworkClass):
         excelData['buses'] = pd.DataFrame(columns=['label', 'building', 'excess', 'excess costs', 'active'])
         for index in range(len(df)):
             excelData['buses'].at[index,'label'] = df[index]
-            if df[index] == 'electricityBus' and FeedinTariff!=0:
+            if df[index] == 'electricityProdBus' and FeedinTariff!=0:
                 excelData['buses'].at[index,'excess'] = 1
                 excelData['buses'].at[index, 'excess costs'] = FeedinTariff
         excelData['buses']['building'] = 1
@@ -1053,7 +1051,7 @@ class EnergyNetworkGroup(EnergyNetworkClass):
         excelData['buses'] = pd.DataFrame(columns=['label', 'building', 'excess', 'excess costs', 'active'])
         for index in range(len(df)):
             excelData['buses'].at[index, 'label'] = df[index]
-            if df[index] == 'electricityBus' and FeedinTariff != 0:
+            if df[index] == 'electricityProdBus' and FeedinTariff != 0:
                 excelData['buses'].at[index, 'excess'] = 1
                 excelData['buses'].at[index, 'excess costs'] = FeedinTariff
         excelData['buses']['building'] = 1
@@ -1133,7 +1131,7 @@ class EnergyNetworkGroup(EnergyNetworkClass):
                         busesOut.append(self._busDict["domesticHotWaterBus" + '__Building' + str(b+1)])
                         busesIn.append(self._busDict["dhwDemandBus" + '__Building' + str(b+1)])
                     else:
-                        busesOut.append(self._busDict["electricityBus" + '__Building' + str(b + 1)])
+                        busesOut.append(self._busDict["electricityProdBus" + '__Building' + str(b + 1)])
                         busesIn.append(self._busDict["electricityInBus" + '__Building' + str(b + 1)])
 
                 self._nodesList.append(Link(

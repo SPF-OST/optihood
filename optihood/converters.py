@@ -1,6 +1,6 @@
 import oemof.solph as solph
 import numpy as np
-import optihood.optihood.combined_prod as cp
+import optihood.combined_prod as cp
 from oemof.thermal.solar_thermal_collector import flat_plate_precalc
 from oemof.solph import network as solph_network
 from oemof.solph.plumbing import sequence as solph_sequence
@@ -109,10 +109,12 @@ class HeatPumpLinear:
             'nonconvex' : True,
             'offset' : base,
             'env_per_capa' : env_capa * nomEff}
+        inputDict = {input[0]: solph.Flow(investment=solph.Investment(**investArgs))}
+        if len(input) > 1:
+            # Two input HP, second input is for Q evaporator
+            inputDict.update({input[1]: solph.Flow()})
         self.__heatpump = cp.CombinedTransformer(label='HP' + '__' + buildingLabel,
-                                            inputs={input: solph.Flow(
-                                                investment=solph.Investment(**investArgs),
-                                            )},
+                                            inputs=inputDict,
                                             outputs={outputSH: solph.Flow(
                                                           variable_costs=varc,
                                                           env_per_flow=env_flow,

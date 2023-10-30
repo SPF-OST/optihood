@@ -1,5 +1,5 @@
 def labelDictGenerator(numBuildings, labels, optimType, mergedLinks):
-    base = {"electricityLink":"elLink", "shLink":"shLink", "dhwLink":"dhwLink", "naturalGasResource":"natGas", "naturalGasBus":"natGas", "gridBus":"grid", "pv":"pv", "electricityResource":"grid", "gridElectricity":"grid", "GasBoiler":"gasBoiler",
+    base = {"electricityLink":"elLink", "shLink":"shLink", "dhwLink":"dhwLink", "qSource":"qSource", "heatSourceBus":"hSB", "gridBus":"grid", "pv":"pv", "electricityResource":"grid", "gridElectricity":"grid", "GasBoiler":"gasBoiler",
     "CHP":"CHP", "electricityBus":"prodEl", "electricityProdBus":"localEl", "producedElectricity":"prodEl", "electricitySource":"localEl", "electricalStorage":"Bat", "excesselectricityBus":"exEl",
     "excessshDemandBus":"exSh", "electricityInBus":"usedEl", "HP":"HP", "GWHP":"GWHP", "GWHP35":"GWHP35", "GWHP60":"GWHP60", "solarCollector":"solar", "solarConnectBus":"solar","heat_solarCollector":"solar", "excess_solarheat":"exSolar",
     "shSource":"prodSH","shSourceBus":"prodSH", "spaceHeatingBus":"shBus", "spaceHeating":"shBus", "shStorage":"shStor", "shDemandBus":"shBus", "dhwStorageBus":"dhwStor", "dhwStorage":"dhwStor", "domesticHotWaterBus":"dhwBus",
@@ -27,6 +27,9 @@ def labelDictGenerator(numBuildings, labels, optimType, mergedLinks):
         if "naturalGas" in labels:
             base["naturalGasResource"] = labels["naturalGas"]
             base["naturalGasBus"] = labels["naturalGas"]
+        if "qSource" in labels:
+            base["qSource"] = labels["qSource"]
+            base["heatSourceBus"] = labels["hSB"]
         if "grid" in labels:
             base["gridBus"] = labels["grid"]
             base["electricityResource"] = labels["grid"]
@@ -100,7 +103,7 @@ def labelDictGenerator(numBuildings, labels, optimType, mergedLinks):
     return labelDict
 
 def positionDictGenerator(labels, optimType, mergedLinks):
-    labelsList = ['natGas', 'grid', 'pv', 'CHP', 'gasBoiler', 'localEl', 'prodEl', 'elLink', 'shLink', 'dhwLink', 'Bat',
+    labelsList = ['natGas', 'qSource', 'hSB', 'grid', 'pv', 'CHP', 'gasBoiler', 'localEl', 'prodEl', 'elLink', 'shLink', 'dhwLink', 'Bat',
                   'usedEl', 'HP', 'GWHP', 'ElectricRod', 'solar', 'exSolar', 'prodSH', 'shStor', 'dhwStor', 'exEl',
                   'Q_el', 'Q_mob', 'Q_sh', 'Q_dhw', 'exSh', 'dhwBus', 'shBus']
     if not mergedLinks and optimType == 'group':
@@ -111,8 +114,11 @@ def positionDictGenerator(labels, optimType, mergedLinks):
         if "shBus" in labels and ((mergedLinks and optimType=='group') or optimType=='indiv'): labelsList[8] = labels["shBus"]
         if "shBus" in labels and not mergedLinks and optimType == 'group': labelsList[8] = labels["shBus"] + " Link"
         if "dhwBus" in labels and ((mergedLinks and optimType=='group') or optimType=='indiv'): labelsList[9] = labels["dhwBus"]
-        if "dhwBus" in labels and not mergedLinks and optimType == 'group': labelsList[9] = labels["dhwBus"] + " Link"
+        if "dhwBus" in labels and not mergedLinks and optimType == 'group': labelsList[4] = labels["dhwBus"] + " Link"
+        if "hSB" in labels and ((mergedLinks and optimType=='group') or optimType=='indiv'): labelsList[9] = labels["hSB"]
         if "naturalGas" in labels: labelsList[0] = labels["naturalGas"]
+        if "hSB" in labels and not mergedLinks and optimType == 'group': labelsList[4] = labels["hSB"] + " Link"
+        if "qSource" in labels: labelsList[0] = labels["qSource"]
         if "grid" in labels: labelsList[1] = labels["grid"]
         if "pv" in labels: labelsList[2]=labels["pv"]
         if "gasBoiler" in labels: labelsList[4]=labels["gasBoiler"]
@@ -284,9 +290,10 @@ labelDict = {
     "dhwLink6_3": "dhwLink",
     "dhwLink6_2": "dhwLink",
     "dhwLink6_1": "dhwLink",
-
     "naturalGasResource__Building1": "natGas_B1",
     "naturalGasBus__Building1": "natGas_B1",
+    "qSource__Building1": "qSource_B1",
+    "heatSourceBus__Building1": "hSB_B1",
     "gridBus__Building1": "grid_B1",
     "pv__Building1": "pv_B1",
     "electricityResource__Building1":"grid_B1",
@@ -331,6 +338,8 @@ labelDict = {
     "excessshSourceBus__Building1": "exSh_B1",
     "ElectricRod__Building1": "ElectricRod_B1",
 
+    "qSource__Building2": "qSource_B2",
+    "heatSourceBus__Building2": "hSB_B2",
     "naturalGasResource__Building2": "natGas_B2",
     "naturalGasBus__Building2": "natGas_B2",
     "electricityResource__Building2": "grid_B2",
@@ -377,8 +386,8 @@ labelDict = {
     "excessshSourceBus__Building2": "exSh_B2",
     "ElectricRod__Building2": "ElectricRod_B2",
 
-    "naturalGasResource__Building3": "natGas_B3",
-    "naturalGasBus__Building3": "natGas_B3",
+    "qSource__Building3": "qSource_B3",
+    "heatSourceBus__Building3": "hSB_B3",
     "electricityResource__Building3": "grid_B3",
     "gridBus__Building3": "grid_B3",
     "GasBoiler__Building3": "gasBoiler_B3",
@@ -423,8 +432,8 @@ labelDict = {
     "excessshSourceBus__Building3": "exSh_B3",
     "ElectricRod__Building3": "ElectricRod_B3",
 
-    "naturalGasResource__Building4": "natGas_B4",
-    "naturalGasBus__Building4": "natGas_B4",
+    "qSource__Building4": "qSource_B4",
+    "heatSourceBus__Building4": "hSB_B4",
     "electricityResource__Building4": "grid_B4",
     "gridBus__Building4": "grid_B4",
     "pv__Building4": "pv_B4",
@@ -469,8 +478,8 @@ labelDict = {
     "excessshSourceBus__Building4": "exSh_B4",
     "ElectricRod__Building4": "ElectricRod_B4",
 
-    "naturalGasResource__Building5": "natGas_B5",
-    "naturalGasBus__Building5": "natGas_B5",
+    "qSource__Building5": "qSource_B5",
+    "heatSourceBus__Building5": "hSB_B5",
     "electricityResource__Building5": "grid_B5",
     "gridBus__Building5": "grid_B5",
     "pv__Building5": "pv_B5",
@@ -514,8 +523,8 @@ labelDict = {
     "domesticHotWaterDemand__Building5": "Q_dhw_B5",
     "ElectricRod__Building5": "ElectricRod_B5",
 
-    "naturalGasResource__Building6": "natGas_B6",
-    "naturalGasBus__Building6": "natGas_B6",
+    "qSource__Building6": "qSource_B6",
+    "heatSourceBus__Building6": "hSB_B6",
     "electricityResource__Building6": "grid_B6",
     "gridBus__Building6": "grid_B6",
     "pv__Building6": "pv_B6",
@@ -561,7 +570,7 @@ labelDict = {
 }
 
 labelPositionDict={
-    "natGas":	[0.001, 0.65], #X and Y positions should never be set to 0 or 1
+    "qSource":	[0.001, 0.65], #X and Y positions should never be set to 0 or 1
     "grid":	[0.001, 0.15],
     "pv":   [0.001, 0.3],
     "CHP":	[0.1, 0.7],
@@ -595,7 +604,7 @@ labelPositionDict={
 	}
 
 fullPositionDict={
-        "naturalGas":	[0.001, 0.75],
+        "qSource":	[0.001, 0.75],
         "gridBus":	[0.001, 0.2],
         "pv":   [0.001, 0.3],
         "gridElect":	[0.1, 0.05],

@@ -81,101 +81,103 @@ class Building:
     def addPV(self, data, data_timeseries, opt, dispatchMode):
         # Create Source objects from table 'commodity sources'
         for i, s in data.iterrows():
-            if opt == "costs":
-                epc=self._calculateInvest(s)[0]
-                base=self._calculateInvest(s)[1]
-                env_capa=float(s["impact_cap"]) / float(s["lifetime"])
-                env_flow=float(s["elec_impact"])
-                varc=0 # variable cost is only passed for environmental optimization if there are emissions per kWh of energy produced from the unit
+            if s["active"]:
+                if opt == "costs":
+                    epc=self._calculateInvest(s)[0]
+                    base=self._calculateInvest(s)[1]
+                    env_capa=float(s["impact_cap"]) / float(s["lifetime"])
+                    env_flow=float(s["elec_impact"])
+                    varc=0 # variable cost is only passed for environmental optimization if there are emissions per kWh of energy produced from the unit
 
-                envParam = [0, float(s["elec_impact"]), float(s["impact_cap"]) / float(s["lifetime"])]
+                    envParam = [0, float(s["elec_impact"]), float(s["impact_cap"]) / float(s["lifetime"])]
 
-            elif opt == "env":
-                epc = float(s["impact_cap"]) / float(s["lifetime"])
-                base = 0
-                env_capa = float(s["impact_cap"]) / float(s["lifetime"])
-                env_flow = float(s["elec_impact"])
-                varc = float(s["elec_impact"]) # variable cost is only passed for environmental optimization if there are emissions per kWh of energy produced from the unit
+                elif opt == "env":
+                    epc = float(s["impact_cap"]) / float(s["lifetime"])
+                    base = 0
+                    env_capa = float(s["impact_cap"]) / float(s["lifetime"])
+                    env_flow = float(s["elec_impact"])
+                    varc = float(s["elec_impact"]) # variable cost is only passed for environmental optimization if there are emissions per kWh of energy produced from the unit
 
-                envParam = [0, float(s["elec_impact"]), float(s["impact_cap"]) / float(s["lifetime"])]
+                    envParam = [0, float(s["elec_impact"]), float(s["impact_cap"]) / float(s["lifetime"])]
 
-            # If roof area and zenith do not exist in the excel file
-            if 'roof_area' not in s.keys():
-                s["roof_area"] = np.nan
-            if 'zenith_angle' not in s.keys():
-                s["zenith_angle"] = np.nan
-            if 'efficiency' not in s.keys():
-                s["efficiency"] = np.nan
+                # If roof area and zenith do not exist in the excel file
+                if 'roof_area' not in s.keys():
+                    s["roof_area"] = np.nan
+                if 'zenith_angle' not in s.keys():
+                    s["zenith_angle"] = np.nan
+                if 'efficiency' not in s.keys():
+                    s["efficiency"] = np.nan
 
-            self.__nodesList.append(PV(s["label"], self.__buildingLabel,
-                                       self.__busDict[s["to"] + '__' + self.__buildingLabel],
-                                       float(s["peripheral_losses"]), float(s["latitude"]), float(s["longitude"]),
-                                       float(s["tilt"]), float(s["efficiency"]), s["roof_area"],
-                                       s["zenith_angle"], s["azimuth"],
-                                       data_timeseries['gls'],
-                                       data_timeseries['str.diffus'],
-                                       data_timeseries['tre200h0'], float(s["capacity_min"]), float(s["capacity_max"]),
-                                       epc, base, env_capa, env_flow, varc, dispatchMode))
+                self.__nodesList.append(PV(s["label"], self.__buildingLabel,
+                                           self.__busDict[s["to"] + '__' + self.__buildingLabel],
+                                           float(s["peripheral_losses"]), float(s["latitude"]), float(s["longitude"]),
+                                           float(s["tilt"]), float(s["efficiency"]), s["roof_area"],
+                                           s["zenith_angle"], s["azimuth"],
+                                           data_timeseries['gls'],
+                                           data_timeseries['str.diffus'],
+                                           data_timeseries['tre200h0'], float(s["capacity_min"]), float(s["capacity_max"]),
+                                           epc, base, env_capa, env_flow, varc, dispatchMode))
 
-            self.__envParam[s["label"] + '__' + self.__buildingLabel] = envParam
+                self.__envParam[s["label"] + '__' + self.__buildingLabel] = envParam
 
-            self.__costParam[s["label"] + '__' + self.__buildingLabel] = [self._calculateInvest(s)[0],
-                                                                          self._calculateInvest(s)[1]]
-            self.__technologies.append(
-                [s["to"] + '__' + self.__buildingLabel, s["label"] + '__' + self.__buildingLabel])
+                self.__costParam[s["label"] + '__' + self.__buildingLabel] = [self._calculateInvest(s)[0],
+                                                                              self._calculateInvest(s)[1]]
+                self.__technologies.append(
+                    [s["to"] + '__' + self.__buildingLabel, s["label"] + '__' + self.__buildingLabel])
 
     def addSolar(self, data, data_timeseries, opt, mergeLinkBuses, dispatchMode):
         # Create Source objects from table 'commodity sources'
         for i, s in data.iterrows():
-            if mergeLinkBuses and s["from"] in self.__linkBuses:
-                inputBusLabel = s["from"]
-            else:
-                inputBusLabel = s["from"] + '__' + self.__buildingLabel
+            if s["active"]:
+                if mergeLinkBuses and s["from"] in self.__linkBuses:
+                    inputBusLabel = s["from"]
+                else:
+                    inputBusLabel = s["from"] + '__' + self.__buildingLabel
 
-            if opt == "costs":
-                epc=self._calculateInvest(s)[0]
-                base=self._calculateInvest(s)[1]
-                env_capa=float(s["impact_cap"]) / float(s["lifetime"])
-                env_flow=float(s["heat_impact"])
-                varc=0 # variable cost is only passed for environmental optimization if there are emissions per kWh of energy produced from the unit
+                if opt == "costs":
+                    epc=self._calculateInvest(s)[0]
+                    base=self._calculateInvest(s)[1]
+                    env_capa=float(s["impact_cap"]) / float(s["lifetime"])
+                    env_flow=float(s["heat_impact"])
+                    varc=0 # variable cost is only passed for environmental optimization if there are emissions per kWh of energy produced from the unit
 
-                envParam = [env_flow, 0, env_capa]
+                    envParam = [env_flow, 0, env_capa]
 
-            elif opt == "env":
-                epc=float(s["impact_cap"]) / float(s["lifetime"])
-                base=0
-                env_capa= float(s["impact_cap"]) / float(s["lifetime"])
-                env_flow=float(s["heat_impact"])
-                varc= float(s["heat_impact"]) # variable cost is only passed for environmental optimization if there are emissions per kWh of energy produced from the unit
+                elif opt == "env":
+                    epc=float(s["impact_cap"]) / float(s["lifetime"])
+                    base=0
+                    env_capa= float(s["impact_cap"]) / float(s["lifetime"])
+                    env_flow=float(s["heat_impact"])
+                    varc= float(s["heat_impact"]) # variable cost is only passed for environmental optimization if there are emissions per kWh of energy produced from the unit
 
-                envParam = [env_flow, 0, env_capa]
+                    envParam = [env_flow, 0, env_capa]
 
-            # If roof area and zenith do not exist in the excel file
-            if 'roof_area' not in s.keys():
-                s["roof_area"] = np.nan
-            if 'zenith_angle' not in s.keys():
-                s["zenith_angle"] = np.nan
-            collector=SolarCollector(s["label"], self.__buildingLabel,
-                                                   self.__busDict[inputBusLabel],
-                                                   self.__busDict[s["to"] + '__' + self.__buildingLabel],
-                                                   self.__busDict[s["connect"]+ '__' + self.__buildingLabel],
-                                                   float(s["electrical_consumption"]), float(s["peripheral_losses"]), float(s["latitude"]),
-                                                   float(s["longitude"]), float(s["tilt"]), s["roof_area"],
-                                                   s["zenith_angle"], float(s["azimuth"]),
-                                                   float(s["eta_0"]), float(s["a_1"]), float(s["a_2"]), float(s["temp_collector_inlet"]),
-                                                   float(s["delta_temp_n"]), data_timeseries['gls'], data_timeseries['str.diffus'],
-                                                    data_timeseries['tre200h0'], float(s["capacity_min"]), float(s["capacity_max"]),
-                                                   epc, base, env_capa, env_flow, varc, dispatchMode)
-            self.__nodesList.append(collector.getSolar("source"))
-            self.__nodesList.append(collector.getSolar("transformer"))
-            self.__nodesList.append(collector.getSolar("sink"))
+                # If roof area and zenith do not exist in the excel file
+                if 'roof_area' not in s.keys():
+                    s["roof_area"] = np.nan
+                if 'zenith_angle' not in s.keys():
+                    s["zenith_angle"] = np.nan
+                collector=SolarCollector(s["label"], self.__buildingLabel,
+                                                       self.__busDict[inputBusLabel],
+                                                       self.__busDict[s["to"] + '__' + self.__buildingLabel],
+                                                       self.__busDict[s["connect"]+ '__' + self.__buildingLabel],
+                                                       float(s["electrical_consumption"]), float(s["peripheral_losses"]), float(s["latitude"]),
+                                                       float(s["longitude"]), float(s["tilt"]), s["roof_area"],
+                                                       s["zenith_angle"], float(s["azimuth"]),
+                                                       float(s["eta_0"]), float(s["a_1"]), float(s["a_2"]), float(s["temp_collector_inlet"]),
+                                                       float(s["delta_temp_n"]), data_timeseries['gls'], data_timeseries['str.diffus'],
+                                                        data_timeseries['tre200h0'], float(s["capacity_min"]), float(s["capacity_max"]),
+                                                       epc, base, env_capa, env_flow, varc, dispatchMode)
+                self.__nodesList.append(collector.getSolar("source"))
+                self.__nodesList.append(collector.getSolar("transformer"))
+                self.__nodesList.append(collector.getSolar("sink"))
 
-            self.__envParam["heat_"+s["label"] + '__' + self.__buildingLabel] = envParam
+                self.__envParam["heat_"+s["label"] + '__' + self.__buildingLabel] = envParam
 
-            self.__costParam["heat_"+s["label"] + '__' + self.__buildingLabel] = [self._calculateInvest(s)[0],
-                                                                          self._calculateInvest(s)[1]]
-            self.__technologies.append(
-                [s["to"] + '__' + self.__buildingLabel, s["label"] + '__' + self.__buildingLabel])
+                self.__costParam["heat_"+s["label"] + '__' + self.__buildingLabel] = [self._calculateInvest(s)[0],
+                                                                              self._calculateInvest(s)[1]]
+                self.__technologies.append(
+                    [s["to"] + '__' + self.__buildingLabel, s["label"] + '__' + self.__buildingLabel])
 
     def addGridSeparation(self, dataGridSeparation, mergeLinkBuses):
         if not dataGridSeparation.empty:
@@ -308,12 +310,17 @@ class Building:
                         )
                     )
 
-    def _addHeatPump(self, data, temperatureDHW, temperatureSH, temperatureAmb, opt, mergeLinkBuses, dispatchMode):
+    def _addHeatPump(self, data, temperatureDHW, temperatureSH, temperatureAmb, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode):
         hpSHLabel = data["label"] + '__' + self.__buildingLabel
         if mergeLinkBuses and data["from"] in self.__linkBuses:
-            inputBusLabel = data["from"]
+            inputBusLabel = [data["from"]]
+        elif mergeHeatSourceSink and any([b in self.__heatSourceSinkBuses for b in data["from"].split(',')]):
+            inputBusLabel = [i + '__' + self.__buildingLabel for i in data["from"].split(",") if
+                             i not in self.__heatSourceSinkBuses]
+            inputBusLabel.extend([i for i in data["from"].split(",") if i in self.__heatSourceSinkBuses])
         else:
-            inputBusLabel = data["from"] + '__' + self.__buildingLabel
+            inputBusLabel = [i + '__' + self.__buildingLabel for i in data["from"].split(",")]
+        inputBuses = [self.__busDict[i] for i in inputBusLabel]
         outputSHBusLabel = data["to"].split(",")[0] + '__' + self.__buildingLabel
         outputDHWBusLabel = data["to"].split(",")[1] + '__' + self.__buildingLabel
         envImpactPerCapacity = float(data["impact_cap"]) / float(data["lifetime"])
@@ -323,7 +330,7 @@ class Building:
             capacityMinSH = float(data["capacity_min"])
 
         heatPump = HeatPumpLinear(self.__buildingLabel, temperatureDHW, temperatureSH, temperatureAmb,
-                                  self.__busDict[inputBusLabel],
+                                  inputBuses,
                                   self.__busDict[outputSHBusLabel],
                                   self.__busDict[outputDHWBusLabel],
                                   capacityMinSH, float(data["capacity_SH"]),float(data["efficiency"]),
@@ -583,7 +590,7 @@ class Building:
         for i, t in data.iterrows():
             if t["active"]:
                 if t["label"] == "HP":
-                    self._addHeatPump(t, temperatureDHW, temperatureSH, temperatureAmb, opt, mergeLinkBuses, dispatchMode)
+                    self._addHeatPump(t, temperatureDHW, temperatureSH, temperatureAmb, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode)
                 elif t["label"] == "GWHP":
                     self._addGeothemalHeatPump(t, temperatureDHW, temperatureSH, temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode)
                 elif t["label"] == "GWHP split":
