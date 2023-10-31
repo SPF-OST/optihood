@@ -290,12 +290,12 @@ class EnergyNetworkClass(solph.EnergySystem):
         if options is None:
             options = {"gurobi": {"MIPGap": 0.01}}
 
-        optimizationModel = solph.Model(self)
+        self._optimizationModel = solph.Model(self)
         logging.info("Optimization model built successfully")
 
         # add constraint to limit the environmental impacts
-        optimizationModel, flows, transformerFlowCapacityDict, storageCapacityDict = environmentalImpactlimit(
-            optimizationModel, keyword1="env_per_flow", keyword2="env_per_capa", limit=envImpactlimit)
+        self._optimizationModel, flows, transformerFlowCapacityDict, storageCapacityDict = environmentalImpactlimit(
+            self._optimizationModel, keyword1="env_per_flow", keyword2="env_per_capa", limit=envImpactlimit)
 
         # optional constraints (available: 'roof area')
         if optConstraints:
@@ -303,7 +303,7 @@ class EnergyNetworkClass(solph.EnergySystem):
                 if c.lower() == "roof area":
                     # requires 2 additional parameters in the scenario file, tab "solar", zenit angle, roof area
                     try:
-                        optimizationModel = roof_area_limit(optimizationModel,
+                        self._optimizationModel = roof_area_limit(self._optimizationModel,
                                                         keyword1="space", keyword2="roof_area", nb=numberOfBuildings)
                         logging.info(f"Optional constraint {c} successfully added to the optimization model")
                     except ValueError:
@@ -312,36 +312,36 @@ class EnergyNetworkClass(solph.EnergySystem):
                                       f"file")
                         pass
                 if c.lower() == 'totalpvcapacity':
-                    optimizationModel = totalPVCapacityConstraint(optimizationModel, numberOfBuildings)
+                    self._optimizationModel = totalPVCapacityConstraint(self._optimizationModel, numberOfBuildings)
                     logging.info(f"Optional constraint {c} successfully added to the optimization model")
         # constraint on elRod combined with HPs:
         if not np.isnan(self.__elRodEff):
-            optimizationModel = electricRodCapacityConstaint(optimizationModel, numberOfBuildings)
+            self._optimizationModel = electricRodCapacityConstaint(self._optimizationModel, numberOfBuildings)
 
         if clusterSize:
-            optimizationModel = dailySHStorageConstraint(optimizationModel)
+            self._optimizationModel = dailySHStorageConstraint(self._optimizationModel)
 
         logging.info("Custom constraints successfully added to the optimization model")
         logging.info("Initiating optimization using {} solver".format(solver))
 
         if solver == 'glpk':
-            optimizationModel.solve(solver=solver)
+            self._optimizationModel.solve(solver=solver)
         elif solver == 'cbc':
-            optimizationModel.solve(solver=solver, solve_kwargs=options[solver])
+            self._optimizationModel.solve(solver=solver, solve_kwargs=options[solver])
         elif solver == 'gurobi':
-            optimizationModel.solve(solver=solver, cmdline_options=options[solver])
+            self._optimizationModel.solve(solver=solver, cmdline_options=options[solver])
 
         # obtain the value of the environmental impact (subject to the limit constraint)
         # the optimization imposes an integral limit constraint on the environmental impacts
         # total environmental impacts <= envImpactlimit
-        envImpact = optimizationModel.totalEnvironmentalImpact()
+        envImpact = self._optimizationModel.totalEnvironmentalImpact()
 
-        self._optimizationResults = solph.processing.results(optimizationModel)
-        self._metaResults = solph.processing.meta_results(optimizationModel)
+        self._optimizationResults = solph.processing.results(self._optimizationModel)
+        self._metaResults = solph.processing.meta_results(self._optimizationModel)
         logging.info("Optimization successful and results collected")
 
         # calculate capacities invested for transformers and storages (for the entire energy network and per building)
-        capacitiesTransformersNetwork, capacitiesStoragesNetwork = self._calculateInvestedCapacities(optimizationModel, transformerFlowCapacityDict, storageCapacityDict)
+        capacitiesTransformersNetwork, capacitiesStoragesNetwork = self._calculateInvestedCapacities(self._optimizationModel, transformerFlowCapacityDict, storageCapacityDict)
 
         if clusterSize:
             self._postprocessingClusters(clusterSize)
@@ -350,6 +350,35 @@ class EnergyNetworkClass(solph.EnergySystem):
         self._calculateResultsPerBuilding(mergeLinkBuses)
 
         return envImpact, capacitiesTransformersNetwork, capacitiesStoragesNetwork
+
+    def printbuildingModelTemperatures(self, filename):
+        df = pd.DataFrame()
+        df["timestamp"] = self.timeindex
+        for i in range(self.__noOfBuildings):
+            bNo = i + 1
+            tIndoor = [v for k, v in self._optimizationModel.SinkRCModelBlock.tIndoor.get_values().items() if
+                       k[0].label.endswith(f"Building{bNo}")]
+            tDistribution = [v for k, v in self._optimizationModel.SinkRCModelBlock.tDistribution.get_values().items() if
+                             k[0].label.endswith(f"Building{bNo}")]
+            tWall = [v for k, v in self._optimizationModel.SinkRCModelBlock.tWall.get_values().items() if
+                     k[0].label.endswith(f"Building{bNo}")]
+            epsilonIndoor = [v for k, v in self._optimizationModel.SinkRCModelBlock.epsilonIndoor.get_values().items() if
+                             k[0].label.endswith(f"Building{bNo}")]
+            tIndoor_prev = [v for k, v in self._optimizationModel.SinkRCModelBlock.tIndoor_prev.get_values().items() if
+                            k[0].label.endswith(f"Building{bNo}")]
+            tDistribution_prev = [v for k, v in
+                                  self._optimizationModel.SinkRCModelBlock.tDistribution_prev.get_values().items() if
+                                  k[0].label.endswith(f"Building{bNo}")]
+            tWall_prev = [v for k, v in self._optimizationModel.SinkRCModelBlock.tWall_prev.get_values().items() if
+                          k[0].label.endswith(f"Building{bNo}")]
+            df[f"tIndoor_B{bNo}"] = tIndoor
+            df[f"tDistribution_B{bNo}"] = tDistribution
+            df[f"tWall_B{bNo}"] = tWall
+            df[f"tIndoor_prev_B{bNo}"] = tIndoor_prev
+            df[f"tDistribution_prev_B{bNo}"] = tDistribution_prev
+            df[f"tWall_prev_B{bNo}"] = tWall_prev
+            df[f"epsilonIndoor_B{bNo}"] = epsilonIndoor
+        df.to_csv(filename, sep=';', index=False)
 
     def _updateCapacityDictInputInvestment(self, transformerFlowCapacityDict):
         components = ["CHP", "GWHP", "HP", "GasBoiler", "ElectricRod", "Chiller"]
