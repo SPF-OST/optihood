@@ -188,8 +188,8 @@ class EnergyNetworkClass(solph.EnergySystem):
                 nodesData["building_model"][i + 1] = {}
                 nodesData["building_model"][i + 1]["timeseries"] = pd.DataFrame()
                 nodesData["building_model"][i + 1]["timeseries"]["tAmb"] = np.array(nodesData["weather_data"]["tre200h0"])
-                nodesData["building_model"][i + 1]["timeseries"]["IrrH"] = np.array(nodesData["weather_data"]["gls"])/1000       # conversion from W/m2 to kW/m2 to MW/m2
-                nodesData["building_model"][i + 1]["timeseries"][f"Qocc"] = internalGains[f'Total (kW) {i+1}'].values/1000          # Done for OptiBinz only to make the values in MWh
+                nodesData["building_model"][i + 1]["timeseries"]["IrrH"] = np.array(nodesData["weather_data"]["gls"])/1000       # conversion from W/m2 to kW/m2
+                nodesData["building_model"][i + 1]["timeseries"][f"Qocc"] = internalGains[f'Total (kW) {i+1}'].values
                 if "tIndoorDay" in bmParamers.columns:
                     tIndoorDay = float(bmParamers[bmParamers["Building Number"] == (i+1)]['tIndoorDay'].iloc[0])
                     tIndoorNight = float(bmParamers[bmParamers["Building Number"] == (i + 1)]['tIndoorNight'].iloc[0])
