@@ -236,7 +236,7 @@ class PVT(solph.Transformer):
         return pvPower
 
 
-    def calculateArea(self, zenith_angle, pv_tilt, pv_azimuth, pv_efficiency=False):
+    def calculateArea(self, zenith_angle, pv_tilt, pv_azimuth, pv_efficiency=0.0):
         # Coefficient representing the area used by one unit of capacity (kW thermal) of a PVT panel
         coeff = -np.sin((zenith_angle+pv_tilt)*np.pi/180)*np.cos(pv_azimuth*np.pi/180)/np.sin(zenith_angle*np.pi/180)
         if pv_efficiency:

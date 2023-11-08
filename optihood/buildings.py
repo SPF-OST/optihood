@@ -594,7 +594,10 @@ class Building:
         for i, s in data.iterrows():
             if s["active"]:
                 storageLabel = s["label"]+'__'+self.__buildingLabel
-                inputBusLabel = s["from"]+'__'+self.__buildingLabel
+                if mergeLinkBuses and s["from"] in self.__linkBuses:
+                    inputBusLabel = s["from"]
+                else:
+                    inputBusLabel = s["from"]+'__'+self.__buildingLabel
                 if mergeLinkBuses and s["to"] in self.__linkBuses:
                     outputBusLabel = s["to"]
                 else:
@@ -617,14 +620,15 @@ class Building:
                                                             float(s["elec_impact"]), envImpactPerCapacity, dispatchMode))
 
                 elif s["label"] == "dhwStorage" or s["label"] == "shStorage":
-                    self.__nodesList.append(ThermalStorage(storageLabel, s["label"],
+                    ts = ThermalStorage(storageLabel, s["label"],
                                                            stratifiedStorageParams, self.__busDict[inputBusLabel],
                                                            self.__busDict[outputBusLabel],
                                                         float(s["initial capacity"]), float(s["capacity min"]),
                                                         float(s["capacity max"]),
                                                         self._calculateInvest(s)[0]*(opt == "costs") + envImpactPerCapacity*(opt == "env"),
                                                         self._calculateInvest(s)[1]*(opt == "costs"), float(s["heat_impact"])*(opt == "env"),
-                                                        float(s["heat_impact"]), envImpactPerCapacity, dispatchMode))
+                                                        float(s["heat_impact"]), envImpactPerCapacity, dispatchMode)
+                    self.__nodesList.append(ts.getStorage())
                 else:
                     logging.warning("Storage label not identified")
 
