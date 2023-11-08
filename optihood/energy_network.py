@@ -36,10 +36,12 @@ class EnergyNetworkClass(solph.EnergySystem):
         self.__elHP = {}
         self.__shHP = {}
         self.__dhwHP = {}
+        self.__intermediateOpTempsHP = {}
         self.__annualCopHP = {}
         self.__elGWHP = {}
         self.__shGWHP = {}
         self.__dhwGWHP = {}
+        self.__intermediateOpTempsGWHP = {}
         self.__annualCopGWHP = {}
         self.__elRodEff = np.nan
         self._temperatureLevels = temperatureLevels
@@ -542,6 +544,10 @@ class EnergyNetworkClass(solph.EnergySystem):
                 self.__shHP[buildingLabel] = sum(
                     solph.views.node(self._optimizationResults, 'HP__' + buildingLabel)["sequences"][
                         ('HP__' + buildingLabel, shOutputLabel + buildingLabel), 'flow'])
+                for i in range(len(self.__operationTempertures)-2):
+                    self.__intermediateOpTempsHP[buildingLabel] = sum(
+                        solph.views.node(self._optimizationResults, 'HP__' + buildingLabel)["sequences"][
+                            ('HP__' + buildingLabel, f"heatStorageBus{i+1}__{buildingLabel}"), 'flow'])
                 self.__dhwHP[buildingLabel] = sum(
                     solph.views.node(self._optimizationResults, 'HP__' + buildingLabel)["sequences"][
                         ('HP__' + buildingLabel, dhwOutputLabel + buildingLabel), 'flow'])
@@ -556,12 +562,16 @@ class EnergyNetworkClass(solph.EnergySystem):
                 self.__shGWHP[buildingLabel] = sum(
                     solph.views.node(self._optimizationResults, 'GWHP__' + buildingLabel)["sequences"][
                         ('GWHP__' + buildingLabel, shOutputLabel + buildingLabel), 'flow'])
+                for i in range(len(self.__operationTempertures)-2):
+                    self.__intermediateOpTempsGWHP[buildingLabel] = sum(
+                        solph.views.node(self._optimizationResults, 'GWHP__' + buildingLabel)["sequences"][
+                            ('GWHP__' + buildingLabel, f"heatStorageBus{i+1}__{buildingLabel}"), 'flow'])
                 self.__dhwGWHP[buildingLabel] = sum(
                     solph.views.node(self._optimizationResults, 'GWHP__' + buildingLabel)["sequences"][
                         ('GWHP__' + buildingLabel, dhwOutputLabel + buildingLabel), 'flow'])
                 self.__annualCopGWHP[buildingLabel] = (self.__shGWHP[buildingLabel] + self.__dhwGWHP[buildingLabel]) / (
                         self.__elGWHP[buildingLabel] + 1e-6)
-            else:       # splitted GSHP
+            else:       # splitted GSHP ( at the moment this only works at 2 temperature levels)
                 self.__annualCopGWHP[buildingLabel] = []
                 if (f"GWHP{str(self.__temperatureSH)}__" + buildingLabel, shOutputLabel + buildingLabel) in capacityTransformers:
                     self.__elGWHP[buildingLabel] = sum(

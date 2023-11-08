@@ -126,7 +126,9 @@ class LinkStorageDummyInputBlock(ScalarBlock):
         out_flows = {n: [o for o in n.outputs.keys()] for n in group}
 
         def _input_relation(block):
-            """Constraint defining the relation between two inputs and one output of the component."""
+            """Constraint defining the relation between the two inputs of the component.
+            First input is heat input for the storage, second input is the heat input from
+            the preceding (lower) temperature level storage"""
             self.input_relation = Constraint(group, m.TIMESTEPS, noruleinit=True)
 
             for t in m.TIMESTEPS:
