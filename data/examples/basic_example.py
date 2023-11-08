@@ -53,6 +53,9 @@ if __name__ == '__main__':
     # plot sankey diagram
     UseLabelDict = True     # a dictionary defining the labels to be used for different flows
     figureFilePath = r"..\figures"
+    if not os.path.exists(figureFilePath):
+        os.makedirs(figureFilePath)
+
     sankeyFileName = f"Sankey_{numberOfBuildings}_{optimizationType}.html"
 
     snk.plot(os.path.join(resultFilePath, resultFileName), os.path.join(figureFilePath, sankeyFileName),

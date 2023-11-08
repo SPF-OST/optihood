@@ -124,6 +124,9 @@ if __name__ == '__main__':
 
     # plot pareto front to visualize multi objective optimization results
     figureFilePath = r"..\figures"
+    if not os.path.exists(figureFilePath):
+        os.makedirs(figureFilePath)
+
     figureFileName = f"Pareto.png"
 
     plotParetoFront(os.path.join(figureFilePath, figureFileName), costsList, envList)
