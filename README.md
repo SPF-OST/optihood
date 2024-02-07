@@ -15,6 +15,7 @@ The documentation can be found on https://optihood.readthedocs.io/.
 In order to use optihood, the following prerequisites are needed on your machine:
 
 - [Python 3.9](https://www.python.org/downloads/) is installed.
+- Git is installed
 - An active [Github](https://github.com/) account to clone the repo.
 - A solver is installed. [Gurobi solver](https://www.gurobi.com/resource/parallelism-linear-mixed-integer-programming/)
 is recommended, although other solvers like CBC, GLPK, Cplex could also be used.
@@ -42,7 +43,11 @@ commands could be used.
     It might be required to install C++ build tools. To do that, click on the link that appears with the error message and follow the instructions (it is the lapack package that is missing). In order to be able to 
     install the missing package, it is required to have a complete Visual Studio instance and installing it with the "Desktop development with C++" workload.
    
-5. To test whether the installation worked well, you could run a [basic example](https://github.com/SPF-OST/OptiHood/tree/main/data/examples/).
+5.  verify that the solver is installed by running the installation test in your virtual environment:
+     ```commandline
+    (venv) oemof_installation_test
+    ```
+6.  To test whether the installation worked well, you could run a [basic example](https://github.com/SPF-OST/OptiHood/tree/main/data/examples/).
 
 ## Defining an energy network
 
