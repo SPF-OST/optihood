@@ -306,23 +306,16 @@ production and/or space heat production. Links allow this sharing to be possible
 defined already for buses excel sheet. ``invest_base`` and ``invest_cap`` parameters (defined in the transformers sheet
 section) are only relevant for space heating links in the present stage of development.
 
-.. image:: ./resources/input_excel_links.PNG
+.. image:: ./resources/scenario_links.PNG
       :width: 600
       :alt: input_excel_links
 
-``buildingA`` (integer)
-    Building number of the first building of the link. This should match with the values typically given in the
-    ``building`` parameter in the other excel sheets.
+``efficiency `` (float)
+    Efficiency of energy transfer over the link.
 
-``buildingB`` (integer)
-    Building number of the second building of the link. This should match with the values typically given in the
-    ``building`` parameter in the other excel sheets.
-
-``efficiency from A to B`` (integer)
-    Efficiency of energy transfer over the link from ``buildingA`` to ``buildingB``.
-
-``efficiency from B to A`` (integer)
-    Efficiency of energy transfer over the link from ``buildingB`` to ``buildingA``.
+``investment `` (0 or 1)
+    defines whether investment optimization should be
+    performed or not. If set to 1, then the optimization is performed.
 
 profiles
 ^^^^^^^^
