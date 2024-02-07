@@ -35,8 +35,8 @@ commands could be used.
     pip install wheel
     pip install -r requirements.txt
 
-    It might be required to install C++ build tools. To do that, click on the link that appears with the error message and follow the instructions (it is the lapack package that is missing). In order to be able to 
-    install the missing package, it is required to have a complete Visual Studio instance and installing it with the "Desktop development with C++" workload.
+It might be required to install C++ build tools. To do that, click on the link that appears with the error message and follow the instructions (it is the lapack package that is missing). In order to be able to 
+install the missing package, it is required to have a complete Visual Studio instance and installing it with the "Desktop development with C++" workload.
 
 4. To test whether the installation worked well, you could run a `basic example <https://github.com/SPF-OST/OptiHood/tree/main/data/examples/>`_.
 
