@@ -319,11 +319,11 @@ profiles
 ^^^^^^^^
 
 The paths to CSV files containing demand profiles, weather data and electricity impact data are to be given in this
-excel sheet. ``INFO`` gives further information about each row.
+excel sheet.
 
-.. image:: ./resources/input_excel_profiles.PNG
+.. image:: ./resources/scenario_profiles.png
       :width: 500
-      :alt: input_excel_profiles
+      :alt: scenario_profiles
 
 grid_connection
 ^^^^^^^^^^^^^^^
