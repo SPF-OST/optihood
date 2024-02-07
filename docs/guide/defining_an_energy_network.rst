@@ -308,12 +308,12 @@ section) are only relevant for space heating links in the present stage of devel
 
 .. image:: ./resources/scenario_links.PNG
       :width: 600
-      :alt: input_excel_links
+      :alt: scenario_links
 
-``efficiency `` (float)
+``efficiency`` (float)
     Efficiency of energy transfer over the link.
 
-``investment `` (0 or 1)
+``investment`` (0 or 1)
     defines whether investment optimization should be
     performed or not. If set to 1, then the optimization is performed.
 
