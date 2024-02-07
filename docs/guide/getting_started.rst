@@ -37,7 +37,11 @@ commands could be used.
 
    It might be required to install C++ build tools. To do that, click on the link that appears with the error message and follow the instructions (it is the lapack package that is missing). In order to be able         to install the missing package, it is required to have a complete Visual Studio instance and installing it with the "Desktop development with C++" workload.
 
-4. To test whether the installation worked well, you could run a `basic example <https://github.com/SPF-OST/OptiHood/tree/main/data/examples/>`_.
+4. Verify that the solver is installed by running the installation test in your virtual environment::
+
+    oemof_installation_test
+
+5. To test whether the installation worked well, you could run a `basic example <https://github.com/SPF-OST/OptiHood/tree/main/data/examples/>`_.
 
 
 Setting up your optimization model
