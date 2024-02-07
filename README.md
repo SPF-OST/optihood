@@ -40,8 +40,9 @@ commands could be used.
     pip install wheel
     pip install -r requirements.txt
     ```
-    It might be required to install C++ build tools. To do that, click on the link that appears with the error message and follow the instructions (it is the lapack package that is missing). In order to be able to 
-    install the missing package, it is required to have a complete Visual Studio instance and installing it with the "Desktop development with C++" workload.
+
+It might be required to install C++ build tools. To do that, click on the link that appears with the error message and follow the instructions (it is the lapack package that is missing). In order to be able to 
+install the missing package, it is required to have a complete Visual Studio instance and installing it with the "Desktop development with C++" workload.
    
 5.  verify that the solver is installed by running the installation test in your virtual environment:
      ```commandline
