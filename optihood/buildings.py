@@ -3,11 +3,11 @@ import oemof.solph as solph
 from oemof.tools import logger
 from oemof.tools import economics
 import logging
-from optihood.optihood.converters import *
-from optihood.optihood.sources import PV
-from optihood.optihood.storages import *
-from optihood.optihood.sinks import SinkRCModel
-from optihood.optihood.links import LinkTemperatureDemand
+from optihood.converters import *
+from optihood.sources import PV
+from optihood.storages import *
+from optihood.sinks import SinkRCModel
+from optihood.links import LinkTemperatureDemand
 
 intRate = 0.05
 

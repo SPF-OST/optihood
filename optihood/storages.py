@@ -6,7 +6,7 @@ from oemof.thermal.stratified_thermal_storage import (
 )
 
 import oemof.solph as solph
-from optihood.optihood.links import LinkStorageDummyInput, Link
+from optihood.links import LinkStorageDummyInput, Link
 
 class ElectricalStorage(solph.components.GenericStorage):
     def __init__(self, buildingLabel, input, output, loss_rate, initial_storage, efficiency_in, efficiency_out, capacity_min, capacity_max, epc, base, varc, env_flow, env_capa, dispatchMode):

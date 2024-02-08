@@ -3,9 +3,9 @@ from random import random
 import os
 import plotly.graph_objects as go
 import pandas as pd
-from optihood.optihood.plot_functions import getData
+from optihood.plot_functions import getData
 import numpy as np
-from optihood.optihood.labelDict import labelDictGenerator, positionDictGenerator
+from optihood.labelDict import labelDictGenerator, positionDictGenerator
 from matplotlib import colors
 
 def addCapacities(nodes, dataDict, buildings, UseLabelDict, labelDict, mergedLinks):

@@ -11,9 +11,9 @@ try:
     import matplotlib.pyplot as plt
 except ImportError:
     plt = None
-from optihood.optihood.constraints import *
-from optihood.optihood.buildings import Building
-from optihood.optihood.links import Link
+from optihood.constraints import *
+from optihood.buildings import Building
+from optihood.links import Link
 
 
 class EnergyNetworkClass(solph.EnergySystem):
@@ -192,6 +192,12 @@ class EnergyNetworkClass(solph.EnergySystem):
         logging.info("Data from Excel file {} imported.".format(filePath))
         return nodesData
 
+    def _checkStorageTemperatureGradient(self, temp_c):
+        listTemperatures = [temp_c]
+        listTemperatures.extend(self.__operationTempertures)
+        gradient = [h - l for l, h in zip(listTemperatures, listTemperatures[1:])]
+        return all(x == gradient[0] for x in gradient)
+
     def _convertNodes(self, data, opt, mergeLinkBuses):
         if not data:
             logging.error("Nodes data is missing.")
@@ -201,12 +207,14 @@ class EnergyNetworkClass(solph.EnergySystem):
         if self._temperatureLevels:
             try:
                 self.__operationTempertures = [float(t) for t in data["stratified_storage"].loc["thermalStorage", "temp_h"].split(",")] # temperatures should be saved from low to high separated by commas in the excel input file
+                if not self._checkStorageTemperatureGradient(data["stratified_storage"].loc["thermalStorage", "temp_c"]):
+                    raise ValueError('Temperature Gradient in each layer of the thermal storage is not equal')
             except AttributeError:
                 logging.error("The column temp_h of stratified_storage excel sheet should contain comma separated temperatures"
                               "when temperatureLevels is set to True. The temperatures should be ordered starting from low"
                               "to high and the label of storage should be thermalStorage.")
             self.__temperatureSH = self.__operationTempertures[0]
-            self.__temperatureDHW = self.__operationTempertures[2]
+            self.__temperatureDHW = self.__operationTempertures[-1]
         else:
             self.__temperatureSH = data["stratified_storage"].loc["shStorage", "temp_h"]
             self.__temperatureDHW = data["stratified_storage"].loc["dhwStorage", "temp_h"]
@@ -224,7 +232,7 @@ class EnergyNetworkClass(solph.EnergySystem):
             self.__elRodEff = float(data["transformers"][data["transformers"]["label"] == "ElectricRod"]["efficiency"].iloc[0])
         # Storage conversion L - kWh to display the L value
         if self._temperatureLevels:
-            self.__Ltank = 4.186 * (self.__temperatureDHW - data["stratified_storage"].loc["thermalStorage", "temp_c"]) / 3600
+            self.__Ltank = 4.186 * (self.__operationTempertures[1] - self.__operationTempertures[0]) / 3600
         else:
             self.__Lsh = 4.186 * (self.__temperatureSH - data["stratified_storage"].loc["shStorage", "temp_c"]) / 3600
             self.__Ldhw = 4.186 * (self.__temperatureDHW - data["stratified_storage"].loc["dhwStorage", "temp_c"]) / 3600
@@ -325,7 +333,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         # total environmental impacts <= envImpactlimit
         envImpact = optimizationModel.totalEnvironmentalImpact()
 
-        self._optimizationResults = solph.processing.results(optimizationModel)
+        self._optimizationResults = solph.processing.results(optimizationModel, remove_last_time_point=True)
         self._metaResults = solph.processing.meta_results(optimizationModel)
         logging.info("Optimization successful and results collected")
 
@@ -650,11 +658,23 @@ class EnergyNetworkClass(solph.EnergySystem):
             #    self._optimizationResults[(storage, None)]["sequences"]
             # )
             self._storageContentSH[building] = self._optimizationResults[(storage, None)]["sequences"]
-        print("")
 
     def printInvestedCapacities(self, capacitiesInvestedTransformers, capacitiesInvestedStorages):
         if self._temperatureLevels:
             shOutputLabel = "heatStorageBus0__"
+            if any("thermalStorage" in key for key in capacitiesInvestedStorages):
+                for b in range(len(self.__buildings)):
+                    buildingLabel = "Building" + str(b + 1)
+                    invest = 0
+                    removeKeysList = []
+                    for layer in self.__operationTempertures:
+                        if f"thermalStorage{int(layer)}__" + buildingLabel in capacitiesInvestedStorages:
+                            invest += capacitiesInvestedStorages[f"thermalStorage{int(layer)}__" + buildingLabel]
+                            removeKeysList.append(f"thermalStorage{int(layer)}__" + buildingLabel)
+                    if invest > 0:
+                        capacitiesInvestedStorages["thermalStorage__" + buildingLabel] = invest
+                        for k in removeKeysList:
+                            capacitiesInvestedStorages.pop(k, None)
         else:
             shOutputLabel = "shSourceBus__"
         for b in range(len(self.__buildings)):
@@ -700,6 +720,9 @@ class EnergyNetworkClass(solph.EnergySystem):
             if "shStorage__" + buildingLabel in capacitiesInvestedStorages:
                 invest = capacitiesInvestedStorages["shStorage__" + buildingLabel]
                 print("Invested in {:.1f} L SH Storage Tank.".format(invest))
+            if "thermalStorage__" + buildingLabel in capacitiesInvestedStorages:
+                invest = capacitiesInvestedStorages["thermalStorage__" + buildingLabel]
+                print("Invested in {:.1f} L Multilayer Thermal Storage Tank.".format(invest))
 
     def printCosts(self):
         capexNetwork = sum(self.__capex["Building" + str(b + 1)] for b in range(len(self.__buildings)))
