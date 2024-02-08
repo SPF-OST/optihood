@@ -4,3 +4,8 @@ The technologies are classified in three categories:
 - Energy converters: equipment that converts inputs into usable energy (heat or electricity) for the end consumers
 - Energy storages: device to store electricity or heat locally in order to be consumed later.
 
+.. image:: ./resources/energy_types.png
+      :width: 800
+      :alt: energy_types
+
+Modelling of energy system components
