@@ -15,8 +15,6 @@ To summarize, the technologies are classified in three categories:
       :width: 800
       :alt: energy_types
 
-A description of the models used for different technologies is presented next.
-
 
 Modelling of energy system components
 --------------------
