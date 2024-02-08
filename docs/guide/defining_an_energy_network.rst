@@ -346,5 +346,20 @@ as an alternative way of formulating an optimization problem.
 In a config file, one could provide the same information as in the input Excel file but for a case where all
 the buildings have an identical setup (technologies, limits on capacities, costs, etc.).
 
+.. image:: ./resources/config_file_example.png
+      :width: 500
+      :alt: config_file_example
+
 Each building would have the same available energy sources and technologies. Paths to the weather file, electricity impact and demand profiles are also
 specified within this config file. Moreover, the connections between energy sources, conversion and storage technologies and demands are fixed to default system connections when a config file is used.
+
+Note that the specific connections would realize only when the corresponding technologies/sources/sinks are
+selected. As an example, the connection between natural gas resource and CHP would be realized only if the
+optimizer chooses CHP as an optimum solution in the optimization results.
+
+A new method called ``createScenarioFile()`` was implemented within the EnergyNetworkIndiv
+and EnergyNetworkGroup classes. This function reads a config file and derives the equivalent Excel file based
+on the default system component connections. The equivalent Excel file includes the same energy sources,conversion and storage technologies (including same costs, minimum/maximum capacities, etc.) for each
+building. It is worthwhile to note that the ``createScenarioFile()`` could still be used to prepare a first
+version of the Excel file if system components for all the buildings are not identical. The prepared Excel file
+could then be adapted later on instead of creating it from scratch.
