@@ -22,3 +22,4 @@ The energy system components can be classified into energy converters and storag
 
 where, $T_{e,in}$ and $T_{c,out}$ are fluid temperatures at the inlet of the evaporator and the outlet of the condenser, respectively. $\bar{T}$ denotes the normalized temperature and is defined as $\bar{T} = \frac{T[^° C]}{273.15}. $bq_i$ and $bp_i$ are the polynomial coefficients calculated from the catalog heat pump data using multidimensional least square fitting. The condenser fluid outlet temperature $T_{c,out}$ was fixed to 35 °C and 65 °C, respectively, for space heating and domestic hot water.
 
+Solar thermal collectors and PV modules production profiles are pre-calculated before the optimization. For batteries, a simple model is used that accounts for fixed charging and discharging efficiencies and a loss parameter. For thermal storages, a stratified thermal storage model with two temperature zones is used.
