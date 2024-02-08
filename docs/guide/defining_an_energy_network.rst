@@ -337,3 +337,14 @@ grid_connection
 
 This excel sheet should not be modified by the users. It defines the separation of the flows from electricity grid and
 the produced electricity flows to make sure that the grid electricity is not stored in batteries.
+
+Input Excel File
+----------------
+The config file was introduced to make the scenario definition more intuitive and less prone to errors. The config file, therefore, can be used
+as an alternative way of formulating an optimization problem.
+
+In a config file, one could provide the same information as in the input Excel file but for a case where all
+the buildings have an identical setup (technologies, limits on capacities, costs, etc.).
+
+Each building would have the same available energy sources and technologies. Paths to the weather file, electricity impact and demand profiles are also
+specified within this config file. Moreover, the connections between energy sources, conversion and storage technologies and demands are fixed to default system connections when a config file is used.
