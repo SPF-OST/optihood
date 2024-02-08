@@ -27,19 +27,14 @@ def multiTemperatureStorageCapacityConstaint(om, storageNodes, optType):
     storageCapacityDict = {}
     storageMaxCapacity = {}
     storageMinCapacity = {}
-    storageBaseInvestment = {}
-    #storageNodes = [node for node in nodeList if 'thermalStorage' in node.label and 'dummy' not in node.label]
+    #storageBaseInvestment = {}
     for x in om.GenericInvestmentStorageBlock.INVESTSTORAGES:
         if "thermalStorage" in x.label:
             if x.label.split("__")[1] not in storageCapacityDict:
                 storageCapacityDict[x.label.split("__")[1]] = [x]
-                # the next values need to come from thermalstorage class not from oemof classes, check how to integrate this! capacity max and capacity_min
-                # can come from Generic storage (s) but the other variables like base investment cannot
-                # These should be taken from the thermalStorage class written by us. Somehow pass this to the function.
-                # Like nodeList, save thermal storage list and pass it instead of nodelist to this function
                 storageMaxCapacity[x.label.split("__")[1]] = [s.capacityMax for s in storageNodes if x.label.split("__")[1] in s.label][0]
                 storageMinCapacity[x.label.split("__")[1]] = [s.capacityMin for s in storageNodes if x.label.split("__")[1] in s.label][0]
-                storageBaseInvestment[x.label.split("__")[1]] = [s.baseInvestment for s in storageNodes if x.label.split("__")[1] in s.label][0]
+                #storageBaseInvestment[x.label.split("__")[1]] = [s.baseInvestment for s in storageNodes if x.label.split("__")[1] in s.label][0]
             else:
                 storageCapacityDict[x.label.split("__")[1]].append(x)
 
@@ -56,9 +51,9 @@ def multiTemperatureStorageCapacityConstaint(om, storageNodes, optType):
             pyo.Constraint(expr=(storageCapacity >= storageMinCapacity[building])),
         )
         # if storage is selected then add offset to objective function
-        if optType == "costs":
+        """if optType == "costs":
             offsetThermalStorage = storageBaseInvestment[building]*storageCapacity         #*(storageCapacity>0.001)
-            om.objective += offsetThermalStorage
+            om.objective += offsetThermalStorage"""
 
     return om
 

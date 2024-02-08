@@ -406,9 +406,27 @@ class EnergyNetworkClass(solph.EnergySystem):
         # Convert kWh into L
         capacitiesInvestedStorages = self._compensateStorageCapacities(capacitiesInvestedStorages)
 
+        if self._temperatureLevels:
+            if any("thermalStorage" in key for key in capacitiesInvestedStorages):
+                for b in range(len(self.__buildings)):
+                    buildingLabel = "Building" + str(b + 1)
+                    invest = 0
+                    removeKeysList = []
+                    for layer in self.__operationTempertures:
+                        if f"thermalStorage{int(layer)}__" + buildingLabel in capacitiesInvestedStorages:
+                            invest += capacitiesInvestedStorages[f"thermalStorage{int(layer)}__" + buildingLabel]
+                            removeKeysList.append(f"thermalStorage{int(layer)}__" + buildingLabel)
+                    if invest > 0:
+                        capacitiesInvestedStorages["thermalStorage__" + buildingLabel] = invest
+                        storageCapacityDict["thermalStorage__" + buildingLabel] = invest
+                        for k in removeKeysList:
+                            capacitiesInvestedStorages.pop(k, None)
+
         # Update capacities
         for x in storageCapacityDict:
             index = str(x)
+            if index in removeKeysList:
+                continue
             buildingLabel = index.split("__")[1]
             if x in storageList:  # useful when we want to implement two or more storage units of the same type
                 self.__capacitiesStoragesBuilding[buildingLabel].update(
@@ -499,11 +517,7 @@ class EnergyNetworkClass(solph.EnergySystem):
                                               for i, o in capacityTransformers) + \
                                           sum((self.__costParam[x][1] * (capacityStorages[x] > 1))                      # base investment cost if the technology is implemented
                                               + (capacityStorages[x] * self.__costParam[x][0])                          # investment cost per unit capacity
-                                              for x in capacityStorages if "thermalStorage" not in x) + \
-                                            sum((self.__costParam['thermalStorage__'+x.split("__")[1]][1] * (
-                                                        capacityStorages[x] > 1))  # base investment cost if the technology is implemented
-                                                + (capacityStorages[x] * self.__costParam['thermalStorage__'+x.split("__")[1]][0])  # investment cost per unit capacity
-                                                for x in capacityStorages if "thermalStorage" in x)
+                                              for x in capacityStorages)
 
             electricitySourceLabel = "electricityResource" + '__' + buildingLabel
             gridBusLabel = "gridBus" + '__' + buildingLabel
@@ -638,11 +652,13 @@ class EnergyNetworkClass(solph.EnergySystem):
                                                                    sum(sum(
                                                                        solph.views.node(self._optimizationResults,
                                                                                         t[0])["sequences"][((t[1], t[0]), "flow")] *
-                                                                       self.__envParam[t[1]][1] * ('electricityBus' in t[0]) + \
+                                                                       self.__envParam["thermalStorage__"+x.split("__")[1]][1] * ('electricityBus' in t[0]) + \
                                                                        solph.views.node(self._optimizationResults,
                                                                                         t[0])["sequences"][((t[1], t[0]), "flow")] *
-                                                                       self.__envParam[t[1]][0] * ('electricityBus' not in t[0]))
-                                                                       for t in technologies if t[1] == x)
+                                                                       self.__envParam["thermalStorage__"+x.split("__")[1]][0] * ('electricityBus' not in t[0]))
+                                                                       for t in technologies if (x.split("__")[0] in t[1].split("__")[0]
+                                                                                                 and x.split("__")[1] == t[1].split("__")[1]))
+                        self.__envImpactTechnologies[buildingLabel].update({x: impactThermalStorage})
 
     def printMetaresults(self):
         print("Meta Results:")
@@ -662,19 +678,6 @@ class EnergyNetworkClass(solph.EnergySystem):
     def printInvestedCapacities(self, capacitiesInvestedTransformers, capacitiesInvestedStorages):
         if self._temperatureLevels:
             shOutputLabel = "heatStorageBus0__"
-            if any("thermalStorage" in key for key in capacitiesInvestedStorages):
-                for b in range(len(self.__buildings)):
-                    buildingLabel = "Building" + str(b + 1)
-                    invest = 0
-                    removeKeysList = []
-                    for layer in self.__operationTempertures:
-                        if f"thermalStorage{int(layer)}__" + buildingLabel in capacitiesInvestedStorages:
-                            invest += capacitiesInvestedStorages[f"thermalStorage{int(layer)}__" + buildingLabel]
-                            removeKeysList.append(f"thermalStorage{int(layer)}__" + buildingLabel)
-                    if invest > 0:
-                        capacitiesInvestedStorages["thermalStorage__" + buildingLabel] = invest
-                        for k in removeKeysList:
-                            capacitiesInvestedStorages.pop(k, None)
         else:
             shOutputLabel = "shSourceBus__"
         for b in range(len(self.__buildings)):
@@ -738,7 +741,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         envImpactInputsNetwork = sum(sum(self.__envImpactInputs["Building" + str(b + 1)].values()) for b in range(len(self.__buildings)))
         envImpactTechnologiesNetwork = sum(sum(self.__envImpactTechnologies["Building" + str(b + 1)].values()) for b in range(len(self.__buildings)))
         print("Environmental impact from input resources for the system: {} kg CO2 eq".format(envImpactInputsNetwork))
-        print("Environmental impact from energy conversion technologies for the system: {} kg CO2 eq".format(envImpactTechnologiesNetwork))
+        print("Environmental impact from energy conversion and storage technologies for the system: {} kg CO2 eq".format(envImpactTechnologiesNetwork))
         print("Total: {} kg CO2 eq".format(envImpactInputsNetwork + envImpactTechnologiesNetwork))
 
     def getTotalCosts(self):

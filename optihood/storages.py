@@ -109,11 +109,11 @@ class ThermalStorageTemperatureLevels:
         self._label = label
         storageLabel = label.split("__")[0]
         self.__TempH, self.__TempC = self._calcTemperatures(stratifiedStorageParams, storageLabel)
-        capacity_min, capacity_max, epc, env_capa = self._conversionCapacities(self.__TempH[-1], self.__TempC[0], min, max, volume_cost, env_cap)
+        capacity_min, capacity_max, epc, env_capa = self._conversionCapacities(self.__TempH[0], self.__TempC[0], min, max, volume_cost, env_cap)
         # capacity_min, capacity_max should be on the whole storage not individual temperature levels
         self.__capacityMin = capacity_min
         self.__capacityMax = capacity_max
-        self.__baseInvestment=base # offset should be added only once for the whole storage, not for each temperature level
+        #self.__baseInvestment=base # offset should be added only once for the whole storage, not for each temperature level
         self._numberOfLevels = len(stratifiedStorageParams.at[storageLabel, 'temp_h'].split(","))
         if dispatchMode:
             investArgs={'ep_costs':epc,
@@ -158,6 +158,7 @@ class ThermalStorageTemperatureLevels:
                     storageOutput = {
                         outputs[-1]: solph.Flow(investment=solph.Investment(ep_costs=0), variable_costs=varc,
                                                custom_attributes={'env_per_flow':env_flow})}
+                    investArgs.update({"offset": base, "nonconvex": True})
                 else:
                     storageOutput = {dummyInBus: solph.Flow(investment=solph.Investment(ep_costs=0))}
                 self._dummyComponents.append(LinkStorageDummyInput(label="dummy_"+newLabel,
@@ -191,9 +192,9 @@ class ThermalStorageTemperatureLevels:
     def capacityMax(self):
         return self.__capacityMax
 
-    @property
+    """@property
     def baseInvestment(self):
-        return self.__baseInvestment
+        return self.__baseInvestment"""
 
     def _calcTemperatures(self, data, label):
         tempH = [float(t) for t in data.at[label, 'temp_h'].split(",")]

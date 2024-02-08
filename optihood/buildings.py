@@ -594,17 +594,20 @@ class Building:
                 if temperatureLevels and s["label"] == "thermalStorage":
                     inputBuses = [self.__busDict[iLabel + '__' + self.__buildingLabel] for iLabel in s["from"].split(",")]
                     outputBuses = [self.__busDict[oLabel + '__' + self.__buildingLabel] for oLabel in s["to"].split(",")]
+                    storTemperatures = stratifiedStorageParams.at[s["label"],"temp_h"].split(",")
+                    self.__technologies.append([outputBuses[0].label, f'dummy_{storageLabel.replace("thermalStorage",f"thermalStorage{int(storTemperatures[0])}")}'])
+                    self.__technologies.append([outputBuses[1].label, storageLabel.replace("thermalStorage",f"thermalStorage{int(storTemperatures[-1])}")])
                 else:
                     inputBusLabel = s["from"] + '__' + self.__buildingLabel
                     if mergeLinkBuses and s["to"] in self.__linkBuses:
                         outputBusLabel = s["to"]
                     else:
                         outputBusLabel = s["to"] + '__' + self.__buildingLabel
+                    self.__technologies.append([outputBusLabel, storageLabel])
                 envImpactPerCapacity = float(s["impact_cap"]) / float(s["lifetime"])         # annualized value
                 # set technologies, environment and cost parameters
                 self.__costParam[storageLabel] = [self._calculateInvest(s)[0], self._calculateInvest(s)[1]]
                 self.__envParam[storageLabel] = [float(s["heat_impact"]), float(s["elec_impact"]), envImpactPerCapacity]
-                self.__technologies.append([outputBusLabel, storageLabel])
 
                 if s["label"] == "electricalStorage":
                     self.__nodesList.append(ElectricalStorage(self.__buildingLabel, self.__busDict[inputBusLabel],
