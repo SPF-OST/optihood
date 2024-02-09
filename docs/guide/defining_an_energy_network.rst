@@ -351,7 +351,7 @@ the buildings have an identical setup (technologies, limits on capacities, costs
       :alt: config_file_example
 
 Each building would have the same available energy sources and technologies. Paths to the weather file, electricity impact and demand profiles are also
-specified within this config file. Moreover, the connections between energy sources, conversion and storage technologies and demands are fixed to default system connections when a config file is used.
+specified within this config file. Moreover, the connections between energy sources, conversion and storage technologies and demands are fixed to default system connections when a config file is used. All the different parameters have already been described for the excel files.
 
 Note that the specific connections would realize only when the corresponding technologies/sources/sinks are
 selected. As an example, the connection between natural gas resource and CHP would be realized only if the
