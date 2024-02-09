@@ -1,3 +1,7 @@
+Technologies
+==========================
+
+
 The scenario consisting of the energy network (including buildings and links, if any) to be optimized can be defined using either a configuration (or config) file or an excel file. The input config/excel file define the available energy conversion and storage technologies. The associated parameters and sizing limits of the technologies are also defined within the input scenario file, along with the cost and environmental impact assumptions per technology, a path to the demand profiles and weather data files. The purchased electricity cost as well as the emissions of the grid electricity can either be a time series or a constant value. The demand profiles for space heating can be defined statically or alternatively by means of a dynamic linear building model. After preparing the config/excel file, an energy network can be defined in a Python script for optimization.
 
 .. image:: ./resources/optihood_architecture.png
@@ -5,6 +9,8 @@ The scenario consisting of the energy network (including buildings and links, if
       :alt: optihood_architecture
 
 Grid electricity, natural gas, or any other form of energy consumed by the system can be considered as energy sources. An energy source is modelled simply as a “Source” from oemof solph. An energy demand can be related to electricity, space heat and domestic hot water, and is modelled as a “Sink” from oemof solph. In terms of energy conversion and storage technologies, the following are presently implemented: air-source heat pump (ASHP), ground-source heat pump (GSHP), combined heating and power (CHP), solar thermal collector, PV, electric heating rod, gas boiler, electrical battery and thermal storage. 
+
+
 To summarize, the technologies are classified in three categories:
 
 - Energy inputs: all energy vectors that are energy sources for the systems, e.g. fuels, grid electricity, energy from the environment like solar radiation, etc.
