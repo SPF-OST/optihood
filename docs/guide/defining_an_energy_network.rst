@@ -321,9 +321,9 @@ profiles
 The paths to CSV files containing demand profiles, weather data and electricity impact data are to be given in this
 excel sheet.
 
-.. image:: ./resources/scenario_profiles_new.png
+.. image:: ./resources/scenario_profiles.png
       :width: 500
-      :alt: scenario_profiles_new
+      :alt: scenario_profiles
 
 grid_connection
 ^^^^^^^^^^^^^^^
