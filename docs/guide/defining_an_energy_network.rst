@@ -107,6 +107,8 @@ This sheet defines the different commodity sources which serve as an energy inpu
 ``CO2 impact`` (float)
     CO2 impact per kW of the commodity source.
 
+'variable costs' and 'CO2 impact' could be either constant value (this should already be given in the current documentation) OR a path to CSV file containing cost/impact data
+
 demand
 ^^^^^^
 
@@ -318,8 +320,8 @@ section) are only relevant for space heating links in the present stage of devel
 profiles
 ^^^^^^^^
 
-The paths to CSV files containing demand profiles, weather data and electricity impact data are to be given in this
-excel sheet.
+The paths to CSV files containing demand profiles, weather data are to be given in this
+excel sheet. If building model is chosen, then path to building model specific data (fitting parameters and internal heat gains from occupancy) is also specified here.
 
 .. image:: ./resources/scenario_profiles.png
       :width: 500
