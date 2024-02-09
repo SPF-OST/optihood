@@ -25,7 +25,11 @@ To summarize, the technologies are classified in three categories:
 Modelling of energy system components
 --------------------
 
-The energy system components can be classified into energy converters and storages. We use constant efficiency models for CHP, gas boiler and electric heating rods, where a fixed efficiency is pre-defined. Heat pumps (ASHP and GSHP) are modelled based on a bi-quadratic polynomial fit of the  condenser heating power ($\dot{ q }_c$) and the electrical consumption power of the compressor ($\dot{w}_{cp}) proposed by REF.
+The energy system components can be classified into energy converters and storages. We use constant efficiency models for CHP, gas boiler and electric heating rods, where a fixed efficiency is pre-defined. These fixed efficiencies are defined by the user in the input scenario file. 
+
+Heat pumps
+--------------------
+Heat pumps (ASHP and GSHP) are modelled based on a bi-quadratic polynomial fit of the  condenser heating power ($\dot{ q }_c$) and the electrical consumption power of the compressor ($\dot{w}_{cp}) proposed by REF.
 
 \begin{align}
     
@@ -34,6 +38,21 @@ The energy system components can be classified into energy converters and storag
 
 \end{align}
 
-where, $T_{e,in}$ and $T_{c,out}$ are fluid temperatures at the inlet of the evaporator and the outlet of the condenser, respectively. $\bar{T}$ denotes the normalized temperature and is defined as $\bar{T} = \frac{T[^° C]}{273.15}. $bq_i$ and $bp_i$ are the polynomial coefficients calculated from the catalog heat pump data using multidimensional least square fitting. The condenser fluid outlet temperature $T_{c,out}$ was fixed to 35 °C and 65 °C, respectively, for space heating and domestic hot water.
+where, $T_{e,in}$ and $T_{c,out}$ are fluid temperatures at the inlet of the evaporator and the outlet of the condenser, respectively. $\bar{T}$ denotes the normalized temperature and is defined as $\bar{T} = \frac{T[^° C]}{273.15}. For the
+solution of the system of equations the Brent solver is used [2]. The polynomial coefficients $b_{qi}$ and
+$b_{pi}$ are calculated from the catalog heat pump data using the multidimensional least square fitting
+algorithm of Scipy [3] in Python.
+A reduced model can be proposed:
+
+      \begin{align}
+    
+          \dot{q}_c = bq_1 + bq_2 \cdot \bar{T}_{e,in} + bq_3 \cdot \bar{T}_{c,out}  \\
+          \dot{w}_{cp} = bp_1 + bp_2 \cdot \bar{T}_{e,in} + bp_3 \cdot \bar{T}_{c,out}
+      \end{align}
+
+
+However, this model is still non-linear. A way to overcome the non-linearity would be to fix the $\bar{T}_{c,out}$ to 35 °C and 65 °C, respectively, for space heating (SH) and domestic hot water (DHW).
+
+
 
 Solar thermal collectors and PV modules production profiles are pre-calculated before the optimization. For batteries, a simple model is used that accounts for fixed charging and discharging efficiencies and a loss parameter. For thermal storages, a stratified thermal storage model with two temperature zones is used.
