@@ -66,4 +66,16 @@ However, this model is still non-linear. A way to overcome the non-linearity wou
       :width: 800
       :alt: HP_figures_1
 
+.. image:: ./resources/HP_table2.png
+      :width: 800
+      :alt: HP_table2
+
+.. image:: ./resources/HP_table3.png
+      :width: 800
+      :alt: HP_table3
+
+.. image:: ./resources/HP_table4.png
+      :width: 800
+      :alt: HP_table4
+
 Solar thermal collectors and PV modules production profiles are pre-calculated before the optimization. For batteries, a simple model is used that accounts for fixed charging and discharging efficiencies and a loss parameter. For thermal storages, a stratified thermal storage model with two temperature zones is used.
