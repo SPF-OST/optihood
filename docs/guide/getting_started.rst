@@ -41,6 +41,20 @@ commands could be used.
 
     oemof_installation_test
 
+   If the installation is successful the following message would be displayed (the installed solver would be shown as working)::
+        
+    *****************************
+    Solver installed with oemof:
+
+    cbc: not working
+    glpk: not working
+    gurobi: working
+    cplex: not working
+
+    *****************************
+    oemof successfully installed.
+    *****************************
+
 5. To test whether the installation worked well, you could run a `basic example <https://github.com/SPF-OST/OptiHood/tree/main/data/examples/>`_.
 
 
