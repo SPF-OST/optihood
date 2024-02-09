@@ -54,6 +54,8 @@ A reduced model can be proposed:
 
 However, this model is still non-linear. A way to overcome the non-linearity would be to fix the $\bar{T}_{c,out}$ to 35 °C and 65 °C, respectively, for space heating (SH) and domestic hot water (DHW).
 
-
+.. image:: ./resources/HP_model_param.png
+      :width: 800
+      :alt: HP_model_param
 
 Solar thermal collectors and PV modules production profiles are pre-calculated before the optimization. For batteries, a simple model is used that accounts for fixed charging and discharging efficiencies and a loss parameter. For thermal storages, a stratified thermal storage model with two temperature zones is used.
