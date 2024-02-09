@@ -101,13 +101,13 @@ This sheet defines the different commodity sources which serve as an energy inpu
     Label of bus to which the energy from the commodity source flows. The corresponding bus label should exist in
     the buses sheet.
 
-``variable costs`` (float)
+``variable costs`` (float or path)
     Cost per kW of the commodity source.
 
-``CO2 impact`` (float)
+``CO2 impact`` (float or path)
     CO2 impact per kW of the commodity source.
 
-'variable costs' and 'CO2 impact' could be either constant value (this should already be given in the current documentation) OR a path to CSV file containing cost/impact data
+``variable costs`` and ``CO2 impact`` could be either constant value (float) or a path to a CSV file containing cost/impact data.
 
 demand
 ^^^^^^
@@ -323,9 +323,9 @@ profiles
 The paths to CSV files containing demand profiles, weather data are to be given in this
 excel sheet. If building model is chosen, then path to building model specific data (fitting parameters and internal heat gains from occupancy) is also specified here.
 
-.. image:: ./resources/scenario_profiles.png
+.. image:: ./resources/scenario_profiles_new.png
       :width: 500
-      :alt: scenario_profiles
+      :alt: scenario_profiles_new
 
 grid_connection
 ^^^^^^^^^^^^^^^
