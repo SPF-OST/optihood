@@ -31,8 +31,14 @@ optimization model. The Datetime index could be defined using date_range() in pa
     import pandas as pd
     dateTimeIndex = pd.date_range('2021-01-01 00:00:00', '2021-12-31 23:00:00', freq="60min")
 
+The scenario consisting of the energy network (including buildings and links, if any) to be optimized can be defined using either a configuration (or config) file or an excel file. The input config/excel file define the available energy conversion and storage technologies. The associated parameters and sizing limits of the technologies are also defined within the input scenario file, along with the cost and environmental impact assumptions per technology, a path to the demand profiles and weather data files. The purchased electricity cost as well as the emissions of the grid electricity can either be a time series or a constant value. The demand profiles for space heating can be defined statically or alternatively by means of a dynamic linear building model. After preparing the config/excel file, an energy network can be defined in a Python script for optimization.
 
-Once the ``network`` object has been created, the next step then is to build the model from an input excel file which
+Descriptions of input excel/config files are given next.
+
+
+Input Excel File
+----------------
+Once the ``network`` object has been created, a model can be built from an input excel file which
 defines different components which constitute the model, how they are connected and their associated parameters::
 
     network.setFromExcel(inputExcelFilePath, numberOfBuildings, clusterSize, opt)
@@ -46,8 +52,6 @@ summer and winter. This would improve the optimization speed. If not given durin
 of the clusterSize parameter assumes no day clusters. This parameter is described further in
 :ref:`advanced_under_development_features`
 
-Input Excel File
-----------------
 The input excel file is used to define an optimization model and set the model parameters. Each sheet of this excel file
 is structured to defin different components, such as buses, storages and transformers, their respective parameters,
 connections between these components and the building to which they belong.
