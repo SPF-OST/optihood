@@ -9,7 +9,8 @@ Prerequisites
 In order to use optihood, the following prerequisites are needed on your machine:
 
 - `Python 3.9 <https://www.python.org/downloads/>`_ is installed.
-- An active `Github <https://github.com/>`_ account to clone the repo.
+- Git is installed
+- An active [Github](https://github.com/) account to clone the repo.
 - A solver is installed. `Gurobi solver <https://www.gurobi.com/resource/parallelism-linear-mixed-integer-programming/>`_ is recommended, although other solvers like CBC, GLPK, Cplex could also be used.
 
 Installation
@@ -30,14 +31,31 @@ commands could be used.
     venv\Scripts\activate
 
 3. Install the requirements into the created virtual environment::
-
+    
     pip install wheel
     pip install -r requirements.txt
 
-    It might be required to install C++ build tools. To do that, click on the link that appears with the error message and follow the instructions (it is the lapack package that is missing). In order to be able to 
-    install the missing package, it is required to have a complete Visual Studio instance and installing it with the "Desktop development with C++" workload.
+   It might be required to install C++ build tools. To do that, click on the link that appears with the error message and follow the instructions (it is the lapack package that is missing). In order to be able         to install the missing package, it is required to have a complete Visual Studio instance and installing it with the "Desktop development with C++" workload.
 
-4. To test whether the installation worked well, you could run a `basic example <https://github.com/SPF-OST/OptiHood/tree/main/data/examples/>`_.
+4. Verify the installation of the oemof package and the solver by running the installation test in your virtual environment::
+
+    oemof_installation_test
+
+   If the installation is successful the following message would be displayed (the installed solver would be shown as working)::
+        
+    *****************************
+    Solver installed with oemof:
+
+    cbc: not working
+    glpk: not working
+    gurobi: working
+    cplex: not working
+
+    *****************************
+    oemof successfully installed.
+    *****************************
+
+5. To test whether the installation worked well, you could run a `basic example <https://github.com/SPF-OST/OptiHood/tree/main/data/examples/>`_.
 
 
 Setting up your optimization model
