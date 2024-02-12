@@ -9,6 +9,7 @@ Prerequisites
 In order to use optihood, the following prerequisites are needed on your machine:
 
 - `Python 3.9 <https://www.python.org/downloads/>`_ is installed.
+- Git is installed.
 - An active `Github <https://github.com/>`_ account to clone the repo.
 - A solver is installed. `Gurobi solver <https://www.gurobi.com/resource/parallelism-linear-mixed-integer-programming/>`_ is recommended, although other solvers like CBC, GLPK, Cplex could also be used.
 
