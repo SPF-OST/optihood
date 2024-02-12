@@ -89,4 +89,7 @@ Polynomial fit analysis for heat pump model
       :width: 800
       :alt: HP_table5
 
+Other energy systems
+^^^^^^^^^^^^^^^^
+
 Solar thermal collectors and PV modules production profiles are pre-calculated before the optimization. For batteries, a simple model is used that accounts for fixed charging and discharging efficiencies and a loss parameter. For thermal storages, a stratified thermal storage model with two temperature zones is used.
