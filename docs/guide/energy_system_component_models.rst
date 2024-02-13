@@ -1,3 +1,5 @@
+.. _energy_system_component_models:
+
 Introduction
 ============
 
