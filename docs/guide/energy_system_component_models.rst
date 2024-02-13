@@ -30,7 +30,7 @@ Modelling of energy system components
 The energy system components can be classified into energy converters and storages. We use constant efficiency models for CHP, gas boiler and electric heating rods, where a fixed efficiency is pre-defined. These fixed efficiencies are defined by the user in the input scenario file. 
 
 Heat pumps
-^^^^^^^^^^
+----------
 
 Heat pumps (ASHP and GSHP) are modelled based on a bi-quadratic polynomial fit of the  condenser heating power ($\dot{ q }_c$) and the electrical consumption power of the compressor ($\dot{w}_{cp}$)::
 
@@ -91,6 +91,6 @@ Polynomial fit analysis for heat pump model
       :alt: HP_table5
 
 Other energy systems
-^^^^^^^^^^^^^^^^^^^^
+--------------------
 
 Solar thermal collectors and PV modules production profiles are pre-calculated before the optimization. For batteries, a simple model is used that accounts for fixed charging and discharging efficiencies and a loss parameter. For thermal storages, a stratified thermal storage model with two temperature zones is used.
