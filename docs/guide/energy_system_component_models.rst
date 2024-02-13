@@ -76,12 +76,12 @@ Polynomial fit analysis for heat pump model
    :width: 400
    :alt: R410A-COP
 
-.. figure:: ./resources/R410A-Qcond-1.png
-   :width: 600
+.. figure:: ./resources/R410A-Qcond-linear-1.png
+   :width: 400
    :alt: R410A-Qcond
 
-.. figure:: ./resources/R410A-COP-1.png
-   :width: 600
+.. figure:: ./resources/R410A-COP-linear-1.png
+   :width: 400
    :alt: R410A-COP
 
 Table 2: Differences between experiments and fitted data for the HP08L-M-BC air/water heat pump using :math:`\dot q_c &=& bq_1 + bq_2 \cdot \bar{T}_{e,in} + bq_3 \cdot \frac{35}{273.15}  + bq_4 \cdot \bar{T}_{e,in} \cdot \frac{35}{273.15} + bq_5 \cdot \bar{T}_{e,in}^2 + bq_6 \cdot \frac{35}{273.15}^2` and :math:`\dot w_{cp} &=& bp_1 + bp_2 \cdot \bar{T}_{e,in} + bp_3 \cdot \frac{35}{273.15}  + bp_4 \cdot \bar{T}_{e,in} \cdot \frac{35}{273.15} + bp_5 \cdot \bar{T}_{e,in}^2 + bp_6 \cdot \frac{35}{273.15}^2`. :math:`error=100 \cdot |\frac{Q_{exp}-Q_{num}}{Q_{exp}}|` and :math:`RMS = \sqrt { \sum{\frac{(Q_{exp}-Q_{num})^2}{n_p}} }` where $n_p$ is the number of data points.
