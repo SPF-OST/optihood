@@ -98,7 +98,10 @@ Table 2: Differences between experiments and fitted data for the HP08L-M-BC air/
       :width: 800
       :alt: HP_table5
 
-Other energy systems
+Solar thermal collector
 --------------------
 
-Solar thermal collectors and PV modules production profiles are pre-calculated before the optimization. For batteries, a simple model is used that accounts for fixed charging and discharging efficiencies and a loss parameter. For thermal storages, a stratified thermal storage model with two temperature zones is used.
+A module to calculate the usable heat of a flat plate collector is described in details in
+
+
+and PV modules production profiles are pre-calculated before the optimization. For batteries, a simple model is used that accounts for fixed charging and discharging efficiencies and a loss parameter. For thermal storages, a stratified thermal storage model with two temperature zones is used.
