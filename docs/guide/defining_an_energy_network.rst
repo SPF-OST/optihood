@@ -363,7 +363,14 @@ optimizer chooses CHP as an optimum solution in the optimization results.
 
 A new method called ``createScenarioFile()`` was implemented within the EnergyNetworkIndiv
 and EnergyNetworkGroup classes. This function reads a config file and derives the equivalent Excel file based
-on the default system component connections. The equivalent Excel file includes the same energy sources,conversion and storage technologies (including same costs, minimum/maximum capacities, etc.) for each
+on the default system component connections::
+
+    createScenarioFile(self, configFilePath, excelFilePath, numberOfBuildings)
+
+``configFilePath`` is the path to the config file describing the components of the model, ``excelFilePath`` gives the path for the excel output file. ``numberofBuildings`` is an integer parameter specifying the
+number of buildings defined in the config file.
+
+The equivalent Excel file includes the same energy sources,conversion and storage technologies (including same costs, minimum/maximum capacities, etc.) for each
 building. It is worthwhile to note that the ``createScenarioFile()`` could still be used to prepare a first
 version of the Excel file if system components for all the buildings are not identical. The prepared Excel file
 could then be adapted later on instead of creating it from scratch.
