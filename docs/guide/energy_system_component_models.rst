@@ -62,9 +62,9 @@ However, this model is still non-linear. A way to overcome the non-linearity wou
 
 Polynomial fit analysis for heat pump model
 
-.. image:: ./resources/HP_figures.png
+.. image:: ./resources/R410A-predict-Cop.pdf
       :width: 800
-      :alt: HP_figures
+      :alt: R410A-predict-Cop
 
 .. image:: ./resources/HP_figures_1.png
       :width: 800
