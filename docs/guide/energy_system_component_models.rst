@@ -1,5 +1,5 @@
 Introduction
-===========
+============
 
 
 The scenario consisting of the energy network (including buildings and links, if any) to be optimized can be defined using either a configuration (or config) file or an excel file. The input config/excel file define the available energy conversion and storage technologies. The associated parameters and sizing limits of the technologies are also defined within the input scenario file, along with the cost and environmental impact assumptions per technology, a path to the demand profiles and weather data files. The purchased electricity cost as well as the emissions of the grid electricity can either be a time series or a constant value. The demand profiles for space heating can be defined statically or alternatively by means of a dynamic linear building model. After preparing the config/excel file, an energy network can be defined in a Python script for optimization.
@@ -23,12 +23,12 @@ To summarize, the technologies are classified in three categories:
 
 
 Modelling of energy system components
-===========
+=====================================
 
 The energy system components can be classified into energy converters and storages. We use constant efficiency models for CHP, gas boiler and electric heating rods, where a fixed efficiency is pre-defined. These fixed efficiencies are defined by the user in the input scenario file. 
 
 Heat pumps
-^^^^^^^^^^^^^^^^
+^^^^^^^^^^
 
 Heat pumps (ASHP and GSHP) are modelled based on a bi-quadratic polynomial fit of the  condenser heating power ($\dot{ q }_c$) and the electrical consumption power of the compressor ($\dot{w}_{cp}$)::
 
@@ -59,7 +59,6 @@ However, this model is still non-linear. A way to overcome the non-linearity wou
       :alt: HP_model_param
 
 Polynomial fit analysis for heat pump model
-~~~~~~~~~~~~~~~~~~~~~~~
 
 .. image:: ./resources/HP_figures.png
       :width: 800
@@ -90,6 +89,6 @@ Polynomial fit analysis for heat pump model
       :alt: HP_table5
 
 Other energy systems
-^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
 
 Solar thermal collectors and PV modules production profiles are pre-calculated before the optimization. For batteries, a simple model is used that accounts for fixed charging and discharging efficiencies and a loss parameter. For thermal storages, a stratified thermal storage model with two temperature zones is used.
