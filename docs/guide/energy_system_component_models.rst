@@ -99,21 +99,40 @@ Table 2: Differences between experiments and fitted data for the HP08L-M-BC air/
       :alt: HP_table5
 
 Solar thermal collector
---------------------
+-----------------------
 
 A module to calculate the usable heat of a flat plate collector is described in details in `Solar thermal collector <https://oemof-thermal.readthedocs.io/en/latest/solar_thermal_collector.html#solar-thermal-collector>`_.
 The model for solar thermal collector is taken from the oemof thermal package.
 
 PV
---------------------
+---
 
 The installed PV provides electricity to the building during the irradiation hours. Along with the battery, the usual strategy is to store the PV surplus power in the battery to be consumed at later hours of the planning horizon. The maximum available power $pv_t^{avail}$ of the PV is a built function that depends on the PV cell temperature, the ambient temperature and the total solar horizontal irradiation. These formulas, as well as the decision variables and the characteristics of the PV are stated in the next Table.
 PV modules production profiles are pre-calculated before the optimization. 
 
 Two-zone thermal energy storage
---------------------
+-------------------------------
 
 A simplified 2-zone-model of a stratified thermal energy storage is implemented and described indetails in `Stratified thermal storage <https://oemof-thermal.readthedocs.io/en/latest/stratified_thermal_storage.html>`_.
 The model for stratified thermal storage is taken from the oemof thermal package.
+
+Combined production transformer
+-------------------------------
+
+A new transformer called combined production transformer which extends the features of oemof “Transformer” was defined. Since some transformers like HP can have different efficiencies for SH and DHW production (DHW needs a higher temperature than SH), this transformer offers the possibility to consider those different efficiencies. It allows to produce both space heating (SH) and domestic hot water (DHW) during the same timestep while respecting the input/output balance constraint.
+
+\begin{align}
+    
+    P_{input}(t) = \frac{P_{DHW}(t)}{\eta_{DHW}} + \frac{P_{SH}(t)}{\eta_{SH}}. \forall t
+
+\end{align}
+
+where, $P$ denotes the operating power for inputs (for example, electricity used by HP) and outputs (SH and DHW), $\eta$ denotes efficiency of the transformer and $t$ denotes the time step.
+Physically the converters cannot supply both SH and DHW at the same time. However, if we consider a timestep of 1 hour it can be considered to be sub-divided into smaller intervals to produce SH and DHW both within 1 hour. The combined production transformer was used for the implementation of heat pumps (ASHP, GSHP), CHP, gas boiler and electric heating rod.
+
+PVT
+---
+
+
 
 For batteries, a simple model is used that accounts for fixed charging and discharging efficiencies and a loss parameter. For thermal storages, a stratified thermal storage model with two temperature zones is used.
