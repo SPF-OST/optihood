@@ -230,4 +230,3 @@ the inclusion of the latent heat term for ice formation $\frac{h_f}{V}\frac{\del
 \rho c_p V \frac{\delta T_{stor}}{\delta t} = -(UA)_{tank} \cdot (T_{stor} - T_{amb}) + \frac{h_f}{V} \frac{\delta M_{ice}}{\delta t} + sum_{i=1}^n \dot Q_{hx-port}(i)
 
 where $\rho$ and $c_p$ stand for the density and specific heat capacity of water, respectively. $V$ is the storage volume, $T_{stor}$ is the average temperature of the storage, $T_{amb}
-For batteries, a simple model is used that accounts for fixed charging and discharging efficiencies and a loss parameter. For thermal storages, a stratified thermal storage model with two temperature zones is used.
