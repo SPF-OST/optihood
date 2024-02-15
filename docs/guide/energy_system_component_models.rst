@@ -210,6 +210,24 @@ to the storage, the same volume added at the 50 °C layer should be displaced fr
 35 °C storage level (as shown in Figure 11). This means that the energy conversion technologies can heat
 water from 35 °C to 50 °C and from 50 °C to 65 °C, in that order.
 
+.. image:: ./resources/multilayer_nrj_component.png
+      :width: 800
+      :alt: multilayer_nrj_component
 
 
+Ice storage
+------------
+
+The IceStorage class was implemented within the storages module of optihood. The formulation of the ice
+storage model is based on the solution of the energy conservation law applied to the water of the storage as
+per Carbonell et al. (2015). It is basically the same as the energy conservation law for hot water storage with
+the inclusion of the latent heat term for ice formation $\frac{h_f}{V}\frac{\delta M_{ice}}{\delta t}:
+
+.. _equation3:
+
+.. math::
+
+\rho c_p V \frac{\delta T_{stor}}{\delta t} = -(UA)_{tank} \cdot (T_{stor} - T_{amb}) + \frac{h_f}{V} \frac{\delta M_{ice}}{\delta t} + sum_{i=1}^n \dot Q_{hx-port}(i)
+
+where $\rho$ and $c_p$ stand for the density and specific heat capacity of water, respectively. $V$ is the storage volume, $T_{stor}$ is the average temperature of the storage, $T_{amb}
 For batteries, a simple model is used that accounts for fixed charging and discharging efficiencies and a loss parameter. For thermal storages, a stratified thermal storage model with two temperature zones is used.
