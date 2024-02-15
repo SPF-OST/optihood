@@ -84,11 +84,37 @@ Polynomial fit analysis for heat pump model
    :width: 400
    :alt: R410A-COP
 
+
+The model proposed would be to fix the Tcond,out in Eqs. (1) and (2) for different applications and
+have a heat pump to target each demand. For example for a new building a heat pump will supply at
+design conditions at 35°C/30°C. Thus we would use:
+
+.. _equation1:
+
+.. math::
+
+\dot q_c &=& bq_1 + bq_2 \cdot \bar{T}_{e,in} + bq_3 \cdot \frac{35}{273.15}  + bq_4 \cdot \bar{T}_{e,in} \cdot \frac{35}{273.15} + bq_5 \cdot \bar{T}_{e,in}^2 + bq_6 \cdot \frac{35}{273.15}^2 
+
+.. _equation2:
+
+.. math::
+
+\dot w_{cp} &=& bp_1 + bp_2 \cdot \bar{T}_{e,in} + bp_3 \cdot \frac{35}{273.15}  + bp_4 \cdot \bar{T}_{e,in} \cdot \frac{35}{273.15} + bp_5 \cdot \bar{T}_{e,in}^2 + bp_6 \cdot \frac{35}{273.15}^2 
+
+The fitted data for the HP08L-M-BC air/water heat pump using the proposed approach described by
+Eq. 5 and Eq. 6 is provided in Fig. 4 and Table 2, while the fitted heat pump coefficients are given in
+Table 3. While, the fitted data for the ProDomo13-R410A brine/water heat pump using the proposed
+approach described by Eq. 5 and Eq. 6 is provided in Fig. 5 and Table 4, while the fitted heat pump
+coefficients are given in Table 5
+
 Table 2: Differences between experiments and fitted data for the HP08L-M-BC air/water heat pump using :math:`\dot q_c &=& bq_1 + bq_2 \cdot \bar{T}_{e,in} + bq_3 \cdot \frac{35}{273.15}  + bq_4 \cdot \bar{T}_{e,in} \cdot \frac{35}{273.15} + bq_5 \cdot \bar{T}_{e,in}^2 + bq_6 \cdot \frac{35}{273.15}^2` and :math:`\dot w_{cp} &=& bp_1 + bp_2 \cdot \bar{T}_{e,in} + bp_3 \cdot \frac{35}{273.15}  + bp_4 \cdot \bar{T}_{e,in} \cdot \frac{35}{273.15} + bp_5 \cdot \bar{T}_{e,in}^2 + bp_6 \cdot \frac{35}{273.15}^2`. :math:`error=100 \cdot |\frac{Q_{exp}-Q_{num}}{Q_{exp}}|` and :math:`RMS = \sqrt { \sum{\frac{(Q_{exp}-Q_{num})^2}{n_p}} }` where $n_p$ is the number of data points.
 
 .. image:: ./resources/HP_table2_new.png
       :width: 800
       :alt: HP_table2
+
+
+Fitted coefficients for the HP08L-M-BC air/water heat pump using Eq. REF and Eq. REF
 
 .. image:: ./resources/HP_table3.png
       :width: 800
