@@ -20,7 +20,7 @@ To summarize, the technologies are classified in three categories:
 - Energy storages: device to store electricity or heat locally in order to be consumed later.
 
 .. image:: ./resources/energy_types.png
-      :width: 800
+      :width: 600
       :alt: energy_types
 
 
@@ -50,14 +50,14 @@ algorithm of Scipy [3] in Python.
 Table 1: Parameters, inputs and outputs of heat pump model.
 
 .. image:: ./resources/HP_model_param.png
-      :width: 800
+      :width: 600
       :alt: HP_model_param
 
 
 Polynomial fit analysis for heat pump model
 
 .. image:: ./resources/R410A-predict-Cop-1.png
-      :width: 800
+      :width: 600
       :alt: R410A-predict-Cop
 Figure 1: Typical coefficient of performance map (COP) for a R410A heat pump obtained using the two equations above.
 
@@ -105,7 +105,7 @@ Table 2: Differences between experiments and fitted data for the HP08L-M-BC air/
 Table 3: Fitted coefficients for the HP08L-M-BC air/water heat pump using the two equations above.
 
 .. image:: ./resources/HP_table3.png
-      :width: 800
+      :width: 600
       :alt: HP_table3
 
 .. image:: ./resources/HP08L-M-BC-COP-1.png
@@ -145,7 +145,7 @@ pump using the two equations above. :math:`error=100 \cdot |\frac{Q_{exp}-Q_{num
 Table 5: Fitted coefficients for the ProDomo13-R410A brine/water heat pump using the two equations above.
 
 .. image:: ./resources/HP_table5.png
-      :width: 800
+      :width: 600
       :alt: HP_table5
 
 Other energy systems
