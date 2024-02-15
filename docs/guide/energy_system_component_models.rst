@@ -130,9 +130,39 @@ A new transformer called combined production transformer which extends the featu
 where, $P$ denotes the operating power for inputs (for example, electricity used by HP) and outputs (SH and DHW), $\eta$ denotes efficiency of the transformer and $t$ denotes the time step.
 Physically the converters cannot supply both SH and DHW at the same time. However, if we consider a timestep of 1 hour it can be considered to be sub-divided into smaller intervals to produce SH and DHW both within 1 hour. The combined production transformer was used for the implementation of heat pumps (ASHP, GSHP), CHP, gas boiler and electric heating rod.
 
-PVT
+PVT collector
 ---
 
+PVT class was implemented within the converters module, which defines the energy conversion technologies
+supported by optihood. The collector output is modelled based on the characteristic curve model reported
+in the SwissEnergy sponsored project PVT Wrap-Up (Zenhäusern et al. (2017)). The thermal output of a
+PVT collector, $\dot Q$, highly depends on the surrounding environment and the operating conditions. The most
+significant influencing factors are the solar irradiation per collector surface area ($G$), ambient air temperature
+($T_{amb}$) and the mean temperature of the collector fluid ($T_m$). The characteristic equation of thermal output
+of the PVT collector is given by:
+
+.. _equation3:
+
+.. math::
+
+   \frac{\dot Q}{A} =(G - \frac{P_{el}^{DC}}{(\alpha \tau) \cdot A}) \cdot \eta_0 - \a_1(T_m - T_{amb}) - a_2 (T_m - T_{amb})^2
+
+where A stands for the gross area of the collector surface, $P_{el}^{DC}$ stands for the DC electrical output of the
+collector, (\alpha \tau) is the transmission absorption product of the collector, $\eta_0$ is the maximum thermal efficiency,
+$a_1$ is the linear heat loss coefficient and $a_2$ is the quadratic heat loss coefficient of the collector.
+A corresponding label $PVT$ was added to the energy conversion technology processing function, to allow the
+definition of a PVT collector in the input excel/config file while preparing the optimization problem.
+
+Layered thermal energy storage and discrete temperature levels
+---------------------------------
+
+A discretized thermal energy storage with several predefined discrete temperature levels was implemented.
+Moreover, the heat production technologies such as heat pumps, CHP, solar thermal collectors, etc. were
+extended to allow multiple output flows (at different temperature levels). It should be noted that the temperature
+levels are predefined and each heat production technology, therefore, has a predefined hourly efficiency
+related to a specific temperature level. The number of discrete temperature levels is parameterized and can be
+defined in the input scenario excel file. In order to use discrete temperature levels, the ``temperatureLevels``
+parameters has to be True when the ``EnergyNetwork`` class is instantiated:
 
 
 For batteries, a simple model is used that accounts for fixed charging and discharging efficiencies and a loss parameter. For thermal storages, a stratified thermal storage model with two temperature zones is used.
