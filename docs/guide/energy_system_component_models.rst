@@ -90,9 +90,9 @@ However, this model is non-linear. A way to overcome the non-linearity would be 
 \dot w_{cp} &=& bp_1 + bp_2 \cdot \bar{T}_{e,in} + bp_3 \cdot \frac{35}{273.15}  + bp_4 \cdot \bar{T}_{e,in} \cdot \frac{35}{273.15} + bp_5 \cdot \bar{T}_{e,in}^2 + bp_6 \cdot \frac{35}{273.15}^2 
 
 The fitted data for the HP08L-M-BC air/water heat pump using the proposed approach described by
-the two equations above is provided in Fig. 4 and Table 2, while the fitted heat pump coefficients are given in
+the two equations above are provided in Fig. 4-5 and Table 2, while the fitted heat pump coefficients are given in
 Table 3. While, the fitted data for the ProDomo13-R410A brine/water heat pump using the proposed
-approach described by the two equations above is provided in Fig. 5 and Table 4, while the fitted heat pump
+approach described by the two equations above are provided in Fig. 6-7 and Table 4, while the fitted heat pump
 coefficients are given in Table 5.
 
 Table 2: Differences between experiments and fitted data for the HP08L-M-BC air/water heat pump using the two equations above. :math:`error=100 \cdot |\frac{Q_{exp}-Q_{num}}{Q_{exp}}|` and :math:`RMS = \sqrt { \sum{\frac{(Q_{exp}-Q_{num})^2}{n_p}} }` where $n_p$ is the number of data points.
@@ -107,6 +107,33 @@ Table 3: Fitted coefficients for the HP08L-M-BC air/water heat pump using the tw
 .. image:: ./resources/HP_table3.png
       :width: 800
       :alt: HP_table3
+
+.. image:: ./resources/HP08L-M-BC-COP-1.png
+      :width: 400
+      :alt: HP08L-M-BC-COP-1
+Figure 4: Differences between experimental and fitted data of HP08L-M-BC air/water heat pump using
+the proposed approach from the two equations above for coefficient of performance
+(COP).
+
+.. image:: ./resources/HP08L-M-BC-Qcond-1.png
+      :width: 400
+      :alt: HP08L-M-BC-Qcond-1
+Figure 5: Differences between experimental and fitted data of HP08L-M-BC air/water heat pump using
+the proposed approach from the two equations above for condenser heat.
+
+.. image:: ./resources/ProDomo13-R410A-COP-1.png
+      :width: 400
+      :alt: ProDomo13-R410A-COP-1
+Figure 6: Differences between experimental and fitted data of ProDomo13-R410A brine/water heat pump using
+the proposed approach from the two equations above for coefficient of performance
+(COP).
+
+.. image:: ./resources/ProDomo13-R410A-Qcond-1.png
+      :width: 400
+      :alt: ProDomo13-R410A-Qcond-1
+Figure 7: Differences between experimental and fitted data of ProDomo13-R410A brine/water heat pump using
+the proposed approach from the two equations above for condenser heat.
+
 Table 4: Differences between experiments and fitted data for the ProDomo13-R410A brine/water heat
 pump using the two equations above. :math:`error=100 \cdot |\frac{Q_{exp}-Q_{num}}{Q_{exp}}|` and :math:`RMS = \sqrt { \sum{\frac{(Q_{exp}-Q_{num})^2}{n_p}} }` where $n_p$ is the number of data points.
 
@@ -114,9 +141,8 @@ pump using the two equations above. :math:`error=100 \cdot |\frac{Q_{exp}-Q_{num
       :width: 800
       :alt: HP_table4
 
-.. image:: ./resources/HP_figure_4_5.png
-      :width: 800
-      :alt: HP_figure_4_5
+
+Table 5: Fitted coefficients for the ProDomo13-R410A brine/water heat pump using the two equations above.
 
 .. image:: ./resources/HP_table5.png
       :width: 800
