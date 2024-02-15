@@ -107,7 +107,7 @@ Table 3: Fitted coefficients for the HP08L-M-BC air/water heat pump using the tw
 .. image:: ./resources/HP_table3.png
       :width: 800
       :alt: HP_table3
-Differences between experiments and fitted data for the ProDomo13-R410A brine/water heat
+Table 4: Differences between experiments and fitted data for the ProDomo13-R410A brine/water heat
 pump using the two equations above. :math:`error=100 \cdot |\frac{Q_{exp}-Q_{num}}{Q_{exp}}|` and :math:`RMS = \sqrt { \sum{\frac{(Q_{exp}-Q_{num})^2}{n_p}} }` where $n_p$ is the number of data points.
 
 .. image:: ./resources/HP_table4.png
