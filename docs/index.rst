@@ -36,7 +36,7 @@ Table of contents
    :maxdepth: 2
 
    guide/getting_started
-   guide/introduction.rst
+   guide/energy_system_component_models.rst
    guide/defining_an_energy_network
    guide/optimizing_the_energy_network
    guide/processing_results
