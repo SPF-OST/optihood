@@ -164,5 +164,52 @@ related to a specific temperature level. The number of discrete temperature leve
 defined in the input scenario excel file. In order to use discrete temperature levels, the ``temperatureLevels``
 parameters has to be True when the ``EnergyNetwork`` class is instantiated:
 
+.. image:: ./resources/code_snippet_multilayer_nrj_component.png
+      :width: 800
+      :alt: code_snippet_multilayer_nrj_component
+
+The discrete temperature levels defined in the input scenario file, set the temperatures of the output
+flows of the heat conversion technologies. Depending on the time resolution of the optimization problem, it
+may not be acceptable for a heat conversion technology to produce heat at more than one temperature levels
+in a single time step. Therefore, ``limit_active_flow_count`` constraint of oemof solph package (Hilpert
+et al. (2018)) was used to permit only one of the heat output flows to remain active at a given time step.
+A class ``ThermalStorageTemperatureLevels`` was developed to represent a discretized thermal energy storage.
+The model of a layered thermal energy storage is a combination of dual temperature zone storages from
+oemof thermal python package (Hilpert et al. (2018)). The dual temperature zone storages include predefined
+calculations for top/bottom and lateral surface losses. While the lateral surface losses are preserved for the
+storage layers at each temperature level, the top and bottom surface losses should only be considered for the topmost (i.e. at the highest temperature level) and the lowest (i.e. at the lowest temperature) layers. The fixed
+one-time investment cost of the discretized thermal energy storage should be added to the objective function
+only once (instead of being added for each layer separately). These functionalities are implemented within the
+``ThermalStorageTemperatureLevels`` class. Moreover, the total storage volume $V_{stor}$ is calculated as the
+sum of individual layer volumes ($v_i$), as follows:
+
+.. _equation3:
+
+.. math::
+
+\sum_{i=1}^n v_i = V_{stor}
+
+where $n$ denotes the number of discrete temperature levels.
+
+A constraint called ``multiTemperatureStorageCapacityConstaint`` was developed to implement the following
+rule on the storage volume capacity:
+
+.. _equation3:
+
+.. math::
+
+V_{stor,min} \le V_{stor} \le V_{stor,max}
+
+where $V_{stor,max}$ and $V_{stor,min}$ represent the minimum and the maximum limits for the storage volume.
+The Figure below shows a graphical representation of a layered thermal energy storage with three discrete temperature
+levels. The DHW demand is met using the topmost temperature level at 65 °C i.e. highest temperature, while
+the lowest temperature level at 35 °C is used to cover the SH demand. A rule for charging the thermal energy
+storage was implemented, such that the energy inflow at a given storage layer (except the lowest layer), equals
+the energy outflow from the preceding storage layer. Therefore, in order to supply thermal energy at 50 °C
+to the storage, the same volume added at the 50 °C layer should be displaced from layer below, i.e. from the
+35 °C storage level (as shown in Figure 11). This means that the energy conversion technologies can heat
+water from 35 °C to 50 °C and from 50 °C to 65 °C, in that order.
+
+
 
 For batteries, a simple model is used that accounts for fixed charging and discharging efficiencies and a loss parameter. For thermal storages, a stratified thermal storage model with two temperature zones is used.
