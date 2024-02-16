@@ -20,7 +20,7 @@ To summarize, the technologies are classified in three categories:
 - Energy storages: device to store electricity or heat locally in order to be consumed later.
 
 .. image:: ./resources/energy_types.png
-      :width: 600
+      :width: 800
       :alt: energy_types
 
 
