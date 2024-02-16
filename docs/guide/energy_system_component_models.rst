@@ -229,4 +229,72 @@ the inclusion of the latent heat term for ice formation $\frac{h_f}{V}\frac{\del
 
 \rho c_p V \frac{\delta T_{stor}}{\delta t} = -(UA)_{tank} \cdot (T_{stor} - T_{amb}) + \frac{h_f}{V} \frac{\delta M_{ice}}{\delta t} + sum_{i=1}^n \dot Q_{hx-port}(i)
 
-where $\rho$ and $c_p$ stand for the density and specific heat capacity of water, respectively. $V$ is the storage volume, $T_{stor}$ is the average temperature of the storage, $T_{amb}
+where $\rho$ and $c_p$ stand for the density and specific heat capacity of water, respectively. $V$ is the storage volume, $T_{stor}$ is the average temperature of the storage, $T_{amb} is the ambient air temperature, $(U A)_{tank}$ is the product of overall heat transfer coefficient and the external area of the storage tank, $M_{ice}$ is the mass of ice and $h_f$ the latent heat of fusion. $q_{hx-port}$ are the heat fluxes between the heat exchanger and the direct ports and can be represented as:
+
+.. _equation3:
+
+.. math::
+
+\sum_i \dot {Q_{x-port}}(i) = \sum_i \dot{Q_{in}}(i) - \sum_i \dot{Q_{out}}(i)
+
+here $Q_{in}$ and $Q_{out}$ are the heat inflows and outflows to/from the ice storage tank, respectively.
+The term for heat of solidification and melting appearing in Eq. 4 can be discretized as:
+
+.. _equation3:
+
+.. math::
+
+\dot{Q}_{tot} = h_f \frac{M_{ice}^{t+1} - M_{ice}}{\Delta t}
+
+The complete discretized equation for ice storage model is represented as:
+
+.. _equation3:
+
+.. math::
+
+\rho c_p V \frac{T_{stor}^{t+1} - T_{stor}^t}{\delta t} = -(UA)_{tank} \cdot (T_{stor}^t - T_{amb}^t) + h_f  \frac{M_{ice}^{t+1} - M_{ice}}{\Delta t} + sum_{i=1}^n \dot Q_{hx-port}(i)^t
+
+In order to solve this equation one can split the formulation in two parts. One considering only the sensible
+part where the Mice = 0 kg and a second formulation for the latent part assuming T = 0 °C. The equation
+with ice formation is reduced to:
+
+.. _equation3:
+
+.. math::
+
+0 = (UA)_{tank} \cdot (T_{stor}^t - T_{amb}^t) + h_f  \frac{M_{ice}^{t+1} - M_{ice}}{\Delta t} + sum_{i=1}^n \dot{Q}_{hx-port}(i)^t
+
+In addition, the following constraints were implemented. The constraint to set up the initial conditions such
+as initial storage temperature and initial mass of ice is given by:
+
+.. math::
+
+   \begin{align*}
+   \begin{bmatrix}
+   T_{stor}^0 \\
+   M_{ice}^0
+   \end{bmatrix}
+   &= \begin{bmatrix}
+   T_{stor}^{init} \\
+   0
+   \end{bmatrix}
+   \end{align*}
+
+The constraint for the temperature of storage during ice formation is given by:
+.. math::
+
+T_{stor}^i \ge 0 \forall i \in t
+
+The mass ice fraction also known as ice packing factor, $f^t$, is calculated as:
+.. math::
+
+f^t = \frac{M_{ice}^t}{M_{water,max}}
+
+where, $M_{water,max}$ denotes the overall amount of water and ice in the storage tank. The constraint on the
+maximum allowed value of $f^t$ is represented as:
+
+.. math::
+
+f^t \le f_{max}
+
+Depending on the ice storage design, the $f_{max}$ can be in the range of 0.5 to 0.8.
