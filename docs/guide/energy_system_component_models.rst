@@ -148,7 +148,203 @@ Table 5: Fitted coefficients for the ProDomo13-R410A brine/water heat pump using
       :width: 600
       :alt: HP_table5
 
-Other energy systems
---------------------
+Solar thermal collector
+-----------------------
 
-Solar thermal collectors and PV modules production profiles are pre-calculated before the optimization. For batteries, a simple model is used that accounts for fixed charging and discharging efficiencies and a loss parameter. For thermal storages, a stratified thermal storage model with two temperature zones is used.
+A module to calculate the usable heat of a flat plate collector is described in details in `Solar thermal collector <https://oemof-thermal.readthedocs.io/en/latest/solar_thermal_collector.html#solar-thermal-collector>`_.
+The model for solar thermal collector is taken from the oemof thermal package.
+
+PV
+---
+
+The installed PV provides electricity to the building during the irradiation hours. Along with the battery, the usual strategy is to store the PV surplus power in the battery to be consumed at later hours of the planning horizon. The maximum available power $pv_t^{avail}$ of the PV is a built function that depends on the PV cell temperature, the ambient temperature and the total solar horizontal irradiation. These formulas, as well as the decision variables and the characteristics of the PV are stated in the next Table.
+PV modules production profiles are pre-calculated before the optimization. 
+
+Two-zone thermal energy storage
+-------------------------------
+
+A simplified 2-zone-model of a stratified thermal energy storage is implemented and described indetails in `Stratified thermal storage <https://oemof-thermal.readthedocs.io/en/latest/stratified_thermal_storage.html>`_.
+The model for stratified thermal storage is taken from the oemof thermal package.
+
+Combined production transformer
+-------------------------------
+
+A new transformer called combined production transformer which extends the features of oemof “Transformer” was defined. Since some transformers like HP can have different efficiencies for SH and DHW production (DHW needs a higher temperature than SH), this transformer offers the possibility to consider those different efficiencies. It allows to produce both space heating (SH) and domestic hot water (DHW) during the same timestep while respecting the input/output balance constraint.
+
+\begin{align}
+    
+    P_{input}(t) = \frac{P_{DHW}(t)}{\eta_{DHW}} + \frac{P_{SH}(t)}{\eta_{SH}}. \forall t
+
+\end{align}
+
+where, $P$ denotes the operating power for inputs (for example, electricity used by HP) and outputs (SH and DHW), $\eta$ denotes efficiency of the transformer and $t$ denotes the time step.
+Physically the converters cannot supply both SH and DHW at the same time. However, if we consider a timestep of 1 hour it can be considered to be sub-divided into smaller intervals to produce SH and DHW both within 1 hour. The combined production transformer was used for the implementation of heat pumps (ASHP, GSHP), CHP, gas boiler and electric heating rod.
+
+PVT collector
+---
+
+PVT class was implemented within the converters module, which defines the energy conversion technologies
+supported by optihood. The collector output is modelled based on the characteristic curve model reported
+in the SwissEnergy sponsored project PVT Wrap-Up (Zenhäusern et al. (2017)). The thermal output of a
+PVT collector, $\dot Q$, highly depends on the surrounding environment and the operating conditions. The most
+significant influencing factors are the solar irradiation per collector surface area ($G$), ambient air temperature
+($T_{amb}$) and the mean temperature of the collector fluid ($T_m$). The characteristic equation of thermal output
+of the PVT collector is given by:
+
+.. _equation3:
+
+.. math::
+
+   \frac{\dot Q}{A} =(G - \frac{P_{el}^{DC}}{(\alpha \tau) \cdot A}) \cdot \eta_0 - \a_1(T_m - T_{amb}) - a_2 (T_m - T_{amb})^2
+
+where A stands for the gross area of the collector surface, $P_{el}^{DC}$ stands for the DC electrical output of the
+collector, (\alpha \tau) is the transmission absorption product of the collector, $\eta_0$ is the maximum thermal efficiency,
+$a_1$ is the linear heat loss coefficient and $a_2$ is the quadratic heat loss coefficient of the collector.
+A corresponding label $PVT$ was added to the energy conversion technology processing function, to allow the
+definition of a PVT collector in the input excel/config file while preparing the optimization problem.
+
+Layered thermal energy storage and discrete temperature levels
+---------------------------------
+
+A discretized thermal energy storage with several predefined discrete temperature levels was implemented.
+Moreover, the heat production technologies such as heat pumps, CHP, solar thermal collectors, etc. were
+extended to allow multiple output flows (at different temperature levels). It should be noted that the temperature
+levels are predefined and each heat production technology, therefore, has a predefined hourly efficiency
+related to a specific temperature level. The number of discrete temperature levels is parameterized and can be
+defined in the input scenario excel file. In order to use discrete temperature levels, the ``temperatureLevels``
+parameters has to be True when the ``EnergyNetwork`` class is instantiated:
+
+.. image:: ./resources/code_snippet_multilayer_nrj_component.png
+      :width: 800
+      :alt: code_snippet_multilayer_nrj_component
+
+The discrete temperature levels defined in the input scenario file, set the temperatures of the output
+flows of the heat conversion technologies. Depending on the time resolution of the optimization problem, it
+may not be acceptable for a heat conversion technology to produce heat at more than one temperature levels
+in a single time step. Therefore, ``limit_active_flow_count`` constraint of oemof solph package (Hilpert
+et al. (2018)) was used to permit only one of the heat output flows to remain active at a given time step.
+A class ``ThermalStorageTemperatureLevels`` was developed to represent a discretized thermal energy storage.
+The model of a layered thermal energy storage is a combination of dual temperature zone storages from
+oemof thermal python package (Hilpert et al. (2018)). The dual temperature zone storages include predefined
+calculations for top/bottom and lateral surface losses. While the lateral surface losses are preserved for the
+storage layers at each temperature level, the top and bottom surface losses should only be considered for the topmost (i.e. at the highest temperature level) and the lowest (i.e. at the lowest temperature) layers. The fixed
+one-time investment cost of the discretized thermal energy storage should be added to the objective function
+only once (instead of being added for each layer separately). These functionalities are implemented within the
+``ThermalStorageTemperatureLevels`` class. Moreover, the total storage volume $V_{stor}$ is calculated as the
+sum of individual layer volumes ($v_i$), as follows:
+
+.. _equation3:
+
+.. math::
+
+\sum_{i=1}^n v_i = V_{stor}
+
+where $n$ denotes the number of discrete temperature levels.
+
+A constraint called ``multiTemperatureStorageCapacityConstaint`` was developed to implement the following
+rule on the storage volume capacity:
+
+.. _equation3:
+
+.. math::
+
+V_{stor,min} \le V_{stor} \le V_{stor,max}
+
+where $V_{stor,max}$ and $V_{stor,min}$ represent the minimum and the maximum limits for the storage volume.
+The Figure below shows a graphical representation of a layered thermal energy storage with three discrete temperature
+levels. The DHW demand is met using the topmost temperature level at 65 °C i.e. highest temperature, while
+the lowest temperature level at 35 °C is used to cover the SH demand. A rule for charging the thermal energy
+storage was implemented, such that the energy inflow at a given storage layer (except the lowest layer), equals
+the energy outflow from the preceding storage layer. Therefore, in order to supply thermal energy at 50 °C
+to the storage, the same volume added at the 50 °C layer should be displaced from layer below, i.e. from the
+35 °C storage level (as shown in Figure 11). This means that the energy conversion technologies can heat
+water from 35 °C to 50 °C and from 50 °C to 65 °C, in that order.
+
+.. image:: ./resources/multilayer_nrj_component.png
+      :width: 800
+      :alt: multilayer_nrj_component
+
+
+Ice storage
+------------
+
+The IceStorage class was implemented within the storages module of optihood. The formulation of the ice
+storage model is based on the solution of the energy conservation law applied to the water of the storage as
+per Carbonell et al. (2015). It is basically the same as the energy conservation law for hot water storage with
+the inclusion of the latent heat term for ice formation $\frac{h_f}{V}\frac{\delta M_{ice}}{\delta t}:
+
+.. _equation3:
+
+.. math::
+
+\rho c_p V \frac{\delta T_{stor}}{\delta t} = -(UA)_{tank} \cdot (T_{stor} - T_{amb}) + \frac{h_f}{V} \frac{\delta M_{ice}}{\delta t} + sum_{i=1}^n \dot Q_{hx-port}(i)
+
+where $\rho$ and $c_p$ stand for the density and specific heat capacity of water, respectively. $V$ is the storage volume, $T_{stor}$ is the average temperature of the storage, $T_{amb} is the ambient air temperature, $(U A)_{tank}$ is the product of overall heat transfer coefficient and the external area of the storage tank, $M_{ice}$ is the mass of ice and $h_f$ the latent heat of fusion. $q_{hx-port}$ are the heat fluxes between the heat exchanger and the direct ports and can be represented as:
+
+.. _equation3:
+
+.. math::
+
+\sum_i \dot {Q_{x-port}}(i) = \sum_i \dot{Q_{in}}(i) - \sum_i \dot{Q_{out}}(i)
+
+here $Q_{in}$ and $Q_{out}$ are the heat inflows and outflows to/from the ice storage tank, respectively.
+The term for heat of solidification and melting appearing in Eq. 4 can be discretized as:
+
+.. _equation3:
+
+.. math::
+
+\dot{Q}_{tot} = h_f \frac{M_{ice}^{t+1} - M_{ice}}{\Delta t}
+
+The complete discretized equation for ice storage model is represented as:
+
+.. _equation3:
+
+.. math::
+
+\rho c_p V \frac{T_{stor}^{t+1} - T_{stor}^t}{\delta t} = -(UA)_{tank} \cdot (T_{stor}^t - T_{amb}^t) + h_f  \frac{M_{ice}^{t+1} - M_{ice}}{\Delta t} + sum_{i=1}^n \dot Q_{hx-port}(i)^t
+
+In order to solve this equation one can split the formulation in two parts. One considering only the sensible
+part where the Mice = 0 kg and a second formulation for the latent part assuming T = 0 °C. The equation
+with ice formation is reduced to:
+
+.. _equation3:
+
+.. math::
+
+0 = (UA)_{tank} \cdot (T_{stor}^t - T_{amb}^t) + h_f  \frac{M_{ice}^{t+1} - M_{ice}}{\Delta t} + sum_{i=1}^n \dot{Q}_{hx-port}(i)^t
+
+In addition, the following constraints were implemented. The constraint to set up the initial conditions such
+as initial storage temperature and initial mass of ice is given by:
+
+.. math::
+
+   \begin{align*}
+   \begin{bmatrix}
+   T_{stor}^0 \\
+   M_{ice}^0
+   \end{bmatrix}
+   &= \begin{bmatrix}
+   T_{stor}^{init} \\
+   0
+   \end{bmatrix}
+   \end{align*}
+
+The constraint for the temperature of storage during ice formation is given by:
+.. math::
+
+T_{stor}^i \ge 0 \forall i \in t
+
+The mass ice fraction also known as ice packing factor, $f^t$, is calculated as:
+.. math::
+
+f^t = \frac{M_{ice}^t}{M_{water,max}}
+
+where, $M_{water,max}$ denotes the overall amount of water and ice in the storage tank. The constraint on the
+maximum allowed value of $f^t$ is represented as:
+
+.. math::
+
+f^t \le f_{max}
+
+Depending on the ice storage design, the $f_{max}$ can be in the range of 0.5 to 0.8.
