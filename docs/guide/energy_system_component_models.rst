@@ -316,13 +316,13 @@ The constraint for the temperature of storage during ice formation is given by:
 
 .. math::
 
-      T_{stor}^i \ge 0 \forall i \in t
+      T_{stor}^i \geq 0 \forall i \in t
 
 The mass ice fraction also known as ice packing factor, :math:`f^t`, is calculated as:
 
 .. math::
 
-      f^t = \frac{M_{ice}^t}{M_{water,max}}
+      f^t = \frac{M_{ice}^t}{M_{water,\text{max}}}
 
 where, :math:`M_{water,max}` denotes the overall amount of water and ice in the storage tank. The constraint on the
 maximum allowed value of :math:`f^t` is represented as:
