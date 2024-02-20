@@ -168,8 +168,6 @@ Combined production transformer
 
 A new transformer called combined production transformer which extends the features of oemof “Transformer” was defined. Since some transformers like HP can have different efficiencies for SH and DHW production (DHW needs a higher temperature than SH), this transformer offers the possibility to consider those different efficiencies. It allows to produce both space heating (SH) and domestic hot water (DHW) during the same timestep while respecting the input/output balance constraint.
 
-.. _equation3:
-
 .. math::
 
     P_{input}(t) = \frac{P_{DHW}(t)}{\eta_{DHW}} + \frac{P_{SH}(t)}{\eta_{SH}}, \forall t
@@ -188,8 +186,6 @@ PVT collector, :math:`\dot{Q}`, highly depends on the surrounding environment an
 significant influencing factors are the solar irradiation per collector surface area (:math:`G`), ambient air temperature
 (:math:`T_{amb}`) and the mean temperature of the collector fluid (:math:`T_m`). The characteristic equation of thermal output
 of the PVT collector is given by:
-
-.. _equation3:
 
 .. math::
 
@@ -275,8 +271,6 @@ the inclusion of the latent heat term for ice formation :math:`\frac{h_f}{V}\fra
 
 where :math:`\rho` and :math:`c_p` stand for the density and specific heat capacity of water, respectively. :math:`V` is the storage volume, :math:`T_{stor}` is the average temperature of the storage, :math:`T_{amb}` is the ambient air temperature, :math:`(U A)_{tank}` is the product of overall heat transfer coefficient and the external area of the storage tank, :math:`M_{ice}` is the mass of ice and :math:`h_f` the latent heat of fusion. :math:`q_{hx-port}` are the heat fluxes between the heat exchanger and the direct ports and can be represented as:
 
-.. _equation3:
-
 .. math::
 
       \sum_i \dot{Q}_{x-port}(i) = \sum_i \dot{Q}_{in}(i) - \sum_i \dot{Q}_{out}(i)
@@ -284,15 +278,11 @@ where :math:`\rho` and :math:`c_p` stand for the density and specific heat capac
 here :math:`Q_{in}` and :math:`Q_{out}` are the heat inflows and outflows to/from the ice storage tank, respectively.
 The term for heat of solidification and melting appearing in Eq. 4 can be discretized as:
 
-.. _equation3:
-
 .. math::
 
       \dot{Q}_{tot} = h_f \frac{M_{ice}^{t+1} - M_{ice}}{\Delta t}
 
 The complete discretized equation for ice storage model is represented as:
-
-.. _equation3:
 
 .. math::
 
@@ -301,8 +291,6 @@ The complete discretized equation for ice storage model is represented as:
 In order to solve this equation one can split the formulation in two parts. One considering only the sensible
 part where the Mice = 0 kg and a second formulation for the latent part assuming T = 0 °C. The equation
 with ice formation is reduced to:
-
-.. _equation3:
 
 .. math::
 
