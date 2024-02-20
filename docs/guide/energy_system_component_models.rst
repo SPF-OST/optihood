@@ -202,7 +202,7 @@ A corresponding label :math:`PVT` was added to the energy conversion technology 
 definition of a PVT collector in the input excel/config file while preparing the optimization problem.
 
 Layered thermal energy storage and discrete temperature levels
----------------------------------
+---------------------------------------------------------------
 
 A discretized thermal energy storage with several predefined discrete temperature levels was implemented.
 Moreover, the heat production technologies such as heat pumps, CHP, solar thermal collectors, etc. were
