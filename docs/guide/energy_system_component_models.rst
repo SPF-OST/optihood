@@ -34,14 +34,15 @@ Heat pumps
 
 Heat pumps (ASHP and GSHP) are modelled based on a bi-quadratic polynomial fit of the  condenser heating power (:math:`\dot{ q }_c`) and the electrical consumption power of the compressor (:math:`\dot{w}_{cp}`)::
 
-\begin{align}
-    
+.. _equation2:
+
+.. math::
+
     \dot{q}_c = bq_1 + bq_2 \cdot \bar{T}_{e,in} + bq_3 \cdot \bar{T}_{c,out} + bq_4 \cdot \bar{T}_{e,in} \cdot{\bar{T}_c,out} + bq_5 \cdot \bar{T}^2_{e,in} + bq_6 \\
     \dot{w}_{cp} = bp_1 + bp_2 \cdot \bar{T}_{e,in} + bp_3 \cdot \bar{T}_{c,out} + bp_4 \cdot \bar{T}_{e,in} \cdot \bar{T}_{c,out} + bp_5 \cdot \bar{T}^2_{e,in} + bp_6 \cdot \bar{T}^2_{c,out}
 
-\end{align}
 
-where, :math:`T_{e,in}` and :math:`T_{c,out}` are fluid temperatures at the inlet of the evaporator and the outlet of the condenser, respectively. :math:`\bar{T}` denotes the normalized temperature and is defined as :math:`\bar{T}` = \frac{T[^° C]}{273.15}. For the
+where, :math:`T_{e,in}` and :math:`T_{c,out}` are fluid temperatures at the inlet of the evaporator and the outlet of the condenser, respectively. :math:`\bar{T}` denotes the normalized temperature and is defined as :math:`\bar{T} = \frac{T[^{\circ} \text{C}]}{273.15}`. For the
 solution of the system of equations the Brent solver is used [2]. The polynomial coefficients :math:`b_{qi}` and
 :math:`b_{pi}` are calculated from the catalog heat pump data using the multidimensional least square fitting
 algorithm of Scipy [3] in Python.
@@ -81,13 +82,13 @@ However, this model is non-linear. A way to overcome the non-linearity would be 
 
 .. math::
 
-\dot q_c &=& bq_1 + bq_2 \cdot \bar{T}_{e,in} + bq_3 \cdot \frac{35}{273.15}  + bq_4 \cdot \bar{T}_{e,in} \cdot \frac{35}{273.15} + bq_5 \cdot \bar{T}_{e,in}^2 + bq_6 \cdot \frac{35}{273.15}^2 
+\dot{q}_c = bq_1 + bq_2 \cdot \bar{T}_{e,in} + bq_3 \cdot \frac{35}{273.15}  + bq_4 \cdot \bar{T}_{e,in} \cdot \frac{35}{273.15} + bq_5 \cdot \bar{T}_{e,in}^2 + bq_6 \cdot \frac{35}{273.15}^2 
 
 .. _equation2:
 
 .. math::
 
-\dot w_{cp} &=& bp_1 + bp_2 \cdot \bar{T}_{e,in} + bp_3 \cdot \frac{35}{273.15}  + bp_4 \cdot \bar{T}_{e,in} \cdot \frac{35}{273.15} + bp_5 \cdot \bar{T}_{e,in}^2 + bp_6 \cdot \frac{35}{273.15}^2 
+\dot{w}_{cp} &=& bp_1 + bp_2 \cdot \bar{T}_{e,in} + bp_3 \cdot \frac{35}{273.15}  + bp_4 \cdot \bar{T}_{e,in} \cdot \frac{35}{273.15} + bp_5 \cdot \bar{T}_{e,in}^2 + bp_6 \cdot \frac{35}{273.15}^2 
 
 The fitted data for the HP08L-M-BC air/water heat pump using the proposed approach described by
 the two equations above are provided in Fig. 4-5 and Table 2, while the fitted heat pump coefficients are given in
@@ -175,7 +176,7 @@ A new transformer called combined production transformer which extends the featu
 
 .. math::
 
-    P_{input}(t) = \frac{P_{DHW}(t)}{\eta_{DHW}} + \frac{P_{SH}(t)}{\eta_{SH}}. \forall t
+    P_{input}(t) = \frac{P_{DHW}(t)}{\eta_{DHW}} + \frac{P_{SH}(t)}{\eta_{SH}}, \forall t
 
 
 where, :math:`P` denotes the operating power for inputs (for example, electricity used by HP) and outputs (SH and DHW), :math:`\eta` denotes efficiency of the transformer and :math:`t` denotes the time step.
@@ -187,7 +188,7 @@ PVT collector
 PVT class was implemented within the converters module, which defines the energy conversion technologies
 supported by optihood. The collector output is modelled based on the characteristic curve model reported
 in the SwissEnergy sponsored project PVT Wrap-Up (Zenhäusern et al. (2017)). The thermal output of a
-PVT collector, :math:`\dot Q`, highly depends on the surrounding environment and the operating conditions. The most
+PVT collector, :math:`\dot{Q}`, highly depends on the surrounding environment and the operating conditions. The most
 significant influencing factors are the solar irradiation per collector surface area (:math:`G`), ambient air temperature
 (:math:`T_{amb}`) and the mean temperature of the collector fluid (:math:`T_m`). The characteristic equation of thermal output
 of the PVT collector is given by:
@@ -286,7 +287,7 @@ where :math:`\rho` and :math:`c_p` stand for the density and specific heat capac
 
 .. math::
 
-\sum_i \dot {Q_{x-port}}(i) = \sum_i \dot{Q_{in}}(i) - \sum_i \dot{Q_{out}}(i)
+\sum_i \dot{Q}_{x-port}(i) = \sum_i \dot{Q}_{in}(i) - \sum_i \dot{Q}_{out}(i)
 
 here :math:`Q_{in}` and :math:`Q_{out}` are the heat inflows and outflows to/from the ice storage tank, respectively.
 The term for heat of solidification and melting appearing in Eq. 4 can be discretized as:
@@ -303,7 +304,7 @@ The complete discretized equation for ice storage model is represented as:
 
 .. math::
 
-\rho c_p V \frac{T_{stor}^{t+1} - T_{stor}^t}{\delta t} = -(UA)_{tank} \cdot (T_{stor}^t - T_{amb}^t) + h_f  \frac{M_{ice}^{t+1} - M_{ice}}{\Delta t} + sum_{i=1}^n \dot Q_{hx-port}(i)^t
+\rho c_p V \frac{T_{stor}^{t+1} - T_{stor}^t}{\delta t} = -(UA)_{tank} \cdot (T_{stor}^t - T_{amb}^t) + h_f  \frac{M_{ice}^{t+1} - M_{ice}}{\Delta t} + sum_{i=1}^n \dot{Q}_{hx-port}(i)^t
 
 In order to solve this equation one can split the formulation in two parts. One considering only the sensible
 part where the Mice = 0 kg and a second formulation for the latent part assuming T = 0 °C. The equation
