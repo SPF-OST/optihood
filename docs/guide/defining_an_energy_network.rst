@@ -105,11 +105,13 @@ This sheet defines the different commodity sources which serve as an energy inpu
     Label of bus to which the energy from the commodity source flows. The corresponding bus label should exist in
     the buses sheet.
 
-``variable costs`` (float)
+``variable costs`` (float or path)
     Cost per kW of the commodity source.
 
-``CO2 impact`` (float)
+``CO2 impact`` (float or path)
     CO2 impact per kW of the commodity source.
+
+``variable costs`` and ``CO2 impact`` could be either constant value (float) or a path to a CSV file containing cost/impact data.
 
 demand
 ^^^^^^
@@ -308,33 +310,26 @@ production and/or space heat production. Links allow this sharing to be possible
 defined already for buses excel sheet. ``invest_base`` and ``invest_cap`` parameters (defined in the transformers sheet
 section) are only relevant for space heating links in the present stage of development.
 
-.. image:: ./resources/input_excel_links.PNG
+.. image:: ./resources/scenario_links.PNG
       :width: 600
-      :alt: input_excel_links
+      :alt: scenario_links
 
-``buildingA`` (integer)
-    Building number of the first building of the link. This should match with the values typically given in the
-    ``building`` parameter in the other excel sheets.
+``efficiency`` (float)
+    Efficiency of energy transfer over the link.
 
-``buildingB`` (integer)
-    Building number of the second building of the link. This should match with the values typically given in the
-    ``building`` parameter in the other excel sheets.
-
-``efficiency from A to B`` (integer)
-    Efficiency of energy transfer over the link from ``buildingA`` to ``buildingB``.
-
-``efficiency from B to A`` (integer)
-    Efficiency of energy transfer over the link from ``buildingB`` to ``buildingA``.
+``investment`` (0 or 1)
+    defines whether investment optimization should be
+    performed or not. If set to 1, then the optimization is performed.
 
 profiles
 ^^^^^^^^
 
-The paths to CSV files containing demand profiles, weather data and electricity impact data are to be given in this
-excel sheet. ``INFO`` gives further information about each row.
+The paths to CSV files containing demand profiles, weather data are to be given in this
+excel sheet. If building model is chosen, then path to building model specific data (fitting parameters and internal heat gains from occupancy) is also specified here.
 
-.. image:: ./resources/input_excel_profiles.PNG
+.. image:: ./resources/scenario_profiles_new.png
       :width: 500
-      :alt: input_excel_profiles
+      :alt: scenario_profiles_new
 
 grid_connection
 ^^^^^^^^^^^^^^^
