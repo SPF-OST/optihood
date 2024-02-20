@@ -31,8 +31,14 @@ optimization model. The Datetime index could be defined using date_range() in pa
     import pandas as pd
     dateTimeIndex = pd.date_range('2021-01-01 00:00:00', '2021-12-31 23:00:00', freq="60min")
 
+The scenario consisting of the energy network (including buildings and links, if any) to be optimized can be defined using either a configuration (or config) file or an excel file. The input config/excel file define the available energy conversion and storage technologies. The associated parameters and sizing limits of the technologies are also defined within the input scenario file, along with the cost and environmental impact assumptions per technology, a path to the demand profiles and weather data files. The purchased electricity cost as well as the emissions of the grid electricity can either be a time series or a constant value. The demand profiles for space heating can be defined statically or alternatively by means of a dynamic linear building model. After preparing the config/excel file, an energy network can be defined in a Python script for optimization.
 
-Once the ``network`` object has been created, the next step then is to build the model from an input excel file which
+Descriptions of input excel/config files are given next.
+
+
+Input Excel File
+----------------
+Once the ``network`` object has been created, a model can be built from an input excel file which
 defines different components which constitute the model, how they are connected and their associated parameters::
 
     network.setFromExcel(inputExcelFilePath, numberOfBuildings, clusterSize, opt)
@@ -46,8 +52,6 @@ summer and winter. This would improve the optimization speed. If not given durin
 of the clusterSize parameter assumes no day clusters. This parameter is described further in
 :ref:`advanced_under_development_features`
 
-Input Excel File
-----------------
 The input excel file is used to define an optimization model and set the model parameters. Each sheet of this excel file
 is structured to defin different components, such as buses, storages and transformers, their respective parameters,
 connections between these components and the building to which they belong.
@@ -332,3 +336,36 @@ grid_connection
 
 This excel sheet should not be modified by the users. It defines the separation of the flows from electricity grid and
 the produced electricity flows to make sure that the grid electricity is not stored in batteries.
+
+Input Config File
+----------------
+The config file was introduced to make the scenario definition more intuitive and less prone to errors. The config file, therefore, can be used
+as an alternative way of formulating an optimization problem.
+
+In a config file, one could provide the same information as in the input Excel file but for a case where all
+the buildings have an identical setup (technologies, limits on capacities, costs, etc.).
+
+.. image:: ./resources/config_file_example.png
+      :width: 500
+      :alt: config_file_example
+
+Each building would have the same available energy sources and technologies. Paths to the weather file, electricity impact and demand profiles are also
+specified within this config file. Moreover, the connections between energy sources, conversion and storage technologies and demands are fixed to default system connections when a config file is used. All the different parameters have already been described for the excel files.
+
+Note that the specific connections would realize only when the corresponding technologies/sources/sinks are
+selected. As an example, the connection between natural gas resource and CHP would be realized only if the
+optimizer chooses CHP as an optimum solution in the optimization results.
+
+A new method called ``createScenarioFile()`` was implemented within the EnergyNetworkIndiv
+and EnergyNetworkGroup classes. This function reads a config file and derives the equivalent Excel file based
+on the default system component connections::
+
+    createScenarioFile(self, configFilePath, excelFilePath, numberOfBuildings)
+
+``configFilePath`` is the path to the config file describing the components of the model, ``excelFilePath`` gives the path for the excel output file. ``numberofBuildings`` is an integer parameter specifying the
+number of buildings defined in the config file.
+
+The equivalent Excel file includes the same energy sources,conversion and storage technologies (including same costs, minimum/maximum capacities, etc.) for each
+building. It is worthwhile to note that the ``createScenarioFile()`` could still be used to prepare a first
+version of the Excel file if system components for all the buildings are not identical. The prepared Excel file
+could then be adapted later on instead of creating it from scratch.
