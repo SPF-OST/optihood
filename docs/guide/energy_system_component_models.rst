@@ -32,7 +32,7 @@ The energy system components can be classified into energy converters and storag
 Heat pumps
 ----------
 
-Heat pumps (ASHP and GSHP) are modelled based on a bi-quadratic polynomial fit of the  condenser heating power (:math:`\dot{ q }_c`) and the electrical consumption power of the compressor (:math:`\dot{w}_{cp}`)::
+Heat pumps (ASHP and GSHP) are modelled based on a bi-quadratic polynomial fit of the  condenser heating power (:math:`\dot{ q }_c`) and the electrical consumption power of the compressor (:math:`\dot{w}_{cp}`):
 
 .. math::
 
@@ -74,7 +74,7 @@ Figure 3: Differences between experimental and fitted data using the full polyno
 the two equations above for coefficient of performance (COP).
 
 
-However, this model is non-linear. A way to overcome the non-linearity would be to fix the :math:`\bar{T}_{c,out}` to 35 °C and 65 °C, respectively, for space heating (SH) and domestic hot water (DHW). Thus we would use for example::
+However, this model is non-linear. A way to overcome the non-linearity would be to fix the :math:`\bar{T}_{c,out}` to 35 °C and 65 °C, respectively, for space heating (SH) and domestic hot water (DHW). Thus we would use for example:
 
 
 .. math::
@@ -325,11 +325,13 @@ as initial storage temperature and initial mass of ice is given by:
    \end{align*}
 
 The constraint for the temperature of storage during ice formation is given by:
+
 .. math::
 
       T_{stor}^i \ge 0 \forall i \in t
 
 The mass ice fraction also known as ice packing factor, :math:`f^t`, is calculated as:
+
 .. math::
 
       f^t = \frac{M_{ice}^t}{M_{water,max}}
