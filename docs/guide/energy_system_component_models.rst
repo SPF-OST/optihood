@@ -34,12 +34,10 @@ Heat pumps
 
 Heat pumps (ASHP and GSHP) are modelled based on a bi-quadratic polynomial fit of the  condenser heating power (:math:`\dot{ q }_c`) and the electrical consumption power of the compressor (:math:`\dot{w}_{cp}`)::
 
-.. _equation2:
-
 .. math::
 
-    \dot{q}_c = bq_1 + bq_2 \cdot \bar{T}_{e,in} + bq_3 \cdot \bar{T}_{c,out} + bq_4 \cdot \bar{T}_{e,in} \cdot{\bar{T}_c,out} + bq_5 \cdot \bar{T}^2_{e,in} + bq_6 \\
-    \dot{w}_{cp} = bp_1 + bp_2 \cdot \bar{T}_{e,in} + bp_3 \cdot \bar{T}_{c,out} + bp_4 \cdot \bar{T}_{e,in} \cdot \bar{T}_{c,out} + bp_5 \cdot \bar{T}^2_{e,in} + bp_6 \cdot \bar{T}^2_{c,out}
+    &\dot{q}_c = bq_1 + bq_2 \cdot \bar{T}_{e,in} + bq_3 \cdot \bar{T}_{c,out} + bq_4 \cdot \bar{T}_{e,in} \cdot{\bar{T}_c,out} + bq_5 \cdot \bar{T}^2_{e,in} + bq_6 \\
+    &\dot{w}_{cp} = bp_1 + bp_2 \cdot \bar{T}_{e,in} + bp_3 \cdot \bar{T}_{c,out} + bp_4 \cdot \bar{T}_{e,in} \cdot \bar{T}_{c,out} + bp_5 \cdot \bar{T}^2_{e,in} + bp_6 \cdot \bar{T}^2_{c,out}
 
 
 where, :math:`T_{e,in}` and :math:`T_{c,out}` are fluid temperatures at the inlet of the evaporator and the outlet of the condenser, respectively. :math:`\bar{T}` denotes the normalized temperature and is defined as :math:`\bar{T} = \frac{T[^{\circ} \text{C}]}{273.15}`. For the
@@ -76,19 +74,17 @@ Figure 3: Differences between experimental and fitted data using the full polyno
 the two equations above for coefficient of performance (COP).
 
 
-However, this model is non-linear. A way to overcome the non-linearity would be to fix the `\bar{T}_{c,out}` to 35 °C and 65 °C, respectively, for space heating (SH) and domestic hot water (DHW). Thus we would use for example:
+However, this model is non-linear. A way to overcome the non-linearity would be to fix the :math:`\bar{T}_{c,out}` to 35 °C and 65 °C, respectively, for space heating (SH) and domestic hot water (DHW). Thus we would use for example::
 
-.. _equation1:
-
-.. math::
-
-\dot{q}_c = bq_1 + bq_2 \cdot \bar{T}_{e,in} + bq_3 \cdot \frac{35}{273.15}  + bq_4 \cdot \bar{T}_{e,in} \cdot \frac{35}{273.15} + bq_5 \cdot \bar{T}_{e,in}^2 + bq_6 \cdot \frac{35}{273.15}^2 
-
-.. _equation2:
 
 .. math::
 
-\dot{w}_{cp} &=& bp_1 + bp_2 \cdot \bar{T}_{e,in} + bp_3 \cdot \frac{35}{273.15}  + bp_4 \cdot \bar{T}_{e,in} \cdot \frac{35}{273.15} + bp_5 \cdot \bar{T}_{e,in}^2 + bp_6 \cdot \frac{35}{273.15}^2 
+      \dot{q}_c = bq_1 + bq_2 \cdot \bar{T}_{e,in} + bq_3 \cdot \frac{35}{273.15}  + bq_4 \cdot \bar{T}_{e,in} \cdot \frac{35}{273.15} + bq_5 \cdot \bar{T}_{e,in}^2 + bq_6 \cdot \frac{35}{273.15}^2 
+
+
+.. math::
+
+      \dot{w}_{cp} = bp_1 + bp_2 \cdot \bar{T}_{e,in} + bp_3 \cdot \frac{35}{273.15}  + bp_4 \cdot \bar{T}_{e,in} \cdot \frac{35}{273.15} + bp_5 \cdot \bar{T}_{e,in}^2 + bp_6 \cdot \frac{35}{273.15}^2 
 
 The fitted data for the HP08L-M-BC air/water heat pump using the proposed approach described by
 the two equations above are provided in Fig. 4-5 and Table 2, while the fitted heat pump coefficients are given in
@@ -183,7 +179,7 @@ where, :math:`P` denotes the operating power for inputs (for example, electricit
 Physically the converters cannot supply both SH and DHW at the same time. However, if we consider a timestep of 1 hour it can be considered to be sub-divided into smaller intervals to produce SH and DHW both within 1 hour. The combined production transformer was used for the implementation of heat pumps (ASHP, GSHP), CHP, gas boiler and electric heating rod.
 
 PVT collector
----
+-------------
 
 PVT class was implemented within the converters module, which defines the energy conversion technologies
 supported by optihood. The collector output is modelled based on the characteristic curve model reported
@@ -235,22 +231,20 @@ only once (instead of being added for each layer separately). These functionalit
 ``ThermalStorageTemperatureLevels`` class. Moreover, the total storage volume :math:`V_{stor}` is calculated as the
 sum of individual layer volumes (:math:`v_i`), as follows:
 
-.. _equation3:
 
 .. math::
 
-\sum_{i=1}^n v_i = V_{stor}
+      \sum_{i=1}^n v_i = V_{stor}
 
 where :math:`n` denotes the number of discrete temperature levels.
 
 A constraint called ``multiTemperatureStorageCapacityConstaint`` was developed to implement the following
 rule on the storage volume capacity:
 
-.. _equation3:
 
 .. math::
 
-V_{stor,min} \le V_{stor} \le V_{stor,max}
+      V_{stor,min} \leq V_{stor} \leq V_{stor,max}
 
 where :math:`V_{stor,max}` and :math:`V_{stor,min}` represent the minimum and the maximum limits for the storage volume.
 The Figure below shows a graphical representation of a layered thermal energy storage with three discrete temperature
@@ -273,13 +267,11 @@ Ice storage
 The IceStorage class was implemented within the storages module of optihood. The formulation of the ice
 storage model is based on the solution of the energy conservation law applied to the water of the storage as
 per Carbonell et al. (2015). It is basically the same as the energy conservation law for hot water storage with
-the inclusion of the latent heat term for ice formation :math:`\frac{h_f}{V}\frac{\delta M_{ice}}{\delta t}:
-
-.. _equation3:
+the inclusion of the latent heat term for ice formation :math:`\frac{h_f}{V}\frac{\delta M_{ice}}{\delta t}`:
 
 .. math::
 
-\rho c_p V \frac{\delta T_{stor}}{\delta t} = -(UA)_{tank} \cdot (T_{stor} - T_{amb}) + \frac{h_f}{V} \frac{\delta M_{ice}}{\delta t} + sum_{i=1}^n \dot Q_{hx-port}(i)
+      \rho c_p V \frac{\delta T_{stor}}{\delta t} = -(UA)_{tank} \cdot (T_{stor} - T_{amb}) + \frac{h_f}{V} \frac{\delta M_{ice}}{\delta t} + sum_{i=1}^n \dot Q_{hx-port}(i)
 
 where :math:`\rho` and :math:`c_p` stand for the density and specific heat capacity of water, respectively. :math:`V` is the storage volume, :math:`T_{stor}` is the average temperature of the storage, :math:`T_{amb}` is the ambient air temperature, :math:`(U A)_{tank}` is the product of overall heat transfer coefficient and the external area of the storage tank, :math:`M_{ice}` is the mass of ice and :math:`h_f` the latent heat of fusion. :math:`q_{hx-port}` are the heat fluxes between the heat exchanger and the direct ports and can be represented as:
 
@@ -287,7 +279,7 @@ where :math:`\rho` and :math:`c_p` stand for the density and specific heat capac
 
 .. math::
 
-\sum_i \dot{Q}_{x-port}(i) = \sum_i \dot{Q}_{in}(i) - \sum_i \dot{Q}_{out}(i)
+      \sum_i \dot{Q}_{x-port}(i) = \sum_i \dot{Q}_{in}(i) - \sum_i \dot{Q}_{out}(i)
 
 here :math:`Q_{in}` and :math:`Q_{out}` are the heat inflows and outflows to/from the ice storage tank, respectively.
 The term for heat of solidification and melting appearing in Eq. 4 can be discretized as:
@@ -296,7 +288,7 @@ The term for heat of solidification and melting appearing in Eq. 4 can be discre
 
 .. math::
 
-\dot{Q}_{tot} = h_f \frac{M_{ice}^{t+1} - M_{ice}}{\Delta t}
+      \dot{Q}_{tot} = h_f \frac{M_{ice}^{t+1} - M_{ice}}{\Delta t}
 
 The complete discretized equation for ice storage model is represented as:
 
@@ -304,7 +296,7 @@ The complete discretized equation for ice storage model is represented as:
 
 .. math::
 
-\rho c_p V \frac{T_{stor}^{t+1} - T_{stor}^t}{\delta t} = -(UA)_{tank} \cdot (T_{stor}^t - T_{amb}^t) + h_f  \frac{M_{ice}^{t+1} - M_{ice}}{\Delta t} + sum_{i=1}^n \dot{Q}_{hx-port}(i)^t
+      \rho c_p V \frac{T_{stor}^{t+1} - T_{stor}^t}{\delta t} = -(UA)_{tank} \cdot (T_{stor}^t - T_{amb}^t) + h_f  \frac{M_{ice}^{t+1} - M_{ice}}{\Delta t} + sum_{i=1}^n \dot{Q}_{hx-port}(i)^t
 
 In order to solve this equation one can split the formulation in two parts. One considering only the sensible
 part where the Mice = 0 kg and a second formulation for the latent part assuming T = 0 °C. The equation
@@ -314,7 +306,7 @@ with ice formation is reduced to:
 
 .. math::
 
-0 = (UA)_{tank} \cdot (T_{stor}^t - T_{amb}^t) + h_f  \frac{M_{ice}^{t+1} - M_{ice}}{\Delta t} + sum_{i=1}^n \dot {Q}_{hx-port}(i)^t
+      0 = (UA)_{tank} \cdot (T_{stor}^t - T_{amb}^t) + h_f  \frac{M_{ice}^{t+1} - M_{ice}}{\Delta t} + sum_{i=1}^n \dot {Q}_{hx-port}(i)^t
 
 In addition, the following constraints were implemented. The constraint to set up the initial conditions such
 as initial storage temperature and initial mass of ice is given by:
@@ -335,18 +327,18 @@ as initial storage temperature and initial mass of ice is given by:
 The constraint for the temperature of storage during ice formation is given by:
 .. math::
 
-T_{stor}^i \ge 0 \forall i \in t
+      T_{stor}^i \ge 0 \forall i \in t
 
 The mass ice fraction also known as ice packing factor, :math:`f^t`, is calculated as:
 .. math::
 
-f^t = \frac{M_{ice}^t}{M_{water,max}}
+      f^t = \frac{M_{ice}^t}{M_{water,max}}
 
 where, :math:`M_{water,max}` denotes the overall amount of water and ice in the storage tank. The constraint on the
 maximum allowed value of :math:`f^t` is represented as:
 
 .. math::
 
-f^t \le f_{max}
+      f^t \leq f_{max}
 
 Depending on the ice storage design, the :math:`f_{max}` can be in the range of 0.5 to 0.8.
