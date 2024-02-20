@@ -32,7 +32,7 @@ The energy system components can be classified into energy converters and storag
 Heat pumps
 ----------
 
-Heat pumps (ASHP and GSHP) are modelled based on a bi-quadratic polynomial fit of the  condenser heating power ($\dot{ q }_c$) and the electrical consumption power of the compressor ($\dot{w}_{cp}$)::
+Heat pumps (ASHP and GSHP) are modelled based on a bi-quadratic polynomial fit of the  condenser heating power (:math:`\dot{ q }_c`) and the electrical consumption power of the compressor (:math:`\dot{w}_{cp}`)::
 
 \begin{align}
     
@@ -41,9 +41,9 @@ Heat pumps (ASHP and GSHP) are modelled based on a bi-quadratic polynomial fit o
 
 \end{align}
 
-where, $T_{e,in}$ and $T_{c,out}$ are fluid temperatures at the inlet of the evaporator and the outlet of the condenser, respectively. $\bar{T}$ denotes the normalized temperature and is defined as $\bar{T} = \frac{T[^° C]}{273.15}. For the
-solution of the system of equations the Brent solver is used [2]. The polynomial coefficients $b_{qi}$ and
-$b_{pi}$ are calculated from the catalog heat pump data using the multidimensional least square fitting
+where, :math:`T_{e,in}` and :math:`T_{c,out}` are fluid temperatures at the inlet of the evaporator and the outlet of the condenser, respectively. :math:`\bar{T}` denotes the normalized temperature and is defined as :math:`\bar{T}` = \frac{T[^° C]}{273.15}. For the
+solution of the system of equations the Brent solver is used [2]. The polynomial coefficients :math:`b_{qi}` and
+:math:`b_{pi}` are calculated from the catalog heat pump data using the multidimensional least square fitting
 algorithm of Scipy [3] in Python.
 
 
@@ -75,7 +75,7 @@ Figure 3: Differences between experimental and fitted data using the full polyno
 the two equations above for coefficient of performance (COP).
 
 
-However, this model is non-linear. A way to overcome the non-linearity would be to fix the $\bar{T}_{c,out}$ to 35 °C and 65 °C, respectively, for space heating (SH) and domestic hot water (DHW). Thus we would use for example:
+However, this model is non-linear. A way to overcome the non-linearity would be to fix the `\bar{T}_{c,out}` to 35 °C and 65 °C, respectively, for space heating (SH) and domestic hot water (DHW). Thus we would use for example:
 
 .. _equation1:
 
@@ -95,7 +95,7 @@ Table 3. While, the fitted data for the ProDomo13-R410A brine/water heat pump us
 approach described by the two equations above are provided in Fig. 6-7 and Table 4, while the fitted heat pump
 coefficients are given in Table 5.
 
-Table 2: Differences between experiments and fitted data for the HP08L-M-BC air/water heat pump using the two equations above. :math:`error=100 \cdot |\frac{Q_{exp}-Q_{num}}{Q_{exp}}|` and :math:`RMS = \sqrt { \sum{\frac{(Q_{exp}-Q_{num})^2}{n_p}} }` where $n_p$ is the number of data points.
+Table 2: Differences between experiments and fitted data for the HP08L-M-BC air/water heat pump using the two equations above. :math:`error=100 \cdot |\frac{Q_{exp}-Q_{num}}{Q_{exp}}|` and :math:`RMS = \sqrt { \sum{\frac{(Q_{exp}-Q_{num})^2}{n_p}} }` where :math:`n_p` is the number of data points.
 
 .. image:: ./resources/HP_table2_new.png
       :width: 800
@@ -135,7 +135,7 @@ Figure 7: Differences between experimental and fitted data of ProDomo13-R410A br
 the proposed approach from the two equations above for condenser heat.
 
 Table 4: Differences between experiments and fitted data for the ProDomo13-R410A brine/water heat
-pump using the two equations above. :math:`error=100 \cdot |\frac{Q_{exp}-Q_{num}}{Q_{exp}}|` and :math:`RMS = \sqrt { \sum{\frac{(Q_{exp}-Q_{num})^2}{n_p}} }` where $n_p$ is the number of data points.
+pump using the two equations above. :math:`error=100 \cdot |\frac{Q_{exp}-Q_{num}}{Q_{exp}}|` and :math:`RMS = \sqrt { \sum{\frac{(Q_{exp}-Q_{num})^2}{n_p}} }` where :math:`n_p` is the number of data points.
 
 .. image:: ./resources/HP_table4.png
       :width: 800
@@ -157,7 +157,7 @@ The model for solar thermal collector is taken from the oemof thermal package.
 PV
 ---
 
-The installed PV provides electricity to the building during the irradiation hours. Along with the battery, the usual strategy is to store the PV surplus power in the battery to be consumed at later hours of the planning horizon. The maximum available power $pv_t^{avail}$ of the PV is a built function that depends on the PV cell temperature, the ambient temperature and the total solar horizontal irradiation. These formulas, as well as the decision variables and the characteristics of the PV are stated in the next Table.
+The installed PV provides electricity to the building during the irradiation hours. Along with the battery, the usual strategy is to store the PV surplus power in the battery to be consumed at later hours of the planning horizon. The maximum available power :math:`pv_t^{avail}` of the PV is a built function that depends on the PV cell temperature, the ambient temperature and the total solar horizontal irradiation. These formulas, as well as the decision variables and the characteristics of the PV are stated in the next Table.
 PV modules production profiles are pre-calculated before the optimization. 
 
 Two-zone thermal energy storage
@@ -171,13 +171,14 @@ Combined production transformer
 
 A new transformer called combined production transformer which extends the features of oemof “Transformer” was defined. Since some transformers like HP can have different efficiencies for SH and DHW production (DHW needs a higher temperature than SH), this transformer offers the possibility to consider those different efficiencies. It allows to produce both space heating (SH) and domestic hot water (DHW) during the same timestep while respecting the input/output balance constraint.
 
-\begin{align}
-    
+.. _equation3:
+
+.. math::
+
     P_{input}(t) = \frac{P_{DHW}(t)}{\eta_{DHW}} + \frac{P_{SH}(t)}{\eta_{SH}}. \forall t
 
-\end{align}
 
-where, $P$ denotes the operating power for inputs (for example, electricity used by HP) and outputs (SH and DHW), $\eta$ denotes efficiency of the transformer and $t$ denotes the time step.
+where, :math:`P` denotes the operating power for inputs (for example, electricity used by HP) and outputs (SH and DHW), :math:`\eta` denotes efficiency of the transformer and :math:`t` denotes the time step.
 Physically the converters cannot supply both SH and DHW at the same time. However, if we consider a timestep of 1 hour it can be considered to be sub-divided into smaller intervals to produce SH and DHW both within 1 hour. The combined production transformer was used for the implementation of heat pumps (ASHP, GSHP), CHP, gas boiler and electric heating rod.
 
 PVT collector
@@ -186,21 +187,21 @@ PVT collector
 PVT class was implemented within the converters module, which defines the energy conversion technologies
 supported by optihood. The collector output is modelled based on the characteristic curve model reported
 in the SwissEnergy sponsored project PVT Wrap-Up (Zenhäusern et al. (2017)). The thermal output of a
-PVT collector, $\dot Q$, highly depends on the surrounding environment and the operating conditions. The most
-significant influencing factors are the solar irradiation per collector surface area ($G$), ambient air temperature
-($T_{amb}$) and the mean temperature of the collector fluid ($T_m$). The characteristic equation of thermal output
+PVT collector, :math:`\dot Q`, highly depends on the surrounding environment and the operating conditions. The most
+significant influencing factors are the solar irradiation per collector surface area (:math:`G`), ambient air temperature
+(:math:`T_{amb}`) and the mean temperature of the collector fluid (:math:`T_m`). The characteristic equation of thermal output
 of the PVT collector is given by:
 
 .. _equation3:
 
 .. math::
 
-   \frac{\dot Q}{A} =(G - \frac{P_{el}^{DC}}{(\alpha \tau) \cdot A}) \cdot \eta_0 - \a_1(T_m - T_{amb}) - a_2 (T_m - T_{amb})^2
+   \frac{\dot Q}{A} =(G - \frac{P_{el}^{DC}}{(\alpha \tau) \cdot A}) \cdot \eta_0 - a_1(T_m - T_{amb}) - a_2 (T_m - T_{amb})^2
 
-where A stands for the gross area of the collector surface, $P_{el}^{DC}$ stands for the DC electrical output of the
-collector, (\alpha \tau) is the transmission absorption product of the collector, $\eta_0$ is the maximum thermal efficiency,
-$a_1$ is the linear heat loss coefficient and $a_2$ is the quadratic heat loss coefficient of the collector.
-A corresponding label $PVT$ was added to the energy conversion technology processing function, to allow the
+where A stands for the gross area of the collector surface, :math:`P_{el}^{DC}` stands for the DC electrical output of the
+collector, (\alpha \tau) is the transmission absorption product of the collector, :math:`\eta_0` is the maximum thermal efficiency,
+:math:`a_1` is the linear heat loss coefficient and :math:`a_2` is the quadratic heat loss coefficient of the collector.
+A corresponding label :math:`PVT` was added to the energy conversion technology processing function, to allow the
 definition of a PVT collector in the input excel/config file while preparing the optimization problem.
 
 Layered thermal energy storage and discrete temperature levels
@@ -230,8 +231,8 @@ calculations for top/bottom and lateral surface losses. While the lateral surfac
 storage layers at each temperature level, the top and bottom surface losses should only be considered for the topmost (i.e. at the highest temperature level) and the lowest (i.e. at the lowest temperature) layers. The fixed
 one-time investment cost of the discretized thermal energy storage should be added to the objective function
 only once (instead of being added for each layer separately). These functionalities are implemented within the
-``ThermalStorageTemperatureLevels`` class. Moreover, the total storage volume $V_{stor}$ is calculated as the
-sum of individual layer volumes ($v_i$), as follows:
+``ThermalStorageTemperatureLevels`` class. Moreover, the total storage volume :math:`V_{stor}` is calculated as the
+sum of individual layer volumes (:math:`v_i`), as follows:
 
 .. _equation3:
 
@@ -239,7 +240,7 @@ sum of individual layer volumes ($v_i$), as follows:
 
 \sum_{i=1}^n v_i = V_{stor}
 
-where $n$ denotes the number of discrete temperature levels.
+where :math:`n` denotes the number of discrete temperature levels.
 
 A constraint called ``multiTemperatureStorageCapacityConstaint`` was developed to implement the following
 rule on the storage volume capacity:
@@ -250,7 +251,7 @@ rule on the storage volume capacity:
 
 V_{stor,min} \le V_{stor} \le V_{stor,max}
 
-where $V_{stor,max}$ and $V_{stor,min}$ represent the minimum and the maximum limits for the storage volume.
+where :math:`V_{stor,max}` and :math:`V_{stor,min}` represent the minimum and the maximum limits for the storage volume.
 The Figure below shows a graphical representation of a layered thermal energy storage with three discrete temperature
 levels. The DHW demand is met using the topmost temperature level at 65 °C i.e. highest temperature, while
 the lowest temperature level at 35 °C is used to cover the SH demand. A rule for charging the thermal energy
@@ -271,7 +272,7 @@ Ice storage
 The IceStorage class was implemented within the storages module of optihood. The formulation of the ice
 storage model is based on the solution of the energy conservation law applied to the water of the storage as
 per Carbonell et al. (2015). It is basically the same as the energy conservation law for hot water storage with
-the inclusion of the latent heat term for ice formation $\frac{h_f}{V}\frac{\delta M_{ice}}{\delta t}:
+the inclusion of the latent heat term for ice formation :math:`\frac{h_f}{V}\frac{\delta M_{ice}}{\delta t}:
 
 .. _equation3:
 
@@ -279,7 +280,7 @@ the inclusion of the latent heat term for ice formation $\frac{h_f}{V}\frac{\del
 
 \rho c_p V \frac{\delta T_{stor}}{\delta t} = -(UA)_{tank} \cdot (T_{stor} - T_{amb}) + \frac{h_f}{V} \frac{\delta M_{ice}}{\delta t} + sum_{i=1}^n \dot Q_{hx-port}(i)
 
-where $\rho$ and $c_p$ stand for the density and specific heat capacity of water, respectively. $V$ is the storage volume, $T_{stor}$ is the average temperature of the storage, $T_{amb} is the ambient air temperature, $(U A)_{tank}$ is the product of overall heat transfer coefficient and the external area of the storage tank, $M_{ice}$ is the mass of ice and $h_f$ the latent heat of fusion. $q_{hx-port}$ are the heat fluxes between the heat exchanger and the direct ports and can be represented as:
+where :math:`\rho` and :math:`c_p` stand for the density and specific heat capacity of water, respectively. :math:`V` is the storage volume, :math:`T_{stor}` is the average temperature of the storage, :math:`T_{amb}` is the ambient air temperature, :math:`(U A)_{tank}` is the product of overall heat transfer coefficient and the external area of the storage tank, :math:`M_{ice}` is the mass of ice and :math:`h_f` the latent heat of fusion. :math:`q_{hx-port}` are the heat fluxes between the heat exchanger and the direct ports and can be represented as:
 
 .. _equation3:
 
@@ -287,7 +288,7 @@ where $\rho$ and $c_p$ stand for the density and specific heat capacity of water
 
 \sum_i \dot {Q_{x-port}}(i) = \sum_i \dot{Q_{in}}(i) - \sum_i \dot{Q_{out}}(i)
 
-here $Q_{in}$ and $Q_{out}$ are the heat inflows and outflows to/from the ice storage tank, respectively.
+here :math:`Q_{in}` and :math:`Q_{out}` are the heat inflows and outflows to/from the ice storage tank, respectively.
 The term for heat of solidification and melting appearing in Eq. 4 can be discretized as:
 
 .. _equation3:
@@ -312,7 +313,7 @@ with ice formation is reduced to:
 
 .. math::
 
-0 = (UA)_{tank} \cdot (T_{stor}^t - T_{amb}^t) + h_f  \frac{M_{ice}^{t+1} - M_{ice}}{\Delta t} + sum_{i=1}^n \dot{Q}_{hx-port}(i)^t
+0 = (UA)_{tank} \cdot (T_{stor}^t - T_{amb}^t) + h_f  \frac{M_{ice}^{t+1} - M_{ice}}{\Delta t} + sum_{i=1}^n \dot {Q}_{hx-port}(i)^t
 
 In addition, the following constraints were implemented. The constraint to set up the initial conditions such
 as initial storage temperature and initial mass of ice is given by:
@@ -335,16 +336,16 @@ The constraint for the temperature of storage during ice formation is given by:
 
 T_{stor}^i \ge 0 \forall i \in t
 
-The mass ice fraction also known as ice packing factor, $f^t$, is calculated as:
+The mass ice fraction also known as ice packing factor, :math:`f^t`, is calculated as:
 .. math::
 
 f^t = \frac{M_{ice}^t}{M_{water,max}}
 
-where, $M_{water,max}$ denotes the overall amount of water and ice in the storage tank. The constraint on the
-maximum allowed value of $f^t$ is represented as:
+where, :math:`M_{water,max}` denotes the overall amount of water and ice in the storage tank. The constraint on the
+maximum allowed value of :math:`f^t` is represented as:
 
 .. math::
 
 f^t \le f_{max}
 
-Depending on the ice storage design, the $f_{max}$ can be in the range of 0.5 to 0.8.
+Depending on the ice storage design, the :math:`f_{max}` can be in the range of 0.5 to 0.8.
