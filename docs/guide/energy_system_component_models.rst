@@ -265,7 +265,18 @@ was defined with a new constraint group. The implementation of electrical links 
 link is now modeled as a new component (does not exist in oemof) where all the relevant input/output flows
 of the buildings connect. The new implementation of links is depicted in the next Figure.
 
+.. image:: ./resources/shLinkExample.png
+      :width: 600
+      :alt: shLinkExample
 
+The implementation of links adds complexity to the optimization problem and affects the convergence
+speed. When the optimizer needs to decide whether to connect the buildings (and which ones to connect),
+each output of a link adds a binary variable into the problem, which exponentially increases the computation
+time as the number of buildings (i.e. number of outputs of each link) and the number of links (electrical, space
+heating, domestic hot water) increase. In order to improve the speed of optimization, an option to merge the
+respective buses, i.e. energy flows (electricity, space heating and domestic hot water), of all the buildings to
+be linked was added into the framework. An example of a merged space heating bus for a scenario with three
+buildings is shown in the next Figure.
 
 
 
