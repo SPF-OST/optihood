@@ -251,10 +251,13 @@ to the storage, the same volume added at the 50 °C layer should be displaced fr
 35 °C storage level (as shown in Figure 11). This means that the energy conversion technologies can heat
 water from 35 °C to 50 °C and from 50 °C to 65 °C, in that order.
 
-.. image:: ./resources/multilayer_nrj_component.png
-      :width: 800
-      :alt: multilayer_nrj_component
+.. image:: ./resources/layered_storage.png
+      :width: 400
+      :alt: layered_storage
 
+.. image:: ./resources/layered_storage_1.png
+      :width: 400
+      :alt: layered_storage_1
 
 Thermal and electrical links
 =============================
