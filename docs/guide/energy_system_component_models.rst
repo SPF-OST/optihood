@@ -102,7 +102,7 @@ Table 2: Differences between experiments and fitted data for the HP08L-M-BC air/
 Table 3: Fitted coefficients for the HP08L-M-BC air/water heat pump using the two equations above.
 
 .. image:: ./resources/HP_table3.png
-      :width: 600
+      :width: 500
       :alt: HP_table3
 
 .. image:: ./resources/HP08L-M-BC-COP-1.png
@@ -276,7 +276,15 @@ time as the number of buildings (i.e. number of outputs of each link) and the nu
 heating, domestic hot water) increase. In order to improve the speed of optimization, an option to merge the
 respective buses, i.e. energy flows (electricity, space heating and domestic hot water), of all the buildings to
 be linked was added into the framework. An example of a merged space heating bus for a scenario with three
-buildings is shown in the next Figure.
+buildings is shown in the next Figure. This option can be used to perform optimization in two steps. In the first
+step, the implementation of links shown in the previous Figure is used, which allows the optimizer to select whether
+connecting the buildings is the best solution or not (although takes longer). Once it has been established that
+connecting the buildings is the best solution, the new option to merge buses (see next Figure) is used to produce
+additional optimizations results faster.
+
+.. image:: ./resources/mergedSHBusExample.png
+      :width: 600
+      :alt: shLinkExample
 
 
 
