@@ -9,7 +9,7 @@ Grid electricity, natural gas, or any other form of energy consumed by the syste
 
 
 .. image:: ./resources/optihood_architecture.png
-      :width: 1000
+      :width: 800
       :alt: optihood_architecture
 
 
@@ -211,7 +211,7 @@ parameters has to be True when the ``EnergyNetwork`` class is instantiated:
 .. image:: ./resources/code_snippet_multilayer_nrj_component.png
       :width: 800
       :alt: code_snippet_multilayer_nrj_component
-
+SIMPLY PUT LAST LINE IN TEXT
 The discrete temperature levels defined in the input scenario file, set the temperatures of the output
 flows of the heat conversion technologies. Depending on the time resolution of the optimization problem, it
 may not be acceptable for a heat conversion technology to produce heat at more than one temperature levels
