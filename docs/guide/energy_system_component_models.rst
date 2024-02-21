@@ -256,4 +256,16 @@ water from 35 °C to 50 °C and from 50 °C to 65 °C, in that order.
       :alt: multilayer_nrj_component
 
 
+Thermal and electrical links
+=============================
+
+In order to allow buildings to share space heat and domestic hot water production, thermal grids were implemented.
+A new component was implemented connecting all the relevant input/output flows of the buildings. A new component class, called Link, extending those already available in oemof,
+was defined with a new constraint group. The implementation of electrical links was also updated. A
+link is now modeled as a new component (does not exist in oemof) where all the relevant input/output flows
+of the buildings connect. The new implementation of links is depicted in the next Figure.
+
+
+
+
 
