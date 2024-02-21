@@ -206,12 +206,11 @@ extended to allow multiple output flows (at different temperature levels). It sh
 levels are predefined and each heat production technology, therefore, has a predefined hourly efficiency
 related to a specific temperature level. The number of discrete temperature levels is parameterized and can be
 defined in the input scenario excel file. In order to use discrete temperature levels, the ``temperatureLevels``
-parameters has to be True when the ``EnergyNetwork`` class is instantiated:
+parameters has to be True when the ``EnergyNetwork`` class is instantiated::
 
-.. image:: ./resources/code_snippet_multilayer_nrj_component.png
-      :width: 800
-      :alt: code_snippet_multilayer_nrj_component
-SIMPLY PUT LAST LINE IN TEXT
+      network = EnergyNetwork(timeperiod, temperatureLevels=True)
+
+
 The discrete temperature levels defined in the input scenario file, set the temperatures of the output
 flows of the heat conversion technologies. Depending on the time resolution of the optimization problem, it
 may not be acceptable for a heat conversion technology to produce heat at more than one temperature levels
