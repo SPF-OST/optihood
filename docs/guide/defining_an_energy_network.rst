@@ -360,7 +360,7 @@ A new method called ``createScenarioFile()`` was implemented within the EnergyNe
 and EnergyNetworkGroup classes. This function reads a config file and derives the equivalent Excel file based
 on the default system component connections::
 
-    createScenarioFile(self, configFilePath, excelFilePath, numberOfBuildings)
+    network.createScenarioFile(configFilePath, excelFilePath, numberOfBuildings)
 
 ``configFilePath`` is the path to the config file describing the components of the model, ``excelFilePath`` gives the path for the excel output file. ``numberofBuildings`` is an integer parameter specifying the
 number of buildings defined in the config file.
