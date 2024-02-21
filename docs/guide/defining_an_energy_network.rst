@@ -345,7 +345,7 @@ as an alternative way of formulating an optimization problem.
 In a config file, one could provide the same information as in the input Excel file but for a case where all
 the buildings have an identical setup (technologies, limits on capacities, costs, etc.).
 
-.. image:: ./resources/config_file_example.png
+.. image:: ./resources/config_file.png
       :width: 500
       :alt: config_file_example
 
