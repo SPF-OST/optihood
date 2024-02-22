@@ -58,7 +58,7 @@ look at the documentation of the respective solver.
 Dispatch optimization
 ----------------------
 
-The dispatch optimization is a new option that enables to optimize the size of the used technologies but does not decide whether to use them or not (it supposes that they are already installed). In this way, it is opposite to the investment optimization where the different available technologies are compared and then selected based on the optimized scenario.
+The dispatch optimization is an option that enables to optimize the size of the used technologies but does not decide whether to use them or not (it supposes that they are already installed). In this way, it is opposite to the investment optimization where the different available technologies are compared and then selected based on the optimized scenario.
 
 Single-objective optimization
 -----------------------------

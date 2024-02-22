@@ -83,5 +83,6 @@ maximum allowed value of :math:`f^t` is represented as:
 Depending on the ice storage design, the :math:`f_{max}` can be in the range of 0.5 to 0.8.
 
 
+
 | [1]  Carbonell, D., Philippen, D., Haller, M. Y., and Frank, E. (2015). Modeling of an ice storage based on a
 de-icing concept for solar heating applications. Solar Energy, 121:2–16.
