@@ -5,57 +5,6 @@ Advanced under-development features
 
 
 
-Clustering
-----------
-
-Clustering feature allows the users to improve the optimization speed by specifying a set of dates which could be considered
-representative of the whole year (or the entire duration of the analysis). For example: four typical days could be selected
-, one representing each season, and optihood would then provide the optimal design plan of the energy network based on these
-days. Since the time resolution of the optimization problem would be much lower than simulating the whole year, the speed
-of optimization is much faster when clustering is used.
-
-Any clustering method (for example K-means clustering) can be chosen by the user and the results could be fed to optihood
-for faster optimization. Note that in optihood one could use the results from clustering (which is to be done independently)
-but the implementation of the clustering method itself is not a part of the optihood framework. The following results are
-required from the clustering algorithm:
-
-- Number of clusters
-- Days of year representing each cluster
-- Number of days in each cluster
-
-In order to use the clustering feature, first a dictionary containing one item for each cluster, where keys and values are
-the cluster's representative date and number of days, respectively, should be defined::
-
-    cluster = {"2018-07-30": 26,
-               "2018-02-03": 44,
-               "2018-07-23": 32,
-               "2018-09-18": 28,
-               "2018-04-15": 22,
-               "2018-10-01": 32,
-               "2018-11-04": 32,
-               "2018-10-11": 37,
-               "2018-01-24": 15,
-               "2018-08-18": 26,
-               "2018-05-28": 23,
-               "2018-02-06": 48}
-
-Here, the days of the year have been represented using 12 clusters, where the first cluster consists of 26 days and is
-represented by the date 30 June 2018.
-
-This dictionary should be passed in the ``setFromExcel`` and ``optimize`` functions of the EnergyNetwork class::
-
-    # set a time period for the optimization problem according to the number of clusers
-    network = EnergyNetwork(pd.date_range("2018-01-01 00:00:00", "2018-01-12 23:00:00", freq="60min"), temperatureSH, temperatureDHW)
-
-    # pass the dictionary defining the clusters to setFromExcel function
-    network.setFromExcel("scenario.xls", numberOfBuildings=4, clusterSize=cluster, opt="costs")
-
-    # pass the dictionary defining the clusters to optimize function
-    envImpact, capacitiesTransformers, capacitiesStorages = network.optimize(solver='gurobi', clusterSize=cluster)
-
-Note that the time period would need to be adjusted to include the timesteps corresponding to 12 days (12 x 24 = 288 timesteps
-if hourly resolution is considered). Try the example on `selective days clustering <https://github.com/SPF-OST/optihood/blob/main/data/examples/selective_days_clustering.py>`_
-for a better grasp.
 
 Ice storage
 ------------
