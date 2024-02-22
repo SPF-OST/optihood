@@ -185,7 +185,7 @@ Ice storage
 
 The IceStorage class was implemented within the storages module of optihood. The formulation of the ice
 storage model is based on the solution of the energy conservation law applied to the water of the storage as
-per Carbonell et al. (2015). It is basically the same as the energy conservation law for hot water storage with
+per Carbonell et al. (2015) [1]. It is basically the same as the energy conservation law for hot water storage with
 the inclusion of the latent heat term for ice formation :math:`\frac{h_f}{V}\frac{\delta M_{ice}}{\delta t}`:
 
 .. math::
@@ -255,3 +255,7 @@ maximum allowed value of :math:`f^t` is represented as:
       f^t \leq f_{max}
 
 Depending on the ice storage design, the :math:`f_{max}` can be in the range of 0.5 to 0.8.
+
+
+Carbonell, D., Philippen, D., Haller, M. Y., and Frank, E. (2015). Modeling of an ice storage based on a
+de-icing concept for solar heating applications. Solar Energy, 121:2–16.
