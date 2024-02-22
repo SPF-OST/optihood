@@ -41,9 +41,9 @@ Heat pumps (ASHP and GSHP) are modelled based on a bi-quadratic polynomial fit o
 
 
 where, :math:`T_{e,in}` and :math:`T_{c,out}` are fluid temperatures at the inlet of the evaporator and the outlet of the condenser, respectively. :math:`\bar{T}` denotes the normalized temperature and is defined as :math:`\bar{T} = \frac{T[^{\circ} \text{C}]}{273.15}`. For the
-solution of the system of equations the Brent solver is used [2]. The polynomial coefficients :math:`b_{qi}` and
+solution of the system of equations the Brent solver is used [1]. The polynomial coefficients :math:`b_{qi}` and
 :math:`b_{pi}` are calculated from the catalog heat pump data using the multidimensional least square fitting
-algorithm of Scipy [3] in Python.
+algorithm of Scipy [2] in Python.
 
 
 Table 1: Parameters, inputs and outputs of heat pump model.
@@ -307,7 +307,7 @@ implemented as a custom sink component along with a set of new constraints.
       :width: 400
       :alt: building_model_oemof
 
-The specific building model implemented in optihood was proposed and validated in [1] and is characterized by three thermal
+The specific building model implemented in optihood was proposed and validated in [3] and is characterized by three thermal
 spaces:
 
 - wall and building mass
@@ -418,7 +418,9 @@ The state space equations of the building model are:
       :alt: constraint5
       :align: center
 
-| [1] T. Péan, R. Costa Castelló y J. Salom, Price and carbon-based energy flexibility of residential heating and cooling loads using model predictive control, Sustainable Cities and Society, vol. 50, 2019
+| [1] M Galassi, J Davies, B Gough, G Jungman, M Booth, and F Rossi. GNU Scientific Library Reference Manual. John Wiley & Sons, 2nd edition, 2003.
+| [2] Eric Jones, Travis Oliphant, Pearu Peterson, et al. SciPy: Open source scientific tools for Python, 2001.
+| [3] T. Péan, R. Costa Castelló y J. Salom, Price and carbon-based energy flexibility of residential heating and cooling loads using model predictive control, Sustainable Cities and Society, vol. 50, 2019.
 
 
 
