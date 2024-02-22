@@ -41,11 +41,11 @@ Input Excel File
 Once the ``network`` object has been created, a model can be built from an input excel file which
 defines different components which constitute the model, how they are connected and their associated parameters::
 
-    network.setFromExcel(inputExcelFilePath, numberOfBuildings, clusterSize, opt)
+    network.setFromExcel(inputExcelFilePath, numberOfBuildings, clusterSize, opt, mergeLinkBuses, dispatchMode)
 
 ``inputExcelFilePath`` gives the path of the excel input file. ``numberofBuildings`` is an integer parameter specifying the
 number of buildings defined in the excel file. The last two parameters clusterSize and opt are optional. The ``opt``
-parameter could be either ``'costs'`` (default value) or ``'env'`` depending on which criteria should be optimized. The
+parameter could be either ``'costs'`` (default value) or ``'env'`` depending on which criteria should be optimized. The ``mergeLinkBuses`` parameter is an optional argument wether or not to use the merge of the different buses (set as false if not given). The ``dispatchMode`` parameter is an optional argument wether or not to activate the dispatch optimization (set to false if not given). The
 ``clusterSize`` parameter is used to provide a selected number of days which could be assumed representative of the entire
 time range. For example: two typical days could be selected to model the entire year, which could represent two clusters
 summer and winter. This would improve the optimization speed. If not given during the function call, the default value
