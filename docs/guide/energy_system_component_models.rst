@@ -275,7 +275,7 @@ link is now modeled as a new component (does not exist in oemof) where all the r
 of the buildings connect. The new implementation of links is depicted in the next Figure.
 
 .. image:: ./resources/shLinkExample.png
-      :width: 600
+      :width: 500
       :alt: shLinkExample
 
 The implementation of links adds complexity to the optimization problem and affects the convergence
@@ -292,7 +292,7 @@ connecting the buildings is the best solution, the new option to merge buses (se
 additional optimizations results faster.
 
 .. image:: ./resources/mergedSHBusExample.png
-      :width: 600
+      :width: 500
       :alt: shLinkExample
 
 
