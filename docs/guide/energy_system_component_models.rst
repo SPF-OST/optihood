@@ -208,6 +208,12 @@ related to a specific temperature level. The number of discrete temperature leve
 defined in the input scenario excel file. In order to use discrete temperature levels, the ``temperatureLevels``
 parameters has to be True when the ``EnergyNetwork`` class is instantiated::
 
+      import EnergyNetworkGroup as EnergyNetwork
+
+      #set a time period for the optimization problem
+      TimePeriod = np.date_range("2021-01-01 00:00:00". "2021-12-31 23:00:00", freq = "60min"
+
+      #create an energy network and set the network parameters from an excel file
       network = EnergyNetwork(timeperiod, temperatureLevels=True)
 
 
