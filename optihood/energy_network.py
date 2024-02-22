@@ -406,12 +406,12 @@ class EnergyNetworkClass(solph.EnergySystem):
         # Convert kWh into L
         capacitiesInvestedStorages = self._compensateStorageCapacities(capacitiesInvestedStorages)
 
+        removeKeysList = []
         if self._temperatureLevels:
             if any("thermalStorage" in key for key in capacitiesInvestedStorages):
                 for b in range(len(self.__buildings)):
                     buildingLabel = "Building" + str(b + 1)
                     invest = 0
-                    removeKeysList = []
                     for layer in self.__operationTempertures:
                         if f"thermalStorage{int(layer)}__" + buildingLabel in capacitiesInvestedStorages:
                             invest += capacitiesInvestedStorages[f"thermalStorage{int(layer)}__" + buildingLabel]
