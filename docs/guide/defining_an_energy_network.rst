@@ -41,11 +41,11 @@ Input Excel File
 Once the ``network`` object has been created, a model can be built from an input excel file which
 defines different components which constitute the model, how they are connected and their associated parameters::
 
-    network.setFromExcel(inputExcelFilePath, numberOfBuildings, clusterSize, opt)
+    network.setFromExcel(inputExcelFilePath, numberOfBuildings, clusterSize, opt, mergeLinkBuses, dispatchMode)
 
 ``inputExcelFilePath`` gives the path of the excel input file. ``numberofBuildings`` is an integer parameter specifying the
 number of buildings defined in the excel file. The last two parameters clusterSize and opt are optional. The ``opt``
-parameter could be either ``'costs'`` (default value) or ``'env'`` depending on which criteria should be optimized. The
+parameter could be either ``'costs'`` (default value) or ``'env'`` depending on which criteria should be optimized. The ``mergeLinkBuses`` parameter is an optional argument whether or not to use the merge of the different buses (set as False if not given). The ``dispatchMode`` parameter is an optional argument whether or not to activate the dispatch optimization (set to False if not given). The
 ``clusterSize`` parameter is used to provide a selected number of days which could be assumed representative of the entire
 time range. For example: two typical days could be selected to model the entire year, which could represent two clusters
 summer and winter. This would improve the optimization speed. If not given during the function call, the default value
@@ -345,7 +345,7 @@ as an alternative way of formulating an optimization problem.
 In a config file, one could provide the same information as in the input Excel file but for a case where all
 the buildings have an identical setup (technologies, limits on capacities, costs, etc.).
 
-.. image:: ./resources/config_file_example.png
+.. image:: ./resources/config_file.png
       :width: 500
       :alt: config_file_example
 
@@ -360,7 +360,7 @@ A new method called ``createScenarioFile()`` was implemented within the EnergyNe
 and EnergyNetworkGroup classes. This function reads a config file and derives the equivalent Excel file based
 on the default system component connections::
 
-    createScenarioFile(self, configFilePath, excelFilePath, numberOfBuildings)
+    network.createScenarioFile(configFilePath, excelFilePath, numberOfBuildings)
 
 ``configFilePath`` is the path to the config file describing the components of the model, ``excelFilePath`` gives the path for the excel output file. ``numberofBuildings`` is an integer parameter specifying the
 number of buildings defined in the config file.

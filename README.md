@@ -36,7 +36,7 @@ commands could be used.
     py -3.9 -m venv venv
     ```    
 3. Install the requirements into the created virtual environment:
-   ```commandline
+    ```commandline
     pip install wheel
     pip install -r requirements.txt
     ```
@@ -45,9 +45,24 @@ commands could be used.
     It might be required to install C++ build tools. To do that, click on the link that appears with the error message and follow the instructions (it is the lapack package that is missing). In order to be able to 
     install the missing package, it is required to have a complete Visual Studio instance and installing it with the "Desktop development with C++" workload.
    
-4.  verify that the solver is installed by running the installation test in your virtual environment:
-     ```commandline
-    (venv) oemof_installation_test
+4.  Verify the installation of the oemof package and the solver by running the installation test in your virtual environment:
+    ```commandline
+    oemof_installation_test
+    ```
+
+    
+    If the installation is successful a message similar to the following would display (the installed solver would be marked as working):
+    ```commandline
+    *****************************
+    Solver installed with oemof
+    cbc: not working
+    glpk: not working
+    gurobi: working
+    cplex: not working
+    
+    *****************************
+    oemof successfully installed.
+    *****************************
     ```
 5.  To test whether the installation worked well, you could run a [basic example](https://github.com/SPF-OST/OptiHood/tree/main/data/examples/).
 

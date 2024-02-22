@@ -10,7 +10,8 @@ optimized::
     envImpact, capacitiesTransformers, capacitiesStorages = network.optimize(solver='gurobi',
                                                                            envImpactlimit=envImpactlimit,
                                                                            clusterSize=clusterSize,
-                                                                           options=optimizationOptions)
+                                                                           options=optimizationOptions,
+                                                                           mergeLinkBuses=mergeLinkBuses)
 
 The first parameter solver specifies the name of solver to be used for optimization. ``solver`` could take the values
 ``gurobi``, ``cbc``, ``cplex`` or ``glpk``. ``envImpactlimit`` denotes the maximum limit for environmental impact. This parameter
@@ -18,7 +19,7 @@ becomes relevant in case of multi-objective optimization and would be described 
 optimization set this parameter to a significantly high value which would never be reached (For example: 10^6). ``clusterSize``
 is the parameter related to clustered days (if defined). This is an optional parameter and is required only if clustered
 days are used. ``options`` specifies the command line parameters to be passed to the selected solver. This parameter is
-described further in the following section. The ``optimize`` function returns the environmental impact of the optimized energy
+described further in the following section. The ``mergeLinkBuses`` defines whether or not the buses of the different buildings should be merged (set to False if not given). The ``optimize`` function returns the environmental impact of the optimized energy
 model, the capacities selected for energy transformers (or converters such as CHP, heat pump, etc.) and for the storages
 in the optimized energy network model.
 
@@ -54,6 +55,11 @@ of the command line option.
 For more details on the different command line options which could be passed to the solver, we recommend you to have a
 look at the documentation of the respective solver.
 
+Dispatch optimization
+----------------------
+
+The dispatch optimization is an option that enables to optimize the size of the used technologies but does not decide whether to use them or not (it supposes that they are already installed). In this way, it is opposite to the investment optimization where the different available technologies are compared and then selected based on the optimized scenario.
+
 Single-objective optimization
 -----------------------------
 
@@ -62,9 +68,9 @@ EnergyNetworkGroup class once the energy network has been defined. The optimizat
 be defined using the input excel file. The target for single-objective optimization could be specified at this stage as
 a parameter passed in the ``setFromExcel`` function::
 
-   network.setFromExcel(inputExcelFilePath, numberOfBuildings, clusterSize, opt)
+   network.setFromExcel(inputExcelFilePath, numberOfBuildings, clusterSize, opt, mergeLinkBuses, dispatchMode)
 
-The parameter ``opt`` could be set to either ``'costs'`` or ``'env'`` for optimization based on cost or environmental impact,
+The parameter ``dispatchMode`` is used to decide whether or not the dispatch optimization is applied (set to False if not given). The parameter ``opt`` could be set to either ``'costs'`` or ``'env'`` for optimization based on cost or environmental impact,
 respectively. The respective data related to costs/environmental impact of the energy resources and the available energy
 conversion and storage technologies should be given in the appropriate sections of the input excel file.
 

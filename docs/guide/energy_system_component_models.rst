@@ -9,7 +9,7 @@ Grid electricity, natural gas, or any other form of energy consumed by the syste
 
 
 .. image:: ./resources/optihood_architecture.png
-      :width: 1000
+      :width: 800
       :alt: optihood_architecture
 
 
@@ -32,18 +32,17 @@ The energy system components can be classified into energy converters and storag
 Heat pumps
 ----------
 
-Heat pumps (ASHP and GSHP) are modelled based on a bi-quadratic polynomial fit of the  condenser heating power ($\dot{ q }_c$) and the electrical consumption power of the compressor ($\dot{w}_{cp}$)::
+Heat pumps (ASHP and GSHP) are modelled based on a bi-quadratic polynomial fit of the  condenser heating power (:math:`\dot{ q }_c`) and the electrical consumption power of the compressor (:math:`\dot{w}_{cp}`):
 
-\begin{align}
-    
-    \dot{q}_c = bq_1 + bq_2 \cdot \bar{T}_{e,in} + bq_3 \cdot \bar{T}_{c,out} + bq_4 \cdot \bar{T}_{e,in} \cdot{\bar{T}_c,out} + bq_5 \cdot \bar{T}^2_{e,in} + bq_6 \\
-    \dot{w}_{cp} = bp_1 + bp_2 \cdot \bar{T}_{e,in} + bp_3 \cdot \bar{T}_{c,out} + bp_4 \cdot \bar{T}_{e,in} \cdot \bar{T}_{c,out} + bp_5 \cdot \bar{T}^2_{e,in} + bp_6 \cdot \bar{T}^2_{c,out}
+.. math::
 
-\end{align}
+    &\dot{q}_c = bq_1 + bq_2 \cdot \bar{T}_{e,in} + bq_3 \cdot \bar{T}_{c,out} + bq_4 \cdot \bar{T}_{e,in} \cdot{\bar{T}_c,out} + bq_5 \cdot \bar{T}^2_{e,in} + bq_6 \\
+    &\dot{w}_{cp} = bp_1 + bp_2 \cdot \bar{T}_{e,in} + bp_3 \cdot \bar{T}_{c,out} + bp_4 \cdot \bar{T}_{e,in} \cdot \bar{T}_{c,out} + bp_5 \cdot \bar{T}^2_{e,in} + bp_6 \cdot \bar{T}^2_{c,out}
 
-where, $T_{e,in}$ and $T_{c,out}$ are fluid temperatures at the inlet of the evaporator and the outlet of the condenser, respectively. $\bar{T}$ denotes the normalized temperature and is defined as $\bar{T} = \frac{T[^° C]}{273.15}. For the
-solution of the system of equations the Brent solver is used [2]. The polynomial coefficients $b_{qi}$ and
-$b_{pi}$ are calculated from the catalog heat pump data using the multidimensional least square fitting
+
+where, :math:`T_{e,in}` and :math:`T_{c,out}` are fluid temperatures at the inlet of the evaporator and the outlet of the condenser, respectively. :math:`\bar{T}` denotes the normalized temperature and is defined as :math:`\bar{T} = \frac{T[^{\circ} \text{C}]}{273.15}`. For the
+solution of the system of equations the Brent solver is used [2]. The polynomial coefficients :math:`b_{qi}` and
+:math:`b_{pi}` are calculated from the catalog heat pump data using the multidimensional least square fitting
 algorithm of Scipy [3] in Python.
 
 
@@ -75,19 +74,17 @@ Figure 3: Differences between experimental and fitted data using the full polyno
 the two equations above for coefficient of performance (COP).
 
 
-However, this model is non-linear. A way to overcome the non-linearity would be to fix the $\bar{T}_{c,out}$ to 35 °C and 65 °C, respectively, for space heating (SH) and domestic hot water (DHW). Thus we would use for example:
+However, this model is non-linear. A way to overcome the non-linearity would be to fix the :math:`\bar{T}_{c,out}` to 35 °C and 65 °C, respectively, for space heating (SH) and domestic hot water (DHW). Thus we would use for example:
 
-.. _equation1:
-
-.. math::
-
-\dot q_c &=& bq_1 + bq_2 \cdot \bar{T}_{e,in} + bq_3 \cdot \frac{35}{273.15}  + bq_4 \cdot \bar{T}_{e,in} \cdot \frac{35}{273.15} + bq_5 \cdot \bar{T}_{e,in}^2 + bq_6 \cdot \frac{35}{273.15}^2 
-
-.. _equation2:
 
 .. math::
 
-\dot w_{cp} &=& bp_1 + bp_2 \cdot \bar{T}_{e,in} + bp_3 \cdot \frac{35}{273.15}  + bp_4 \cdot \bar{T}_{e,in} \cdot \frac{35}{273.15} + bp_5 \cdot \bar{T}_{e,in}^2 + bp_6 \cdot \frac{35}{273.15}^2 
+      \dot{q}_c = bq_1 + bq_2 \cdot \bar{T}_{e,in} + bq_3 \cdot \frac{35}{273.15}  + bq_4 \cdot \bar{T}_{e,in} \cdot \frac{35}{273.15} + bq_5 \cdot \bar{T}_{e,in}^2 + bq_6 \cdot \frac{35}{273.15}^2 
+
+
+.. math::
+
+      \dot{w}_{cp} = bp_1 + bp_2 \cdot \bar{T}_{e,in} + bp_3 \cdot \frac{35}{273.15}  + bp_4 \cdot \bar{T}_{e,in} \cdot \frac{35}{273.15} + bp_5 \cdot \bar{T}_{e,in}^2 + bp_6 \cdot \frac{35}{273.15}^2 
 
 The fitted data for the HP08L-M-BC air/water heat pump using the proposed approach described by
 the two equations above are provided in Fig. 4-5 and Table 2, while the fitted heat pump coefficients are given in
@@ -95,7 +92,7 @@ Table 3. While, the fitted data for the ProDomo13-R410A brine/water heat pump us
 approach described by the two equations above are provided in Fig. 6-7 and Table 4, while the fitted heat pump
 coefficients are given in Table 5.
 
-Table 2: Differences between experiments and fitted data for the HP08L-M-BC air/water heat pump using the two equations above. :math:`error=100 \cdot |\frac{Q_{exp}-Q_{num}}{Q_{exp}}|` and :math:`RMS = \sqrt { \sum{\frac{(Q_{exp}-Q_{num})^2}{n_p}} }` where $n_p$ is the number of data points.
+Table 2: Differences between experiments and fitted data for the HP08L-M-BC air/water heat pump using the two equations above. :math:`error=100 \cdot |\frac{Q_{exp}-Q_{num}}{Q_{exp}}|` and :math:`RMS = \sqrt { \sum{\frac{(Q_{exp}-Q_{num})^2}{n_p}} }` where :math:`n_p` is the number of data points.
 
 .. image:: ./resources/HP_table2_new.png
       :width: 800
@@ -105,7 +102,7 @@ Table 2: Differences between experiments and fitted data for the HP08L-M-BC air/
 Table 3: Fitted coefficients for the HP08L-M-BC air/water heat pump using the two equations above.
 
 .. image:: ./resources/HP_table3.png
-      :width: 600
+      :width: 500
       :alt: HP_table3
 
 .. image:: ./resources/HP08L-M-BC-COP-1.png
@@ -135,7 +132,7 @@ Figure 7: Differences between experimental and fitted data of ProDomo13-R410A br
 the proposed approach from the two equations above for condenser heat.
 
 Table 4: Differences between experiments and fitted data for the ProDomo13-R410A brine/water heat
-pump using the two equations above. :math:`error=100 \cdot |\frac{Q_{exp}-Q_{num}}{Q_{exp}}|` and :math:`RMS = \sqrt { \sum{\frac{(Q_{exp}-Q_{num})^2}{n_p}} }` where $n_p$ is the number of data points.
+pump using the two equations above. :math:`error=100 \cdot |\frac{Q_{exp}-Q_{num}}{Q_{exp}}|` and :math:`RMS = \sqrt { \sum{\frac{(Q_{exp}-Q_{num})^2}{n_p}} }` where :math:`n_p` is the number of data points.
 
 .. image:: ./resources/HP_table4.png
       :width: 800
@@ -148,7 +145,155 @@ Table 5: Fitted coefficients for the ProDomo13-R410A brine/water heat pump using
       :width: 600
       :alt: HP_table5
 
-Other energy systems
---------------------
+Solar thermal collector
+-----------------------
 
-Solar thermal collectors and PV modules production profiles are pre-calculated before the optimization. For batteries, a simple model is used that accounts for fixed charging and discharging efficiencies and a loss parameter. For thermal storages, a stratified thermal storage model with two temperature zones is used.
+A module to calculate the usable heat of a flat plate collector is described in details in `Solar thermal collector <https://oemof-thermal.readthedocs.io/en/latest/solar_thermal_collector.html#solar-thermal-collector>`_.
+The model for solar thermal collector is taken from the oemof thermal package.
+
+PV
+---
+
+The installed PV provides electricity to the building during the irradiation hours. Along with the battery, the usual strategy is to store the PV surplus power in the battery to be consumed at later hours of the planning horizon. The maximum available power :math:`pv_t^{avail}` of the PV is a built function that depends on the PV cell temperature, the ambient temperature and the total solar horizontal irradiation. These formulas, as well as the decision variables and the characteristics of the PV are stated in the next Table.
+PV modules production profiles are pre-calculated before the optimization. 
+
+Two-zone thermal energy storage
+-------------------------------
+
+A simplified 2-zone-model of a stratified thermal energy storage is implemented and described indetails in `Stratified thermal storage <https://oemof-thermal.readthedocs.io/en/latest/stratified_thermal_storage.html>`_.
+The model for stratified thermal storage is taken from the oemof thermal package.
+
+Combined production transformer
+-------------------------------
+
+A new transformer called combined production transformer which extends the features of oemof “Transformer” was defined. Since some transformers like HP can have different efficiencies for SH and DHW production (DHW needs a higher temperature than SH), this transformer offers the possibility to consider those different efficiencies. It allows to produce both space heating (SH) and domestic hot water (DHW) during the same timestep while respecting the input/output balance constraint.
+
+.. math::
+
+    P_{input}(t) = \frac{P_{DHW}(t)}{\eta_{DHW}} + \frac{P_{SH}(t)}{\eta_{SH}}, \forall t
+
+
+where, :math:`P` denotes the operating power for inputs (for example, electricity used by HP) and outputs (SH and DHW), :math:`\eta` denotes efficiency of the transformer and :math:`t` denotes the time step.
+Physically the converters cannot supply both SH and DHW at the same time. However, if we consider a timestep of 1 hour it can be considered to be sub-divided into smaller intervals to produce SH and DHW both within 1 hour. The combined production transformer was used for the implementation of heat pumps (ASHP, GSHP), CHP, gas boiler and electric heating rod.
+
+PVT collector
+-------------
+
+PVT class was implemented within the converters module, which defines the energy conversion technologies
+supported by optihood. The collector output is modelled based on the characteristic curve model reported
+in the SwissEnergy sponsored project PVT Wrap-Up (Zenhäusern et al. (2017)). The thermal output of a
+PVT collector, :math:`\dot{Q}`, highly depends on the surrounding environment and the operating conditions. The most
+significant influencing factors are the solar irradiation per collector surface area (:math:`G`), ambient air temperature
+(:math:`T_{amb}`) and the mean temperature of the collector fluid (:math:`T_m`). The characteristic equation of thermal output
+of the PVT collector is given by:
+
+.. math::
+
+   \frac{\dot Q}{A} =(G - \frac{P_{el}^{DC}}{(\alpha \tau) \cdot A}) \cdot \eta_0 - a_1(T_m - T_{amb}) - a_2 (T_m - T_{amb})^2
+
+where A stands for the gross area of the collector surface, :math:`P_{el}^{DC}` stands for the DC electrical output of the
+collector, (\alpha \tau) is the transmission absorption product of the collector, :math:`\eta_0` is the maximum thermal efficiency,
+:math:`a_1` is the linear heat loss coefficient and :math:`a_2` is the quadratic heat loss coefficient of the collector.
+A corresponding label :math:`PVT` was added to the energy conversion technology processing function, to allow the
+definition of a PVT collector in the input excel/config file while preparing the optimization problem.
+
+Layered thermal energy storage and discrete temperature levels
+---------------------------------------------------------------
+
+A discretized thermal energy storage with several predefined discrete temperature levels was implemented.
+Moreover, the heat production technologies such as heat pumps, CHP, solar thermal collectors, etc. were
+extended to allow multiple output flows (at different temperature levels). It should be noted that the temperature
+levels are predefined and each heat production technology, therefore, has a predefined hourly efficiency
+related to a specific temperature level. The number of discrete temperature levels is parameterized and can be
+defined in the input scenario excel file. In order to use discrete temperature levels, the ``temperatureLevels``
+parameters has to be True when the ``EnergyNetwork`` class is instantiated::
+
+      import EnergyNetworkGroup as EnergyNetwork
+
+      #set a time period for the optimization problem
+      TimePeriod = np.date_range("2021-01-01 00:00:00". "2021-12-31 23:00:00", freq = "60min"
+
+      #create an energy network and set the network parameters from an excel file
+      network = EnergyNetwork(timeperiod, temperatureLevels=True)
+
+
+The discrete temperature levels defined in the input scenario file, set the temperatures of the output
+flows of the heat conversion technologies. Depending on the time resolution of the optimization problem, it
+may not be acceptable for a heat conversion technology to produce heat at more than one temperature levels
+in a single time step. Therefore, ``limit_active_flow_count`` constraint of oemof solph package (Hilpert
+et al. (2018)) was used to permit only one of the heat output flows to remain active at a given time step.
+A class ``ThermalStorageTemperatureLevels`` was developed to represent a discretized thermal energy storage.
+The model of a layered thermal energy storage is a combination of dual temperature zone storages from
+oemof thermal python package (Hilpert et al. (2018)). The dual temperature zone storages include predefined
+calculations for top/bottom and lateral surface losses. While the lateral surface losses are preserved for the
+storage layers at each temperature level, the top and bottom surface losses should only be considered for the topmost (i.e. at the highest temperature level) and the lowest (i.e. at the lowest temperature) layers. The fixed
+one-time investment cost of the discretized thermal energy storage should be added to the objective function
+only once (instead of being added for each layer separately). These functionalities are implemented within the
+``ThermalStorageTemperatureLevels`` class. Moreover, the total storage volume :math:`V_{stor}` is calculated as the
+sum of individual layer volumes (:math:`v_i`), as follows:
+
+
+.. math::
+
+      \sum_{i=1}^n v_i = V_{stor}
+
+where :math:`n` denotes the number of discrete temperature levels.
+
+A constraint called ``multiTemperatureStorageCapacityConstaint`` was developed to implement the following
+rule on the storage volume capacity:
+
+
+.. math::
+
+      V_{stor,min} \leq V_{stor} \leq V_{stor,max}
+
+where :math:`V_{stor,max}` and :math:`V_{stor,min}` represent the minimum and the maximum limits for the storage volume.
+The Figure below shows a graphical representation of a layered thermal energy storage with three discrete temperature
+levels. The DHW demand is met using the topmost temperature level at 65 °C i.e. highest temperature, while
+the lowest temperature level at 35 °C is used to cover the SH demand. A rule for charging the thermal energy
+storage was implemented, such that the energy inflow at a given storage layer (except the lowest layer), equals
+the energy outflow from the preceding storage layer. Therefore, in order to supply thermal energy at 50 °C
+to the storage, the same volume added at the 50 °C layer should be displaced from layer below, i.e. from the
+35 °C storage level (as shown in Figure 11). This means that the energy conversion technologies can heat
+water from 35 °C to 50 °C and from 50 °C to 65 °C, in that order.
+
+.. image:: ./resources/layered_storage.png
+      :width: 400
+      :alt: layered_storage
+
+.. image:: ./resources/layered_storage_1.png
+      :width: 400
+      :alt: layered_storage_1
+
+Thermal and electrical links
+=============================
+
+In order to allow buildings to share space heat and domestic hot water production, thermal grids were implemented.
+A new component was implemented connecting all the relevant input/output flows of the buildings. A new component class, called Link, extending those already available in oemof,
+was defined with a new constraint group. The implementation of electrical links was also updated. A
+link is now modeled as a new component (does not exist in oemof) where all the relevant input/output flows
+of the buildings connect. The new implementation of links is depicted in the next Figure.
+
+.. image:: ./resources/shLinkExample.png
+      :width: 600
+      :alt: shLinkExample
+
+The implementation of links adds complexity to the optimization problem and affects the convergence
+speed. When the optimizer needs to decide whether to connect the buildings (and which ones to connect),
+each output of a link adds a binary variable into the problem, which exponentially increases the computation
+time as the number of buildings (i.e. number of outputs of each link) and the number of links (electrical, space
+heating, domestic hot water) increase. In order to improve the speed of optimization, an option to merge the
+respective buses, i.e. energy flows (electricity, space heating and domestic hot water), of all the buildings to
+be linked was added into the framework. An example of a merged space heating bus for a scenario with three
+buildings is shown in the next Figure. This option can be used to perform optimization in two steps. In the first
+step, the implementation of links shown in the previous Figure is used, which allows the optimizer to select whether
+connecting the buildings is the best solution or not (although takes longer). Once it has been established that
+connecting the buildings is the best solution, the new option to merge buses (see next Figure) is used to produce
+additional optimizations results faster.
+
+.. image:: ./resources/mergedSHBusExample.png
+      :width: 600
+      :alt: shLinkExample
+
+
+
