@@ -134,8 +134,8 @@ class ThermalStorageTemperatureLevels:
             newLabel = storageLabel + str(int(self.__TempH[i])) + "__" + label.split("__")[1]
             if i == 0:
                 storageInput = {inputs[i]: solph.Flow(investment=solph.Investment(ep_costs=0))}
-                dummyInBus = solph.Bus(label="dummyInBus_" + newLabel)
-                dummyOutBus = solph.Bus(label="dummyOutBus_" + newLabel)   #Special bus to dummy component for level 0 as GenericStorage can have only one output
+                dummyInBus = solph.Bus(label="dummyInBus_" + newLabel.replace("thermalStorage", "ts"))
+                dummyOutBus = solph.Bus(label="dummyOutBus_" + newLabel.replace("thermalStorage", "ts"))   #Special bus to dummy component for level 0 as GenericStorage can have only one output
                 self._dummyInBus.append(dummyInBus)
                 self._dummyOutBus.append(dummyOutBus)
                 storageOutput = {dummyOutBus: solph.Flow(investment=solph.Investment(ep_costs=0))}
@@ -149,9 +149,9 @@ class ThermalStorageTemperatureLevels:
                 ))
             else:
                 if i != self._numberOfLevels - 1:
-                    dummyInBus = solph.Bus(label="dummyInBus_"+newLabel)
+                    dummyInBus = solph.Bus(label="dummyInBus_"+newLabel.replace("thermalStorage", "ts"))
                     self._dummyInBus.append(dummyInBus)
-                dummyOutBus = solph.Bus(label="dummyOutBus_" + newLabel)
+                dummyOutBus = solph.Bus(label="dummyOutBus_" + newLabel.replace("thermalStorage", "ts"))
                 self._dummyOutBus.append(dummyOutBus)
                 storageInput = {dummyOutBus: solph.Flow(investment=solph.Investment(ep_costs=0))}
                 if i == self._numberOfLevels - 1:
