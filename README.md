@@ -45,13 +45,13 @@ commands could be used.
     It might be required to install C++ build tools. To do that, click on the link that appears with the error message and follow the instructions (it is the lapack package that is missing). In order to be able to 
     install the missing package, it is required to have a complete Visual Studio instance and installing it with the "Desktop development with C++" workload.
    
-5.  Verify the installation of the oemof package and the solver by running the installation test in your virtual environment:
+4.  Verify the installation of the oemof package and the solver by running the installation test in your virtual environment:
     ```commandline
     oemof_installation_test
     ```
 
     
-    If the installation is successful the following message would be displayed (the installed solver would be shown as working):
+    If the installation is successful a message similar to the following would display (the installed solver would be marked as working):
     ```commandline
     *****************************
     Solver installed with oemof
