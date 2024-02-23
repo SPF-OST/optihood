@@ -311,7 +311,7 @@ defined already for buses excel sheet. ``invest_base`` and ``invest_cap`` parame
 section) are only relevant for space heating links in the present stage of development.
 
 .. image:: ./resources/scenario_links.PNG
-      :width: 600
+      :width: 500
       :alt: scenario_links
 
 ``efficiency`` (float)
@@ -328,7 +328,7 @@ The paths to CSV files containing demand profiles, weather data are to be given 
 excel sheet. If building model is chosen, then path to building model specific data (fitting parameters and internal heat gains from occupancy) is also specified here.
 
 .. image:: ./resources/scenario_profiles_new.png
-      :width: 500
+      :width: 400
       :alt: scenario_profiles_new
 
 grid_connection
