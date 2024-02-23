@@ -152,7 +152,7 @@ A module to calculate the usable heat of a flat plate collector is described in 
 The model for solar thermal collector is taken from the oemof thermal package.
 
 PV
----
+^^^
 
 The installed PV provides electricity to the building during the irradiation hours. Along with the battery, the usual strategy is to store the PV surplus power in the battery to be consumed at later hours of the planning horizon. The maximum available power :math:`pv_t^{avail}` of the PV is a built function that depends on the PV cell temperature, the ambient temperature and the total solar horizontal irradiation. These formulas, as well as the decision variables and the characteristics of the PV are stated in the next Table.
 PV modules production profiles are pre-calculated before the optimization. 
