@@ -25,12 +25,12 @@ To summarize, the technologies are classified in three categories:
 
 
 Energy system component models
-==============================
+-------------------------------
 
 The energy system components can be classified into energy converters and storages. We use constant efficiency models for CHP, gas boiler and electric heating rods, where a fixed efficiency is pre-defined. These fixed efficiencies are defined by the user in the input scenario file. 
 
 Heat pumps
-----------
+^^^^^^^^^^
 
 Heat pumps (ASHP and GSHP) are modelled based on a bi-quadratic polynomial fit of the  condenser heating power (:math:`\dot{ q }_c`) and the electrical consumption power of the compressor (:math:`\dot{w}_{cp}`):
 
@@ -146,7 +146,7 @@ Table 5: Fitted coefficients for the ProDomo13-R410A brine/water heat pump using
       :alt: HP_table5
 
 Solar thermal collector
------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 A module to calculate the usable heat of a flat plate collector is described in details in `Solar thermal collector <https://oemof-thermal.readthedocs.io/en/latest/solar_thermal_collector.html#solar-thermal-collector>`_.
 The model for solar thermal collector is taken from the oemof thermal package.
@@ -158,13 +158,13 @@ The installed PV provides electricity to the building during the irradiation hou
 PV modules production profiles are pre-calculated before the optimization. 
 
 Two-zone thermal energy storage
--------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 A simplified 2-zone-model of a stratified thermal energy storage is implemented and described indetails in `Stratified thermal storage <https://oemof-thermal.readthedocs.io/en/latest/stratified_thermal_storage.html>`_.
 The model for stratified thermal storage is taken from the oemof thermal package.
 
 Combined production transformer
--------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 A new transformer called combined production transformer which extends the features of oemof “Transformer” was defined. Since some transformers like HP can have different efficiencies for SH and DHW production (DHW needs a higher temperature than SH), this transformer offers the possibility to consider those different efficiencies. It allows to produce both space heating (SH) and domestic hot water (DHW) during the same timestep while respecting the input/output balance constraint.
 
@@ -177,7 +177,7 @@ where, :math:`P` denotes the operating power for inputs (for example, electricit
 Physically the converters cannot supply both SH and DHW at the same time. However, if we consider a timestep of 1 hour it can be considered to be sub-divided into smaller intervals to produce SH and DHW both within 1 hour. The combined production transformer was used for the implementation of heat pumps (ASHP, GSHP), CHP, gas boiler and electric heating rod.
 
 PVT collector
--------------
+^^^^^^^^^^^^^^
 
 PVT class was implemented within the converters module, which defines the energy conversion technologies
 supported by optihood. The collector output is modelled based on the characteristic curve model reported
@@ -198,7 +198,7 @@ A corresponding label :math:`PVT` was added to the energy conversion technology 
 definition of a PVT collector in the input excel/config file while preparing the optimization problem.
 
 Layered thermal energy storage and discrete temperature levels
----------------------------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 A discretized thermal energy storage with several predefined discrete temperature levels was implemented.
 Moreover, the heat production technologies such as heat pumps, CHP, solar thermal collectors, etc. were
@@ -266,7 +266,7 @@ water from 35 °C to 50 °C and from 50 °C to 65 °C, in that order.
       :alt: layered_storage_1
 
 Thermal and electrical links
-=============================
+-----------------------------
 
 In order to allow buildings to share space heat and domestic hot water production, thermal grids were implemented.
 A new component was implemented connecting all the relevant input/output flows of the buildings. A new component class, called Link, extending those already available in oemof,
@@ -297,7 +297,7 @@ additional optimizations results faster.
 
 
 Building model
-===============
+---------------
 
 A linear RC building model is presently under-development to replace the static space heating demand profiles. A building
 model is a grey-box model which is often used to depict the thermal behaviour of a building in a simplified manner. It is
