@@ -308,7 +308,7 @@ class IceStorage(Node):
         self._invest_group = False
 
         inputs = {input: solph.Flow(),}
-        outputs = {output: solph.Flow(investment=solph.Investment(ep_costs=0), variable_costs=varc, custom_attributes={'env_per_flow':env_flow} )}
+        outputs = {output: solph.Flow()}
 
         super().__init__(
             label,
