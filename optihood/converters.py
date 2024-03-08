@@ -86,7 +86,7 @@ class SolarCollector(solph.Transformer):
         return coeff
 
 class PVT(solph.Transformer):
-    def __init__(self, label, buildingLabel, inputs, outputs, connector, electrical_consumption, peripheral_losses, latitude,
+    def __init__(self, label, buildingLabel, inputs, outputs, connectors, electrical_consumption, peripheral_losses, latitude,
                  longitude,
                  collector_tilt, roof_area, zenith_angle, collector_azimuth, eta_0, a_1, a_2, temp_collector_inlet,temp_amb,
                  delta_temp_n, irradiance_global,
@@ -95,63 +95,124 @@ class PVT(solph.Transformer):
 
         pvdata = self.computePvSolarPosition(irradiance_diffuse, irradiance_global, latitude, longitude, collector_azimuth,
                                            collector_tilt, temp_amb)
-        pv_electricity = np.minimum(self.pvtElPrecalc(temp_amb, temp_collector_inlet, pvdata['pv_ira'] / 1000, delta_temp_n), capacityMax + base)
-        pvtCollectorData = self.pvtThPrecalc(latitude, longitude, collector_tilt, collector_azimuth, eta_0, a_1, a_2, temp_collector_inlet, delta_temp_n,
+        pv_electricity = np.minimum(self.pvtElPrecalc(temp_amb, temp_collector_inlet, pvdata['pv_ira'] / 1000, delta_temp_n[1]), capacityMax + base)
+        pvtCollectorData_sh = self.pvtThPrecalc(latitude, longitude, collector_tilt, collector_azimuth, eta_0, a_1, a_2,
+                                                temp_collector_inlet, delta_temp_n[0],
                                        irradiance_global, irradiance_diffuse, temp_amb,  pv_efficiency, taualpha)
+        pvtCollectorData_dhw = self.pvtThPrecalc(latitude, longitude, collector_tilt, collector_azimuth, eta_0, a_1, a_2,
+                                             temp_collector_inlet, delta_temp_n[1],
+                                             irradiance_global, irradiance_diffuse, temp_amb, pv_efficiency, taualpha)
         self.taualpha = taualpha
 
-        self.collectors_heat = pvtCollectorData['collectors_heat']/1000
-        self.collectors_eta_c = pvtCollectorData['eta_c']
+        self.collectors_heat_sh = pvtCollectorData_sh['collectors_heat']/1000
+        self.collectors_heat_dhw = pvtCollectorData_dhw['collectors_heat'] / 1000
+        self.collectors_eta_c_sh = pvtCollectorData_sh['eta_c']
+        self.collectors_eta_c_dhw = pvtCollectorData_dhw['eta_c']
         self.surface_used = self.calculateArea(zenith_angle, collector_tilt, collector_azimuth)
         surface_used_el = self.calculateArea(zenith_angle, collector_tilt, collector_azimuth, pv_efficiency)
         if dispatchMode:
-            investArgs = {'ep_costs':epc,
+            investArgsEl = {'ep_costs':0,
                          'minimum':capacityMin,
                          'maximum':capacityMax,
                          'space':self.surface_used,
                          'space_el': surface_used_el,
                          'roof_area':roof_area,
                          'env_per_capa':env_capa}
+            investArgsSH = {'ep_costs': 0,
+                          'minimum': capacityMin,
+                          'maximum': capacityMax,
+                          'space': self.surface_used,
+                          'space_el': surface_used_el,
+                          'roof_area': roof_area,
+                          'env_per_capa': env_capa}
+            investArgsDHW = {'ep_costs': epc,
+                          'minimum': capacityMin,
+                          'maximum': capacityMax,
+                          'space': self.surface_used,
+                          'space_el': surface_used_el,
+                          'roof_area': roof_area,
+                          'env_per_capa': env_capa}
         else:
-            investArgs={'ep_costs':epc,
-                        'minimum':capacityMin,
-                         'maximum':capacityMax,
-                         'nonconvex':True,
-                         'space':self.surface_used,
-                         'space_el': surface_used_el,
-                         'roof_area':roof_area,
-                         'offset':base,
-                         'env_per_capa':env_capa}
+            investArgsEl = {'ep_costs': 0,
+                            'minimum': capacityMin,
+                            'maximum': capacityMax,
+                            'nonconvex': True,
+                            'space': self.surface_used,
+                            'roof_area': roof_area,
+                            'offset': 0.000001,
+                            'env_per_capa': 0}
+            investArgsSH = {'ep_costs': 0,
+                            'minimum': capacityMin,
+                            'maximum': capacityMax,
+                            'nonconvex': True,
+                            'space': self.surface_used,
+                            'roof_area': roof_area,
+                            'offset': 0.000001,
+                            'env_per_capa': 0}
+            investArgsDHW = {'ep_costs': epc,
+                             'minimum': capacityMin,
+                             'maximum': capacityMax,
+                             'nonconvex': True,
+                             'space': self.surface_used,
+                             'roof_area': roof_area,
+                             'offset': base,
+                             'env_per_capa': env_capa}
+
         self.__PVTel_source = solph.Source(label='elSource_' + label + '__' + buildingLabel,
-                                 outputs={outputs[1]: solph.Flow(
-                                     investment=solph.Investment(**investArgs),
+                                 outputs={outputs[2]: solph.Flow(
+                                     investment=solph.Investment(**investArgsEl),
                                      variable_costs=varc,
                                      env_per_flow=env_flow,
                                      max=pv_electricity
                                  )}
                                  )
-        self.__PVTheat_source = solph.Source(
-            label='heatSource_' + label + "__" + buildingLabel,
+        self.__PVTheat_source_sh = solph.Source(
+            label='heatSource_SH' + label + "__" + buildingLabel,
             outputs={
-                connector: solph.Flow(
-                    fix=self.collectors_heat,
-                    investment=solph.Investment(**investArgs),
+                connectors[0]: solph.Flow(
+                    fix=self.collectors_heat_sh,
+                    investment=solph.Investment(**investArgsSH),
                     variable_costs=varc,
                     env_per_flow=env_flow,
                 )
             },
         )
-        self.__PVT_excessheat = solph.Sink(
-            label='excessheat_' + label + "__" + buildingLabel, inputs={connector: solph.Flow()}
+        self.__PVT_excessheat_sh = solph.Sink(
+            label='excessheat_SH' + label + "__" + buildingLabel, inputs={connectors[0]: solph.Flow()}
         )
-        self.__PVTheat_transformer = solph.Transformer(
-            label=label + '__' + buildingLabel,
-            inputs={connector: solph.Flow(), inputs: solph.Flow()},
+        self.__PVTheat_transformer_sh = solph.Transformer(
+            label=label + 'SH__' + buildingLabel,
+            inputs={connectors[0]: solph.Flow(), inputs: solph.Flow()},
             outputs={outputs[0]: solph.Flow()},
             conversion_factors={
-                connector: 1,
+                connectors[0]: 1,
                 inputs: electrical_consumption * (1 - peripheral_losses),
                 outputs[0]: 1 - peripheral_losses
+            },
+        )
+
+        self.__PVTheat_source_dhw = solph.Source(
+            label='heatSource_DHW' + label + "__" + buildingLabel,
+            outputs={
+                connectors[1]: solph.Flow(
+                    fix=self.collectors_heat_dhw,
+                    investment=solph.Investment(**investArgsDHW),
+                    variable_costs=varc,
+                    env_per_flow=env_flow,
+                )
+            },
+        )
+        self.__PVT_excessheat_dhw = solph.Sink(
+            label='excessheat_DHW' + label + "__" + buildingLabel, inputs={connectors[1]: solph.Flow()}
+        )
+        self.__PVTheat_transformer_dhw = solph.Transformer(
+            label=label + 'DHW__' + buildingLabel,
+            inputs={connectors[1]: solph.Flow(), inputs: solph.Flow()},
+            outputs={outputs[1]: solph.Flow()},
+            conversion_factors={
+                connectors[1]: 1,
+                inputs: electrical_consumption * (1 - peripheral_losses),
+                outputs[1]: 1 - peripheral_losses
             },
         )
 
@@ -245,13 +306,13 @@ class PVT(solph.Transformer):
 
     def getPVT(self, type):
         if type == 'heat_source':
-            return self.__PVTheat_source
+            return self.__PVTheat_source_sh, self.__PVTheat_source_dhw
         elif type == 'heat_transformer':
-            return self.__PVTheat_transformer
+            return self.__PVTheat_transformer_sh, self.__PVTheat_transformer_dhw
         elif type == 'el_source':
             return self.__PVTel_source
         elif type == 'excess_heat_sink':
-            return self.__PVT_excessheat
+            return self.__PVT_excessheat_sh, self.__PVT_excessheat_dhw
         else:
             print("Label not identified...")
             return []
