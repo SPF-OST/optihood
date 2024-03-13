@@ -11,7 +11,7 @@ defined for easy and fast result visualization.
 ## Documentation
 The documentation can be found on https://optihood.readthedocs.io/.
 
-## Pre-requisites
+## Prerequisites
 In order to use optihood, the following prerequisites are needed on your machine:
 
 - [Python 3.9](https://www.python.org/downloads/) is installed.
@@ -34,6 +34,7 @@ commands could be used.
 2. All the next commands should be run from within the optihood folder. Create a virtual environment and activate it:
     ```commandline
     py -3.9 -m venv venv
+    venv\Scripts\activate
     ```    
 3. Install the requirements into the created virtual environment:
     ```commandline
