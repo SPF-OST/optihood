@@ -10,6 +10,7 @@
 **/*.pyc
 **/*.xls
 **/src/
+**.egg-info/*
 
 # Ignore result excel and image files
 **/[Rr]esults/
