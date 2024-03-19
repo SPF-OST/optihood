@@ -5,7 +5,7 @@ import pandas as pd
 
 # self is never used!
 
-def createScenarioFile(self, configFilePath, excelFilePath, numberOfBuildings):
+def createScenarioFile(self, configFilePath, excelFilePath, numberOfBuildings, writeToFileOrReturnData='file'):
         """function to create the input excel file from a config file
         saves the generated excel file at the path given by excelFilePath"""
         config = ConfigParser()
@@ -171,8 +171,12 @@ def createScenarioFile(self, configFilePath, excelFilePath, numberOfBuildings):
                 buildingNo = [i for i in range(1, numberOfBuildings + 1)] * len(excelData[sheet].index)
                 excelData[sheet] = pd.DataFrame(np.repeat(data.values, numberOfBuildings, axis=0), columns=data.columns)
                 excelData[sheet]['building'] = buildingNo
-        with pd.ExcelWriter(excelFilePath, engine='xlwt') as writer:
-            for sheet, data in excelData.items():
-                data.to_excel(writer, sheet_name=sheet, index=False)
-            writer.save()
-            writer.close()
+        if writeToFileOrReturnData == 'file':
+            with pd.ExcelWriter(excelFilePath, engine='xlwt') as writer:
+                for sheet, data in excelData.items():
+                    data.to_excel(writer, sheet_name=sheet, index=False)
+                writer.save()
+                writer.close()
+            return
+        elif writeToFileOrReturnData == 'data':
+            return excelData
