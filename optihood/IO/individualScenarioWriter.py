@@ -7,12 +7,7 @@ import optihood.IO.writers as _sw
 import optihood.IO.groupScenarioWriter as _gsw
 
 
-# self is never used!
-# building is never used
-
-
-def createScenarioFile(configFilePath, excel_file_path, building, numberOfBuildings=1,
-                       writeToFileOrReturnData='file'):
+def create_scenario_file(configFilePath, excel_file_path, building, numberOfBuildings=1, writeToFileOrReturnData='file'):
     """
     function to create the input excel file from a config file
     saves the generated excel file at the path given by excel_file_path

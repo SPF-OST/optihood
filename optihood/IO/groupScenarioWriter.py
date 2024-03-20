@@ -6,10 +6,7 @@ import optihood.IO.readers as _rd
 import optihood.IO.writers as _sw
 
 
-# self is never used!
-
-
-def createScenarioFile(configFilePath, excel_file_path, numberOfBuildings, writeToFileOrReturnData='file'):
+def create_scenario_file(configFilePath, excel_file_path, numberOfBuildings, writeToFileOrReturnData='file'):
     """
     function to create the input excel file from a config file
     saves the generated excel file at the path given by excel_file_path
@@ -106,6 +103,7 @@ def createScenarioFile(configFilePath, excel_file_path, numberOfBuildings, write
             excel_data[sheet] = pd.concat([excel_data[sheet], newRow])
 
     excel_data['profiles'] = profiles
+
     add_grid_connections_to_excel_data(excel_data, isGroup=True)
 
     add_busses_to_excel_data(FeedinTariff, excel_data)
