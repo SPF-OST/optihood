@@ -4,13 +4,17 @@ import pandas as pd
 
 
 # self is never used!
+import optihood.IO.readers as _rd
+
 
 def createScenarioFile(self, configFilePath, excelFilePath, numberOfBuildings, writeToFileOrReturnData='file'):
-        """function to create the input excel file from a config file
-        saves the generated excel file at the path given by excelFilePath"""
-        config = ConfigParser()
-        config.read(configFilePath)
-        configData = {}
+        """
+        function to create the input excel file from a config file
+        saves the generated excel file at the path given by excelFilePath
+        """
+
+        configData = _rd.parse_config(configFilePath)
+
         excelData = {}
         columnNames = {'commodity_sources': ['label', 'building', 'to', 'variable costs', 'CO2 impact', 'active'],
                        # column names are defined for each sheet (key of dict) in the excel file
@@ -50,7 +54,7 @@ def createScenarioFile(self, configFilePath, excelFilePath, numberOfBuildings, w
         sheetToSection = {'commodity_sources': 'CommoditySources', 'solar': 'Solar', 'demand': 'Demands',
                           'transformers': 'Transformers', 'storages': 'Storages',
                           'stratified_storage': 'StratifiedStorage', 'links':'Links'}
-        sections = config.sections()
+
         profiles = pd.DataFrame(columns=['name', 'path'])
         updatedLabels = {'weatherpath': 'weather_data', 'path': 'demand_profiles', 'ashp': 'HP', 'gshp': 'GWHP',
                          'electricityresource': 'electricityResource', 'naturalgasresource': 'naturalGasResource',
@@ -61,9 +65,7 @@ def createScenarioFile(self, configFilePath, excelFilePath, numberOfBuildings, w
         efficiencyLinks = {'ellink': 0.9999, 'shlink': 0.9, 'dhwlink': 0.9}
         temp_h = {}  # to store temp_h values for stratified storage parameters sheet
         FeedinTariff = 0
-        for section in config.sections():
-            configData[section] = config.items(section)
-        configData = {k.lower(): v for k, v in configData.items()}
+
         for sheet in columnNames:
             excelData[sheet] = pd.DataFrame(columns=columnNames[sheet])
             if sheet == 'stratified_storage':
