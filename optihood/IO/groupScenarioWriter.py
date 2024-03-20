@@ -2,9 +2,9 @@ from configparser import ConfigParser
 import numpy as np
 import pandas as pd
 
+import optihood.IO.readers as _rd
 
 # self is never used!
-import optihood.IO.readers as _rd
 
 
 def createScenarioFile(self, configFilePath, excelFilePath, numberOfBuildings, writeToFileOrReturnData='file'):

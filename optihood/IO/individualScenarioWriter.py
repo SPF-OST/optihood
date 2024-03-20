@@ -2,16 +2,21 @@ from configparser import ConfigParser
 import numpy as np
 import pandas as pd
 
+import optihood.IO.readers as _rd
+
 
 # self is never used!
+# building is never used
 
 def createScenarioFile(self, configFilePath, excelFilePath, building, numberOfBuildings=1):
-        """function to create the input excel file from a config file
-        saves the generated excel file at the path given by excelFilePath"""
-        config = ConfigParser()
-        config.read(configFilePath)
-        configData = {}
-        excelData= {}
+        """
+        function to create the input excel file from a config file
+        saves the generated excel file at the path given by excelFilePath
+        """
+
+        configData = _rd.parse_config(configFilePath)
+
+        excelData = {}
         columnNames = {'commodity_sources': ['label', 'building', 'to', 'variable costs', 'CO2 impact', 'active'],# column names are defined for each sheet (key of dict) in the excel file
                        'solar': ['label', 'building', 'from', 'to', 'connect', 'electrical_consumption', 'peripheral_losses', 'latitude', 'longitude', 'tilt', 'azimuth', 'eta_0', 'a_1', 'a_2', 'temp_collector_inlet', 'delta_temp_n', 'capacity_max', 'capacity_min', 'lifetime', 'maintenance', 'installation', 'planification', 'invest_base', 'invest_cap', 'heat_impact', 'elec_impact', 'impact_cap'],
                        'demand': ['label', 'building', 'active', 'from', 'fixed', 'nominal value', 'building model'],
@@ -25,14 +30,12 @@ def createScenarioFile(self, configFilePath, excelFilePath, building, numberOfBu
                  'chp': ['electricityProdBus,shSourceBus,dhwStorageBus', 'naturalGasBus', ''], 'ashp': ['shSourceBus,dhwStorageBus', 'electricityInBus', ''], 'gshp': ['shSourceBus,dhwStorageBus', 'electricityInBus', ''],
                  'electricalstorage': ['electricityBus', 'electricityProdBus', ''], 'shstorage': ['spaceHeatingBus', 'shSourceBus', ''], 'dhwstorage': ['domesticHotWaterBus', 'dhwStorageBus', '']}
         sheetToSection = {'commodity_sources':'CommoditySources', 'solar':'Solar', 'demand':'Demands', 'transformers':'Transformers', 'storages':'Storages', 'stratified_storage':'StratifiedStorage'}
-        sections = config.sections()
+
         profiles = pd.DataFrame(columns=['name', 'path'])
         updatedLabels = {'weatherpath':'weather_data', 'path':'demand_profiles', 'ashp':'HP', 'gshp':'GWHP', 'electricityresource':'electricityResource', 'naturalgasresource':'naturalGasResource', 'chp':'CHP', 'gasboiler':'GasBoiler', 'electricrod':'ElectricRod', 'pv':'pv', 'solarcollector':'solarCollector', 'electricalstorage':'electricalStorage', 'shstorage':'shStorage', 'dhwstorage':'dhwStorage', 'stratifiedstorage':'StratifiedStorage'}
         temp_h = {}     # to store temp_h values for stratified storage parameters sheet
         FeedinTariff = 0
-        for section in config.sections():
-            configData[section]=config.items(section)
-        configData = {k.lower(): v for k, v in configData.items()}
+
         for sheet in columnNames:
             excelData[sheet] = pd.DataFrame(columns=columnNames[sheet])
             if sheet == 'stratified_storage':
