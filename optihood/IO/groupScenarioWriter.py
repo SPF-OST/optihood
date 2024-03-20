@@ -101,6 +101,7 @@ def createScenarioFile(self, configFilePath, excel_file_path, numberOfBuildings,
                     excel_data[sheet][type] = item[1]
             if sheet == 'stratified_storage':
                 excel_data[sheet] = pd.concat([excel_data[sheet], newRow])
+
         excel_data['profiles'] = profiles
         excel_data['grid_connection'] = pd.DataFrame(
             {'label': ['gridElectricity', 'electricitySource', 'producedElectricity', 'domesticHotWater', 'shSource', 'spaceHeating'],
@@ -109,24 +110,8 @@ def createScenarioFile(self, configFilePath, excel_file_path, numberOfBuildings,
              'to': ['electricityInBus', 'electricityBus', 'electricityInBus', 'dhwDemandBus', 'spaceHeatingBus', 'shDemandBus'],
              'efficiency': [1, 1, 1, 1, 1, 1]})
 
-        df = pd.DataFrame(columns=['buses'])
-        for sheet, data in excel_data.items():
-            for col in ['from', 'to', 'connect']:
-                if col in data.columns:
-                    newBuses = pd.DataFrame(columns=['buses'])
-                    newBuses['buses'] = data[col].values
-                    df = pd.concat([df, newBuses])
-        df = df.assign(buses=df.buses.str.split(',')).explode('buses')['buses'].unique()
-        df = df[df != '']
-        excel_data['buses'] = pd.DataFrame(columns=['label', 'building', 'excess', 'excess costs', 'active'])
-        for index in range(len(df)):
-            excel_data['buses'].at[index, 'label'] = df[index]
-            if df[index] == 'electricityBus' and FeedinTariff != 0:
-                excel_data['buses'].at[index, 'excess'] = 1
-                excel_data['buses'].at[index, 'excess costs'] = FeedinTariff
-        excel_data['buses']['building'] = 1
-        excel_data['buses']['active'] = 1
-        excel_data['buses'].loc[excel_data['buses']['excess'] != 1, 'excess'] = 0
+        excel_data = add_busses_to_excel_data(FeedinTariff, excel_data)
+
         for sheet, data in excel_data.items():
             if 'building' in data.columns:
                 buildingNo = [i for i in range(1, numberOfBuildings + 1)] * len(excel_data[sheet].index)
@@ -138,6 +123,29 @@ def createScenarioFile(self, configFilePath, excel_file_path, numberOfBuildings,
             return
         elif writeToFileOrReturnData == 'data':
             return excel_data
+
+
+def add_busses_to_excel_data(FeedinTariff, excel_data):
+    df = pd.DataFrame(columns=['buses'])
+    for sheet, data in excel_data.items():
+        for col in ['from', 'to', 'connect']:
+            if col in data.columns:
+                newBuses = pd.DataFrame(columns=['buses'])
+                newBuses['buses'] = data[col].values
+                df = pd.concat([df, newBuses])
+    df = df.assign(buses=df.buses.str.split(',')).explode('buses')['buses'].unique()
+    df = df[df != '']
+    excel_data['buses'] = pd.DataFrame(columns=['label', 'building', 'excess', 'excess costs', 'active'])
+    for index in range(len(df)):
+        excel_data['buses'].at[index, 'label'] = df[index]
+        if df[index] == 'electricityBus' and FeedinTariff != 0:
+            excel_data['buses'].at[index, 'excess'] = 1
+            excel_data['buses'].at[index, 'excess costs'] = FeedinTariff
+    excel_data['buses']['building'] = 1
+    excel_data['buses']['active'] = 1
+    excel_data['buses'].loc[excel_data['buses']['excess'] != 1, 'excess'] = 0
+
+    return excel_data
 
 
 def get_excel_variable_names(isGroup=False):
