@@ -11,7 +11,7 @@ import optihood.IO.groupScenarioWriter as _gsw
 # building is never used
 
 
-def createScenarioFile(self, configFilePath, excel_file_path, building, numberOfBuildings=1,
+def createScenarioFile(configFilePath, excel_file_path, building, numberOfBuildings=1,
                        writeToFileOrReturnData='file'):
     """
     function to create the input excel file from a config file
@@ -107,20 +107,12 @@ def createScenarioFile(self, configFilePath, excel_file_path, building, numberOf
             excel_data[sheet] = pd.concat([excel_data[sheet], newRow])
 
     excel_data['profiles'] = profiles
-    excel_data['grid_connection'] = pd.DataFrame(
-        {'label': ['gridElectricity', 'electricitySource', 'producedElectricity', 'shSource', 'spaceHeating'],
-         'building': [1, 1, 1, 1, 1],
-         'from': ['gridBus', 'electricityProdBus', 'electricityBus', 'shSourceBus', 'spaceHeatingBus'],
-         'to': ['electricityInBus', 'electricityBus', 'electricityInBus', 'spaceHeatingBus', 'shDemandBus'],
-         'efficiency': [1, 1, 1, 1, 1]})
 
-    excel_data = _gsw.add_busses_to_excel_data(FeedinTariff, excel_data)
+    _gsw.add_grid_connections_to_excel_data(excel_data)
 
-    for sheet, data in excel_data.items():
-        if 'building' in data.columns:
-            buildingNo = [i for i in range(1, numberOfBuildings + 1)] * len(excel_data[sheet].index)
-            excel_data[sheet] = pd.DataFrame(np.repeat(data.values, numberOfBuildings, axis=0), columns=data.columns)
-            excel_data[sheet]['building'] = buildingNo
+    _gsw.add_busses_to_excel_data(FeedinTariff, excel_data)
+
+    _gsw.add_buildings_to_excel_data(excel_data, numberOfBuildings)
 
     if writeToFileOrReturnData == 'file':
         _sw.write_prepared_data_and_sheets_to_excel(excel_file_path, excel_data)
@@ -128,3 +120,6 @@ def createScenarioFile(self, configFilePath, excel_file_path, building, numberOf
 
     elif writeToFileOrReturnData == 'data':
         return excel_data
+
+
+
