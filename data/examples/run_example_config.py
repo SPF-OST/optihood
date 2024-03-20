@@ -22,7 +22,7 @@ if __name__ == '__main__':
     scenario = "HP_GS_PV"
     main_result_folder = "..\\results"
     # set a time period for the optimization problem
-    timePeriod = pd.date_range("2021-06-15 00:00:00", "2022-04-14 23:00:00", freq="60min")
+    timePeriod = pd.date_range("2018-01-01 00:00:00", "2018-01-31 23:00:00", freq="60min")
 
     # define paths for input and result files
     inputFilePath = f"..\\configs\\basic_example_config"
