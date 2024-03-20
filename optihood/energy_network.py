@@ -687,7 +687,7 @@ class EnergyNetworkClass(solph.EnergySystem):
     def printInvestedCapacities(self, capacitiesInvestedTransformers, capacitiesInvestedStorages):
         for b in range(len(self.__buildings)):
             buildingLabel = "Building" + str(b + 1)
-            #print("************** Optimized Capacities for {} **************".format(buildingLabel))
+            print("************** Optimized Capacities for {} **************".format(buildingLabel))
             if ("HP__" + buildingLabel, "shSourceBus__" + buildingLabel) in capacitiesInvestedTransformers:
                 investSH = capacitiesInvestedTransformers[("HP__" + buildingLabel, "shSourceBus__" + buildingLabel)]
                 print("Invested in {:.1f} kW HP.".format(investSH))
