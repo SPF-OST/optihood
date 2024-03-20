@@ -17,59 +17,13 @@ def createScenarioFile(self, configFilePath, excel_file_path, numberOfBuildings,
         configData = _rd.parse_config(configFilePath)
 
         excel_data = {}
-        columnNames = {'commodity_sources': ['label', 'building', 'to', 'variable costs', 'CO2 impact', 'active'],
-                       # column names are defined for each sheet (key of dict) in the excel file
-                       'solar': ['label', 'building', 'from', 'to', 'connect', 'electrical_consumption',
-                                 'peripheral_losses', 'latitude', 'longitude', 'tilt', 'azimuth', 'eta_0', 'a_1', 'a_2',
-                                 'temp_collector_inlet', 'delta_temp_n', 'capacity_max', 'capacity_min', 'lifetime',
-                                 'maintenance', 'installation', 'planification', 'invest_base', 'invest_cap',
-                                 'heat_impact', 'elec_impact', 'impact_cap'],
-                       'demand': ['label', 'building', 'active', 'from', 'fixed', 'nominal value', 'building model'],
-                       'transformers': ['label', 'building', 'active', 'from', 'to', 'efficiency', 'capacity_DHW',
-                                        'capacity_SH', 'capacity_el', 'capacity_min', 'lifetime', 'maintenance',
-                                        'installation', 'planification', 'invest_base', 'invest_cap', 'heat_impact',
-                                        'elec_impact', 'impact_cap'],
-                       'storages': ['label', 'building', 'active', 'from', 'to', 'efficiency inflow',
-                                    'efficiency outflow', 'initial capacity', 'capacity min', 'capacity max',
-                                    'capacity loss', 'lifetime', 'maintenance', 'installation', 'planification',
-                                    'invest_base', 'invest_cap', 'heat_impact', 'elec_impact', 'impact_cap'],
-                       'stratified_storage': ['label', 'diameter', 'temp_h', 'temp_c', 'temp_env',
-                                              'inflow_conversion_factor', 'outflow_conversion_factor', 's_iso',
-                                              'lamb_iso', 'alpha_inside', 'alpha_outside']
-                       }
-        columnNames['links'] = ['label', 'active', 'efficiency', 'invest_base', 'invest_cap', 'investment']
-
-        buses = {'naturalgasresource': ['naturalGasBus', '', ''], 'electricityresource': ['gridBus', '', ''],
-                 'solarcollector': ['dhwStorageBus', 'electricityInBus', 'solarConnectBus'],
-                 # [to, from, connect] columns in the excel file
-                 'pv': ['electricityProdBus', '', ''], 'electricitydemand': ['', 'electricityInBus', ''],
-                 'spaceheatingdemand': ['', 'shDemandBus', ''],
-                 'domestichotwaterdemand': ['', 'dhwDemandBus', ''],
-                 'gasboiler': ['shSourceBus,dhwStorageBus', 'naturalGasBus', ''],
-                 'electricrod': ['shSourceBus,dhwStorageBus', 'electricityInBus', ''],
-                 'chp': ['electricityProdBus,shSourceBus,dhwStorageBus', 'naturalGasBus', ''],
-                 'ashp': ['shSourceBus,dhwStorageBus', 'electricityInBus', ''],
-                 'gshp': ['shSourceBus,dhwStorageBus', 'electricityInBus', ''],
-                 'electricalstorage': ['electricityBus', 'electricityProdBus', ''],
-                 'shstorage': ['spaceHeatingBus', 'shSourceBus', ''],
-                 'dhwstorage': ['domesticHotWaterBus', 'dhwStorageBus', '']}
-
-        sheetToSection = {'commodity_sources': 'CommoditySources', 'solar': 'Solar', 'demand': 'Demands',
-                          'transformers': 'Transformers', 'storages': 'Storages', 'stratified_storage': 'StratifiedStorage'}
-        sheetToSection['links'] = 'Links'
-
-        profiles = pd.DataFrame(columns=['name', 'path'])
-        updatedLabels = {'weatherpath': 'weather_data', 'path': 'demand_profiles', 'ashp': 'HP', 'gshp': 'GWHP',
-                         'electricityresource': 'electricityResource', 'naturalgasresource': 'naturalGasResource',
-                         'chp': 'CHP', 'gasboiler': 'GasBoiler', 'electricrod': 'ElectricRod', 'pv': 'pv',
-                         'solarcollector': 'solarCollector', 'electricalstorage': 'electricalStorage',
-                         'shstorage': 'shStorage', 'dhwstorage': 'dhwStorage', 'stratifiedstorage': 'StratifiedStorage'}
-        updatedLabels |= {'ellink': 'electricityLink', 'shlink': 'shLink', 'dhwlink': 'dhwLink'}
+        buses, columnNames, sheetToSection, updatedLabels = get_excel_variable_names(isGroup=True)
 
         efficiencyLinks = {'ellink': 0.9999, 'shlink': 0.9, 'dhwlink': 0.9}
 
         temp_h = {}  # to store temp_h values for stratified storage parameters sheet
         FeedinTariff = 0
+        profiles = pd.DataFrame(columns=['name', 'path'])
 
         for sheet in columnNames:
             excel_data[sheet] = pd.DataFrame(columns=columnNames[sheet])
@@ -184,3 +138,58 @@ def createScenarioFile(self, configFilePath, excel_file_path, numberOfBuildings,
             return
         elif writeToFileOrReturnData == 'data':
             return excel_data
+
+
+def get_excel_variable_names(isGroup=False):
+    columnNames = {'commodity_sources': ['label', 'building', 'to', 'variable costs', 'CO2 impact', 'active'],
+                   # column names are defined for each sheet (key of dict) in the excel file
+                   'solar': ['label', 'building', 'from', 'to', 'connect', 'electrical_consumption',
+                             'peripheral_losses', 'latitude', 'longitude', 'tilt', 'azimuth', 'eta_0', 'a_1', 'a_2',
+                             'temp_collector_inlet', 'delta_temp_n', 'capacity_max', 'capacity_min', 'lifetime',
+                             'maintenance', 'installation', 'planification', 'invest_base', 'invest_cap',
+                             'heat_impact', 'elec_impact', 'impact_cap'],
+                   'demand': ['label', 'building', 'active', 'from', 'fixed', 'nominal value', 'building model'],
+                   'transformers': ['label', 'building', 'active', 'from', 'to', 'efficiency', 'capacity_DHW',
+                                    'capacity_SH', 'capacity_el', 'capacity_min', 'lifetime', 'maintenance',
+                                    'installation', 'planification', 'invest_base', 'invest_cap', 'heat_impact',
+                                    'elec_impact', 'impact_cap'],
+                   'storages': ['label', 'building', 'active', 'from', 'to', 'efficiency inflow',
+                                'efficiency outflow', 'initial capacity', 'capacity min', 'capacity max',
+                                'capacity loss', 'lifetime', 'maintenance', 'installation', 'planification',
+                                'invest_base', 'invest_cap', 'heat_impact', 'elec_impact', 'impact_cap'],
+                   'stratified_storage': ['label', 'diameter', 'temp_h', 'temp_c', 'temp_env',
+                                          'inflow_conversion_factor', 'outflow_conversion_factor', 's_iso',
+                                          'lamb_iso', 'alpha_inside', 'alpha_outside']
+                   }
+
+    buses = {'naturalgasresource': ['naturalGasBus', '', ''], 'electricityresource': ['gridBus', '', ''],
+             'solarcollector': ['dhwStorageBus', 'electricityInBus', 'solarConnectBus'],
+             # [to, from, connect] columns in the excel file
+             'pv': ['electricityProdBus', '', ''], 'electricitydemand': ['', 'electricityInBus', ''],
+             'spaceheatingdemand': ['', 'shDemandBus', ''],
+             'domestichotwaterdemand': ['', 'dhwDemandBus', ''],
+             'gasboiler': ['shSourceBus,dhwStorageBus', 'naturalGasBus', ''],
+             'electricrod': ['shSourceBus,dhwStorageBus', 'electricityInBus', ''],
+             'chp': ['electricityProdBus,shSourceBus,dhwStorageBus', 'naturalGasBus', ''],
+             'ashp': ['shSourceBus,dhwStorageBus', 'electricityInBus', ''],
+             'gshp': ['shSourceBus,dhwStorageBus', 'electricityInBus', ''],
+             'electricalstorage': ['electricityBus', 'electricityProdBus', ''],
+             'shstorage': ['spaceHeatingBus', 'shSourceBus', ''],
+             'dhwstorage': ['domesticHotWaterBus', 'dhwStorageBus', '']}
+
+    sheetToSection = {'commodity_sources': 'CommoditySources', 'solar': 'Solar', 'demand': 'Demands',
+                      'transformers': 'Transformers', 'storages': 'Storages', 'stratified_storage': 'StratifiedStorage'}
+
+    updatedLabels = {'weatherpath': 'weather_data', 'path': 'demand_profiles', 'ashp': 'HP', 'gshp': 'GWHP',
+                     'electricityresource': 'electricityResource', 'naturalgasresource': 'naturalGasResource',
+                     'chp': 'CHP', 'gasboiler': 'GasBoiler', 'electricrod': 'ElectricRod', 'pv': 'pv',
+                     'solarcollector': 'solarCollector', 'electricalstorage': 'electricalStorage',
+                     'shstorage': 'shStorage', 'dhwstorage': 'dhwStorage', 'stratifiedstorage': 'StratifiedStorage'}
+
+    if isGroup:
+        columnNames['links'] = ['label', 'active', 'efficiency', 'invest_base', 'invest_cap', 'investment']
+        sheetToSection['links'] = 'Links'
+        updatedLabels |= {'ellink': 'electricityLink', 'shlink': 'shLink', 'dhwlink': 'dhwLink'}
+
+
+    return buses, columnNames, sheetToSection, updatedLabels
