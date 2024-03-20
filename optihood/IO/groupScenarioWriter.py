@@ -35,9 +35,10 @@ def createScenarioFile(self, configFilePath, excel_file_path, numberOfBuildings,
                                     'invest_base', 'invest_cap', 'heat_impact', 'elec_impact', 'impact_cap'],
                        'stratified_storage': ['label', 'diameter', 'temp_h', 'temp_c', 'temp_env',
                                               'inflow_conversion_factor', 'outflow_conversion_factor', 's_iso',
-                                              'lamb_iso', 'alpha_inside', 'alpha_outside'],
-                       'links': ['label', 'active', 'efficiency', 'invest_base', 'invest_cap', 'investment']
+                                              'lamb_iso', 'alpha_inside', 'alpha_outside']
                        }
+        columnNames['links'] = ['label', 'active', 'efficiency', 'invest_base', 'invest_cap', 'investment']
+
         buses = {'naturalgasresource': ['naturalGasBus', '', ''], 'electricityresource': ['gridBus', '', ''],
                  'solarcollector': ['dhwStorageBus', 'electricityInBus', 'solarConnectBus'],
                  # [to, from, connect] columns in the excel file
@@ -52,18 +53,21 @@ def createScenarioFile(self, configFilePath, excel_file_path, numberOfBuildings,
                  'electricalstorage': ['electricityBus', 'electricityProdBus', ''],
                  'shstorage': ['spaceHeatingBus', 'shSourceBus', ''],
                  'dhwstorage': ['domesticHotWaterBus', 'dhwStorageBus', '']}
+
         sheetToSection = {'commodity_sources': 'CommoditySources', 'solar': 'Solar', 'demand': 'Demands',
-                          'transformers': 'Transformers', 'storages': 'Storages',
-                          'stratified_storage': 'StratifiedStorage', 'links':'Links'}
+                          'transformers': 'Transformers', 'storages': 'Storages', 'stratified_storage': 'StratifiedStorage'}
+        sheetToSection['links'] = 'Links'
 
         profiles = pd.DataFrame(columns=['name', 'path'])
         updatedLabels = {'weatherpath': 'weather_data', 'path': 'demand_profiles', 'ashp': 'HP', 'gshp': 'GWHP',
                          'electricityresource': 'electricityResource', 'naturalgasresource': 'naturalGasResource',
                          'chp': 'CHP', 'gasboiler': 'GasBoiler', 'electricrod': 'ElectricRod', 'pv': 'pv',
                          'solarcollector': 'solarCollector', 'electricalstorage': 'electricalStorage',
-                         'shstorage': 'shStorage', 'dhwstorage': 'dhwStorage', 'stratifiedstorage': 'StratifiedStorage',
-                         'ellink': 'electricityLink', 'shlink': 'shLink', 'dhwlink': 'dhwLink'}
+                         'shstorage': 'shStorage', 'dhwstorage': 'dhwStorage', 'stratifiedstorage': 'StratifiedStorage'}
+        updatedLabels |= {'ellink': 'electricityLink', 'shlink': 'shLink', 'dhwlink': 'dhwLink'}
+
         efficiencyLinks = {'ellink': 0.9999, 'shlink': 0.9, 'dhwlink': 0.9}
+
         temp_h = {}  # to store temp_h values for stratified storage parameters sheet
         FeedinTariff = 0
 
