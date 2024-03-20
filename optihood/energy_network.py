@@ -537,11 +537,11 @@ class EnergyNetworkClass(solph.EnergySystem):
             electricitySourceLabel = "electricityResource" + '__' + buildingLabel
             gridBusLabel = "gridBus" + '__' + buildingLabel
             if mergeLinkBuses:
-                electricityProdBusLabel = "electricityProdBus"
-                excessElectricityProdBusLabel = "excesselectricityProdBus"
+                electricityProdBusLabel = "electricityBus"
+                excessElectricityProdBusLabel = "excesselectricityBus"
             else:
-                electricityProdBusLabel = "electricityProdBus" + '__' + buildingLabel
-                excessElectricityProdBusLabel = "excesselectricityProdBus" + '__' + buildingLabel
+                electricityProdBusLabel = "electricityBus" + '__' + buildingLabel
+                excessElectricityProdBusLabel = "excesselectricityBus" + '__' + buildingLabel
 
             costParamGridElectricity = self.__costParam[electricitySourceLabel].copy()
             costParamGridElectricity.reset_index(inplace=True, drop=True)
@@ -557,7 +557,7 @@ class EnergyNetworkClass(solph.EnergySystem):
                         costParamGridElectricity * gridElectricityFlow).sum()})  # cost of grid electricity is added separately based on cost data
 
             # Feed-in electricity cost (value will be in negative to signify monetary gain...)
-            if (mergeLinkBuses and buildingLabel=='Building1') or not mergeLinkBuses:
+            if ((mergeLinkBuses and buildingLabel=='Building1') or not mergeLinkBuses) and solph.views.node(self._optimizationResults, electricityProdBusLabel):
                 self.__feedIn[buildingLabel] = sum(solph.views.node(self._optimizationResults, electricityProdBusLabel)
                                                    ["sequences"][(electricityProdBusLabel, excessElectricityProdBusLabel), "flow"]) * self.__costParam[excessElectricityProdBusLabel]
             else: # in case of merged links feed in for all buildings except Building1 is set to 0 (to avoid repetition)

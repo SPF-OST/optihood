@@ -75,9 +75,10 @@ class CombinedTransformerBlock(SimpleBlock):
             """Constraint for evaluation of Q_condensor i.e. the second input"""
             for t in m.TIMESTEPS:
                 for g in group:
-                    lhs = (len(list(g.inputs)) > 1) * m.flow[g.inflowQevap, g, t]
-                    rhs = (len(list(g.inputs)) > 1) * (m.flow[g, g.outputSH, t] + m.flow[g, g.outputDHW, t] - m.flow[g.inflow, g, t])
-                    block.input_relation.add((g, t), (lhs == rhs))
+                    if len(list(g.inputs)) > 1:
+                        lhs = (len(list(g.inputs)) > 1) * m.flow[g.inflowQevap, g, t]
+                        rhs = (len(list(g.inputs)) > 1) * (m.flow[g, g.outputSH, t] + m.flow[g, g.outputDHW, t] - m.flow[g.inflow, g, t])
+                        block.input_relation.add((g, t), (lhs == rhs))
 
         self.input_relation = Constraint(
             group, m.TIMESTEPS, noruleinit=True
