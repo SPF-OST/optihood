@@ -3,20 +3,21 @@ import numpy as np
 import pandas as pd
 
 import optihood.IO.readers as _rd
+import optihood.IO.scenarioWriter as _sw
 
 
 # self is never used!
 # building is never used
 
-def createScenarioFile(self, configFilePath, excelFilePath, building, numberOfBuildings=1):
+def createScenarioFile(self, configFilePath, excel_file_path, building, numberOfBuildings=1, writeToFileOrReturnData='file'):
         """
         function to create the input excel file from a config file
-        saves the generated excel file at the path given by excelFilePath
+        saves the generated excel file at the path given by excel_file_path
         """
 
         configData = _rd.parse_config(configFilePath)
 
-        excelData = {}
+        excel_data = {}
         columnNames = {'commodity_sources': ['label', 'building', 'to', 'variable costs', 'CO2 impact', 'active'],# column names are defined for each sheet (key of dict) in the excel file
                        'solar': ['label', 'building', 'from', 'to', 'connect', 'electrical_consumption', 'peripheral_losses', 'latitude', 'longitude', 'tilt', 'azimuth', 'eta_0', 'a_1', 'a_2', 'temp_collector_inlet', 'delta_temp_n', 'capacity_max', 'capacity_min', 'lifetime', 'maintenance', 'installation', 'planification', 'invest_base', 'invest_cap', 'heat_impact', 'elec_impact', 'impact_cap'],
                        'demand': ['label', 'building', 'active', 'from', 'fixed', 'nominal value', 'building model'],
@@ -37,7 +38,7 @@ def createScenarioFile(self, configFilePath, excelFilePath, building, numberOfBu
         FeedinTariff = 0
 
         for sheet in columnNames:
-            excelData[sheet] = pd.DataFrame(columns=columnNames[sheet])
+            excel_data[sheet] = pd.DataFrame(columns=columnNames[sheet])
             if sheet == 'stratified_storage':
                 newRow = pd.DataFrame(columns=columnNames[sheet])
                 newRow.at[0, 'label'] = list(temp_h)[0]
@@ -81,7 +82,7 @@ def createScenarioFile(self, configFilePath, excelFilePath, building, numberOfBu
                                     temp_h[newRow.at[0,'label']] = p[1]
                                 else:
                                     newRow.at[0,p[0]] = p[1]
-                        excelData[sheet] = pd.concat([excelData[sheet], newRow])
+                        excel_data[sheet] = pd.concat([excel_data[sheet], newRow])
                 elif type=='path':       # demand path
                     buildingFolder = [i[1] for i in configData['demands'] if i[0] == 'folders'][0].split(',')[building]
                     buildingPath = item[1]+'\\'+ buildingFolder
@@ -98,23 +99,23 @@ def createScenarioFile(self, configFilePath, excelFilePath, building, numberOfBu
                             newRow.at[0, 'building model'] = 'Yes'
                         else:
                             newRow.at[0, 'fixed'] = 1
-                        excelData[sheet] = pd.concat([excelData[sheet], newRow])
-                    excelData[sheet]['building'] = 1
-                    excelData[sheet]['active'] = 1
-                    excelData[sheet]['nominal value'] = 1
+                        excel_data[sheet] = pd.concat([excel_data[sheet], newRow])
+                    excel_data[sheet]['building'] = 1
+                    excel_data[sheet]['active'] = 1
+                    excel_data[sheet]['nominal value'] = 1
                 elif sheet == 'stratified_storage':
                     newRow.at[0,type] = item[1]
                     newRow.at[1,type] = item[1]
                 else: # common parameters of all the components of that section
                     if type!='folders':
-                        excelData[sheet][type] = item[1]
+                        excel_data[sheet][type] = item[1]
             if sheet == 'stratified_storage':
-                excelData[sheet] = pd.concat([excelData[sheet], newRow])
-        excelData['profiles'] = profiles
-        excelData['grid_connection'] = pd.DataFrame({'label':['gridElectricity','electricitySource','producedElectricity','shSource','spaceHeating'], 'building':[1,1,1,1,1], 'from':['gridBus','electricityProdBus','electricityBus','shSourceBus','spaceHeatingBus'], 'to':['electricityInBus','electricityBus','electricityInBus','spaceHeatingBus','shDemandBus'], 'efficiency':[1,1,1,1,1]})
+                excel_data[sheet] = pd.concat([excel_data[sheet], newRow])
+        excel_data['profiles'] = profiles
+        excel_data['grid_connection'] = pd.DataFrame({'label':['gridElectricity','electricitySource','producedElectricity','shSource','spaceHeating'], 'building':[1,1,1,1,1], 'from':['gridBus','electricityProdBus','electricityBus','shSourceBus','spaceHeatingBus'], 'to':['electricityInBus','electricityBus','electricityInBus','spaceHeatingBus','shDemandBus'], 'efficiency':[1,1,1,1,1]})
 
         df = pd.DataFrame(columns=['buses'])
-        for sheet, data in excelData.items():
+        for sheet, data in excel_data.items():
             for col in ['from', 'to', 'connect']:
                 if col in data.columns:
                     newBuses = pd.DataFrame(columns=['buses'])
@@ -122,22 +123,23 @@ def createScenarioFile(self, configFilePath, excelFilePath, building, numberOfBu
                     df = pd.concat([df, newBuses])
         df = df.assign(buses=df.buses.str.split(',')).explode('buses')['buses'].unique()
         df = df[df != '']
-        excelData['buses'] = pd.DataFrame(columns=['label', 'building', 'excess', 'excess costs', 'active'])
+        excel_data['buses'] = pd.DataFrame(columns=['label', 'building', 'excess', 'excess costs', 'active'])
         for index in range(len(df)):
-            excelData['buses'].at[index,'label'] = df[index]
+            excel_data['buses'].at[index,'label'] = df[index]
             if df[index] == 'electricityBus' and FeedinTariff!=0:
-                excelData['buses'].at[index,'excess'] = 1
-                excelData['buses'].at[index, 'excess costs'] = FeedinTariff
-        excelData['buses']['building'] = 1
-        excelData['buses']['active'] = 1
-        excelData['buses'].loc[excelData['buses']['excess']!=1,'excess'] = 0
-        for sheet, data in excelData.items():
+                excel_data['buses'].at[index,'excess'] = 1
+                excel_data['buses'].at[index, 'excess costs'] = FeedinTariff
+        excel_data['buses']['building'] = 1
+        excel_data['buses']['active'] = 1
+        excel_data['buses'].loc[excel_data['buses']['excess']!=1,'excess'] = 0
+        for sheet, data in excel_data.items():
             if 'building' in data.columns:
-                buildingNo = [i for i in range(1, numberOfBuildings + 1)]* len(excelData[sheet].index)
-                excelData[sheet] = pd.DataFrame(np.repeat(data.values, numberOfBuildings, axis=0), columns=data.columns)
-                excelData[sheet]['building'] = buildingNo
-        with pd.ExcelWriter(excelFilePath, engine='xlwt') as writer:
-            for sheet, data in excelData.items():
-                data.to_excel(writer, sheet_name=sheet, index=False)
-            writer.save()
-            writer.close()
+                buildingNo = [i for i in range(1, numberOfBuildings + 1)]* len(excel_data[sheet].index)
+                excel_data[sheet] = pd.DataFrame(np.repeat(data.values, numberOfBuildings, axis=0), columns=data.columns)
+                excel_data[sheet]['building'] = buildingNo
+
+        if writeToFileOrReturnData == 'file':
+            _sw.write_prepared_data_and_sheets_to_excel(excel_file_path, excel_data)
+            return
+        elif writeToFileOrReturnData == 'data':
+            return excel_data
