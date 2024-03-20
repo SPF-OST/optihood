@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 
 import optihood.IO.readers as _rd
-import optihood.IO.scenarioWriter as _sw
+import optihood.IO.writers as _sw
 
 # self is never used!
 
