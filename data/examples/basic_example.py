@@ -9,7 +9,7 @@ except ImportError:
 # EnergyNetworkIndiv for individual optimization
 # EnergyNetworkGroup for grouped optimization
 
-from optihood.energy_network import EnergyNetworkIndiv as EnergyNetwork
+from optihood.energy_network import EnergyNetworkGroup as EnergyNetwork
 
 # import plotting methods for Sankey and detailed plots
 
@@ -17,7 +17,7 @@ import optihood.plot_sankey as snk
 import optihood.plot_functions as fnc
 
 if __name__ == '__main__':
-
+    type = 'group'
     # set a time period for the optimization problem
     timePeriod = pd.date_range("2018-01-01 00:00:00", "2018-01-31 23:00:00", freq="60min")
 
@@ -25,7 +25,7 @@ if __name__ == '__main__':
     inputFilePath = r"..\excels\basic_example"
     inputfileName = "scenario.xls"
 
-    resultFilePath =r"..\results"
+    resultFilePath =r"..\results\basic_example\{}".format(type)
     resultFileName ="results.xlsx"
 
     # initialize parameters
@@ -56,7 +56,7 @@ if __name__ == '__main__':
     sankeyFileName = f"Sankey_{numberOfBuildings}_{optimizationType}.html"
 
     snk.plot(os.path.join(resultFilePath, resultFileName), os.path.join(figureFilePath, sankeyFileName),
-                   numberOfBuildings, UseLabelDict, labels='default', optimType='indiv')
+                   numberOfBuildings, UseLabelDict, labels='default', optimType=type)
 
     # plot detailed energy flow
     plotLevel = "allMonths"  # permissible values (for energy balance plot): "allMonths" {for all months}

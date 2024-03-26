@@ -671,12 +671,16 @@ class EnergyNetworkClass(solph.EnergySystem):
 
     def calcStateofCharge(self, type, building):
         if "thermalStorage" in type:
-            for layer in self.__operationTemperatures:
-                thermal_type = type + str(layer)[:2]
+            for i,temperature in enumerate(self.__operationTemperatures):
+                thermal_type = type + str(temperature)[:2]
                 if thermal_type + '__' + building in self.groups:
                     storage = self.groups[thermal_type + '__' + building]
-                    self._storageContent.setdefault(building, {})[thermal_type] = \
-                    self._optimizationResults[(storage, None)]["sequences"]
+                    self._storageContent.setdefault(building, {})[thermal_type] = self._optimizationResults[(storage, None)]["sequences"]
+                if temperature == self.__operationTemperatures[-1]:
+                    lists = np.array(list(self._storageContent[building].values()))
+                    # Calculate the sum of corresponding elements in the arrays
+                    sums = np.sum(lists, axis=0)
+                    self._storageContent[building][thermal_type][f'Overall_storage_content_{building}'] = sums
         elif type + '__' + building in self.groups:
             storage = self.groups[type + '__' + building]
 
@@ -771,12 +775,14 @@ class EnergyNetworkClass(solph.EnergySystem):
         return envImpactTechnologiesNetwork + envImpactInputsNetwork
 
     def exportToExcel(self, file_name, mergeLinkBuses=False):
+        hSB_sheet = [] #Special sheet for the merged heatStorageBus
         for i in range(1, self.__noOfBuildings+1):
             if self._temperatureLevels:
                 self._storageContentTS = self.calcStateofCharge("thermalStorage", f"Building{i}")
             else:
                 self._storageContentSH = self.calcStateofCharge("shStorage", f"Building{i}")
                 self._storageContentDHW = self.calcStateofCharge("dhwstorage", f"Building{i}")
+            hSB_sheet.append(f'heatStorageBus_Building{i}') #name of the different heatStorageBuses
 
 
         with pd.ExcelWriter(file_name) as writer:
@@ -785,8 +791,10 @@ class EnergyNetworkClass(solph.EnergySystem):
                 if "buses._bus.Bus" in str(type(i)).replace("<oemof.solph.", "").replace("'>", ""):
                     busLabelList.append(i.label)
             # writing results of each bus into excel
+            result_hSB = pd.DataFrame()
+            hSB_building = 0
             for i in busLabelList:
-                if "dummy" not in i:
+                if "dummy" not in i: #don't print the dummy results anymore
                     if "domesticHotWaterBus" in i:  # special case for DHW bus (output from transformers --> dhwStorageBus --> DHW storage --> domesticHotWaterBus --> DHW Demand)
                         if not mergeLinkBuses:
                             dhwStorageBusLabel = "dhwStorageBus__" + i.split("__")[1]
@@ -799,20 +807,32 @@ class EnergyNetworkClass(solph.EnergySystem):
                         result = pd.DataFrame.from_dict(solph.views.node(self._optimizationResults, i)["sequences"])  # result sequences of DHW storage bus
                     elif "dhwStorageBus" not in i:  # for all the other buses except DHW storage bus (as it is already considered with DHW bus)
                         if 'sequences' in solph.views.node(self._optimizationResults, i):
+
                             result = pd.DataFrame.from_dict(solph.views.node(self._optimizationResults, i)["sequences"])
                             if "shSourceBus" in i and i.split("__")[1] in self._storageContentSH:
                                 result = pd.concat([result, self._storageContentSH[i.split("__")[1]]], axis=1, sort=True)
 
                             if "heatStorageBus" in i and i.split("__")[1] in self._storageContentTS:
-                                for j in range(len(self.__operationTemperatures)):
-                                    if f's{j}' in i.split("__")[0]:
-                                        result = pd.concat([result, self._storageContentTS[i.split("__")[1]][
-                                            f'thermalStorage{int(self.__operationTemperatures[j])}']], axis=1, sort=True)
+                                result = result[
+                                    result.columns[[0, 3]]]  # get rid of 'status' and 'status_nominal' columns
+                                result_hSB = pd.concat([result_hSB, result], axis=1, sort=True)
+                                # for j, temperature in enumerate(self.__operationTemperatures): #this was used for the intermediate storage content (layer by layer)
+                                #     if f's{j}' in i.split("__")[0]:
+                                #         result = pd.concat([result, self._storageContentTS[i.split("__")[1]][
+                                #             f'thermalStorage{int(temperature)}']], axis=1, sort=True)
+                                if f's{len(self.__operationTemperatures)-1}' in i.split("__")[0]: #if we are at the last storage layer, then add the overall storage content of the building
+                                    result_hSB = pd.concat([result_hSB, self._storageContentTS[i.split("__")[1]][
+                                             f'thermalStorage{int(self.__operationTemperatures[-1])}'][f'Overall_storage_content_{i.split("__")[1]}']], axis=1, sort=True)
+
                         else:
                             continue
                     result[result < 0.001] = 0      # to resolve the issue of very low values in the results in certain cases, values less than 1 Watt would be replaced by 0
-                    if mergeLinkBuses or "dhwStorageBus" not in i:
+                    if (mergeLinkBuses or "dhwStorageBus" not in i) and "heatStorageBus" not in i:
                         result.to_excel(writer, sheet_name=i)
+                    elif f"heatStorageBus{len(self.__operationTemperatures)-1}" in i: #Special case for merging the heatStorageBuses (only if at the higher thermal layer)
+                        result_hSB.to_excel(writer, sheet_name= hSB_sheet[hSB_building])
+                        result_hSB = pd.DataFrame() #Clean the temporary heatStorageBus sheet
+                        hSB_building += 1  # Prepare for the next building
 
             # writing the costs and environmental impacts (of different components...) for each building
             for b in self.__buildings:

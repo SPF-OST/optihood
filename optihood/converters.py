@@ -35,18 +35,14 @@ class SolarCollector(solph.components.Transformer):
             investArgs = {'ep_costs':epc,
                         'minimum':capacityMin,
                         'maximum':capacityMax,
-                        'space':self.surface_used,
-                        'roof_area':roof_area,
-                        'custom_attributes': {'env_per_capa': env_capa}}
+                        'custom_attributes': {'env_per_capa': env_capa, 'space': self.surface_used, 'roof_area': roof_area}}
         else:
             investArgs = {'ep_costs':epc,
                         'minimum':capacityMin,
                         'maximum':capacityMax,
                         'nonconvex':True,
-                        'space':self.surface_used,
-                        'roof_area':roof_area,
                         'offset':base,
-                        'custom_attributes': {'env_per_capa': env_capa}}
+                        'custom_attributes': {'env_per_capa': env_capa, 'space':self.surface_used, 'roof_area':roof_area, }}
         if isinstance(delta_temp_n, float):
             connectorOutputDict = {connector: solph.Flow(
                 fix=self.collectors_heat,
@@ -219,12 +215,12 @@ class GeothermalHeatPumpLinear:
 
 class CHP:
     "Information about the model can be found in combined_pro.py CombinedCHP"
-    def __init__(self, buildingLabel, input, output, efficiency,
+    def __init__(self, buildingLabel, input, outputEl, outputSH, outputDHW, efficiencyEl, efficiencySH, efficiencyDHW,
                  capacityMin, capacitySH, epc, base, varc1, varc2, env_flow1, env_flow2, env_capa, timesteps, dispatchMode):
-        outputEff = {}
-        for i in range(len(output)):
-            outputEff[output[i]] = [efficiency[i]]*timesteps
-        self.avgEff = efficiency[1]
+        self._efficiencyEl = [efficiencyEl] * timesteps
+        self._efficiencySH = [efficiencySH] * timesteps
+        self._efficiencyDHW = [efficiencyDHW] * timesteps
+        self.avgEff = efficiencySH
         if dispatchMode:
             investArgs = {'ep_costs': epc * self.avgEff,
                           'minimum': capacityMin / self.avgEff,
@@ -237,8 +233,8 @@ class CHP:
                         'nonconvex':True,
                         'offset':base,
                         'custom_attributes': {'env_per_capa': env_capa * self.avgEff}}
-        outputDict = {k: solph.Flow(variable_costs=varc2, env_per_flow=env_flow2) for k in output if k!=output[0]}
-        outputDict[output[0]] = solph.Flow(variable_costs=varc1, env_per_flow=env_flow1)
+        # outputDict = {k: solph.Flow(variable_costs=varc2, env_per_flow=env_flow2) for k in output if k!=output[0]}
+        # outputDict[output[0]] = solph.Flow(variable_costs=varc1, env_per_flow=env_flow1)
         self.__CHP = cp.CombinedCHP(
                         label='CHP'+'__'+buildingLabel,
                         inputs={
@@ -246,8 +242,22 @@ class CHP:
                                 investment=solph.Investment(**investArgs),
                             )
                         },
-                        outputs=outputDict,
-                        efficiencies=outputEff
+                        outputs={
+                            outputSH: solph.Flow(
+                                variable_costs=varc2,
+                                custom_attributes={'env_per_flow': env_flow2},
+                            ),
+                            outputDHW: solph.Flow(
+                                variable_costs=varc2,
+                                custom_attributes={'env_per_flow': env_flow2},
+                            ),
+                            outputEl: solph.Flow(
+                                variable_costs=varc1,
+                                custom_attributes={'env_per_flow': env_flow1},
+                            ),
+                        },
+                        efficiencies={outputEl: self._efficiencyEl, outputSH: self._efficiencySH,
+                                                        outputDHW: self._efficiencyDHW}
                     )
 
     def getCHP(self, type):
@@ -277,7 +287,7 @@ class GasBoiler(cp.CombinedTransformer):
                         'nonconvex':True,
                         'offset':base,
                         'custom_attributes': {'env_per_capa': env_capa * efficiency[0]}}
-        outputDict = {k: solph.Flow(variable_costs=varc, env_per_flow=env_flow) for k in output}
+        outputDict = {k: solph.Flow(variable_costs=varc, custom_attributes={'env_per_flow': env_flow}) for k in output}
         super(GasBoiler, self).__init__(
             label='GasBoiler'+'__'+buildingLabel,
             inputs={

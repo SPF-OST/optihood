@@ -31,10 +31,10 @@ if __name__ == '__main__':
     timePeriod = pd.date_range("2018-01-01 00:00:00", "2018-12-31 23:00:00", freq="60min")
 
     # define paths for input and result files
-    inputFilePath = r"..\excels"
+    inputFilePath = r"..\excels\multi_objective"
     inputfileName = "scenario.xls"
 
-    resultFilePath =r"..\results"
+    resultFilePath =r"..\results\multi_objective"
 
     # initialize parameters
     numberOfOptimizations = 5       # number of optimizations in multi objective optimization pareto front
