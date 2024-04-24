@@ -350,11 +350,15 @@ the buildings have an identical setup (technologies, limits on capacities, costs
       :alt: config_file_example
 
 Each building would have the same available energy sources and technologies. Paths to the weather file, electricity impact and demand profiles are also
-specified within this config file. Moreover, the connections between energy sources, conversion and storage technologies and demands are fixed to default system connections when a config file is used. All the different parameters have already been described for the excel files.
+specified within this config file. Moreover, the connections between energy sources, conversion and storage technologies and demands are fixed to default system connections when a config file is used. Those conncections are illustrated on the Figure below. 
+
+.. image:: ./resources/config_file_fixed_connections.png
+      :width: 500
+      :alt: Default connections between different system components when a config file is used for optimization problem definition
 
 Note that the specific connections would realize only when the corresponding technologies/sources/sinks are
 selected. As an example, the connection between natural gas resource and CHP would be realized only if the
-optimizer chooses CHP as an optimum solution in the optimization results.
+optimizer chooses CHP as an optimum solution in the optimization results.  All the different parameters have already been described for the excel files.
 
 A new method called ``createScenarioFile()`` was implemented within the EnergyNetworkIndiv
 and EnergyNetworkGroup classes. This function reads a config file and derives the equivalent Excel file based
