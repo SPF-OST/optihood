@@ -21,5 +21,5 @@ setup(
         "Operating System :: Microsoft :: Windows",
     ],
     setup_requires=["setuptools-git-versioning"],
-    python_requires="==3.9",
+    python_requires=">=3.9",
 )
