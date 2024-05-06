@@ -28,8 +28,5 @@ jobs:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
         run: |
-          latest_tag=$(git describe --tags --abbrev=0)
-          git tag -a "$latest_tag" -m "Version $latest_tag"
-          git push origin "$latest_tag"
           python setup.py sdist bdist_wheel
           twine upload dist/*
