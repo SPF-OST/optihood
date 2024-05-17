@@ -652,6 +652,21 @@ class Building:
                     for i in range(len(inputBuses)):
                         self.__nodesList.append(storage.getStorageLevel(i))
                         self.__nodesList.extend(storage.getDummyComponents(i))
+                elif s["label"] != "dhwStorage" and s["label"] != "shStorage" and s["label"] != "thermalStorage":  #"Storage" in s["label"]
+                    is_tank = False
+                    self.__nodesList.append(ThermalStorage(storageLabel,
+                           stratifiedStorageParams, self.__busDict[inputBusLabel],
+                           self.__busDict[outputBusLabel],
+                           float(s["initial capacity"]), float(s["capacity min"]),
+                           float(s["capacity max"]),
+                           self._calculateInvest(s)[0] * (
+                                       opt == "costs") + envImpactPerCapacity * (
+                                       opt == "env"),
+                           self._calculateInvest(s)[1] * (opt == "costs"),
+                           float(s["heat_impact"]) * (opt == "env"),
+                           float(s["heat_impact"]), envImpactPerCapacity, dispatchMode, is_tank))
+                    is_tank = True
+
                 else:
                     logging.error("One of the following issues were encountered: (i) Storage label not identified. Storage label"
                                   "should match one of the following: electricalStorage, dhwStorage, shStorage or thermalStorage."

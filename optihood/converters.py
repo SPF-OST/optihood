@@ -105,13 +105,13 @@ class SolarCollector(solph.components.Transformer):
 
 class HeatPumpLinear:
     "Information about the model can be found in combined_pro.py CombinedTransformer"
-    def __init__(self, buildingLabel, operationTempertures, temperatureLow, input, output,
+    def __init__(self, buildingLabel, operationTemperatures, temperatureLow, input, output,
                  capacityMin, capacityMax, nomEff,
                  epc, base, varc, env_flow, env_capa, dispatchMode):
-        outputTempertures = {}
+        outputTemperatures = {}
         for i in range(len(output)):
-            outputTempertures[output[i]] = operationTempertures[i]
-        self.__cop = {o:self._calculateCop(t, temperatureLow) for o,t in outputTempertures.items()}
+            outputTemperatures[output[i]] = operationTemperatures[i]
+        self.__cop = {o:self._calculateCop(t, temperatureLow) for o,t in outputTemperatures.items()}
         self.avgCopSh = (sum(self.__cop[output[0]])/len(self.__cop[output[0]])) # cop at lowest temperature, i.e. temperature of space heating
         self.nominalEff = nomEff
         if dispatchMode:
@@ -159,13 +159,13 @@ class HeatPumpLinear:
 
 class GeothermalHeatPumpLinear:
     "Information about the model can be found in combined_pro.py CombinedTransformer"
-    def __init__(self, buildingLabel, operationTempertures, temperatureLow, input, output,
+    def __init__(self, buildingLabel, operationTemperatures, temperatureLow, input, output,
                  capacityMin, capacityMax, nomEff,
                  epc, base, varc, env_flow, env_capa, dispatchMode):
-        outputTempertures = {}
+        outputTemperatures = {}
         for i in range(len(output)):
-            outputTempertures[output[i]] = operationTempertures[i]
-        self.__cop = {o: self._calculateCop(t, temperatureLow) for o, t in outputTempertures.items()}
+            outputTemperatures[output[i]] = operationTemperatures[i]
+        self.__cop = {o: self._calculateCop(t, temperatureLow) for o, t in outputTemperatures.items()}
         self.avgCopSh = (sum(self.__cop[output[0]]) / len(self.__cop[output[0]]))  # cop at lowest temperature, i.e. temperature of space heating
         self.nominalEff = nomEff
         if dispatchMode:

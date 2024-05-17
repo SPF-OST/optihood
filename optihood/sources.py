@@ -22,9 +22,8 @@ class PV(solph.components.Source):
             investArgs = {'ep_costs':epc,
                          'minimum':capacityMin,
                          'maximum':capacityMax,
-                         'space':self.surface_used,
-                         'roof_area':roof_area,
-                         'env_per_capa':env_capa}
+                         'custom_attributes': {'env_per_capa': env_capa, 'space': self.surface_used,
+                                              'roof_area': roof_area}}
         else:
             investArgs={'ep_costs':epc,
                          'minimum':capacityMin,
