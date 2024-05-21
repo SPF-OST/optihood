@@ -17,6 +17,7 @@ import optihood.plot_sankey as snk
 import optihood.plot_functions as fnc
 
 if __name__ == '__main__':
+
     # set a time period for the optimization problem
     timePeriod = pd.date_range("2018-01-01 00:00:00", "2018-01-31 23:00:00", freq="60min")
 
