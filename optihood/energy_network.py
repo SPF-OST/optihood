@@ -55,7 +55,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         self._dispatchMode = dispatchMode
         logging.info("Defining the energy network from the excel file: {}".format(filePath))
         data = pd.ExcelFile(filePath)
-        nodesData = self.createNodesData(data, filePath, numberOfBuildings)
+        nodesData = self.createNodesData(data, filePath, numberOfBuildings, clusterSize)
         # nodesData["buses"]["excess costs"] = nodesData["buses"]["excess costs indiv"]
         # nodesData["electricity_cost"]["cost"] = nodesData["electricity_cost"]["cost indiv"]
 
@@ -83,7 +83,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         self.add(*self._nodesList)
         logging.info("Nodes successfully added to the energy network")
 
-    def createNodesData(self, data, filePath, numBuildings):
+    def createNodesData(self, data, filePath, numBuildings, clusterSize):
         self.__noOfBuildings = numBuildings
         nodesData = {
             "buses": data.parse("buses"),
@@ -121,9 +121,10 @@ class EnergyNetworkClass(solph.EnergySystem):
             nodesData["demandProfiles"] = demandProfiles
             # set datetime index
             for i in range(numBuildings):
-                nodesData["demandProfiles"][i + 1].timestamp = pd.to_datetime(nodesData["demandProfiles"][i + 1].timestamp, format='%d.%m.%Y %H:%M')
+                nodesData["demandProfiles"][i + 1].timestamp = pd.to_datetime(nodesData["demandProfiles"][i + 1].timestamp, format='%Y-%m-%d %H:%M')
                 nodesData["demandProfiles"][i + 1].set_index("timestamp", inplace=True)
-                nodesData["demandProfiles"][i + 1] = nodesData["demandProfiles"][i + 1][self.timeindex[0]:self.timeindex[-1]]
+                if not clusterSize:
+                    nodesData["demandProfiles"][i + 1] = nodesData["demandProfiles"][i + 1][self.timeindex[0]:self.timeindex[-1]]
 
         if type(electricityImpact) == np.float64 or type(electricityImpact) == np.int64:
             # for constant impact
@@ -169,7 +170,8 @@ class EnergyNetworkClass(solph.EnergySystem):
             nodesData["weather_data"].timestamp = pd.to_datetime(nodesData["weather_data"].timestamp,
                                                                           format='%Y.%m.%d %H:%M:%S')
             nodesData["weather_data"].set_index("timestamp", inplace=True)
-            nodesData["weather_data"] = nodesData["weather_data"][self.timeindex[0]:self.timeindex[-1]]
+            if not clusterSize:
+                nodesData["weather_data"] = nodesData["weather_data"][self.timeindex[0]:self.timeindex[-1]]
 
         nodesData["building_model"] = {}
         if (nodesData['demand']['building model'].notna().any()) and (nodesData['demand']['building model'] == 'Yes').any():
@@ -180,7 +182,8 @@ class EnergyNetworkClass(solph.EnergySystem):
             internalGains = pd.read_csv(internalGainsPath, delimiter=';')
             internalGains.timestamp = pd.to_datetime(internalGains.timestamp, format='%d.%m.%Y %H:%M')
             internalGains.set_index("timestamp", inplace=True)
-            internalGains = internalGains[self.timeindex[0]:self.timeindex[-1]]
+            if not clusterSize:
+                internalGains = internalGains[self.timeindex[0]:self.timeindex[-1]]
             if not os.path.exists(bmodelparamsPath):
                 logging.error("Error in building model parameters file path.")
             bmParamers = pd.read_csv(bmodelparamsPath, delimiter=';')
@@ -568,31 +571,37 @@ class EnergyNetworkClass(solph.EnergySystem):
                 elInBusLabel = 'electricityInBus__'+buildingLabel
             # HP flows
             if ("HP__" + buildingLabel, "shSourceBus__" + buildingLabel) in capacityTransformers:
-                self.__elHP[buildingLabel] = sum(
-                    solph.views.node(self._optimizationResults, elInBusLabel)["sequences"][
-                        (elInBusLabel, 'HP__'+buildingLabel), 'flow'])
-                self.__shHP[buildingLabel] = sum(
-                    solph.views.node(self._optimizationResults, 'HP__' + buildingLabel)["sequences"][
-                        ('HP__' + buildingLabel, 'shSourceBus__' + buildingLabel), 'flow'])
-                self.__dhwHP[buildingLabel] = sum(
-                    solph.views.node(self._optimizationResults, 'HP__' + buildingLabel)["sequences"][
-                        ('HP__' + buildingLabel, 'dhwStorageBus__' + buildingLabel), 'flow'])
-                self.__annualCopHP[buildingLabel] = (self.__shHP[buildingLabel] + self.__dhwHP[buildingLabel]) / (
-                    self.__elHP[buildingLabel] + 1e-6)
+                if capacityTransformers[("HP__" + buildingLabel, "shSourceBus__" + buildingLabel)] > 1e-3:
+                    self.__elHP[buildingLabel] = sum(
+                        solph.views.node(self._optimizationResults, elInBusLabel)["sequences"][
+                            (elInBusLabel, 'HP__'+buildingLabel), 'flow'])
+                    self.__shHP[buildingLabel] = sum(
+                        solph.views.node(self._optimizationResults, 'HP__' + buildingLabel)["sequences"][
+                            ('HP__' + buildingLabel, 'shSourceBus__' + buildingLabel), 'flow'])
+                    self.__dhwHP[buildingLabel] = sum(
+                        solph.views.node(self._optimizationResults, 'HP__' + buildingLabel)["sequences"][
+                            ('HP__' + buildingLabel, 'dhwStorageBus__' + buildingLabel), 'flow'])
+                    self.__annualCopHP[buildingLabel] = (self.__shHP[buildingLabel] + self.__dhwHP[buildingLabel]) / (
+                        self.__elHP[buildingLabel] + 1e-6)
+                else:
+                    self.__annualCopHP[buildingLabel] = 0
 
             # GWHP flows
             if ("GWHP__" + buildingLabel, "shSourceBus__" + buildingLabel) in capacityTransformers:
-                self.__elGWHP[buildingLabel] = sum(
-                    solph.views.node(self._optimizationResults, elInBusLabel)["sequences"][
-                        (elInBusLabel, 'GWHP__' + buildingLabel), 'flow'])
-                self.__shGWHP[buildingLabel] = sum(
-                    solph.views.node(self._optimizationResults, 'GWHP__' + buildingLabel)["sequences"][
-                        ('GWHP__' + buildingLabel, 'shSourceBus__' + buildingLabel), 'flow'])
-                self.__dhwGWHP[buildingLabel] = sum(
-                    solph.views.node(self._optimizationResults, 'GWHP__' + buildingLabel)["sequences"][
-                        ('GWHP__' + buildingLabel, 'dhwStorageBus__' + buildingLabel), 'flow'])
-                self.__annualCopGWHP[buildingLabel] = (self.__shGWHP[buildingLabel] + self.__dhwGWHP[buildingLabel]) / (
-                        self.__elGWHP[buildingLabel] + 1e-6)
+                if capacityTransformers[("GWHP__" + buildingLabel, "shSourceBus__" + buildingLabel)] > 1e-3:
+                    self.__elGWHP[buildingLabel] = sum(
+                        solph.views.node(self._optimizationResults, elInBusLabel)["sequences"][
+                            (elInBusLabel, 'GWHP__' + buildingLabel), 'flow'])
+                    self.__shGWHP[buildingLabel] = sum(
+                        solph.views.node(self._optimizationResults, 'GWHP__' + buildingLabel)["sequences"][
+                            ('GWHP__' + buildingLabel, 'shSourceBus__' + buildingLabel), 'flow'])
+                    self.__dhwGWHP[buildingLabel] = sum(
+                        solph.views.node(self._optimizationResults, 'GWHP__' + buildingLabel)["sequences"][
+                            ('GWHP__' + buildingLabel, 'dhwStorageBus__' + buildingLabel), 'flow'])
+                    self.__annualCopGWHP[buildingLabel] = (self.__shGWHP[buildingLabel] + self.__dhwGWHP[buildingLabel]) / (
+                            self.__elGWHP[buildingLabel] + 1e-6)
+                else:
+                    self.__annualCopGWHP[buildingLabel] = 0
             else:       # splitted GSHP
                 self.__annualCopGWHP[buildingLabel] = []
                 if (f"GWHP{str(self.__temperatureSH)}__" + buildingLabel, "shSourceBus__" + buildingLabel) in capacityTransformers:
@@ -1105,7 +1114,7 @@ class EnergyNetworkGroup(EnergyNetworkClass):
         self._dispatchMode = dispatchMode
         data = pd.ExcelFile(filePath)
         self._optimizationType = opt
-        nodesData = self.createNodesData(data, filePath, numberOfBuildings)
+        nodesData = self.createNodesData(data, filePath, numberOfBuildings, clusterSize)
         # nodesData["buses"]["excess costs"] = nodesData["buses"]["excess costs group"]
         # nodesData["electricity_cost"]["cost"] = nodesData["electricity_cost"]["cost group"]
 
