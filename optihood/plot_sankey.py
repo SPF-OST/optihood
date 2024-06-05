@@ -11,8 +11,7 @@ from matplotlib import colors
 def addCapacities(nodes, dataDict, buildings, UseLabelDict, labelDict, mergedLinks):
     capacities = ["sufficient"] * len(nodes)
     for i in buildings:
-        capTransformers=dataDict["capTransformers__Building"+str
-(i)]
+        capTransformers=dataDict["capTransformers__Building"+str(i)]
         capStorages=dataDict["capStorages__Building"+str(i)]
         for j, k in capStorages.iterrows():
             if k[0] < 0.1: # if the installed capacity is 0 then skip (sometimes as an error very low capacites are selected. To handle this k<0.01kW is set as the condition for comparison)
