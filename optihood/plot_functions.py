@@ -39,7 +39,8 @@ def monthlyBalance(data, bus, new_legends):
     pos_flow = []
     for i in data.columns:
         if i.replace(building, "") in new_legends:
-            a = [i.strip("()").split(", ")]
+            a = [i.strip("()"
+).split(", ")]
             if "Bus" in a[0][0]:
                 neg_flow.append(i)
             else:
@@ -63,16 +64,10 @@ def monthlyBalance(data, bus, new_legends):
     plt.grid(axis='y')
     if "electricity" in bus or "grid" in bus:
         plt.title("Monthly electricity balance for " + building.replace("__", ""))
-        title = ("Monthly electricity balance for " + building.replace("__", ""))
     elif "spaceHeating" in bus:
         plt.title("Monthly space heating balance for " + building.replace("__", ""))
-        title = ("Monthly space heating balance for " + building.replace("__", ""))
     else:
         plt.title("Monthly domestic hot water balance for " + building.replace("__", ""))
-        title = ("Monthly domestic hot water balance for " + building.replace("__", ""))
-    figureFileName = f"{title}.png"
-    figureFilePath = r"..\figures"
-    plt.savefig(figureFilePath + figureFileName)
     plt.show()
 
 
@@ -965,15 +960,10 @@ def createPlot(resultFilePath, basePath, numberOfBuildings, plotLevel, plotType,
         raise ValueError("Illegal value for the parameter flow type")
 
     months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-    obsolete_Legends = {
-        'shDemandBus',
-        'dhwDemandBus'
-    }
     if plotType == "energy balance":
         if plotLevel == "allMonths":
             for i in names:
-                building = "__" + i.split("__")[1]
-                if ("electricityBus" not in i) and (i.replace(building, "") not in obsolete_Legends):
+                if "electricityBus" not in i:
                     monthlyBalance(buses[i], i, newLegends)
     elif plotType == "bokeh":
         ncols = 2
@@ -1080,7 +1070,7 @@ def plot(excelFileName, figureFilePath, numberOfBuildings, plotLevel, plotType, 
             "(('electricityProdBus', 'excesselectricityProdBus'), 'flow')": "Feed-in",
             "(('electricityProdBus', 'electricalStorage'), 'flow')": "Battery_in",
             "(('electricityInBus', 'electricityDemand'), 'flow')": "Demand_elec",
-            "(('electricityInBus', 'eMobilityDemand'), 'flow')": "Demand_mobility",
+            "(('electricityInBus', 'emobilityDemand'), 'flow')": "Demand_mobility",
             "(('electricityInBus', 'HP'), 'flow')": "HP",
             "(('electricityInBus', 'GWHP'), 'flow')": "GWHP",
             "(('CHP', 'electricityProdBus'), 'flow')": "CHP_elec",
@@ -1133,6 +1123,7 @@ def plot(excelFileName, figureFilePath, numberOfBuildings, plotLevel, plotType, 
         newLegends["(('dhwLink', 'dhwDemandBus'), 'flow')"] = "dhwLink_in"
     else:
         newLegends = {
+            "(('naturalGasResource', 'naturalGasBus'), 'flow')": plotlabels["naturalGas"],
             "(('qSource', 'heatSourceBus'), 'flow')": plotlabels["qSource"],
             "(('electricityBus', 'excesselectricityBus'), 'flow')": plotlabels["excessEl"],
             "(('electricityProdBus', 'electricalStorage'), 'flow')": plotlabels["StorageEl"]+"_in",
