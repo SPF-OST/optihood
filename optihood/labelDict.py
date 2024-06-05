@@ -22,8 +22,7 @@ def labelDictGenerator(numBuildings, labels, optimType, mergedLinks):
         if "elBus" in labels and not mergedLinks and optimType=='group': base["electricityLink"] = labels["elBus"] + " Link"
         if "shBus" in labels and ((mergedLinks and optimType=='group') or optimType=='indiv'): base["shLink"] = labels["shBus"]
         if "shBus" in labels and not mergedLinks and optimType=='group': base["shLink"] = labels["shBus"] + " Link"
-        if "dhwBus" in labels and ((mergedLinks and optimType=='group') or optimType=='indiv'): base["dhwLink"] = labels[
-"dhwBus"]
+        if "dhwBus" in labels and ((mergedLinks and optimType=='group') or optimType=='indiv'): base["dhwLink"] = labels["dhwBus"]
         if "dhwBus" in labels and not mergedLinks and optimType=='group': base["dhwLink"] = labels["dhwBus"] + " Link"
         if "naturalGas" in labels:
             base["naturalGasResource"] = labels["naturalGas"]
@@ -114,8 +113,8 @@ def positionDictGenerator(labels, optimType, mergedLinks):
         if "elBus" in labels and not mergedLinks and optimType == 'group': labelsList[7] = labels["elBus"] + " Link"
         if "shBus" in labels and ((mergedLinks and optimType=='group') or optimType=='indiv'): labelsList[8] = labels["shBus"]
         if "shBus" in labels and not mergedLinks and optimType == 'group': labelsList[8] = labels["shBus"] + " Link"
+        if "dhwBus" in labels and ((mergedLinks and optimType=='group') or optimType=='indiv'): labelsList[9] = labels["dhwBus"]
         if "dhwBus" in labels and not mergedLinks and optimType == 'group': labelsList[9] = labels["dhwBus"] + " Link"
-        if "dhwBus" in labels and not mergedLinks and optimType == 'group': labelsList[4] = labels["dhwBus"] + " Link"
         if "naturalGas" in labels: labelsList[0] = labels["naturalGas"]
         if "grid" in labels: labelsList[1] = labels["grid"]
         if "pv" in labels: labelsList[2]=labels["pv"]
