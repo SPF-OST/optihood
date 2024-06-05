@@ -6,6 +6,7 @@ from bokeh.plotting import figure, show
 from bokeh.layouts import layout, gridplot
 from bokeh.models import DatetimeTickFormatter, HoverTool, Legend
 from bokeh.palettes import *
+
 from bokeh.io import output_file
 
 from openpyxl import load_workbook
@@ -39,8 +40,7 @@ def monthlyBalance(data, bus, new_legends):
     pos_flow = []
     for i in data.columns:
         if i.replace(building, "") in new_legends:
-            a = [i.strip("()"
-).split(", ")]
+            a = [i.strip("()").split(", ")]
             if "Bus" in a[0][0]:
                 neg_flow.append(i)
             else:
