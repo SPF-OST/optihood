@@ -11,7 +11,8 @@ from matplotlib import colors
 def addCapacities(nodes, dataDict, buildings, UseLabelDict, labelDict, mergedLinks):
     capacities = ["sufficient"] * len(nodes)
     for i in buildings:
-        capTransformers=dataDict["capTransformers__Building"+str(i)]
+        capTransformers=dataDict["capTransformers__Building"+str
+(i)]
         capStorages=dataDict["capStorages__Building"+str(i)]
         for j, k in capStorages.iterrows():
             if k[0] < 0.1: # if the installed capacity is 0 then skip (sometimes as an error very low capacites are selected. To handle this k<0.01kW is set as the condition for comparison)
@@ -173,9 +174,11 @@ def createSankeyData(dataDict, keys, UseLabelDict, labelDict, PositionDict, buil
 def createColorList(inputList, ColorDict, labels):
     colorsList=[]
     for n in inputList:
-        if (labels!='default' and labels["qSource"] in n) or (labels=='default' and "qSource" in n):           # Check for whether labels of a specific type are defined or not should be added here
+        if (labels!='default' and labels["naturalGas"] in n) or (labels=='default' and "natGas" in n):           # Check for whether labels of a specific type are defined or not should be added here
+            color = ColorDict["gas"]
+        elif (labels!='default' and labels["qSource"] in n) or (labels=='default' and "qSource" in n):
             color = ColorDict["qs"]
-        elif (labels!='default' and (labels["excessSh"] in n or labels["GWHP"] in n or labels["prodSH"] in n or labels["shBus"] in n or labels["StorageSh"] in n or labels["DemandSh"] in n)) or (labels=='default' and "GWHP" in n or any(v in n for v in ["shLink", "prodSH", "shBus", "shStor", "Q_sh", "exSh", "usedSH"])):
+        elif (labels!='default' and (labels["excessSh"] in n or labels["prodSH"] in n or labels["shBus"] in n or labels["StorageSh"] in n or labels["DemandSh"] in n)) or (labels=='default' and any(v in n for v in ["shLink", "prodSH", "shBus", "shStor", "Q_sh", "exSh", "usedSH"])):
             color = ColorDict["sh"]
         elif (labels!='default' and (labels["solarCollector"] in n or labels["excessSolarCollector"] in n or labels["StorageDhw"] in n or labels["dhwBus"] in n or labels["DemandDhw"] in n)) or (labels=='default' and any(v in n for v in ["dhwLink", "solar", "exSolar", "dhwStor", "dhwBus", "Q_dhw", "prodDHW"])):
             color = ColorDict["dhw"]
@@ -195,7 +198,7 @@ def displaySankey(fileName, UseLabelDict, labelDict, positionDict, labels, build
                  "gas": 'rgba' + str(colors.to_rgba("darkgray", OPACITY)),
                  "dhw": 'rgba' + str(colors.to_rgba("red", OPACITY)),
                  "sh": 'rgba' + str(colors.to_rgba("magenta", OPACITY)),
-                 "other": 'rgba' + str(colors.to_rgba("deeppink", OPACITY)),
+                 "other": 'rgba' + str(colors.to_rgba("black", OPACITY)),
                  "hs": 'rgba' + str(colors.to_rgba("yellow", OPACITY)),
                  "qs": 'rgba' + str(colors.to_rgba("green", OPACITY))
                  }
