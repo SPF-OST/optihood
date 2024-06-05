@@ -4,8 +4,13 @@ import pandas as pd
 import pvlib
 import optihood.combined_prod as cp
 from oemof.thermal.solar_thermal_collector import flat_plate_precalc
+from oemof.solph import network as solph_network
+from oemof.solph.plumbing import sequence as solph_sequence
+from pyomo.core.base.block import SimpleBlock
+from pyomo.environ import BuildAction
+from pyomo.environ import Constraint
 
-class SolarCollector(solph.Transformer):
+class SolarCollector:
     def __init__(self, label, buildingLabel, inputs, outputs, connector, electrical_consumption, peripheral_losses, latitude,
                  longitude,
                  collector_tilt, roof_area, zenith_angle, collector_azimuth, eta_0, a_1, a_2, temp_collector_inlet,
@@ -338,10 +343,12 @@ class HeatPumpLinear:
             'nonconvex' : True,
             'offset' : base,
             'env_per_capa' : env_capa * nomEff}
+        inputDict = {input[0]: solph.Flow(investment=solph.Investment(**investArgs))}
+        if len(input) > 1:
+            # Two input HP, second input is for Q evaporator
+            inputDict.update({input[1]: solph.Flow()})
         self.__heatpump = cp.CombinedTransformer(label='HP' + '__' + buildingLabel,
-                                            inputs={input: solph.Flow(
-                                                investment=solph.Investment(**investArgs),
-                                            )},
+                                            inputs=inputDict,
                                             outputs={outputSH: solph.Flow(
                                                           variable_costs=varc,
                                                           env_per_flow=env_flow,
@@ -399,10 +406,12 @@ class GeothermalHeatPumpLinear:
                         'offset':base,
                         'env_per_capa':env_capa*nomEff,
                     }
+        inputDict = {input[0]: solph.Flow(investment=solph.Investment(**investArgs))}
+        if len(input)>1:
+            # Two input HP, second input is for Q evaporator
+            inputDict.update({input[1]:solph.Flow()})
         self.__geothermalheatpump = cp.CombinedTransformer(label='GWHP' + '__' + buildingLabel,
-                                            inputs={input: solph.Flow(
-                                                investment=solph.Investment(**investArgs),
-                                            )},
+                                            inputs=inputDict,
                                             outputs={outputSH: solph.Flow(
                                                           variable_costs=varc,
                                                           env_per_flow=env_flow,
@@ -436,6 +445,102 @@ class GeothermalHeatPumpLinear:
             print("Transformer label not identified...")
             return []
 
+class Chiller(solph_network.Transformer):
+    r"""
+       Chiller is a tranformer with two input flows, W_elec and Q_heatin
+       and one output flow Q_heatout
+       The input relation constraint is defined in a new constraint block
+       This component is not fully developed (under test)
+       """
+    def __init__(self, tSH, tGround, nomEff, epc, capacityMin, capacityMax, env_capa, base, inputBuses, outputBus, dispatchMode, *args, **kwargs):
+        self.cop = solph_sequence(self._calculateCop(tSH,tGround))
+        if dispatchMode:
+            investArgs= {'ep_costs':epc*nomEff,
+                        'minimum':capacityMin/nomEff,
+                        'maximum':capacityMax/nomEff,
+                        'env_per_capa':env_capa*nomEff,
+                    }
+        else:
+            investArgs= {'ep_costs':epc*nomEff,
+                        'minimum':capacityMin/nomEff,
+                        'maximum':capacityMax/nomEff,
+                        'nonconvex':True,
+                        'offset':base,
+                        'env_per_capa':env_capa*nomEff,
+                    }
+        inputDict = {i: solph.Flow(investment=solph.Investment(**investArgs)) for i in inputBuses if "gridBus" in i.label or "electricity" in i.label}
+        inputDict.update({i: solph.Flow() for i in inputBuses if "gridBus" not in i.label and "electricity" not in i.label})
+        outputDict = {outputBus: solph.Flow()}
+        super().__init__(inputs=inputDict, outputs=outputDict, *args, **kwargs)
+
+    def _calculateCop(self, tHigh, tLow):
+        coefW = [0.1600, -1.2369, 19.9391, 19.3448, 7.1057, -1.4048]
+        coefQ = [13.8978, 114.8358, -9.3634, -179.4227, 342.3363, -12.4969]
+        QCondenser = coefQ[0] + (coefQ[1] * tLow / 273.15) + (coefQ[2] * tHigh / 273.15) + (
+                coefQ[3] * tLow / 273.15 * tHigh / 273.15) + (
+                             coefQ[4] * (tLow / 273.15) ** 2) + (
+                             coefQ[5] * (tHigh / 273.15) ** 2)
+        WCompressor = coefW[0] + (coefW[1] * tLow / 273.15) + (coefW[2] * tHigh / 273.15) + (
+                coefW[3] * tLow / 273.15 * tHigh / 273.15) + (
+                             coefW[4] * (tLow / 273.15) ** 2) + (
+                              coefW[5] * (tHigh / 273.15) ** 2)
+        cop = np.divide(QCondenser, WCompressor)
+        return cop
+
+    def constraint_group(self):
+        return ChillerBlock
+
+class ChillerBlock(SimpleBlock):
+    r"""Block for the linear relation of nodes
+    """
+
+    CONSTRAINT_GROUP = True
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def _create(self, group=None):
+        """Creates the linear constraint
+        """
+        if group is None:
+            return None
+
+        m = self.parent_block()
+
+        for n in group:
+            n.inflowElec = [i for i in list(n.inputs) if "electricity" in i.label][0]
+            n.inflowQcond = [i for i in list(n.inputs) if "electricity" not in i.label][0]
+            n.outflow = list(n.outputs)[0]
+
+        def _input_output_relation_rule(block):
+            """Connection between input and outputs."""
+            for t in m.TIMESTEPS:
+                for g in group:
+                    lhs = m.flow[g.inflowElec, g, t]
+                    rhs = m.flow[g, g.outflow, t] / g.cop[t]
+                    block.input_output_relation.add((g, t), (lhs == rhs))
+
+        self.input_output_relation = Constraint(
+            group, m.TIMESTEPS, noruleinit=True
+        )
+        self.input_output_relation_build = BuildAction(
+            rule=_input_output_relation_rule
+        )
+
+        def _input_relation_rule(block):
+            """Connection between inputs."""
+            for t in m.TIMESTEPS:
+                for g in group:
+                    lhs = m.flow[g.inflowElec, g, t] * (g.cop[t] - 1)
+                    rhs = m.flow[g.inflowQcond, g, t]
+                    block.input_relation.add((g, t), (lhs == rhs))
+
+        self.input_relation = Constraint(
+            group, m.TIMESTEPS, noruleinit=True
+        )
+        self.input_relation_build = BuildAction(
+            rule=_input_relation_rule
+        )
 
 class CHP:
     "Information about the model can be found in combined_pro.py CombinedCHP"
