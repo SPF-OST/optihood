@@ -28,6 +28,9 @@ if __name__ == '__main__':
                             # any new flow should be added into this dictionary if UseLabelDict = True
                             # The dictionary can be found in /.../optihood/labelDict.py
 
+    if not os.path.exists(figureFilePath):
+        os.makedirs(figureFilePath)
+
     # plot sankey diagram
     snk.plot(os.path.join(resultFilePath, resultFileName), os.path.join(figureFilePath, sankeyFileName),
                    numberOfBuildings, UseLabelDict, labels='default', optimType='indiv')
