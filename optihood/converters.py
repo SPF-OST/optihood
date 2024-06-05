@@ -450,6 +450,7 @@ class Chiller(solph_network.Transformer):
        Chiller is a tranformer with two input flows, W_elec and Q_heatin
        and one output flow Q_heatout
        The input relation constraint is defined in a new constraint block
+       This component is not fully developed (under test)
        """
     def __init__(self, tSH, tGround, nomEff, epc, capacityMin, capacityMax, env_capa, base, inputBuses, outputBus, dispatchMode, *args, **kwargs):
         self.cop = solph_sequence(self._calculateCop(tSH,tGround))
