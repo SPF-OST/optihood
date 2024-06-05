@@ -696,6 +696,7 @@ class Building:
                 elif t["label"] == "Chiller":
                     self._addChiller(t, temperatureSH, temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode)
                 else:
+                    logging.warning("Transformer label not identified, adding generic transformer component...")
                     self._addGenericTransformer(t)
 
     def addStorage(self, data, stratifiedStorageParams, opt, mergeLinkBuses, dispatchMode):
