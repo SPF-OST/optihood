@@ -30,8 +30,8 @@ class TestGroupScenarioWriter(_ut.TestCase):
 
         # data = _gsw.createScenarioFile(0, config_file_path, excel_file_path, numberOfBuildings=4, writeToFileOrReturnData='data')
         _gsw.create_scenario_file(config_file_path, excel_file_path, numberOfBuildings=4)
-        data = _pd.ExcelFile(excel_file_path)
 
+        data = _pd.ExcelFile(excel_file_path)
         expected_data = _pd.ExcelFile(expected_data_path)
 
         for sheet in sheet_names:
@@ -59,8 +59,8 @@ class TestIndividualScenarioWriter(_ut.TestCase):
 
         # data = _gsw.createScenarioFile(0, config_file_path, excel_file_path, numberOfBuildings=4, writeToFileOrReturnData='data')
         _isw.create_scenario_file(config_file_path, excel_file_path, 0)
-        data = _pd.ExcelFile(excel_file_path)
 
+        data = _pd.ExcelFile(excel_file_path)
         expected_data = _pd.ExcelFile(expected_data_path)
 
         for sheet in sheet_names:

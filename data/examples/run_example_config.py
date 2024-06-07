@@ -16,7 +16,8 @@ from optihood.energy_network import EnergyNetworkGroup as EnergyNetwork
 import optihood.plot_sankey as snk
 import optihood.plot_functions as fnc
 
-if __name__ == '__main__':
+
+def run_config_example():
 
     optimization_type = "cost"
     scenario = "HP_GS_PV"
@@ -30,7 +31,7 @@ if __name__ == '__main__':
     inputfileName = f"scenario_{scenario}.xls"          # excel file which would be created by createScenarioFile()
 
     resultFilePath = f".\{main_result_folder}\{scenario}\{optimization_type}\group"
-    resultFileName ="results.xlsx"
+    resultFileName ="scenario_HP_GS_PV.xls"
 
     print("result file path: " + resultFilePath)
 
@@ -79,4 +80,5 @@ if __name__ == '__main__':
     network.exportToExcel(os.path.join(resultFilePath, resultFileName), mergeLinkBuses=mergeLinkBuses)
 
 
-
+if __name__ == '__main__':
+    run_config_example()
