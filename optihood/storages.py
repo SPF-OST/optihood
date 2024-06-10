@@ -16,7 +16,8 @@ from oemof.solph._plumbing import sequence as solph_sequence
 from optihood.links import LinkStorageDummyInput, Link
 
 class ElectricalStorage(solph.components.GenericStorage):
-    def __init__(self, buildingLabel, input, output, loss_rate, initial_storage, efficiency_in, efficiency_out, capacity_min, capacity_max, epc, base, varc, env_flow, env_capa, dispatchMode):
+    def __init__(self, buildingLabel, input, output, loss_rate, initial_storage, efficiency_in, efficiency_out,
+                 capacity_min, capacity_max, epc, base, varc, env_flow, env_capa, dispatchMode):
         if dispatchMode:
             investArgs = {'minimum':capacity_min,
                     'maximum':capacity_max,
@@ -36,7 +37,8 @@ class ElectricalStorage(solph.components.GenericStorage):
                 input: solph.Flow(investment=solph.Investment(ep_costs=0)),
             },
             outputs={
-                output: solph.Flow(investment=solph.Investment(ep_costs=0), variable_costs=varc, custom_attributes={'env_per_flow':env_flow} )
+                output: solph.Flow(investment=solph.Investment(ep_costs=0), variable_costs=varc, custom_attributes=
+                {'env_per_flow':env_flow} )
             },
             loss_rate=loss_rate,
             initial_storage_level=initial_storage,
@@ -49,8 +51,11 @@ class ElectricalStorage(solph.components.GenericStorage):
         )
 
 class ThermalStorage(solph.components.GenericStorage):
-    def __init__(self, label, stratifiedStorageParams, input, output, initial_storage, min, max, volume_cost, base, varc, env_flow, env_cap, dispatchMode):
-        u_value, loss_rate, fixed_losses_relative, fixed_losses_absolute, capacity_min, capacity_max, epc, env_capa = self._precalculate(stratifiedStorageParams,label.split("__")[0],min,max,volume_cost,env_cap)
+    def __init__(self, label, stratifiedStorageParams, input, output, initial_storage, min, max, volume_cost, base,
+                 varc, env_flow, env_cap, dispatchMode, is_tank = True, rho= 1000, c=4.186):
+        u_value, loss_rate, fixed_losses_relative, fixed_losses_absolute, capacity_min, capacity_max, epc, env_capa = \
+            self._precalculate(stratifiedStorageParams,label.split("__")[0],min,max,volume_cost,env_cap, is_tank=
+            is_tank, rho=rho, c=c)
         storageLabel = label.split("__")[0]
         if dispatchMode:
             investArgs={'minimum':capacity_min,
@@ -72,7 +77,8 @@ class ThermalStorage(solph.components.GenericStorage):
                 input: solph.Flow(investment=solph.Investment(ep_costs=0)),
             },
             outputs={
-                output: solph.Flow(investment=solph.Investment(ep_costs=0), variable_costs=varc, custom_attributes={'env_per_flow':env_flow} )
+                output: solph.Flow(investment=solph.Investment(ep_costs=0), variable_costs=varc, custom_attributes=
+                {'env_per_flow':env_flow} )
             },
             loss_rate=loss_rate,
             initial_storage_level=initial_storage,
@@ -86,27 +92,50 @@ class ThermalStorage(solph.components.GenericStorage):
             investment=solph.Investment(**investArgs),
         )
 
-    def _precalculate(self, data, label,min,max,volume_cost,env_cap):
-        tempH = data.at[label, 'temp_h']
-        tempC = data.at[label, 'temp_c']
-        u_value = calculate_storage_u_value(
-            data.at[label, 's_iso'],
-            data.at[label, 'lamb_iso'],
-            data.at[label, 'alpha_inside'],
-            data.at[label, 'alpha_outside'])
+    def _precalculate(self, data, label,min,max,volume_cost,env_cap, is_tank, rho, c):
+        if is_tank:
+            tempH = data.at[label, 'temp_h']
+            tempC = data.at[label, 'temp_c']
+            u_value = calculate_storage_u_value(
+                data.at[label, 's_iso'],
+                data.at[label, 'lamb_iso'],
+                data.at[label, 'alpha_inside'],
+                data.at[label, 'alpha_outside'])
 
-        loss_rate, fixed_losses_relative, fixed_losses_absolute = calculate_losses(
-            u_value,
-            data.at[label, 'diameter'],
-            tempH,
-            tempC,
-            data.at[label, 'temp_env'])
+            loss_rate, fixed_losses_relative, fixed_losses_absolute = calculate_losses(
+                u_value,
+                data.at[label, 'diameter'],
+                tempH,
+                tempC,
+                data.at[label, 'temp_env'])
 
-        L_to_kWh = 4.186*(tempH-tempC)/3600 #converts L data to kWh data for oemof GenericStorage class
-        capacity_min = min*L_to_kWh
-        capacity_max = max*L_to_kWh
-        epc = volume_cost/L_to_kWh
-        env_capa = env_cap/L_to_kWh
+            L_to_kWh = c * rho * (tempH - tempC) / 3600  # converts L data to kWh data for oemof GenericStorage class
+
+
+        else:
+            temp_h = data.at[label, 'temp_h']
+            temp_c = data.at[label, 'temp_c']
+            temp_env = data.at[label, 'temp_env']
+            rho = data.at[label, 'rho']
+            c = data.at[label, 'c']
+            u_value = data.at[label, 'u_value']
+            time_increment =1
+            if 'pitStorage' in label:
+                height = data.at[label, 'height']
+                angle = data.at[label, 'angle']
+                fixed_losses_relative = 3 * u_value * (temp_c - temp_env) / (height * c * rho * (temp_h - temp_c)) * time_increment *3600
+                loss_rate = 0#0.4 * fixed_losses_relative#2 * u_value / (s_base * c * rho * math.sin(angle * np.pi / 180)) * time_increment
+                fixed_losses_absolute = 0
+            else:
+                loss_rate = 0
+                fixed_losses_relative = 0
+                fixed_losses_absolute = u_value*(temp_h - temp_env)*1e-6 #convert Wh to MWh
+            L_to_kWh = c * rho * (temp_h - temp_env) / 3600  # converts L data to kWh data for oemof GenericStorage class
+
+        capacity_min = min * L_to_kWh
+        capacity_max = max * L_to_kWh
+        epc = volume_cost / L_to_kWh
+        env_capa = env_cap / L_to_kWh
 
         return u_value, loss_rate, fixed_losses_relative, fixed_losses_absolute, capacity_min, capacity_max, epc, env_capa
 

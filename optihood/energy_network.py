@@ -21,6 +21,9 @@ class EnergyNetworkClass(solph.EnergySystem):
         self._nodesList = []
         self._thermalStorageList = []
         self._storageContentSH = {}
+        self._storageContentDHW = {}
+        self._storageContentTS = {}
+        self._storageContent = {}
         self.__inputs = {}                          # dictionary of list of inputs indexed by the building label
         self.__technologies = {}                    # dictionary of list of technologies indexed by the building label
         self.__capacitiesTransformersBuilding = {}  # dictionary of dictionary of optimized capacities of transformers indexed by the building label
@@ -46,6 +49,8 @@ class EnergyNetworkClass(solph.EnergySystem):
         self.__elRodEff = np.nan
         self._temperatureLevels = temperatureLevels
         self._dispatchMode = False
+        self._c = 4.186 #default value for water
+        self._rho = 1. #default value for water
         if not os.path.exists(".\\log_files"):
             os.mkdir(".\\log_files")
         logger.define_logging(logpath=os.getcwd(), logfile=f'.\\log_files\\optihood_{datetime.now().strftime("%d.%m.%Y_%H.%M.%S")}.log')
@@ -194,7 +199,7 @@ class EnergyNetworkClass(solph.EnergySystem):
 
     def _checkStorageTemperatureGradient(self, temp_c):
         listTemperatures = [temp_c]
-        listTemperatures.extend(self.__operationTempertures)
+        listTemperatures.extend(self.__operationTemperatures)
         gradient = [h - l for l, h in zip(listTemperatures, listTemperatures[1:])]
         return all(x == gradient[0] for x in gradient)
 
@@ -206,19 +211,19 @@ class EnergyNetworkClass(solph.EnergySystem):
         self.__temperatureGround = np.array(data["weather_data"]["ground_temp"])
         if self._temperatureLevels:
             try:
-                self.__operationTempertures = [float(t) for t in data["stratified_storage"].loc["thermalStorage", "temp_h"].split(",")] # temperatures should be saved from low to high separated by commas in the excel input file
+                self.__operationTemperatures = [float(t) for t in data["stratified_storage"].loc["thermalStorage", "temp_h"].split(",")] # temperatures should be saved from low to high separated by commas in the excel input file
                 if not self._checkStorageTemperatureGradient(data["stratified_storage"].loc["thermalStorage", "temp_c"]):
                     raise ValueError('Temperature Gradient in each layer of the thermal storage is not equal')
             except AttributeError:
                 logging.error("The column temp_h of stratified_storage excel sheet should contain comma separated temperatures"
                               "when temperatureLevels is set to True. The temperatures should be ordered starting from low"
                               "to high and the label of storage should be thermalStorage.")
-            self.__temperatureSH = self.__operationTempertures[0]
-            self.__temperatureDHW = self.__operationTempertures[-1]
+            self.__temperatureSH = self.__operationTemperatures[0]
+            self.__temperatureDHW = self.__operationTemperatures[-1]
         else:
             self.__temperatureSH = data["stratified_storage"].loc["shStorage", "temp_h"]
             self.__temperatureDHW = data["stratified_storage"].loc["dhwStorage", "temp_h"]
-            self.__operationTempertures = [self.__temperatureSH, self.__temperatureDHW]
+            self.__operationTemperatures = [self.__temperatureSH, self.__temperatureDHW]
         # Transformers conversion factors input power - output power
         if any(data["transformers"]["label"] == "CHP"):
             self.__chpEff = float(data["transformers"][data["transformers"]["label"] == "CHP"]["efficiency"].iloc[0].split(",")[1])
@@ -232,10 +237,19 @@ class EnergyNetworkClass(solph.EnergySystem):
             self.__elRodEff = float(data["transformers"][data["transformers"]["label"] == "ElectricRod"]["efficiency"].iloc[0])
         # Storage conversion L - kWh to display the L value
         if self._temperatureLevels:
-            self.__Ltank = 4.186 * (self.__operationTempertures[1] - self.__operationTempertures[0]) / 3600
+            self.__Ltank = self._rho * self._c * (self.__operationTemperatures[1] - self.__operationTemperatures[0]) / 3600
         else:
-            self.__Lsh = 4.186 * (self.__temperatureSH - data["stratified_storage"].loc["shStorage", "temp_c"]) / 3600
-            self.__Ldhw = 4.186 * (self.__temperatureDHW - data["stratified_storage"].loc["dhwStorage", "temp_c"]) / 3600
+            self.__LgenericStorage = {}
+            self.__Lsh = self._rho * self._c * (self.__temperatureSH - data["stratified_storage"].loc["shStorage", "temp_c"]) / 3600
+            self.__Ldhw = self._rho * self._c * (self.__temperatureDHW - data["stratified_storage"].loc["dhwStorage", "temp_c"]) / 3600
+            if 'tankStorage' in data['storages']['label'].unique():
+                self.__LgenericStorage['tankStorage'] = self._rho * self._c * (data["stratified_storage"].loc["tankStorage", "temp_h"] - data["stratified_storage"].loc["tankStorage", "temp_c"]) / 3600 #TO BE IMPROVED
+            if 'pitStorage' in data['storages']['label'].unique():
+                self.__LgenericStorage['pitStorage'] = self._rho * self._c * (data["stratified_storage"].loc["pitStorage", "temp_h"] - data["stratified_storage"].loc["pitStorage", "temp_c"]) / 3600
+            if 'boreholeStorage' in data['storages']['label'].unique():
+                self.__LgenericStorage['boreholeStorage'] = self._rho * self._c * (data["stratified_storage"].loc["boreholeStorage", "temp_h"] - data["stratified_storage"].loc["boreholeStorage", "temp_c"]) / 3600
+            if 'aquifierStorage' in data['storages']['label'].unique():
+                self.__LgenericStorage['aquifierStorage'] = self._rho * self._c * (data["stratified_storage"].loc["aquifierStorage", "temp_h"] - data["stratified_storage"].loc["aquifierStorage", "temp_c"]) / 3600
         self._addBuildings(data, opt, mergeLinkBuses)
 
     def _addBuildings(self, data, opt, mergeLinkBuses):
@@ -253,7 +267,7 @@ class EnergyNetworkClass(solph.EnergySystem):
             b.addGridSeparation(data["grid_connection"][data["grid_connection"]["building"] == i], mergeLinkBuses)
             b.addSource(data["commodity_sources"][data["commodity_sources"]["building"] == i], data["electricity_impact"], data["electricity_cost"], opt)
             b.addSink(data["demand"][data["demand"]["building"] == i], data["demandProfiles"][i], data["building_model"], mergeLinkBuses, self._temperatureLevels)
-            b.addTransformer(data["transformers"][data["transformers"]["building"] == i], self.__operationTempertures, self.__temperatureAmb, self.__temperatureGround, opt, mergeLinkBuses, self._dispatchMode, self._temperatureLevels)
+            b.addTransformer(data["transformers"][data["transformers"]["building"] == i], self.__operationTemperatures, self.__temperatureAmb, self.__temperatureGround, opt, mergeLinkBuses, self._dispatchMode, self._temperatureLevels)
             storageList = b.addStorage(data["storages"][data["storages"]["building"] == i], data["stratified_storage"], opt, mergeLinkBuses, self._dispatchMode, self._temperatureLevels)
             b.addSolar(data["solar"][(data["solar"]["building"] == i) & (data["solar"]["label"] == "solarCollector")], data["weather_data"], opt, mergeLinkBuses, self._dispatchMode, self._temperatureLevels)
             b.addPV(data["solar"][(data["solar"]["building"] == i) & (data["solar"]["label"] == "pv")], data["weather_data"], opt, self._dispatchMode)
@@ -269,6 +283,7 @@ class EnergyNetworkClass(solph.EnergySystem):
             self.__envImpactInputs[buildingLabel] = {}
             self.__opex[buildingLabel] = {}
             self.__envImpactTechnologies[buildingLabel] = {}
+
 
     def printNodes(self):
         print("*********************************************************")
@@ -412,7 +427,7 @@ class EnergyNetworkClass(solph.EnergySystem):
                 for b in range(len(self.__buildings)):
                     buildingLabel = "Building" + str(b + 1)
                     invest = 0
-                    for layer in self.__operationTempertures:
+                    for layer in self.__operationTemperatures:
                         if f"thermalStorage{int(layer)}__" + buildingLabel in capacitiesInvestedStorages:
                             invest += capacitiesInvestedStorages[f"thermalStorage{int(layer)}__" + buildingLabel]
                             removeKeysList.append(f"thermalStorage{int(layer)}__" + buildingLabel)
@@ -492,8 +507,17 @@ class EnergyNetworkClass(solph.EnergySystem):
                 capacitiesStorages[storage] = capacitiesStorages[storage] / self.__Lsh
             elif "dhw" in storage:
                 capacitiesStorages[storage] = capacitiesStorages[storage] / self.__Ldhw
-            elif "thermal" in storage:
+            elif "thermal" in storage and self._temperatureLevels:
                 capacitiesStorages[storage] = capacitiesStorages[storage] / self.__Ltank
+            elif "tank" in storage and not self._temperatureLevels:
+                capacitiesStorages[storage] = capacitiesStorages[storage] / self.__LgenericStorage['tankStorage']
+            elif "pitStorage" in storage and not self._temperatureLevels:
+                capacitiesStorages[storage] = capacitiesStorages[storage] / self.__LgenericStorage['pitStorage']
+            elif "borehole" in storage and not self._temperatureLevels:
+                capacitiesStorages[storage] = capacitiesStorages[storage] / self.__LgenericStorage['boreholeStorage']
+            elif "aquifier" in storage and not self._temperatureLevels:
+                capacitiesStorages[storage] = capacitiesStorages[storage] / self.__LgenericStorage['aquifierStorage']
+        print(capacitiesStorages)
         return capacitiesStorages
 
     def _postprocessingClusters(self, clusterSize):
@@ -553,7 +577,7 @@ class EnergyNetworkClass(solph.EnergySystem):
                 elInBusLabel = 'electricityInBus__'+buildingLabel
             if self._temperatureLevels:
                 shOutputLabel = "heatStorageBus0__"
-                dhwOutputLabel = f"heatStorageBus{len(self.__operationTempertures)-1}__"
+                dhwOutputLabel = f"heatStorageBus{len(self.__operationTemperatures)-1}__"
             else:
                 shOutputLabel = "shSourceBus__"
                 dhwOutputLabel = "dhwStorageBus__"
@@ -566,7 +590,7 @@ class EnergyNetworkClass(solph.EnergySystem):
                 self.__shHP[buildingLabel] = sum(
                     solph.views.node(self._optimizationResults, 'HP__' + buildingLabel)["sequences"][
                         ('HP__' + buildingLabel, shOutputLabel + buildingLabel), 'flow'])
-                for i in range(len(self.__operationTempertures)-2):
+                for i in range(len(self.__operationTemperatures)-2):
                     self.__intermediateOpTempsHP[buildingLabel] = sum(
                         solph.views.node(self._optimizationResults, 'HP__' + buildingLabel)["sequences"][
                             ('HP__' + buildingLabel, f"heatStorageBus{i+1}__{buildingLabel}"), 'flow'])
@@ -584,7 +608,7 @@ class EnergyNetworkClass(solph.EnergySystem):
                 self.__shGWHP[buildingLabel] = sum(
                     solph.views.node(self._optimizationResults, 'GWHP__' + buildingLabel)["sequences"][
                         ('GWHP__' + buildingLabel, shOutputLabel + buildingLabel), 'flow'])
-                for i in range(len(self.__operationTempertures)-2):
+                for i in range(len(self.__operationTemperatures)-2):
                     self.__intermediateOpTempsGWHP[buildingLabel] = sum(
                         solph.views.node(self._optimizationResults, 'GWHP__' + buildingLabel)["sequences"][
                             ('GWHP__' + buildingLabel, f"heatStorageBus{i+1}__{buildingLabel}"), 'flow'])
@@ -667,13 +691,26 @@ class EnergyNetworkClass(solph.EnergySystem):
         return self._metaResults
 
     def calcStateofCharge(self, type, building):
-        if type + '__' + building in self.groups:
+        if "thermalStorage" in type:
+            for i,temperature in enumerate(self.__operationTemperatures):
+                thermal_type = type + str(temperature)[:2]
+                if thermal_type + '__' + building in self.groups:
+                    storage = self.groups[thermal_type + '__' + building]
+                    self._storageContent.setdefault(building, {})[thermal_type] = self._optimizationResults[(storage, None)]["sequences"]
+                if temperature == self.__operationTemperatures[-1]:
+                    lists = np.array(list(self._storageContent[building].values()))
+                    # Calculate the sum of corresponding elements in the arrays
+                    sums = np.sum(lists, axis=0)
+                    self._storageContent[building][thermal_type][f'Overall_storage_content_{building}'] = sums
+        elif type + '__' + building in self.groups:
             storage = self.groups[type + '__' + building]
+
             # print(f"""********* State of Charge ({type},{building}) *********""")
             # print(
             #    self._optimizationResults[(storage, None)]["sequences"]
             # )
-            self._storageContentSH[building] = self._optimizationResults[(storage, None)]["sequences"]
+            self._storageContent[building] = self._optimizationResults[(storage, None)]["sequences"]
+        return self._storageContent
 
     def printInvestedCapacities(self, capacitiesInvestedTransformers, capacitiesInvestedStorages):
         if self._temperatureLevels:
@@ -685,47 +722,92 @@ class EnergyNetworkClass(solph.EnergySystem):
             print("************** Optimized Capacities for {} **************".format(buildingLabel))
             if ("HP__" + buildingLabel, shOutputLabel + buildingLabel) in capacitiesInvestedTransformers:
                 investSH = capacitiesInvestedTransformers[("HP__" + buildingLabel, shOutputLabel + buildingLabel)]
-                print("Invested in {:.1f} kW HP.".format(investSH))
-                print("     Annual COP = {:.1f}".format(self.__annualCopHP[buildingLabel]))
+                if investSH > 0.05:
+                    print("Invested in {:.1f} kW HP.".format(investSH))
+                    print("     Annual COP = {:.1f}".format(self.__annualCopHP[buildingLabel]))
             if ("GWHP__" + buildingLabel, shOutputLabel + buildingLabel) in capacitiesInvestedTransformers:
                 investSH = capacitiesInvestedTransformers[("GWHP__" + buildingLabel, shOutputLabel + buildingLabel)]
-                print("Invested in {:.1f} kW GWHP.".format(investSH))
-                print("     Annual COP = {:.1f}".format(self.__annualCopGWHP[buildingLabel]))
+                if investSH > 0.05:
+                    print("Invested in {:.1f} kW GWHP.".format(investSH))
+                    print("     Annual COP = {:.1f}".format(self.__annualCopGWHP[buildingLabel]))
             if (f"GWHP{str(self.__temperatureSH)}__" + buildingLabel, shOutputLabel + buildingLabel) in capacitiesInvestedTransformers:
                 investSH = capacitiesInvestedTransformers[(f"GWHP{str(self.__temperatureSH)}__" + buildingLabel, shOutputLabel + buildingLabel)]
-                print("Invested in {:.1f} kW GWHP{}.".format(investSH, str(self.__temperatureSH)))
-                print("     Annual COP = {:.1f}".format(self.__annualCopGWHP[buildingLabel][0]))
+                if investSH > 0.05:
+                    print("Invested in {:.1f} kW GWHP{}.".format(investSH, str(self.__temperatureSH)))
+                    print("     Annual COP = {:.1f}".format(self.__annualCopGWHP[buildingLabel][0]))
             if (f"GWHP{str(self.__temperatureDHW)}__" + buildingLabel, "dhwStorageBus__" + buildingLabel) in capacitiesInvestedTransformers:
                 investSH = capacitiesInvestedTransformers[(f"GWHP{str(self.__temperatureDHW)}__" + buildingLabel, "dhwStorageBus__" + buildingLabel)]
-                print("Invested in {:.1f} kW GWHP{}.".format(investSH, str(self.__temperatureDHW)))
-                print("     Annual COP = {:.1f}".format(self.__annualCopGWHP[buildingLabel][1]))
+                if investSH > 0.05:
+                    print("Invested in {:.1f} kW GWHP{}.".format(investSH, str(self.__temperatureDHW)))
+                    print("     Annual COP = {:.1f}".format(self.__annualCopGWHP[buildingLabel][1]))
             if ("ElectricRod__" + buildingLabel, shOutputLabel + buildingLabel) in capacitiesInvestedTransformers:
                 investSH = capacitiesInvestedTransformers[("ElectricRod__" + buildingLabel, shOutputLabel + buildingLabel)]
-                print("Invested in {:.1f} kW Electric Rod.".format(investSH))
+                if investSH > 0.05:
+                    print("Invested in {:.1f} kW Electric Rod.".format(investSH))
             if ("CHP__" + buildingLabel, shOutputLabel + buildingLabel) in capacitiesInvestedTransformers:
                 investSH = capacitiesInvestedTransformers["CHP__" + buildingLabel, shOutputLabel + buildingLabel]
-                print("Invested in {:.1f} kW CHP.".format(investSH))  # + investEL))
+                if investSH > 0.05:
+                    print("Invested in {:.1f} kW CHP.".format(investSH))  # + investEL))
             if ("GasBoiler__" + buildingLabel, shOutputLabel + buildingLabel) in capacitiesInvestedTransformers:
                 investSH = capacitiesInvestedTransformers["GasBoiler__" + buildingLabel, shOutputLabel + buildingLabel]
-                print("Invested in {:.1f} kW GasBoiler.".format(investSH))
+                if investSH > 0.05:
+                    print("Invested in {:.1f} kW GasBoiler.".format(investSH))
             if ("heat_solarCollector__" + buildingLabel, "solarConnectBus__" + buildingLabel) in capacitiesInvestedTransformers:
                 invest = capacitiesInvestedTransformers[("heat_solarCollector__" + buildingLabel, "solarConnectBus__" + buildingLabel)]
-                print("Invested in {:.1f} m² SolarCollector.".format(invest))
+                if invest > 0.05:
+                    print("Invested in {:.1f} m² SolarCollector.".format(invest))
             if ("pv__" + buildingLabel, "electricityProdBus__" + buildingLabel) in capacitiesInvestedTransformers:
                 invest = capacitiesInvestedTransformers[("pv__" + buildingLabel, "electricityProdBus__" + buildingLabel)]
-                print("Invested in {:.1f} kWp  PV.".format(invest))
+                if invest > 0.05:
+                    print("Invested in {:.1f} kWp  PV.".format(invest))
             if "electricalStorage__" + buildingLabel in capacitiesInvestedStorages:
                 invest = capacitiesInvestedStorages["electricalStorage__" + buildingLabel]
-                print("Invested in {:.1f} kWh Electrical Storage.".format(invest))
+                if invest > 0.05:
+                    print("Invested in {:.1f} kWh Electrical Storage.".format(invest))
             if "dhwStorage__" + buildingLabel in capacitiesInvestedStorages:
                 invest = capacitiesInvestedStorages["dhwStorage__" + buildingLabel]
-                print("Invested in {:.1f} L DHW Storage Tank.".format(invest))
+                if invest > 0.05:
+                    print("Invested in {:.1f} L DHW Storage Tank.".format(invest))
+            if "dhwStorage1__" + buildingLabel in capacitiesInvestedStorages:
+                invest = capacitiesInvestedStorages["dhwStorage1__" + buildingLabel]
+                if invest > 0.05:
+                    print("Invested in {:.1f} L DHW Storage1 Tank.".format(invest))
             if "shStorage__" + buildingLabel in capacitiesInvestedStorages:
                 invest = capacitiesInvestedStorages["shStorage__" + buildingLabel]
-                print("Invested in {:.1f} L SH Storage Tank.".format(invest))
+                if invest > 0.05:
+                    print("Invested in {:.1f} L SH Storage Tank.".format(invest))
             if "thermalStorage__" + buildingLabel in capacitiesInvestedStorages:
                 invest = capacitiesInvestedStorages["thermalStorage__" + buildingLabel]
-                print("Invested in {:.1f} L Multilayer Thermal Storage Tank.".format(invest))
+                if invest > 0.05:
+                    print("Invested in {:.1f} L Multilayer Thermal Storage Tank.".format(invest))
+            if "tankStorage__" + buildingLabel in capacitiesInvestedStorages:
+                invest = capacitiesInvestedStorages["tankStorage__" + buildingLabel]
+                if invest > 0.05:
+                    print("Invested in {:.1f} L Generic Storage.".format(invest))
+            if "pitStorage__" + buildingLabel in capacitiesInvestedStorages:
+                invest = capacitiesInvestedStorages["pitStorage__" + buildingLabel]
+                if invest > 0.05:
+                    print("Invested in {:.1f} L Pit Storage.".format(invest))
+            if "pitStorage0__" + buildingLabel in capacitiesInvestedStorages:
+                invest = capacitiesInvestedStorages["pitStorage0__" + buildingLabel]
+                if invest > 0.05:
+                    print("Invested in {:.1f} L Pit Storage 0.".format(invest))
+            if "pitStorage1__" + buildingLabel in capacitiesInvestedStorages:
+                invest = capacitiesInvestedStorages["pitStorage1__" + buildingLabel]
+                if invest > 0.05:
+                    print("Invested in {:.1f} L Pit Storage 1.".format(invest))
+            if "pitStorage2__" + buildingLabel in capacitiesInvestedStorages:
+                invest = capacitiesInvestedStorages["pitStorage2__" + buildingLabel]
+                if invest > 0.05:
+                    print("Invested in {:.1f} L Pit Storage 2.".format(invest))
+            if "boreholeStorage__" + buildingLabel in capacitiesInvestedStorages:
+                invest = capacitiesInvestedStorages["boreholeStorage__" + buildingLabel]
+                if invest > 0.05:
+                    print("Invested in {:.1f} L Borehole Storage.".format(invest))
+            if "aquifierStorage__" + buildingLabel in capacitiesInvestedStorages:
+                invest = capacitiesInvestedStorages["aquifierStorage__" + buildingLabel]
+                if invest > 0.05:
+                    print("Invested in {:.1f} L Aquifier Storage.".format(invest))
 
     def printCosts(self):
         capexNetwork = sum(self.__capex["Building" + str(b + 1)] for b in range(len(self.__buildings)))
@@ -759,35 +841,64 @@ class EnergyNetworkClass(solph.EnergySystem):
         return envImpactTechnologiesNetwork + envImpactInputsNetwork
 
     def exportToExcel(self, file_name, mergeLinkBuses=False):
+        hSB_sheet = [] #Special sheet for the merged heatStorageBus
         for i in range(1, self.__noOfBuildings+1):
-            self.calcStateofCharge("shStorage", f"Building{i}")
+            if self._temperatureLevels:
+                self._storageContentTS = self.calcStateofCharge("thermalStorage", f"Building{i}")
+            else:
+                self._storageContentSH = self.calcStateofCharge("shStorage", f"Building{i}")
+                self._storageContentDHW = self.calcStateofCharge("dhwStorage", f"Building{i}")
+            hSB_sheet.append(f'heatStorageBus_Building{i}') #name of the different heatStorageBuses
+
+
         with pd.ExcelWriter(file_name) as writer:
             busLabelList = []
             for i in self.nodes:
                 if "buses._bus.Bus" in str(type(i)).replace("<oemof.solph.", "").replace("'>", ""):
                     busLabelList.append(i.label)
             # writing results of each bus into excel
+            result_hSB = pd.DataFrame()
+            hSB_building = 0
             for i in busLabelList:
-                if "domesticHotWaterBus" in i:  # special case for DHW bus (output from transformers --> dhwStorageBus --> DHW storage --> domesticHotWaterBus --> DHW Demand)
-                    if not mergeLinkBuses:
-                        dhwStorageBusLabel = "dhwStorageBus__" + i.split("__")[1]
-                        resultDHW = pd.DataFrame.from_dict(solph.views.node(self._optimizationResults, i)["sequences"])  # result sequences of DHW bus
-                        resultDHWStorage = pd.DataFrame.from_dict(solph.views.node(self._optimizationResults, dhwStorageBusLabel)["sequences"])  # result sequences of DHW storage bus
-                        result = pd.concat([resultDHW, resultDHWStorage], axis=1, sort=True)
-                    else:
-                        result = pd.DataFrame.from_dict(solph.views.node(self._optimizationResults, i)["sequences"])  # result sequences of DHW bus
-                elif mergeLinkBuses and "dhwStorageBus" in i and "sequences" in solph.views.node(self._optimizationResults, i):
-                    result = pd.DataFrame.from_dict(solph.views.node(self._optimizationResults, i)["sequences"])  # result sequences of DHW storage bus
-                elif "dhwStorageBus" not in i:  # for all the other buses except DHW storage bus (as it is already considered with DHW bus)
-                    if 'sequences' in solph.views.node(self._optimizationResults, i):
-                        result = pd.DataFrame.from_dict(solph.views.node(self._optimizationResults, i)["sequences"])
-                        if "shSourceBus" in i and i.split("__")[1] in self._storageContentSH:
-                            result = pd.concat([result, self._storageContentSH[i.split("__")[1]]], axis=1, sort=True)
-                    else:
-                        continue
-                result[result < 0.001] = 0      # to resolve the issue of very low values in the results in certain cases, values less than 1 Watt would be replaced by 0
-                if mergeLinkBuses or "dhwStorageBus" not in i:
-                    result.to_excel(writer, sheet_name=i)
+                if "dummy" not in i: #don't print the dummy results anymore
+                    if "domesticHotWaterBus" in i:  # special case for DHW bus (output from transformers --> dhwStorageBus --> DHW storage --> domesticHotWaterBus --> DHW Demand)
+                        if not mergeLinkBuses:
+                            dhwStorageBusLabel = "dhwStorageBus__" + i.split("__")[1]
+                            resultDHW = pd.DataFrame.from_dict(solph.views.node(self._optimizationResults, i)["sequences"])  # result sequences of DHW bus
+                            resultDHWStorage = pd.DataFrame.from_dict(solph.views.node(self._optimizationResults, dhwStorageBusLabel)["sequences"])  # result sequences of DHW storage bus
+                            result = pd.concat([resultDHW, resultDHWStorage], axis=1, sort=True)
+                        else:
+                            result = pd.DataFrame.from_dict(solph.views.node(self._optimizationResults, i)["sequences"])  # result sequences of DHW bus
+                    elif mergeLinkBuses and "dhwStorageBus" in i and "sequences" in solph.views.node(self._optimizationResults, i):
+                        result = pd.DataFrame.from_dict(solph.views.node(self._optimizationResults, i)["sequences"])  # result sequences of DHW storage bus
+                    elif "dhwStorageBus" not in i:  # for all the other buses except DHW storage bus (as it is already considered with DHW bus)
+                        if 'sequences' in solph.views.node(self._optimizationResults, i):
+
+                            result = pd.DataFrame.from_dict(solph.views.node(self._optimizationResults, i)["sequences"])
+                            if "shSourceBus" in i and i.split("__")[1] in self._storageContentSH:
+                                result = pd.concat([result, self._storageContentSH[i.split("__")[1]]], axis=1, sort=True)
+
+                            if "heatStorageBus" in i and i.split("__")[1] in self._storageContentTS:
+                                result = result[
+                                    result.columns[[0, 3]]]  # get rid of 'status' and 'status_nominal' columns
+                                result_hSB = pd.concat([result_hSB, result], axis=1, sort=True)
+                                # for j, temperature in enumerate(self.__operationTemperatures): #this was used for the intermediate storage content (layer by layer)
+                                #     if f's{j}' in i.split("__")[0]:
+                                #         result = pd.concat([result, self._storageContentTS[i.split("__")[1]][
+                                #             f'thermalStorage{int(temperature)}']], axis=1, sort=True)
+                                if f's{len(self.__operationTemperatures)-1}' in i.split("__")[0]: #if we are at the last storage layer, then add the overall storage content of the building
+                                    result_hSB = pd.concat([result_hSB, self._storageContentTS[i.split("__")[1]][
+                                             f'thermalStorage{int(self.__operationTemperatures[-1])}'][f'Overall_storage_content_{i.split("__")[1]}']], axis=1, sort=True)
+
+                        else:
+                            continue
+                    result[result < 0.001] = 0      # to resolve the issue of very low values in the results in certain cases, values less than 1 Watt would be replaced by 0
+                    if (mergeLinkBuses or "dhwStorageBus" not in i) and "heatStorageBus" not in i:
+                        result.to_excel(writer, sheet_name=i)
+                    elif f"heatStorageBus{len(self.__operationTemperatures)-1}" in i: #Special case for merging the heatStorageBuses (only if at the higher thermal layer)
+                        result_hSB.to_excel(writer, sheet_name= hSB_sheet[hSB_building])
+                        result_hSB = pd.DataFrame() #Clean the temporary heatStorageBus sheet
+                        hSB_building += 1  # Prepare for the next building
 
             # writing the costs and environmental impacts (of different components...) for each building
             for b in self.__buildings:
@@ -982,7 +1093,7 @@ class EnergyNetworkGroup(EnergyNetworkClass):
                                     'invest_base', 'invest_cap', 'heat_impact', 'elec_impact', 'impact_cap'],
                        'stratified_storage': ['label', 'diameter', 'temp_h', 'temp_c', 'temp_env',
                                               'inflow_conversion_factor', 'outflow_conversion_factor', 's_iso',
-                                              'lamb_iso', 'alpha_inside', 'alpha_outside'],
+                                              'lamb_iso', 'alpha_inside', 'alpha_outside', 'u_value', 'rho', 'c'],
                        'links': ['label', 'active', 'efficiency', 'invest_base', 'invest_cap', 'investment']
                        }
         buses = {'naturalgasresource': ['naturalGasBus', '', ''], 'electricityresource': ['gridBus', '', ''],
@@ -1024,6 +1135,8 @@ class EnergyNetworkGroup(EnergyNetworkClass):
                 newRow.at[0, 'temp_h'] = list(temp_h.values())[0]
                 newRow.at[1, 'label'] = list(temp_h)[1]
                 newRow.at[1, 'temp_h'] = list(temp_h.values())[1]
+                newRow.at[2, 'label'] = list(temp_h)[2]
+                newRow.at[2, 'temp_h'] = list(temp_h.values())[1]
             for item in configData[sheetToSection[sheet].lower()]:
                 type = item[0]
                 if item[1] in ['True', 'False']:  # defines whether or not a component is to be added
@@ -1126,8 +1239,8 @@ class EnergyNetworkGroup(EnergyNetworkClass):
         with pd.ExcelWriter(excelFilePath, engine='xlwt') as writer:
             for sheet, data in excelData.items():
                 data.to_excel(writer, sheet_name=sheet, index=False)
-            writer.save()
-            writer.close()
+            # writer.save()
+            # writer.close()
 
     def setFromExcel(self, filePath, numberOfBuildings, clusterSize={}, opt="costs", mergeLinkBuses=False, dispatchMode = False):
         # does Excel file exist?
