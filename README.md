@@ -11,10 +11,11 @@ defined for easy and fast result visualization.
 ## Documentation
 The documentation can be found on https://optihood.readthedocs.io/.
 
-## Pre-requisites
+## Prerequisites
 In order to use optihood, the following prerequisites are needed on your machine:
 
 - [Python 3.9](https://www.python.org/downloads/) is installed.
+- Git is installed
 - An active [Github](https://github.com/) account to clone the repo.
 - A solver is installed. [Gurobi solver](https://www.gurobi.com/resource/parallelism-linear-mixed-integer-programming/)
 is recommended, although other solvers like CBC, GLPK, Cplex could also be used.
@@ -33,13 +34,38 @@ commands could be used.
 2. All the next commands should be run from within the optihood folder. Create a virtual environment and activate it:
     ```commandline
     py -3.9 -m venv venv
+    venv\Scripts\activate
     ```    
 3. Install the requirements into the created virtual environment:
     ```commandline
     pip install wheel
     pip install -r requirements.txt
     ```
-4. To test whether the installation worked well, you could run a [basic example](https://github.com/SPF-OST/OptiHood/tree/main/data/examples/).
+
+
+    It might be required to install C++ build tools. To do that, click on the link that appears with the error message and follow the instructions (it is the lapack package that is missing). In order to be able to 
+    install the missing package, it is required to have a complete Visual Studio instance and installing it with the "Desktop development with C++" workload.
+   
+4.  Verify the installation of the oemof package and the solver by running the installation test in your virtual environment:
+    ```commandline
+    oemof_installation_test
+    ```
+
+    
+    If the installation is successful a message similar to the following would display (the installed solver would be marked as working):
+    ```commandline
+    *****************************
+    Solver installed with oemof
+    cbc: not working
+    glpk: not working
+    gurobi: working
+    cplex: not working
+    
+    *****************************
+    oemof successfully installed.
+    *****************************
+    ```
+5.  To test whether the installation worked well, you could run a [basic example](https://github.com/SPF-OST/OptiHood/tree/main/data/examples/).
 
 ## Defining an energy network
 

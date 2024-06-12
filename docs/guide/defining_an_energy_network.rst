@@ -18,38 +18,40 @@ The choice mainly depends on whether the buildings are linked together (electric
 If the buildings within an energy network do not share electricity and/or heat, EnergyNetworkIndiv class is used::
 
     import EnergyNetworkIndiv
-    network = EnergyNetworkIndiv(dateTimeIndex, tSH=35, tDHW=55)
+    network = EnergyNetworkIndiv(dateTimeIndex)
 
 Otherwise, if the buildings are expected to share energy (electrical and/or heat), EnergyNetworkGroup class is used::
 
     import EnergyNetworkGroup
-    network = EnergyNetworkGroup(dateTimeIndex, tSH=35, tDHW=55)
+    network = EnergyNetworkGroup(dateTimeIndex)
 
-The first parameter to be passed in both the cases is a Datetime index. This parameter gives the time range for an
+The parameter to be passed in both the cases is a Datetime index. This parameter gives the time range for an
 optimization model. The Datetime index could be defined using date_range() in pandas::
 
     import pandas as pd
     dateTimeIndex = pd.date_range('2021-01-01 00:00:00', '2021-12-31 23:00:00', freq="60min")
 
-The second and the third parameters tSH and tDHW define the temperatures for space heating and domestic hot water
-production, respectively.
+The scenario consisting of the energy network (including buildings and links, if any) to be optimized can be defined using either a configuration (or config) file or an excel file. The input config/excel file define the available energy conversion and storage technologies. The associated parameters and sizing limits of the technologies are also defined within the input scenario file, along with the cost and environmental impact assumptions per technology, a path to the demand profiles and weather data files. The purchased electricity cost as well as the emissions of the grid electricity can either be a time series or a constant value. The demand profiles for space heating can be defined statically or alternatively by means of a dynamic linear building model. After preparing the config/excel file, an energy network can be defined in a Python script for optimization.
 
-Once the ``network`` object has been created, the next step then is to build the model from an input excel file which
+Descriptions of input excel/config files are given next.
+
+
+Input Excel File
+----------------
+Once the ``network`` object has been created, a model can be built from an input excel file which
 defines different components which constitute the model, how they are connected and their associated parameters::
 
-    network.setFromExcel(inputExcelFilePath, numberOfBuildings, clusterSize, opt)
+    network.setFromExcel(inputExcelFilePath, numberOfBuildings, clusterSize, opt, mergeLinkBuses, dispatchMode)
 
 ``inputExcelFilePath`` gives the path of the excel input file. ``numberofBuildings`` is an integer parameter specifying the
 number of buildings defined in the excel file. The last two parameters clusterSize and opt are optional. The ``opt``
-parameter could be either ``'costs'`` (default value) or ``'env'`` depending on which criteria should be optimized. The
+parameter could be either ``'costs'`` (default value) or ``'env'`` depending on which criteria should be optimized. The ``mergeLinkBuses`` parameter is an optional argument whether or not to use the merge of the different buses (set as False if not given). The ``dispatchMode`` parameter is an optional argument whether or not to activate the dispatch optimization (set to False if not given). The
 ``clusterSize`` parameter is used to provide a selected number of days which could be assumed representative of the entire
 time range. For example: two typical days could be selected to model the entire year, which could represent two clusters
 summer and winter. This would improve the optimization speed. If not given during the function call, the default value
 of the clusterSize parameter assumes no day clusters. This parameter is described further in
 :ref:`advanced_under_development_features`
 
-Input Excel File
-----------------
 The input excel file is used to define an optimization model and set the model parameters. Each sheet of this excel file
 is structured to defin different components, such as buses, storages and transformers, their respective parameters,
 connections between these components and the building to which they belong.
@@ -103,11 +105,13 @@ This sheet defines the different commodity sources which serve as an energy inpu
     Label of bus to which the energy from the commodity source flows. The corresponding bus label should exist in
     the buses sheet.
 
-``variable costs`` (float)
+``variable costs`` (float or path)
     Cost per kW of the commodity source.
 
-``CO2 impact`` (float)
+``CO2 impact`` (float or path)
     CO2 impact per kW of the commodity source.
+
+``variable costs`` and ``CO2 impact`` could be either constant value (float) or a path to a CSV file containing cost/impact data.
 
 demand
 ^^^^^^
@@ -306,36 +310,66 @@ production and/or space heat production. Links allow this sharing to be possible
 defined already for buses excel sheet. ``invest_base`` and ``invest_cap`` parameters (defined in the transformers sheet
 section) are only relevant for space heating links in the present stage of development.
 
-.. image:: ./resources/input_excel_links.PNG
-      :width: 600
-      :alt: input_excel_links
+.. image:: ./resources/scenario_links.PNG
+      :width: 500
+      :alt: scenario_links
 
-``buildingA`` (integer)
-    Building number of the first building of the link. This should match with the values typically given in the
-    ``building`` parameter in the other excel sheets.
+``efficiency`` (float)
+    Efficiency of energy transfer over the link.
 
-``buildingB`` (integer)
-    Building number of the second building of the link. This should match with the values typically given in the
-    ``building`` parameter in the other excel sheets.
-
-``efficiency from A to B`` (integer)
-    Efficiency of energy transfer over the link from ``buildingA`` to ``buildingB``.
-
-``efficiency from B to A`` (integer)
-    Efficiency of energy transfer over the link from ``buildingB`` to ``buildingA``.
+``investment`` (0 or 1)
+    defines whether investment optimization should be
+    performed or not. If set to 1, then the optimization is performed.
 
 profiles
 ^^^^^^^^
 
-The paths to CSV files containing demand profiles, weather data and electricity impact data are to be given in this
-excel sheet. ``INFO`` gives further information about each row.
+The paths to CSV files containing demand profiles, weather data are to be given in this
+excel sheet. If building model is chosen, then path to building model specific data (fitting parameters and internal heat gains from occupancy) is also specified here.
 
-.. image:: ./resources/input_excel_profiles.PNG
-      :width: 500
-      :alt: input_excel_profiles
+.. image:: ./resources/scenario_profiles_new.png
+      :width: 400
+      :alt: scenario_profiles_new
 
 grid_connection
 ^^^^^^^^^^^^^^^
 
 This excel sheet should not be modified by the users. It defines the separation of the flows from electricity grid and
 the produced electricity flows to make sure that the grid electricity is not stored in batteries.
+
+Input Config File
+----------------
+The config file was introduced to make the scenario definition more intuitive and less prone to errors. The config file, therefore, can be used
+as an alternative way of formulating an optimization problem.
+
+In a config file, one could provide the same information as in the input Excel file but for a case where all
+the buildings have an identical setup (technologies, limits on capacities, costs, etc.).
+
+.. image:: ./resources/config_file.png
+      :width: 500
+      :alt: config_file_example
+
+Each building would have the same available energy sources and technologies. Paths to the weather file, electricity impact and demand profiles are also
+specified within this config file. Moreover, the connections between energy sources, conversion and storage technologies and demands are fixed to default system connections when a config file is used. Those conncections are illustrated on the Figure below. 
+
+.. image:: ./resources/config_file_fixed_connections.png
+      :width: 500
+      :alt: Default connections between different system components when a config file is used for optimization problem definition
+
+Note that the specific connections would realize only when the corresponding technologies/sources/sinks are
+selected. As an example, the connection between natural gas resource and CHP would be realized only if the
+optimizer chooses CHP as an optimum solution in the optimization results.  All the different parameters have already been described for the excel files.
+
+A new method called ``createScenarioFile()`` was implemented within the EnergyNetworkIndiv
+and EnergyNetworkGroup classes. This function reads a config file and derives the equivalent Excel file based
+on the default system component connections::
+
+    network.createScenarioFile(configFilePath, excelFilePath, numberOfBuildings)
+
+``configFilePath`` is the path to the config file describing the components of the model, ``excelFilePath`` gives the path for the excel output file. ``numberofBuildings`` is an integer parameter specifying the
+number of buildings defined in the config file.
+
+The equivalent Excel file includes the same energy sources,conversion and storage technologies (including same costs, minimum/maximum capacities, etc.) for each
+building. It is worthwhile to note that the ``createScenarioFile()`` could still be used to prepare a first
+version of the Excel file if system components for all the buildings are not identical. The prepared Excel file
+could then be adapted later on instead of creating it from scratch.
