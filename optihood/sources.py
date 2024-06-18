@@ -12,7 +12,7 @@ class PV(solph.Source):
         data = self.computePvSolarPosition(irradiance_diffuse, irradiance_global, latitude, longitude, pv_azimuth,
                                            pv_tilt, temp_amb_pv)
 
-        self.pv_electricity = np.minimum(self.pv_precalc(temp_amb_pv, data['pv_ira']/1000), capacityMax + base)
+        self.pv_electricity = np.minimum(self.pv_precalc(temp_amb_pv, data['pv_ira']/1000), capacityMax)
 
         if not (np.isnan(roof_area) or np.isnan(zenith_angle) or np.isnan(pv_efficiency)):
             self.surface_used = self._calculateArea(zenith_angle, pv_tilt, pv_azimuth, pv_efficiency)

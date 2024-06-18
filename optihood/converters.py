@@ -4,8 +4,13 @@ import pandas as pd
 import pvlib
 import optihood.combined_prod as cp
 from oemof.thermal.solar_thermal_collector import flat_plate_precalc
+from oemof.solph import network as solph_network
+from oemof.solph.plumbing import sequence as solph_sequence
+from pyomo.core.base.block import SimpleBlock
+from pyomo.environ import BuildAction
+from pyomo.environ import Constraint
 
-class SolarCollector(solph.Transformer):
+class SolarCollector:
     def __init__(self, label, buildingLabel, inputs, outputs, connector, electrical_consumption, peripheral_losses, latitude,
                  longitude,
                  collector_tilt, roof_area, zenith_angle, collector_azimuth, eta_0, a_1, a_2, temp_collector_inlet,
@@ -86,7 +91,7 @@ class SolarCollector(solph.Transformer):
         return coeff
 
 class PVT(solph.Transformer):
-    def __init__(self, label, buildingLabel, inputs, outputs, connector, electrical_consumption, peripheral_losses, latitude,
+    def __init__(self, label, buildingLabel, inputs, outputs, connectors, electrical_consumption, peripheral_losses, latitude,
                  longitude,
                  collector_tilt, roof_area, zenith_angle, collector_azimuth, eta_0, a_1, a_2, temp_collector_inlet,temp_amb,
                  delta_temp_n, irradiance_global,
@@ -95,63 +100,124 @@ class PVT(solph.Transformer):
 
         pvdata = self.computePvSolarPosition(irradiance_diffuse, irradiance_global, latitude, longitude, collector_azimuth,
                                            collector_tilt, temp_amb)
-        pv_electricity = np.minimum(self.pvtElPrecalc(temp_amb, temp_collector_inlet, pvdata['pv_ira'] / 1000, delta_temp_n), capacityMax + base)
-        pvtCollectorData = self.pvtThPrecalc(latitude, longitude, collector_tilt, collector_azimuth, eta_0, a_1, a_2, temp_collector_inlet, delta_temp_n,
+        pv_electricity = np.minimum(self.pvtElPrecalc(temp_amb, temp_collector_inlet, pvdata['pv_ira'] / 1000, delta_temp_n[1]), capacityMax + base)
+        pvtCollectorData_sh = self.pvtThPrecalc(latitude, longitude, collector_tilt, collector_azimuth, eta_0, a_1, a_2,
+                                                temp_collector_inlet, delta_temp_n[0],
                                        irradiance_global, irradiance_diffuse, temp_amb,  pv_efficiency, taualpha)
+        pvtCollectorData_dhw = self.pvtThPrecalc(latitude, longitude, collector_tilt, collector_azimuth, eta_0, a_1, a_2,
+                                             temp_collector_inlet, delta_temp_n[1],
+                                             irradiance_global, irradiance_diffuse, temp_amb, pv_efficiency, taualpha)
         self.taualpha = taualpha
 
-        self.collectors_heat = pvtCollectorData['collectors_heat']/1000
-        self.collectors_eta_c = pvtCollectorData['eta_c']
+        self.collectors_heat_sh = pvtCollectorData_sh['collectors_heat']/1000
+        self.collectors_heat_dhw = pvtCollectorData_dhw['collectors_heat'] / 1000
+        self.collectors_eta_c_sh = pvtCollectorData_sh['eta_c']
+        self.collectors_eta_c_dhw = pvtCollectorData_dhw['eta_c']
         self.surface_used = self.calculateArea(zenith_angle, collector_tilt, collector_azimuth)
         surface_used_el = self.calculateArea(zenith_angle, collector_tilt, collector_azimuth, pv_efficiency)
         if dispatchMode:
-            investArgs = {'ep_costs':epc,
+            investArgsEl = {'ep_costs':0,
                          'minimum':capacityMin,
                          'maximum':capacityMax,
                          'space':self.surface_used,
                          'space_el': surface_used_el,
                          'roof_area':roof_area,
                          'env_per_capa':env_capa}
+            investArgsSH = {'ep_costs': 0,
+                          'minimum': capacityMin,
+                          'maximum': capacityMax,
+                          'space': self.surface_used,
+                          'space_el': surface_used_el,
+                          'roof_area': roof_area,
+                          'env_per_capa': env_capa}
+            investArgsDHW = {'ep_costs': epc,
+                          'minimum': capacityMin,
+                          'maximum': capacityMax,
+                          'space': self.surface_used,
+                          'space_el': surface_used_el,
+                          'roof_area': roof_area,
+                          'env_per_capa': env_capa}
         else:
-            investArgs={'ep_costs':epc,
-                        'minimum':capacityMin,
-                         'maximum':capacityMax,
-                         'nonconvex':True,
-                         'space':self.surface_used,
-                         'space_el': surface_used_el,
-                         'roof_area':roof_area,
-                         'offset':base,
-                         'env_per_capa':env_capa}
+            investArgsEl = {'ep_costs': 0,
+                            'minimum': capacityMin,
+                            'maximum': capacityMax,
+                            'nonconvex': True,
+                            'space': self.surface_used,
+                            'roof_area': roof_area,
+                            'offset': 0.000001,
+                            'env_per_capa': 0}
+            investArgsSH = {'ep_costs': 0,
+                            'minimum': capacityMin,
+                            'maximum': capacityMax,
+                            'nonconvex': True,
+                            'space': self.surface_used,
+                            'roof_area': roof_area,
+                            'offset': 0.000001,
+                            'env_per_capa': 0}
+            investArgsDHW = {'ep_costs': epc,
+                             'minimum': capacityMin,
+                             'maximum': capacityMax,
+                             'nonconvex': True,
+                             'space': self.surface_used,
+                             'roof_area': roof_area,
+                             'offset': base,
+                             'env_per_capa': env_capa}
+
         self.__PVTel_source = solph.Source(label='elSource_' + label + '__' + buildingLabel,
-                                 outputs={outputs[1]: solph.Flow(
-                                     investment=solph.Investment(**investArgs),
+                                 outputs={outputs[2]: solph.Flow(
+                                     investment=solph.Investment(**investArgsEl),
                                      variable_costs=varc,
                                      env_per_flow=env_flow,
                                      max=pv_electricity
                                  )}
                                  )
-        self.__PVTheat_source = solph.Source(
-            label='heatSource_' + label + "__" + buildingLabel,
+        self.__PVTheat_source_sh = solph.Source(
+            label='heatSource_SH' + label + "__" + buildingLabel,
             outputs={
-                connector: solph.Flow(
-                    fix=self.collectors_heat,
-                    investment=solph.Investment(**investArgs),
+                connectors[0]: solph.Flow(
+                    fix=self.collectors_heat_sh,
+                    investment=solph.Investment(**investArgsSH),
                     variable_costs=varc,
                     env_per_flow=env_flow,
                 )
             },
         )
-        self.__PVT_excessheat = solph.Sink(
-            label='excessheat_' + label + "__" + buildingLabel, inputs={connector: solph.Flow()}
+        self.__PVT_excessheat_sh = solph.Sink(
+            label='excessheat_SH' + label + "__" + buildingLabel, inputs={connectors[0]: solph.Flow()}
         )
-        self.__PVTheat_transformer = solph.Transformer(
-            label=label + '__' + buildingLabel,
-            inputs={connector: solph.Flow(), inputs: solph.Flow()},
+        self.__PVTheat_transformer_sh = solph.Transformer(
+            label=label + 'SH__' + buildingLabel,
+            inputs={connectors[0]: solph.Flow(), inputs: solph.Flow()},
             outputs={outputs[0]: solph.Flow()},
             conversion_factors={
-                connector: 1,
+                connectors[0]: 1,
                 inputs: electrical_consumption * (1 - peripheral_losses),
                 outputs[0]: 1 - peripheral_losses
+            },
+        )
+
+        self.__PVTheat_source_dhw = solph.Source(
+            label='heatSource_DHW' + label + "__" + buildingLabel,
+            outputs={
+                connectors[1]: solph.Flow(
+                    fix=self.collectors_heat_dhw,
+                    investment=solph.Investment(**investArgsDHW),
+                    variable_costs=varc,
+                    env_per_flow=env_flow,
+                )
+            },
+        )
+        self.__PVT_excessheat_dhw = solph.Sink(
+            label='excessheat_DHW' + label + "__" + buildingLabel, inputs={connectors[1]: solph.Flow()}
+        )
+        self.__PVTheat_transformer_dhw = solph.Transformer(
+            label=label + 'DHW__' + buildingLabel,
+            inputs={connectors[1]: solph.Flow(), inputs: solph.Flow()},
+            outputs={outputs[1]: solph.Flow()},
+            conversion_factors={
+                connectors[1]: 1,
+                inputs: electrical_consumption * (1 - peripheral_losses),
+                outputs[1]: 1 - peripheral_losses
             },
         )
 
@@ -245,13 +311,13 @@ class PVT(solph.Transformer):
 
     def getPVT(self, type):
         if type == 'heat_source':
-            return self.__PVTheat_source
+            return self.__PVTheat_source_sh, self.__PVTheat_source_dhw
         elif type == 'heat_transformer':
-            return self.__PVTheat_transformer
+            return self.__PVTheat_transformer_sh, self.__PVTheat_transformer_dhw
         elif type == 'el_source':
             return self.__PVTel_source
         elif type == 'excess_heat_sink':
-            return self.__PVT_excessheat
+            return self.__PVT_excessheat_sh, self.__PVT_excessheat_dhw
         else:
             print("Label not identified...")
             return []
@@ -277,10 +343,12 @@ class HeatPumpLinear:
             'nonconvex' : True,
             'offset' : base,
             'env_per_capa' : env_capa * nomEff}
+        inputDict = {input[0]: solph.Flow(investment=solph.Investment(**investArgs))}
+        if len(input) > 1:
+            # Two input HP, second input is for Q evaporator
+            inputDict.update({input[1]: solph.Flow()})
         self.__heatpump = cp.CombinedTransformer(label='HP' + '__' + buildingLabel,
-                                            inputs={input: solph.Flow(
-                                                investment=solph.Investment(**investArgs),
-                                            )},
+                                            inputs=inputDict,
                                             outputs={outputSH: solph.Flow(
                                                           variable_costs=varc,
                                                           env_per_flow=env_flow,
@@ -338,10 +406,12 @@ class GeothermalHeatPumpLinear:
                         'offset':base,
                         'env_per_capa':env_capa*nomEff,
                     }
+        inputDict = {input[0]: solph.Flow(investment=solph.Investment(**investArgs))}
+        if len(input)>1:
+            # Two input HP, second input is for Q evaporator
+            inputDict.update({input[1]:solph.Flow()})
         self.__geothermalheatpump = cp.CombinedTransformer(label='GWHP' + '__' + buildingLabel,
-                                            inputs={input: solph.Flow(
-                                                investment=solph.Investment(**investArgs),
-                                            )},
+                                            inputs=inputDict,
                                             outputs={outputSH: solph.Flow(
                                                           variable_costs=varc,
                                                           env_per_flow=env_flow,
@@ -375,6 +445,102 @@ class GeothermalHeatPumpLinear:
             print("Transformer label not identified...")
             return []
 
+class Chiller(solph_network.Transformer):
+    r"""
+       Chiller is a tranformer with two input flows, W_elec and Q_heatin
+       and one output flow Q_heatout
+       The input relation constraint is defined in a new constraint block
+       This component is not fully developed (under test)
+       """
+    def __init__(self, tSH, tGround, nomEff, epc, capacityMin, capacityMax, env_capa, base, inputBuses, outputBus, dispatchMode, *args, **kwargs):
+        self.cop = solph_sequence(self._calculateCop(tSH,tGround))
+        if dispatchMode:
+            investArgs= {'ep_costs':epc*nomEff,
+                        'minimum':capacityMin/nomEff,
+                        'maximum':capacityMax/nomEff,
+                        'env_per_capa':env_capa*nomEff,
+                    }
+        else:
+            investArgs= {'ep_costs':epc*nomEff,
+                        'minimum':capacityMin/nomEff,
+                        'maximum':capacityMax/nomEff,
+                        'nonconvex':True,
+                        'offset':base,
+                        'env_per_capa':env_capa*nomEff,
+                    }
+        inputDict = {i: solph.Flow(investment=solph.Investment(**investArgs)) for i in inputBuses if "gridBus" in i.label or "electricity" in i.label}
+        inputDict.update({i: solph.Flow() for i in inputBuses if "gridBus" not in i.label and "electricity" not in i.label})
+        outputDict = {outputBus: solph.Flow()}
+        super().__init__(inputs=inputDict, outputs=outputDict, *args, **kwargs)
+
+    def _calculateCop(self, tHigh, tLow):
+        coefW = [0.1600, -1.2369, 19.9391, 19.3448, 7.1057, -1.4048]
+        coefQ = [13.8978, 114.8358, -9.3634, -179.4227, 342.3363, -12.4969]
+        QCondenser = coefQ[0] + (coefQ[1] * tLow / 273.15) + (coefQ[2] * tHigh / 273.15) + (
+                coefQ[3] * tLow / 273.15 * tHigh / 273.15) + (
+                             coefQ[4] * (tLow / 273.15) ** 2) + (
+                             coefQ[5] * (tHigh / 273.15) ** 2)
+        WCompressor = coefW[0] + (coefW[1] * tLow / 273.15) + (coefW[2] * tHigh / 273.15) + (
+                coefW[3] * tLow / 273.15 * tHigh / 273.15) + (
+                             coefW[4] * (tLow / 273.15) ** 2) + (
+                              coefW[5] * (tHigh / 273.15) ** 2)
+        cop = np.divide(QCondenser, WCompressor)
+        return cop
+
+    def constraint_group(self):
+        return ChillerBlock
+
+class ChillerBlock(SimpleBlock):
+    r"""Block for the linear relation of nodes
+    """
+
+    CONSTRAINT_GROUP = True
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def _create(self, group=None):
+        """Creates the linear constraint
+        """
+        if group is None:
+            return None
+
+        m = self.parent_block()
+
+        for n in group:
+            n.inflowElec = [i for i in list(n.inputs) if "electricity" in i.label][0]
+            n.inflowQcond = [i for i in list(n.inputs) if "electricity" not in i.label][0]
+            n.outflow = list(n.outputs)[0]
+
+        def _input_output_relation_rule(block):
+            """Connection between input and outputs."""
+            for t in m.TIMESTEPS:
+                for g in group:
+                    lhs = m.flow[g.inflowElec, g, t]
+                    rhs = m.flow[g, g.outflow, t] / g.cop[t]
+                    block.input_output_relation.add((g, t), (lhs == rhs))
+
+        self.input_output_relation = Constraint(
+            group, m.TIMESTEPS, noruleinit=True
+        )
+        self.input_output_relation_build = BuildAction(
+            rule=_input_output_relation_rule
+        )
+
+        def _input_relation_rule(block):
+            """Connection between inputs."""
+            for t in m.TIMESTEPS:
+                for g in group:
+                    lhs = m.flow[g.inflowElec, g, t] * (g.cop[t] - 1)
+                    rhs = m.flow[g.inflowQcond, g, t]
+                    block.input_relation.add((g, t), (lhs == rhs))
+
+        self.input_relation = Constraint(
+            group, m.TIMESTEPS, noruleinit=True
+        )
+        self.input_relation_build = BuildAction(
+            rule=_input_relation_rule
+        )
 
 class CHP:
     "Information about the model can be found in combined_pro.py CombinedCHP"
