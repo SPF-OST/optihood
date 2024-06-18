@@ -59,6 +59,10 @@ class TestConfigExamples(unittest.TestCase):
             try:
                 _pd.testing.assert_frame_equal(df_new, df_expected)
             except AssertionError as ae:
+                # Optihood doesn't export the results in a consistent way.
+                # Therefore, this hack reorders the results.
+                # Instead, the export should be ordered consistently.
+
                 df_new = df_new.sort_values(by=[df_new.columns[0]], ignore_index=True)
                 df_expected = df_expected.sort_values(by=[df_new.columns[0]], ignore_index=True)
                 _pd.testing.assert_frame_equal(df_new, df_expected)
