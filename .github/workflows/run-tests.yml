@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - "initial_tests" # remove this ASAP
   pull_request:
     branches:
       - '*'
