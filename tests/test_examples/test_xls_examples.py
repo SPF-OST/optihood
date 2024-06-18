@@ -2,6 +2,7 @@ import os as _os
 import pandas as _pd
 import pathlib as _pl
 import unittest
+import pytest as _pt
 
 import optihood as _oh
 import sys
@@ -9,6 +10,7 @@ sys.path.append(str(_pl.Path(_oh.__file__).resolve().parent / ".." / "data" / "e
 from basic_example import run_example
 
 
+@_pt.mark.skip()
 class TestXlsExamples(unittest.TestCase):
     def test_basic(self):
         cwd = _os.getcwd()

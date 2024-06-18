@@ -1,4 +1,5 @@
 import pandas as pd
+import pathlib as _pl
 import os
 try:
     import matplotlib.pyplot as plt
@@ -16,17 +17,18 @@ from optihood.energy_network import EnergyNetworkIndiv as EnergyNetwork
 import optihood.plot_sankey as snk
 import optihood.plot_functions as fnc
 
-if __name__ == '__main__':
 
+def run_example():
     # set a time period for the optimization problem
     timePeriod = pd.date_range("2018-01-01 00:00:00", "2018-01-31 23:00:00", freq="60min")
 
     # define paths for input and result files
-    inputFilePath = r"..\excels\basic_example"
+    curDir = _pl.Path(__file__).resolve().parent
+    inputFilePath = curDir / ".." / "excels" / "basic_example"
     inputfileName = "scenario.xls"
 
-    resultFilePath =r"..\results"
-    resultFileName ="results.xlsx"
+    resultFilePath = curDir / ".." / "results"
+    resultFileName ="results_basic_example.xlsx"
 
     # initialize parameters
     numberOfBuildings = 4
@@ -52,7 +54,7 @@ if __name__ == '__main__':
 
     # plot sankey diagram
     UseLabelDict = True     # a dictionary defining the labels to be used for different flows
-    figureFilePath = r"..\figures"
+    figureFilePath = curDir / ".." / "figures"
     if not os.path.exists(figureFilePath):
         os.makedirs(figureFilePath)
 
@@ -73,3 +75,6 @@ if __name__ == '__main__':
 
     fnc.plot(os.path.join(resultFilePath, resultFileName), figureFilePath, numberOfBuildings, plotLevel, plotType, flowType)
 
+
+if __name__ == '__main__':
+    run_example()
