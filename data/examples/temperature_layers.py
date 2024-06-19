@@ -29,7 +29,7 @@ if __name__ == '__main__':
     resultFileName ="results.xlsx"
 
     # initialize parameters
-    numberOfBuildings = 3
+    numberOfBuildings = 4
     optimizationType = "costs"  # set as "env" for environmental optimization
     mergeLinkBuses = True
     dispatchMode = False  # Set to True to run the optimization in dispatch mode

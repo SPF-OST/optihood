@@ -30,7 +30,7 @@ class EnergyNetworkClass(solph.EnergySystem):
                 d_clusterIndex = datetime(timestamp.year[0], 1, 1) + timedelta(i - 1)
                 self._clusterDate[day] = d_clusterIndex.strftime('%Y-%m-%d')
                 i += 1
-            timestamp = pd.date_range("2021-01-01 00:00:00", f"{lastDay} 23:00:00", freq=timestamp.freq)
+            timestamp = pd.date_range(f"{timestamp.year[0]}-01-01 00:00:00", f"{lastDay} 23:00:00", freq=timestamp.freq)
         self._nodesList = []
         self._thermalStorageList = []
         self._storageContentSH = {}
@@ -241,8 +241,8 @@ class EnergyNetworkClass(solph.EnergySystem):
             nodesData["weather_data"].timestamp = pd.to_datetime(nodesData["weather_data"].timestamp,
                                                                           format='%Y.%m.%d %H:%M:%S')
             nodesData["weather_data"].set_index("timestamp", inplace=True)
-            """if not clusterSize:
-                nodesData["weather_data"] = nodesData["weather_data"][self.timeindex[0]:self.timeindex[-1]]"""
+            if (not clusterSize) and nodesData["weather_data"].index.year.unique().__len__() == 1:
+                nodesData["weather_data"] = nodesData["weather_data"][self.timeindex[0]:self.timeindex[-1]]
 
         nodesData["building_model"] = {}
         if (nodesData['demand']['building model'].notna().any()) and (nodesData['demand']['building model'] == 'Yes').any():
@@ -678,7 +678,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         for flow in flows:
             extrapolated_results = None
             for day in clusterSize:
-                temp = pd.concat([self._optimizationResults[flow]['sequences'][self._clusterDate[day]]] * clusterSize[day])
+                temp = pd.concat([self._optimizationResults[flow]['sequences'].loc[self._clusterDate[day]]] * clusterSize[day])
                 if extrapolated_results is not None:
                     extrapolated_results = pd.concat([extrapolated_results, temp])
                 else:
@@ -1096,8 +1096,7 @@ class EnergyNetworkClass(solph.EnergySystem):
                                 result = pd.concat([result, self._storageContentSH[i.split("__")[1]]], axis=1, sort=True)
 
                             if "heatStorageBus" in i and i.split("__")[1] in self._storageContentTS:
-                                result = result[
-                                    result.columns[[0, 3]]]  # get rid of 'status' and 'status_nominal' columns
+                                # result = result[result.columns[[0, 3]]]  # get rid of 'status' and 'status_nominal' columns
                                 result_hSB = pd.concat([result_hSB, result], axis=1, sort=True)
                                 # for j, temperature in enumerate(self.__operationTemperatures): #this was used for the intermediate storage content (layer by layer)
                                 #     if f's{j}' in i.split("__")[0]:

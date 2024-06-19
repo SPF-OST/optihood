@@ -69,7 +69,7 @@ class Building:
                             for d in clusterSize:
                                 temp = pd.Series(np.tile([float(b["excess costs"])*clusterSize[d]], 24))
                                 if varcost is not None:
-                                    varcost = varcost.append(temp, ignore_index=True)
+                                    varcost = varcost._append(temp, ignore_index=True)
                                 else:
                                     varcost = temp
                     elif opt=='env' and includeCarbonBenefits:varcost=-electricityImpact['impact']
