@@ -3,7 +3,7 @@ from oemof.thermal.stratified_thermal_storage import (
     calculate_storage_u_value,
     calculate_losses,
 )
-from oemof.network import Node
+from oemof.network import network as on
 from pyomo.core.base.block import ScalarBlock
 from pyomo.environ import BuildAction
 from pyomo.environ import Constraint
@@ -52,7 +52,7 @@ class ElectricalStorage(solph.components.GenericStorage):
 
 class ThermalStorage(solph.components.GenericStorage):
     def __init__(self, label, stratifiedStorageParams, input, output, initial_storage, min, max, volume_cost, base,
-                 varc, env_flow, env_cap, dispatchMode, is_tank = True, rho= 1000, c=4.186):
+                 varc, env_flow, env_cap, dispatchMode, is_tank = True, rho= 1, c=4.186):
         u_value, loss_rate, fixed_losses_relative, fixed_losses_absolute, capacity_min, capacity_max, epc, env_capa = \
             self._precalculate(stratifiedStorageParams,label.split("__")[0],min,max,volume_cost,env_cap, is_tank=
             is_tank, rho=rho, c=c)
@@ -280,7 +280,7 @@ class ThermalStorageTemperatureLevels:
         else:
             return [self._dummyInBus[level], self._dummyOutBus[level], self._dummyComponents[level]]
 
-class IceStorage(Node):
+class IceStorage(on.Node):
     r"""
     Models the basic characteristics of an ice storage component
     IceStorage is designed with one input and one output

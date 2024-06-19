@@ -197,7 +197,7 @@ def displaySankey(fileName, UseLabelDict, labelDict, positionDict, labels, build
                  "gas": 'rgba' + str(colors.to_rgba("darkgray", OPACITY)),
                  "dhw": 'rgba' + str(colors.to_rgba("red", OPACITY)),
                  "sh": 'rgba' + str(colors.to_rgba("magenta", OPACITY)),
-                 "other": 'rgba' + str(colors.to_rgba("black", OPACITY)),
+                 "other": 'rgba' + str(colors.to_rgba("deeppink", OPACITY)),
                  "hs": 'rgba' + str(colors.to_rgba("yellow", OPACITY)),
                  "qs": 'rgba' + str(colors.to_rgba("green", OPACITY))
                  }

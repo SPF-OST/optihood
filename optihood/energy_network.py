@@ -61,8 +61,8 @@ class EnergyNetworkClass(solph.EnergySystem):
         self.__elRodEff = np.nan
         self._temperatureLevels = temperatureLevels
         self._dispatchMode = False
-        self._c = 4.186 #default value for water
-        self._rho = 1. #default value for water
+        self._c = 4.186 #default value for water in kJ/(kg K)
+        self._rho = 1. #default value for water in kg/L
         if not os.path.exists(".\\log_files"):
             os.mkdir(".\\log_files")
         logger.define_logging(logpath=os.getcwd(), logfile=f'.\\log_files\\optihood_{datetime.now().strftime("%d.%m.%Y %H.%M.%S")}.log')
@@ -178,7 +178,7 @@ class EnergyNetworkClass(solph.EnergySystem):
             nodesData["electricity_impact"] = pd.read_csv(electricityImpact, delimiter=";")
             # set datetime index
             nodesData["electricity_impact"].set_index("timestamp", inplace=True)
-            nodesData["electricity_impact"].index = pd.to_datetime(nodesData["electricity_impact"].index)
+            nodesData["electricity_impact"].index = pd.to_datetime(nodesData["electricity_impact"].index, format='%d.%m.%Y %H:%M')
 
         if type(electricityCost) == np.float64 or type(electricityCost) == np.int64:
             # for constant cost
@@ -194,7 +194,7 @@ class EnergyNetworkClass(solph.EnergySystem):
             nodesData["electricity_cost"] = pd.read_csv(electricityCost, delimiter=";")
             # set datetime index
             nodesData["electricity_cost"].set_index("timestamp", inplace=True)
-            nodesData["electricity_cost"].index = pd.to_datetime(nodesData["electricity_cost"].index)
+            nodesData["electricity_cost"].index = pd.to_datetime(nodesData["electricity_cost"].index, format='%d.%m.%Y %H:%M')
 
         if "naturalGasResource" in nodesData["commodity_sources"]["label"].values:
             if type(natGasImpact) == float or (natGasImpact.split('.')[0].replace('-','').isdigit() and natGasImpact.split('.')[1].replace('-','').isdigit()):
@@ -211,7 +211,7 @@ class EnergyNetworkClass(solph.EnergySystem):
                 nodesData["natGas_impact"] = pd.read_csv(natGasImpact, delimiter=";")
                 # set datetime index
                 nodesData["natGas_impact"].set_index("timestamp", inplace=True)
-                nodesData["natGas_impact"].index = pd.to_datetime(nodesData["natGas_impact"].index)
+                nodesData["natGas_impact"].index = pd.to_datetime(nodesData["natGas_impact"].index, format='%d.%m.%Y %H:%M')
 
             if type(natGasCost) == np.float64:
                 # for constant cost
@@ -226,7 +226,7 @@ class EnergyNetworkClass(solph.EnergySystem):
                 nodesData["natGas_cost"] = pd.read_csv(natGasCost, delimiter=";")
                 # set datetime index
                 nodesData["natGas_cost"].set_index("timestamp", inplace=True)
-                nodesData["natGas_cost"].index = pd.to_datetime(nodesData["natGas_cost"].index)
+                nodesData["natGas_cost"].index = pd.to_datetime(nodesData["natGas_cost"].index, format='%d.%m.%Y %H:%M')
 
         if not os.path.exists(weatherDataPath):
             logging.error("Error in weather data file path")
@@ -240,8 +240,8 @@ class EnergyNetworkClass(solph.EnergySystem):
             nodesData["weather_data"].timestamp = pd.to_datetime(nodesData["weather_data"].timestamp,
                                                                           format='%Y.%m.%d %H:%M:%S')
             nodesData["weather_data"].set_index("timestamp", inplace=True)
-            if not clusterSize:
-                nodesData["weather_data"] = nodesData["weather_data"][self.timeindex[0]:self.timeindex[-1]]
+            """if not clusterSize:
+                nodesData["weather_data"] = nodesData["weather_data"][self.timeindex[0]:self.timeindex[-1]]"""
 
         nodesData["building_model"] = {}
         if (nodesData['demand']['building model'].notna().any()) and (nodesData['demand']['building model'] == 'Yes').any():
@@ -363,7 +363,7 @@ class EnergyNetworkClass(solph.EnergySystem):
                 bmdata = data["building_model"][i]
             else:
                 bmdata = {}
-            b.addSink(data["demand"][data["demand"]["building"] == i], data["demandProfiles"][i], bmdata, mergeLinkBuses, self._temperatureLevels)
+            b.addSink(data["demand"][data["demand"]["building"] == i], data["demandProfiles"][i], bmdata, mergeLinkBuses, mergeHeatSourceSink, self._temperatureLevels)
             b.addTransformer(data["transformers"][data["transformers"]["building"] == i], self.__operationTemperatures, self.__temperatureAmb, self.__temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, self._dispatchMode, self._temperatureLevels)
             storageList = b.addStorage(data["storages"][data["storages"]["building"] == i], data["stratified_storage"], opt, mergeLinkBuses, self._dispatchMode, self._temperatureLevels)
             b.addSolar(data["solar"][(data["solar"]["building"] == i) & (data["solar"]["label"] == "solarCollector")], data["weather_data"], opt, mergeLinkBuses, self._dispatchMode, self._temperatureLevels)
@@ -670,7 +670,6 @@ class EnergyNetworkClass(solph.EnergySystem):
                 capacitiesStorages[storage] = capacitiesStorages[storage] / self.__LgenericStorage['boreholeStorage']
             elif "aquifier" in storage and not self._temperatureLevels:
                 capacitiesStorages[storage] = capacitiesStorages[storage] / self.__LgenericStorage['aquifierStorage']
-        print(capacitiesStorages)
         return capacitiesStorages
 
     def _postprocessingClusters(self, clusterSize):
@@ -705,6 +704,8 @@ class EnergyNetworkClass(solph.EnergySystem):
 
             electricitySourceLabel = "electricityResource" + '__' + buildingLabel
             gridBusLabel = "gridBus" + '__' + buildingLabel
+            naturalGasSourceLabel = "naturalGasResource" + '__' + buildingLabel
+            naturalGasBusLabel = "naturalGasBus" + '__' + buildingLabel
             if mergeLinkBuses:
                 electricityBusLabel = "electricityBus"
                 excessElectricityBusLabel = "excesselectricityBus"
@@ -717,6 +718,13 @@ class EnergyNetworkClass(solph.EnergySystem):
                 costParamGridElectricity.reset_index(inplace=True, drop=True)
             else:
                 costParamGridElectricity = 0
+
+            if naturalGasSourceLabel in self.__costParam:
+                costParamNaturalGas = self.__costParam[naturalGasSourceLabel].copy()
+                costParamNaturalGas.reset_index(inplace=True, drop=True)
+            else:
+                costParamNaturalGas = 0
+
             if "sequences" in solph.views.node(self._optimizationResults, gridBusLabel):
                 if ((electricitySourceLabel, gridBusLabel), "flow") in solph.views.node(self._optimizationResults, gridBusLabel)["sequences"]:
                     gridElectricityFlow = solph.views.node(self._optimizationResults, gridBusLabel)["sequences"][
@@ -727,6 +735,16 @@ class EnergyNetworkClass(solph.EnergySystem):
             else:
                 gridElectricityFlow = 0
 
+            if "sequences" in solph.views.node(self._optimizationResults, naturalGasBusLabel):
+                if ((naturalGasSourceLabel, naturalGasBusLabel), "flow") in solph.views.node(self._optimizationResults, naturalGasBusLabel)["sequences"]:
+                    naturalGasFlow = solph.views.node(self._optimizationResults, naturalGasBusLabel)["sequences"][
+                        (naturalGasSourceLabel, naturalGasBusLabel), "flow"]
+                    naturalGasFlow.reset_index(inplace=True, drop=True)
+                else:
+                    naturalGasFlow = 0
+            else:
+                naturalGasFlow = 0
+
             # OPeration EXpenditure
             self.__opex[buildingLabel].update({i[0]: sum(
                 solph.views.node(self._optimizationResults, i[1])["sequences"][(i[0], i[1]), "flow"] * self.__costParam[
@@ -736,6 +754,12 @@ class EnergyNetworkClass(solph.EnergySystem):
                 self.__opex[buildingLabel].update({electricitySourceLabel:c})
             else:
                 self.__opex[buildingLabel].update({electricitySourceLabel: c.sum()})  # cost of grid electricity is added separately based on cost data
+
+            c = costParamNaturalGas * naturalGasFlow
+            if isinstance(c, (int, float)):
+                self.__opex[buildingLabel].update({naturalGasSourceLabel: c})
+            else:
+                self.__opex[buildingLabel].update({naturalGasSourceLabel: c.sum()})  # cost of natural gas is added separately based on cost data
 
             # Feed-in electricity cost (value will be in negative to signify monetary gain...)
             if ((mergeLinkBuses and buildingLabel=='Building1') or not mergeLinkBuses) and \
@@ -821,6 +845,12 @@ class EnergyNetworkClass(solph.EnergySystem):
                 envParamGridElectricity.reset_index(inplace=True, drop=True)
             else:
                 envParamGridElectricity = 0
+
+            if naturalGasSourceLabel in self.__envParam:
+                envParamNaturalGas = self.__envParam[naturalGasSourceLabel].copy()
+                envParamNaturalGas.reset_index(inplace=True, drop=True)
+            else:
+                envParamNaturalGas = 0
             
             # Environmental impact due to inputs (natural gas, electricity, etc...)
             self.__envImpactInputs[buildingLabel].update({i[0]: sum(solph.views.node(self._optimizationResults, i[1])["sequences"][(i[0], i[1]), "flow"] * self.__envParam[i[0]]) for i in inputs})
@@ -829,6 +859,12 @@ class EnergyNetworkClass(solph.EnergySystem):
                 self.__envImpactInputs[buildingLabel].update({electricitySourceLabel: c})
             else:
                 self.__envImpactInputs[buildingLabel].update({electricitySourceLabel: c.sum()})  # impact of grid electricity is added separately based on LCA data
+
+            c = envParamNaturalGas * naturalGasFlow
+            if isinstance(c, (int, float)):
+                self.__envImpactInputs[buildingLabel].update({naturalGasSourceLabel: c})
+            else:
+                self.__envImpactInputs[buildingLabel].update({naturalGasSourceLabel: c.sum()})  # impact of natural gas is added separately
 
             # Environmental impact due to technologies (converters, storages)
             # calculated by adding both environmental impact per capacity and per flow (electrical flow or heat flow)
@@ -990,6 +1026,7 @@ class EnergyNetworkClass(solph.EnergySystem):
                 invest = capacitiesInvestedStorages["aquifierStorage__" + buildingLabel]
                 if invest > 0.05:
                     print("Invested in {:.1f} L Aquifier Storage.".format(invest))
+            print("")
 
     def printCosts(self):
         capexNetwork = sum(self.__capex["Building" + str(b + 1)] for b in range(len(self.__buildings)))

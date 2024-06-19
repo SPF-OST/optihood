@@ -139,7 +139,7 @@ def positionDictGenerator(labels, optimType, mergedLinks):
         if "DemandMob" in labels:labelsList[22]=labels["DemandMob"]
         if "DemandSh" in labels:labelsList[23]=labels["DemandSh"]
         if "DemandDhw" in labels:labelsList[24]=labels["DemandDhw"]
-	if "hSB" in labels: labelsList[29] = labels["hSB"]
+        if "hSB" in labels: labelsList[29] = labels["hSB"]
         if "qSource" in labels: labelsList[28] = labels["qSource"]
         if "ElectricRod" in labels:labelsList[14]=labels["ElectricRod"]
     positionDict = {

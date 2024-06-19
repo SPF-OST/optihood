@@ -4,9 +4,8 @@ import pandas as pd
 import pvlib
 import optihood.combined_prod as cp
 from oemof.thermal.solar_thermal_collector import flat_plate_precalc
-from oemof.solph import network as solph_network
-from oemof.solph.plumbing import sequence as solph_sequence
-from pyomo.core.base.block import SimpleBlock
+from oemof.solph._plumbing import sequence as solph_sequence
+from pyomo.core.base.block import ScalarBlock
 from pyomo.environ import BuildAction
 from pyomo.environ import Constraint
 
@@ -353,11 +352,13 @@ class HeatPumpLinear:
             investArgs = {'ep_costs' : epc * nomEff,
             'minimum' : capacityMin / nomEff,
             'maximum' : capacityMax / nomEff,
-            'nonconvex' : True,
+            'nonconvex': True,
             'offset' : base,
             'custom_attributes' : {'env_per_capa': env_capa * nomEff}}
-        outputDict = {k:solph.Flow(variable_costs=varc, nominal_value=capacityMax,  min=0, max=1, nonconvex=solph.NonConvex(),
-                                   custom_attributes={'env_per_flow': env_flow}, ) for k in output}
+        outputDict = {k: solph.Flow(variable_costs=varc,
+                          custom_attributes={'env_per_flow': env_flow}, ) for k in output}
+        """outputDict = {k:solph.Flow(variable_costs=varc, nominal_value=capacityMax,  min=0, max=1, nonconvex=solph.NonConvex(),
+                                   custom_attributes={'env_per_flow': env_flow}, ) for k in output}"""
         inputDict = {input[0]: solph.Flow(investment=solph.Investment(**investArgs))}
         if len(input) > 1:
             # Two input HP, second input is for Q evaporator
@@ -414,8 +415,10 @@ class GeothermalHeatPumpLinear:
                         'offset':base,
                         'custom_attributes': {'env_per_capa': env_capa * nomEff}
                     }
-        outputDict = {k: solph.Flow(variable_costs=varc, nominal_value=capacityMax,  min=0, max=1, nonconvex=solph.NonConvex(),
-                                   custom_attributes={'env_per_flow': env_flow}, ) for k in output}
+        outputDict = {k: solph.Flow(variable_costs=varc,
+                          custom_attributes={'env_per_flow': env_flow}, ) for k in output}
+        """outputDict = {k: solph.Flow(variable_costs=varc, nominal_value=capacityMax,  min=0, max=1, nonconvex=solph.NonConvex(),
+                                   custom_attributes={'env_per_flow': env_flow}, ) for k in output}"""
         inputDict = {input[0]: solph.Flow(investment=solph.Investment(**investArgs))}
         if len(input) > 1:
             # Two input HP, second input is for Q evaporator
@@ -446,7 +449,7 @@ class GeothermalHeatPumpLinear:
             print("Transformer label not identified...")
             return []
 
-class Chiller(solph_network.Transformer):
+class Chiller(solph.components.Transformer):
     r"""
        Chiller is a tranformer with two input flows, W_elec and Q_heatin
        and one output flow Q_heatout
@@ -491,7 +494,7 @@ class Chiller(solph_network.Transformer):
     def constraint_group(self):
         return ChillerBlock
 
-class ChillerBlock(SimpleBlock):
+class ChillerBlock(ScalarBlock):
     r"""Block for the linear relation of nodes
     """
 
@@ -586,8 +589,8 @@ class CHP:
                                 custom_attributes={'env_per_flow': env_flow1},
                             ),
                         },
-                        efficiencies={outputEl: self._efficiencyEl, outputSH: self._efficiencySH,
-                                                        outputDHW: self._efficiencyDHW}
+                        efficiencies={outputSH: self._efficiencySH, outputDHW: self._efficiencyDHW,
+                                      outputEl: self._efficiencyEl}
                     )
 
     def getCHP(self, type):

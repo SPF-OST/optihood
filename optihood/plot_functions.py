@@ -6,7 +6,6 @@ from bokeh.plotting import figure, show
 from bokeh.layouts import layout, gridplot
 from bokeh.models import DatetimeTickFormatter, HoverTool, Legend
 from bokeh.palettes import *
-
 from bokeh.io import output_file
 
 from openpyxl import load_workbook
@@ -39,12 +38,12 @@ def monthlyBalance(data, bus, new_legends):
     neg_flow = []
     pos_flow = []
     for i in data.columns:
-        if i.replace(building, "") in new_legends:
-            a = [i.strip("()").split(", ")]
-            if "Bus" in a[0][0]:
-                neg_flow.append(i)
-            else:
-                pos_flow.append(i)
+        a = [i.strip("()").split(", ")]
+        if "Bus" in a[0][0]:
+            neg_flow.append(i)
+        else:
+            pos_flow.append(i)
+    plt.figure()
     mark = []
     for i in neg_flow:
         plt.bar(monthShortNames, -data_month[i], label=new_legends[i.replace(building, "")], bottom=sum(mark))
@@ -69,7 +68,6 @@ def monthlyBalance(data, bus, new_legends):
     else:
         plt.title("Monthly domestic hot water balance for " + building.replace("__", ""))
     plt.show()
-
 
 
 def hourlyDailyPlot(data, bus, palette, new_legends):
@@ -1004,11 +1002,11 @@ def createPlot(resultFilePath, basePath, numberOfBuildings, plotLevel, plotType,
             os.makedirs(basePath)
 
         output_file(os.path.join(basePath,"HourlyBokehPlots.html"))
-        grid = gridplot(plotsHourly, ncols=ncols, plot_width=850, plot_height=500, sizing_mode="fixed")
+        grid = gridplot(plotsHourly, ncols=ncols, sizing_mode="scale_both")
         show(grid)
         if not any(chr.isdigit() for chr in plotLevel):
             output_file(os.path.join(basePath,"DailyBokehPlots.html"))
-            grid = gridplot(plotsDaily, ncols=ncols, plot_width=850, plot_height=500, sizing_mode="fixed")
+            grid = gridplot(plotsDaily, ncols=ncols, sizing_mode="scale_both")
             show(grid)
     else:
         raise ValueError("Illegal value for the parameter plot type")
@@ -1114,7 +1112,6 @@ def plot(excelFileName, figureFilePath, numberOfBuildings, plotLevel, plotType, 
             "(('GWHP60', 'dhwStorageBus'), 'flow')": "GWHP60_dhw",
             "(('GWHP35', 'shSourceBus'), 'flow')": "GWHP35_sh",
         }
-
         newLegends["(('electricityBus', 'electricityLink'), 'flow')"] = "electricityLink_out"
         newLegends["(('electricityLink', 'electricityInBus'), 'flow')"] = "electricityLink_in"
         newLegends["(('spaceHeatingBus', 'shLink'), 'flow')"] = "shLink_out"

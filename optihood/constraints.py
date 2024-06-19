@@ -296,6 +296,4 @@ def PVTElectricalThermalCapacityConstraint(om, numBuildings):
                 "PVTSizeConstrDhwSh_B" + str(b),
                 pyo.Constraint(expr=expr),
             )
-
-
     return om
