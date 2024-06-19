@@ -18,7 +18,7 @@ import optihood.plot_sankey as snk
 import optihood.plot_functions as fnc
 
 
-def run_example():
+def run_example(show_plots=True):
     # set a time period for the optimization problem
     timePeriod = pd.date_range("2018-01-01 00:00:00", "2018-01-31 23:00:00", freq="60min")
 
@@ -28,7 +28,7 @@ def run_example():
     inputfileName = "scenario.xls"
 
     resultFilePath = curDir / ".." / "results"
-    resultFileName ="results_basic_example.xlsx"
+    resultFileName ="results_basic_example.xls"
 
     # initialize parameters
     numberOfBuildings = 4
@@ -52,19 +52,21 @@ def run_example():
         os.makedirs(resultFilePath)
     network.exportToExcel(os.path.join(resultFilePath, resultFileName))
 
+    if show_plots:
+        show_plots_basic_example(curDir, numberOfBuildings, optimizationType, resultFileName, resultFilePath)
+
+
+def show_plots_basic_example(curDir, numberOfBuildings, optimizationType, resultFileName, resultFilePath):
     # plot sankey diagram
-    UseLabelDict = True     # a dictionary defining the labels to be used for different flows
+    UseLabelDict = True  # a dictionary defining the labels to be used for different flows
     figureFilePath = curDir / ".." / "figures"
     if not os.path.exists(figureFilePath):
         os.makedirs(figureFilePath)
-
     sankeyFileName = f"Sankey_{numberOfBuildings}_{optimizationType}.html"
-
     if not os.path.exists(figureFilePath):
         os.makedirs(figureFilePath)
-
     snk.plot(os.path.join(resultFilePath, resultFileName), os.path.join(figureFilePath, sankeyFileName),
-                   numberOfBuildings, UseLabelDict, labels='default', optimType='indiv')
+             numberOfBuildings, UseLabelDict, labels='default', optimType='indiv')
 
     # plot detailed energy flow
     plotLevel = "allMonths"  # permissible values (for energy balance plot): "allMonths" {for all months}
@@ -72,8 +74,8 @@ def run_example():
     # or specific date {format: YYYY-MM-DD}
     plotType = "bokeh"  # permissible values: "energy balance", "bokeh"
     flowType = "electricity"  # permissible values: "all", "electricity", "space heat", "domestic hot water"
-
-    fnc.plot(os.path.join(resultFilePath, resultFileName), figureFilePath, numberOfBuildings, plotLevel, plotType, flowType)
+    fnc.plot(os.path.join(resultFilePath, resultFileName), figureFilePath, numberOfBuildings, plotLevel, plotType,
+             flowType)
 
 
 if __name__ == '__main__':
