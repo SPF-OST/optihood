@@ -1,4 +1,5 @@
 from pyomo import environ as pyo
+from optihood._helpers import *
 from oemof.solph._plumbing import sequence
 from math import pi
 from oemof.solph.constraints.flow_count_limit import limit_active_flow_count

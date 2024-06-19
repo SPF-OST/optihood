@@ -9,6 +9,7 @@ from optihood.sources import PV
 from optihood.storages import *
 from optihood.sinks import SinkRCModel
 from optihood.links import LinkTemperatureDemand
+from optihood._helpers import *
 
 intRate = 0.05
 

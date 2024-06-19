@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from optihood._helpers import *
 import oemof.solph as solph
 from oemof.tools import logger
 import logging
@@ -904,9 +905,9 @@ class EnergyNetworkClass(solph.EnergySystem):
                         self.__envImpactTechnologies[buildingLabel].update({x: impactThermalStorage})
 
     def printMetaresults(self):
+        print("")
         print("Meta Results:")
         pp.pprint(self._metaResults)
-        print("")
         return self._metaResults
 
     def calcStateofCharge(self, type, building):

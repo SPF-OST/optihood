@@ -8,6 +8,7 @@ from oemof.solph._plumbing import sequence as solph_sequence
 from pyomo.core.base.block import ScalarBlock
 from pyomo.environ import BuildAction
 from pyomo.environ import Constraint
+from optihood._helpers import *
 
 class SolarCollector:
     def __init__(self, label, buildingLabel, inputs, outputs, connector, electrical_consumption, peripheral_losses, latitude,

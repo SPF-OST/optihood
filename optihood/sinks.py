@@ -1,7 +1,7 @@
 """
 under-development component for a linear RC model for heating a Building
 """
-
+from optihood._helpers import *
 import oemof.solph as solph
 from oemof.solph._plumbing import sequence
 from pyomo.core.base.block import ScalarBlock
