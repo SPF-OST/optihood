@@ -1,12 +1,12 @@
-from pyomo.core.base.block import SimpleBlock
+from pyomo.core.base.block import ScalarBlock
 from pyomo.environ import BuildAction
 from pyomo.environ import Constraint
+from optihood._helpers import *
+from oemof.solph import components as solph_components
+from oemof.solph._plumbing import sequence as solph_sequence
 
-from oemof.solph import network as solph_network
-from oemof.solph.plumbing import sequence as solph_sequence
 
-
-class CombinedTransformer(solph_network.Transformer):
+class CombinedTransformer(solph_components.Transformer):
     r"""
     A transformer able to produce both SH and DHW in the same timestep
     Pelec_in = Qsh/efficiencySH + Qdhw/efficiencyDHW
@@ -23,7 +23,7 @@ class CombinedTransformer(solph_network.Transformer):
         return CombinedTransformerBlock
 
 
-class CombinedTransformerBlock(SimpleBlock):
+class CombinedTransformerBlock(ScalarBlock):
     r"""Block for the linear relation of nodes
     """
 
@@ -46,22 +46,35 @@ class CombinedTransformerBlock(SimpleBlock):
                 n.inflowQevap = [i for i in list(n.inputs) if "electricity" not in i.label][0]
             else:
                 n.inflowQevap = 0
-            n.flowSH = [k for k, v in n.efficiency.items()][0]
-            n.flowDHW = [k for k, v in n.efficiency.items()][1]
-            n.outputSH = [o for o in n.outputs if n.flowSH == o][0]
-            n.outputDHW = [o for o in n.outputs if n.flowDHW == o][0]
+            flows = [k for k, v in n.efficiency.items()]
+            n.flowT0 = flows[0]
+            n.flowT1 = flows[1]
+            n.outputT0 = [o for o in n.outputs if n.flowT0 == o][0]
+            n.outputT1 = [o for o in n.outputs if n.flowT1 == o][0]
             n.efficiency_sq = (
-                n.efficiency[n.outputSH],
-                n.efficiency[n.outputDHW]
+                n.efficiency[n.outputT0],
+                n.efficiency[n.outputT1]
             )
+            if len(flows)==3:
+                n.flowT2 = flows[2]
+                n.outputT2 = [o for o in n.outputs if n.flowT2 == o][0]
+                n.efficiency_sq = (
+                    n.efficiency[n.outputT0],
+                    n.efficiency[n.outputT1],
+                    n.efficiency[n.outputT2])
 
         def _input_output_relation_rule(block):
             """Connection between input and outputs."""
             for t in m.TIMESTEPS:
                 for g in group:
                     lhs = m.flow[g.inflow, g, t]
-                    rhs = (m.flow[g, g.outputSH, t] / g.efficiency_sq[0][t]
-                           + m.flow[g, g.outputDHW, t] / g.efficiency_sq[1][t])
+                    if len(g.efficiency_sq)==3:
+                        rhs = (m.flow[g, g.outputT0, t] / g.efficiency_sq[0][t]
+                               + m.flow[g, g.outputT1, t] / g.efficiency_sq[1][t]
+                               + m.flow[g, g.outputT2, t] / g.efficiency_sq[2][t])
+                    else:
+                        rhs = (m.flow[g, g.outputT0, t] / g.efficiency_sq[0][t]
+                               + m.flow[g, g.outputT1, t] / g.efficiency_sq[1][t])
                     block.input_output_relation.add((g, t), (lhs == rhs))
 
         self.input_output_relation = Constraint(
@@ -88,7 +101,7 @@ class CombinedTransformerBlock(SimpleBlock):
         )
 
 
-class CombinedCHP(solph_network.Transformer):
+class CombinedCHP(solph_components.Transformer):
     r"""
     A CHP able to produce both SH and DHW in the same timestep
     Pelec_in = Qsh/efficiencySH + Qdhw/efficiencyDHW
@@ -106,7 +119,7 @@ class CombinedCHP(solph_network.Transformer):
         return CombinedCHPBlock
 
 
-class CombinedCHPBlock(SimpleBlock):
+class CombinedCHPBlock(ScalarBlock):
     r"""Block for the linear relation of nodes
     """
 
@@ -125,27 +138,45 @@ class CombinedCHPBlock(SimpleBlock):
 
         for n in group:
             n.inflow = list(n.inputs)[0]
-            n.flowSH = [k for k, v in n.efficiency.items()][0]
-            n.flowDHW = [k for k, v in n.efficiency.items()][1]
-            n.flowEl = [k for k, v in n.efficiency.items()][2]
-            n.outputSH = [o for o in n.outputs if n.flowSH == o][0]
-            n.outputDHW = [o for o in n.outputs if n.flowDHW == o][0]
+            flows = [k for k, v in n.efficiency.items()]
+            n.flowT0 = flows[0]
+            n.flowT1 = flows[1]
+            n.flowEl = flows[2]
+            n.outputT0 = [o for o in n.outputs if n.flowT0 == o][0]
+            n.outputT1 = [o for o in n.outputs if n.flowT1 == o][0]
             n.outputEl = [o for o in n.outputs if n.flowEl == o][0]
             n.efficiency_sq = (
-                n.efficiency[n.outputSH],
-                n.efficiency[n.outputDHW],
+                n.efficiency[n.outputT0],
+                n.efficiency[n.outputT1],
                 n.efficiency[n.outputEl]
             )
+            if len(flows)==4:
+                n.flowT2 = flows[2]
+                n.flowEl = [k for k, v in n.efficiency.items()][3]
+                n.outputT2 = [o for o in n.outputs if n.flowT2 == o][0]
+                n.outputEl = [o for o in n.outputs if n.flowEl == o][0]
+                n.efficiency_sq = (
+                    n.efficiency[n.outputT0],
+                    n.efficiency[n.outputT1],
+                    n.efficiency[n.outputT2],
+                    n.efficiency[n.outputEl])
 
         def _input_heat_relation_rule(block):
             """Connection between input and heat outputs."""
             for t in m.TIMESTEPS:
                 for g in group:
                     lhs = m.flow[g.inflow, g, t]
-                    rhs = (
-                        m.flow[g, g.outputSH, t] / g.efficiency_sq[0][t]
-                        + m.flow[g, g.outputDHW, t] / g.efficiency_sq[1][t]
-                    )
+                    if len(g.efficiency_sq) == 4:
+                        rhs = (
+                                m.flow[g, g.outputT0, t] / g.efficiency_sq[0][t]
+                                + m.flow[g, g.outputT1, t] / g.efficiency_sq[1][t]
+                                + m.flow[g, g.outputT2, t] / g.efficiency_sq[2][t]
+                        )
+                    else:
+                        rhs = (
+                            m.flow[g, g.outputT0, t] / g.efficiency_sq[0][t]
+                            + m.flow[g, g.outputT1, t] / g.efficiency_sq[1][t]
+                        )
                     block.input_heat_relation.add((g, t), (lhs == rhs))
 
         self.input_heat_relation = Constraint(
@@ -160,7 +191,7 @@ class CombinedCHPBlock(SimpleBlock):
             for t in m.TIMESTEPS:
                 for g in group:
                     lhs = m.flow[g.inflow, g, t]
-                    rhs = (m.flow[g, g.outputEl, t] / g.efficiency_sq[2][t])
+                    rhs = (m.flow[g, g.outputEl, t] / g.efficiency_sq[len(g.efficiency_sq)-1][t])
                     block.input_elec_relation.add((g, t), (lhs == rhs))
 
         self.input_elec_relation = Constraint(

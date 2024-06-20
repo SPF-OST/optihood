@@ -28,7 +28,7 @@ if __name__ == '__main__':
                "2018-02-06": 48}
 
     # set a time period for the optimization problem according to the size of clusers
-    timePeriod = pd.date_range("2018-01-01 00:00:00", "2018-01-12 23:00:00", freq="60min")
+    timePeriod = pd.date_range("2018-01-01 00:00:00", "2018-12-31 23:00:00", freq="60min")
 
     # define paths for input and result files
     inputFilePath = r"..\excels\clustering"
@@ -42,7 +42,7 @@ if __name__ == '__main__':
     optimizationType = "costs"  # set as "env" for environmental optimization
 
     # create an energy network and set the network parameters from an excel file
-    network = EnergyNetwork(timePeriod)
+    network = EnergyNetwork(timePeriod, clusters=cluster)
     network.setFromExcel(os.path.join(inputFilePath, inputfileName), numberOfBuildings, clusterSize=cluster, opt=optimizationType)
 
     # optimize the energy network

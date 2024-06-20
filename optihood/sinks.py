@@ -1,10 +1,10 @@
 """
 under-development component for a linear RC model for heating a Building
 """
-
+from optihood._helpers import *
 import oemof.solph as solph
-from oemof.solph.plumbing import sequence
-from pyomo.core.base.block import SimpleBlock
+from oemof.solph._plumbing import sequence
+from pyomo.core.base.block import ScalarBlock
 from pyomo.environ import BuildAction
 from pyomo.environ import Constraint
 from pyomo.environ import Expression
@@ -13,7 +13,7 @@ from pyomo.environ import Set
 from pyomo.environ import Var
 import numpy as np
 
-class SinkRCModel(solph.Sink):
+class SinkRCModel(solph.components.Sink):
     """
     Building RC Model with a possibility of heat outflow (through chiller) as well
 
@@ -81,7 +81,7 @@ class SinkRCModel(solph.Sink):
     def constraint_group(self):
         return SinkRCModelBlock
 
-class SinkRCModelBlock(SimpleBlock):
+class SinkRCModelBlock(ScalarBlock):
     """
     Constraints for SinkRCModel Class
     """
