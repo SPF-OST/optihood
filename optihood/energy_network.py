@@ -16,6 +16,48 @@ from optihood.constraints import *
 from optihood.buildings import Building
 from optihood.links import Link
 
+class OptimizationProperties:
+    """
+    class under construction ...
+    """
+    def __init__(self, optType, mergeLinkBuses, mergeHeatSourceSink, temperatureLevels, clusters, dispatchMode, includeCarbonBenefits):
+        self._optType = optType
+        self._mergeLinkBuses = mergeLinkBuses
+        self._mergeHeatSourceSink = mergeHeatSourceSink
+        self._temperatureLevels = temperatureLevels
+        self._clusters = clusters
+        self._dispatchMode = dispatchMode
+        self._includeCarbonBenefits = includeCarbonBenefits
+
+    @property
+    def optType(self):
+        return self._optType
+
+    @property
+    def mergeLinkBuses(self):
+        return self._mergeLinkBuses
+
+    @property
+    def mergeHeatSourceSink(self):
+        return self._mergeHeatSourceSink
+
+    @property
+    def temperatureLevels(self):
+        return self._temperatureLevels
+
+    @property
+    def clusters(self):
+        return self._clusters
+
+    @property
+    def dispatchMode(self):
+        return self._dispatchMode
+
+    @property
+    def includeCarbonBenefits(self):
+        return self._includeCarbonBenefits
+
+
 
 class EnergyNetworkClass(solph.EnergySystem):
     def __init__(self, timestamp, clusters=None, temperatureLevels=False):
@@ -70,7 +112,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         logging.info("Initializing the energy network")
         super(EnergyNetworkClass, self).__init__(timeindex=timestamp, infer_last_interval=True)
 
-    def setFromExcel(self, filePath, numberOfBuildings, clusterSize={}, opt="costs", mergeLinkBuses=False, mergeHeatSourceSink=False, dispatchMode=False, includeCarbonBenefits=False):
+    def setFromExcel(self, filePath, numberOfBuildings, clusterSize={}, opt="costs", mergeLinkBuses=False, mergeBuses=None, mergeHeatSourceSink=False, dispatchMode=False, includeCarbonBenefits=False):
         # does Excel file exist?
         if not filePath or not os.path.isfile(filePath):
             logging.error("Excel data file {} not found.".format(filePath))                                                                               
@@ -112,7 +154,7 @@ class EnergyNetworkClass(solph.EnergySystem):
                 nodesData["natGas_impact"] = natGasImpact
                 nodesData["natGas_cost"] = natGasCost
             nodesData["weather_data"] = weatherData
-        self._convertNodes(nodesData, opt, mergeLinkBuses, mergeHeatSourceSink, includeCarbonBenefits, clusterSize)
+        self._convertNodes(nodesData, opt, mergeLinkBuses, mergeBuses, mergeHeatSourceSink, includeCarbonBenefits, clusterSize)
         logging.info("Nodes from Excel file {} successfully converted".format(filePath))
         self.add(*self._nodesList)
         logging.info("Nodes successfully added to the energy network")
@@ -289,7 +331,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         gradient = [h - l for l, h in zip(listTemperatures, listTemperatures[1:])]
         return all(x == gradient[0] for x in gradient)
     
-    def _convertNodes(self, data, opt, mergeLinkBuses, mergeHeatSourceSink, includeCarbonBenefits, clusterSize):
+    def _convertNodes(self, data, opt, mergeLinkBuses, mergeBuses, mergeHeatSourceSink, includeCarbonBenefits, clusterSize):
         if not data:
             logging.error("Nodes data is missing.")
         self.__temperatureAmb = np.array(data["weather_data"]["tre200h0"])
@@ -337,14 +379,15 @@ class EnergyNetworkClass(solph.EnergySystem):
                 self.__LgenericStorage['boreholeStorage'] = self._rho * self._c * (data["stratified_storage"].loc["boreholeStorage", "temp_h"] - data["stratified_storage"].loc["boreholeStorage", "temp_c"]) / 3600
             if 'aquifierStorage' in data['storages']['label'].unique():
                 self.__LgenericStorage['aquifierStorage'] = self._rho * self._c * (data["stratified_storage"].loc["aquifierStorage", "temp_h"] - data["stratified_storage"].loc["aquifierStorage", "temp_c"]) / 3600
-        self._addBuildings(data, opt, mergeLinkBuses, mergeHeatSourceSink, includeCarbonBenefits, clusterSize)
+        self._addBuildings(data, opt, mergeLinkBuses, mergeBuses, mergeHeatSourceSink, includeCarbonBenefits, clusterSize)
 
-    def _addBuildings(self, data, opt, mergeLinkBuses, mergeHeatSourceSink, includeCarbonBenefits, clusterSize):
+    def _addBuildings(self, data, opt, mergeLinkBuses, mergeBuses, mergeHeatSourceSink, includeCarbonBenefits, clusterSize):
         numberOfBuildings = max(data["buses"]["building"])
         self.__buildings = [Building('Building' + str(i + 1)) for i in range(numberOfBuildings)]
         for b in self.__buildings:
             buildingLabel = b.getBuildingLabel()
             i = int(buildingLabel[8:])
+            if mergeLinkBuses: b.linkBuses(busesToMerge=mergeBuses)
             if i == 1:
                 busDictBuilding1 = b.addBus(data["buses"][data["buses"]["building"] == i], opt, mergeLinkBuses, mergeHeatSourceSink, data["electricity_impact"], clusterSize, includeCarbonBenefits)
             else:
@@ -1456,7 +1499,7 @@ class EnergyNetworkGroup(EnergyNetworkClass):
             # writer.save()
             # writer.close()
 
-    def setFromExcel(self, filePath, numberOfBuildings, clusterSize={}, opt="costs", mergeLinkBuses=False, mergeHeatSourceSink=False, dispatchMode=False, includeCarbonBenefits=False):
+    def setFromExcel(self, filePath, numberOfBuildings, clusterSize={}, opt="costs", mergeLinkBuses=False, mergeBuses=None, mergeHeatSourceSink=False, dispatchMode=False, includeCarbonBenefits=False):
         # does Excel file exist?
         if not filePath or not os.path.isfile(filePath):
             logging.error("Excel data file {} not found.".format(filePath))
@@ -1495,7 +1538,7 @@ class EnergyNetworkGroup(EnergyNetworkClass):
             nodesData["weather_data"] = weatherData
 
         nodesData["links"]= data.parse("links")
-        self._convertNodes(nodesData, opt, mergeLinkBuses, mergeHeatSourceSink, includeCarbonBenefits, clusterSize)
+        self._convertNodes(nodesData, opt, mergeLinkBuses, mergeBuses, mergeHeatSourceSink, includeCarbonBenefits, clusterSize)
         self._addLinks(nodesData["links"], numberOfBuildings, mergeLinkBuses)
         logging.info("Nodes from Excel file {} successfully converted".format(filePath))
         self.add(*self._nodesList)

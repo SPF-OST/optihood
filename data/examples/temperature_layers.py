@@ -32,6 +32,7 @@ if __name__ == '__main__':
     numberOfBuildings = 4
     optimizationType = "costs"  # set as "env" for environmental optimization
     mergeLinkBuses = True
+    mergeBuses = ["electricity", "heat_buses"]
     dispatchMode = False  # Set to True to run the optimization in dispatch mode
     # create an energy network and set the network parameters from an excel file
     optimizationOptions = {
@@ -52,7 +53,7 @@ if __name__ == '__main__':
 
     network = EnergyNetwork(timePeriod, temperatureLevels=True)
     network.setFromExcel(os.path.join(inputFilePath, inputfileName), numberOfBuildings, opt=optimizationType,
-                         mergeLinkBuses=mergeLinkBuses, dispatchMode=dispatchMode)
+                         mergeLinkBuses=mergeLinkBuses, mergeBuses=mergeBuses, dispatchMode=dispatchMode)
 
     # optimize the energy network
     limit, capacitiesTransformers, capacitiesStorages = network.optimize(solver='gurobi',
