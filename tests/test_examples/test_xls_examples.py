@@ -1,21 +1,43 @@
 import os as _os
 import pandas as _pd
 import pathlib as _pl
+import pytest as _pt
+import re as _re
 import sys
-import unittest
+import unittest as _ut
 
-import optihood as _oh
+import optihood as oh
 
-sys.path.append(str(_pl.Path(_oh.__file__).resolve().parent / ".." / "data" / "examples"))
-from basic_example import run_example
+sys.path.append(str(_pl.Path(oh.__file__).resolve().parent / ".." / "data" / "examples"))
+from basic_example import run_example, plot_sankey_diagram, plot_bokeh
+
+cwd = _os.getcwd()
+packageDir = _pl.Path(oh.__file__).resolve().parent
+scriptDir = packageDir / ".." / "data" / "examples"
+example_path = packageDir / ".." / "data" / "results"
+expected_data_dir = _pl.Path(__file__).resolve().parent / "expected_files"
+test_results_dir = packageDir / ".." / "results"
 
 
-class TestXlsExamples(unittest.TestCase):
+def compare_html_files(testCase, file_path, file_path_expected, desired_uuid: str):
+    with open(file_path) as f1, open(file_path_expected) as f2:
+        contents1 = list(f1)
+        contents2 = list(f2)
+        contents1 = replace_uuid(contents1, desired_uuid)
+        _ut.TestCase.assertListEqual(testCase, contents1[1::], contents2[1::])
+
+
+def replace_uuid(html_text, desired_uuid: str, html_part: int=61):
+    find = _re.compile('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}')
+    html_text[html_part] = find.sub(desired_uuid, html_text[html_part])
+    return html_text
+
+
+class TestXlsExamples(_ut.TestCase):
+    def SetUp(self):
+        self.maxDiff = None
+
     def test_basic(self):
-        cwd = _os.getcwd()
-        packageDir = _pl.Path(_oh.__file__).resolve().parent
-        scriptDir = packageDir / ".." / "data" / "examples"
-        example_path = packageDir / ".." / "data" / "results"
 
         _os.chdir(scriptDir)
         print("")
@@ -25,7 +47,6 @@ class TestXlsExamples(unittest.TestCase):
         _os.chdir(cwd)
 
         excel_file_path = str(example_path / "results_basic_example.xls")
-        expected_data_dir = _pl.Path(__file__).resolve().parent / "expected_files"
         expected_data_path = str(expected_data_dir / "test_run_basic_example.xls")
 
         sheet_names = ['naturalGasBus__Building1', 'gridBus__Building1', 'electricityBus__Building1',
@@ -71,6 +92,22 @@ class TestXlsExamples(unittest.TestCase):
                 df_expected = df_expected.sort_values(by=[df_new.columns[0]], ignore_index=True)
                 _pd.testing.assert_frame_equal(df_new, df_expected)
 
+    def test_sankey_basic_example(self):
+        # figure_file_path = "..\\..\\test-results"
+        optimizationType = "costs"
+        resultFileName = "test_run_basic_example.xls"
+        plot_sankey_diagram(test_results_dir, 4, optimizationType, resultFileName, expected_data_dir, show_figs=False)
+        uuid_expected = "0fbea2e5-8f67-4d21-8fe7-897e199ac035"
+        compare_html_files(self, test_results_dir / "Sankey_4_costs.html", expected_data_dir / "test_Sankey_basic_example.html", uuid_expected)
+
+    @_pt.mark.skip()
+    def test_bokeh_basic_example(self):
+        assert False == True
+
+    def test_html_comparison(self):
+        uuid_expected = "0fbea2e5-8f67-4d21-8fe7-897e199ac035"
+        compare_html_files(self,  expected_data_dir / "Sankey_4_costs_old_uuid.html", expected_data_dir / "test_Sankey_basic_example.html", uuid_expected)
+
 
 if __name__ == '__main__':
-    unittest.main()
+    _ut.main()

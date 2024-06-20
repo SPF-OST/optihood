@@ -57,17 +57,14 @@ def run_example(show_plots=True):
 
 
 def show_plots_basic_example(curDir, numberOfBuildings, optimizationType, resultFileName, resultFilePath):
-    # plot sankey diagram
-    UseLabelDict = True  # a dictionary defining the labels to be used for different flows
     figureFilePath = curDir / ".." / "figures"
-    if not os.path.exists(figureFilePath):
-        os.makedirs(figureFilePath)
-    sankeyFileName = f"Sankey_{numberOfBuildings}_{optimizationType}.html"
-    if not os.path.exists(figureFilePath):
-        os.makedirs(figureFilePath)
-    snk.plot(os.path.join(resultFilePath, resultFileName), os.path.join(figureFilePath, sankeyFileName),
-             numberOfBuildings, UseLabelDict, labels='default', optimType='indiv')
 
+    plot_sankey_diagram(figureFilePath, numberOfBuildings, optimizationType, resultFileName, resultFilePath, show_figs=True)
+
+    plot_bokeh(figureFilePath, numberOfBuildings, resultFileName, resultFilePath)
+
+
+def plot_bokeh(figureFilePath, numberOfBuildings, resultFileName, resultFilePath):
     # plot detailed energy flow
     plotLevel = "allMonths"  # permissible values (for energy balance plot): "allMonths" {for all months}
     # or specific month {"Jan", "Feb", "Mar", etc. three letter abbreviation of the month name}
@@ -76,6 +73,19 @@ def show_plots_basic_example(curDir, numberOfBuildings, optimizationType, result
     flowType = "electricity"  # permissible values: "all", "electricity", "space heat", "domestic hot water"
     fnc.plot(os.path.join(resultFilePath, resultFileName), figureFilePath, numberOfBuildings, plotLevel, plotType,
              flowType)
+
+
+def plot_sankey_diagram(figureFilePath, numberOfBuildings, optimizationType, resultFileName, resultFilePath, show_figs: bool):
+    # plot sankey diagram
+    UseLabelDict = True  # a dictionary defining the labels to be used for different flows
+
+    if not os.path.exists(figureFilePath):
+        os.makedirs(figureFilePath)
+    sankeyFileName = f"Sankey_{numberOfBuildings}_{optimizationType}.html"
+    if not os.path.exists(figureFilePath):
+        os.makedirs(figureFilePath)
+    snk.plot(os.path.join(resultFilePath, resultFileName), os.path.join(figureFilePath, sankeyFileName),
+             numberOfBuildings, UseLabelDict, labels='default', optimType='indiv', show_figs=show_figs)
 
 
 if __name__ == '__main__':
