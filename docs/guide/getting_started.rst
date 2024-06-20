@@ -8,7 +8,7 @@ Prerequisites
 
 In order to use optihood, the following prerequisites are needed on your machine:
 
-- `Python 3.9 <https://www.python.org/downloads/>`_ is installed.
+- `Python >=3.9 <https://www.python.org/downloads/>`_ is installed. Python 3.12 is recommended.
 - Git is installed.
 - An active `Github <https://github.com/>`_ account to clone the repo.
 - A solver is installed. `Gurobi solver <https://www.gurobi.com/resource/parallelism-linear-mixed-integer-programming/>`_ is recommended, although other solvers like CBC, GLPK, Cplex could also be used.
@@ -27,15 +27,18 @@ commands could be used.
 
 2. All the next commands should be run from within the optihood folder. Create a virtual environment and activate it::
 
-    py -3.9 -m venv venv
+    py -3.12 -m venv venv
     venv\Scripts\activate
+
+   If using python version other than 3.12, replace -3.12 with -3.X (3.X being the python version).
 
 3. Install the requirements into the created virtual environment::
     
     pip install wheel
     pip install -r requirements.txt
 
-   It might be required to install C++ build tools. To do that, click on the link that appears with the error message and follow the instructions (it is the lapack package that is missing). In order to be able         to install the missing package, it is required to have a complete Visual Studio instance and installing it with the "Desktop development with C++" workload.
+    It might be required to install C++ build tools. To do that, click on the link that appears with the error message and follow the instructions (it is the lapack package that is missing). In order to be able to install the missing package, it is required to have a complete Visual Studio instance and installing it with the "Desktop development with C++" workload.
+    The requirements.txt file needs Python 3.12. If using another version, use pip tools to compile the provided requirements.in file before installing the requirements.
 
 4. Verify the installation of the oemof package and the solver by running the installation test in your virtual environment::
 
