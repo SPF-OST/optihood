@@ -32,13 +32,12 @@ commands could be used.
 
    If using python version other than 3.12, replace -3.12 with -3.X (3.X being the python version).
 
-3. Install the requirements into the created virtual environment::
+3. Install the requirements into the created virtual environment. The requirements.txt file needs Python 3.12. If using another version, use pip tools to compile the provided requirements.in file before installing the requirements::
     
     pip install wheel
     pip install -r requirements.txt
 
-    It might be required to install C++ build tools. To do that, click on the link that appears with the error message and follow the instructions (it is the lapack package that is missing). In order to be able to install the missing package, it is required to have a complete Visual Studio instance and installing it with the "Desktop development with C++" workload.
-    The requirements.txt file needs Python 3.12. If using another version, use pip tools to compile the provided requirements.in file before installing the requirements.
+   It might be required to install C++ build tools. To do that, click on the link that appears with the error message and follow the instructions (it is the lapack package that is missing). In order to be able to install the missing package, it is required to have a complete Visual Studio instance and installing it with the "Desktop development with C++" workload.
 
 4. Verify the installation of the oemof package and the solver by running the installation test in your virtual environment::
 
