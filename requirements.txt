@@ -29,7 +29,6 @@ contourpy==1.2.1
     #   bokeh
     #   matplotlib
 convertdate==2.4.0
-coverage==7.5.3
     # via workalendar
 cycler==0.12.1
     # via matplotlib
@@ -118,20 +117,13 @@ pillow==10.3.0
 plotly==5.22.0
     # via -r test_requirements.in
 ply==3.11
-
-prompt-toolkit==3.0.24
-property-cached==1.6.4
-pure-eval==0.2.1
-pvlib==0.9.0
-pycosat==0.6.3
-Pygments==2.11.2    # via pyomo
+    # via pyomo
 pvlib==0.10.5
     # via
     #   -r test_requirements.in
     #   oemof-thermal
 pygments==2.18.0
     # via sphinx
-
 pyluach==2.2.0
     # via workalendar
 pymeeus==0.5.12
@@ -142,10 +134,6 @@ pyomo==6.7.3
     #   oemof-solph
 pyparsing==3.1.2
     # via matplotlib
-pyproject_hooks==1.0.0
-pyrsistent==0.18.1
-pytest==8.1.1
-pytest-cov==5.0.0
 python-dateutil==2.9.0.post0
     # via
     #   -r test_requirements.in
@@ -156,8 +144,6 @@ pytz==2024.1
     # via
     #   pandas
     #   pvlib
-PyUtilib==6.0.0
-pywin32==304
 pyyaml==6.0.1
     # via bokeh
 recommonmark==0.7.1

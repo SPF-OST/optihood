@@ -17,7 +17,7 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://optihood.readthedocs.io",
-    install_requires=["bokeh", "configparser", "python-dateutil", "matplotlib", "numpy", "oemof.solph==0.4.4",
+    install_requires=["bokeh", "configparser", "python-dateutil", "matplotlib", "numpy", "oemof.solph",
                       "oemof.thermal", "openpyxl", "pandas", "plotly", "pvlib", "Pyomo", "scipy", "xlrd", "xlwt"],
     classifiers=[
         "Programming Language :: Python :: 3",
@@ -25,5 +25,5 @@ setup(
         "Operating System :: Microsoft :: Windows",
     ],
     #setup_requires=["setuptools-git-versioning"],
-    python_requires=">=3.9",
+    python_requires=">=3.12",
 )
