@@ -232,13 +232,15 @@ def displaySankey(fileName, UseLabelDict, labelDict, positionDict, labels, build
     return fig
 
 
-def plot(excelFileName, outputFileName, numberOfBuildings, UseLabelDict, labels, optimType, mergedLinks=False, hideBuildingNumber=False):
+def plot(excelFileName, outputFileName, numberOfBuildings, UseLabelDict, labels, optimType, mergedLinks=False, hideBuildingNumber=False, show_figs=True):
     BUILDINGSLIST = list(range(1, numberOfBuildings + 1))
     labelDict = labelDictGenerator(numberOfBuildings, labels, optimType, mergedLinks)
     positionDict = positionDictGenerator(labels, optimType, mergedLinks)
     fig = displaySankey(excelFileName, UseLabelDict, labelDict, positionDict, labels, BUILDINGSLIST, mergedLinks, hideBuildingNumber)
-    fig.show()
+
     fig.write_html(outputFileName)
+    if show_figs:
+        fig.show()
 
 
 if __name__ == "__main__":
