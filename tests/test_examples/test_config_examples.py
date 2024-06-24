@@ -1,34 +1,31 @@
 import os as _os
 import pandas as _pd
 import pathlib as _pl
-import unittest
+import unittest as _ut
+import subprocess as _sp
 
 import optihood as _oh
-import sys
-
-sys.path.append(str(_pl.Path(_oh.__file__).resolve().parent / ".." / "data" / "examples"))
-from run_example_config import run_config_example
 
 
-class TestConfigExamples(unittest.TestCase):
+class TestConfigExamples(_ut.TestCase):
     def test_group_optimization(self):
+        """
+            End2End test to maximize initial coverage.
+            Issue with results ordering solved with a temporary hack
+        """
         cwd = _os.getcwd()
         packageDir = _pl.Path(_oh.__file__).resolve().parent
         scriptDir = packageDir / ".." / "data" / "examples"
-
+        
+        #=============================
+        # make into helper
         _os.chdir(scriptDir)
-        print("")
-        print(_os.getcwd())
-        print("")
-
-        run_config_example()
-
+        _sp.run([packageDir / '..' / 'venv' / 'Scripts' / 'python.exe', scriptDir / "run_example_config.py"])
         _os.chdir(cwd)
+        #=============================
 
         example_path = packageDir / ".." / "data" / "results" / "HP_GS_PV" / "cost" / "group"
-        # example_path = "C:\\Users\\alex.hobe\\Projects\\optihood\\data\\results\\HP_GS_PV\\cost\\group"
         excel_file_path = str(example_path / "scenario_HP_GS_PV.xls")
-        # excel_file_path = "C:\\Users\\alex.hobe\\Projects\\optihood\\data\\results\\HP_GS_PV\\cost\\group\scenario_HP_GS_PV.xls"
         expected_data_dir = _pl.Path(__file__).resolve().parent / "expected_files"
         expected_data_path = str(expected_data_dir / "test_run_example_config.xls")
 
@@ -58,7 +55,7 @@ class TestConfigExamples(unittest.TestCase):
 
             try:
                 _pd.testing.assert_frame_equal(df_new, df_expected)
-            except AssertionError as ae:
+            except AssertionError:
                 # Optihood doesn't export the results in a consistent way.
                 # Therefore, this hack reorders the results.
                 # Instead, the export should be ordered consistently.
@@ -69,4 +66,4 @@ class TestConfigExamples(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    _ut.main()
