@@ -4,12 +4,13 @@ import pathlib as _pl
 import pytest as _pt
 import re as _re
 import sys
+import subprocess as _sp
 import unittest as _ut
 
 import optihood as oh
 
 sys.path.append(str(_pl.Path(oh.__file__).resolve().parent / ".." / "data" / "examples"))
-from basic_example import run_example, plot_sankey_diagram, plot_bokeh
+from basic_example import plot_sankey_diagram, plot_bokeh
 
 cwd = _os.getcwd()
 packageDir = _pl.Path(oh.__file__).resolve().parent
@@ -39,12 +40,12 @@ class TestXlsExamples(_ut.TestCase):
 
     def test_basic(self):
 
+        # =============================
+        # make into helper
         _os.chdir(scriptDir)
-        print("")
-        print(_os.getcwd())
-        print("")
-        run_example(show_plots=False)
+        _sp.run([packageDir / '..' / 'venv' / 'Scripts' / 'python.exe', scriptDir / "basic_example.py", '/H'], shell=True, check=True)
         _os.chdir(cwd)
+        # =============================
 
         excel_file_path = str(example_path / "results_basic_example.xls")
         expected_data_path = str(expected_data_dir / "test_run_basic_example.xls")

@@ -16,13 +16,13 @@ class TestConfigExamples(_ut.TestCase):
         cwd = _os.getcwd()
         packageDir = _pl.Path(_oh.__file__).resolve().parent
         scriptDir = packageDir / ".." / "data" / "examples"
-        
-        #=============================
+
+        # =============================
         # make into helper
         _os.chdir(scriptDir)
-        _sp.run([packageDir / '..' / 'venv' / 'Scripts' / 'python.exe', scriptDir / "run_example_config.py"])
+        _sp.run([packageDir / '..' / 'venv' / 'Scripts' / 'python.exe', scriptDir / "run_example_config.py"], shell=True, check=True)
         _os.chdir(cwd)
-        #=============================
+        # =============================
 
         example_path = packageDir / ".." / "data" / "results" / "HP_GS_PV" / "cost" / "group"
         excel_file_path = str(example_path / "scenario_HP_GS_PV.xls")
