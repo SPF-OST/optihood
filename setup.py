@@ -5,12 +5,12 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 # Fetch latest tag
-latest_tag = subprocess.check_output(["git", "describe", "--tags", "--abbrev=0"]).strip().decode("utf-8")
+# latest_tag = subprocess.check_output(["git", "describe", "--tags", "--abbrev=0"]).strip().decode("utf-8")
 
 setup(
     name='optihood',
     packages=find_packages(),
-    version=latest_tag,
+    version='v0.02',
     author="Institute for Solar Technology (SPF), OST Rapperswil",
     author_email="neha.dimri@ost.ch",
     description="optihood optimization framework",
