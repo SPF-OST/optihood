@@ -1,4 +1,5 @@
-import itertools as _it
+import matplotlib as _mpl
+import matplotlib.pyplot as _plt
 import os as _os
 import pandas as _pd
 import pathlib as _pl
@@ -62,8 +63,20 @@ def check_sheet_names(testCase: _ut.TestCase, data: _pd.ExcelFile, sheet_names_e
     testCase.assertListEqual(data.sheet_names, sheet_names_expected)
 
 
+def plot_dfs_and_differences(df_new: _pd.DataFrame, df_expected: _pd.DataFrame, sheet_name: str):
+    _mpl.use('QtAgg')
+    fig, axs = _plt.subplots(3, 1)
+    df_new.plot(ax=axs[0])
+    df_expected.plot(ax=axs[1])
+    df_diff = df_new - df_expected
+    df_diff.plot(ax=axs[2])
+    axs[0].set_title(f'sheet name: {sheet_name}')
+    _plt.show(block=True)
+
+
 def compare_xls_files(testCase: _ut.TestCase, file_path: str, file_path_expected: str,
-                      sheet_names_expected: _tp.Sequence[str], abs_tolerance: _tp.Optional[float] = None):
+                      sheet_names_expected: _tp.Sequence[str], abs_tolerance: _tp.Optional[float] = None,
+                      manual_test: bool = False):
     """ Used to provide better feedback when comparing xls files. """
     data = _pd.ExcelFile(file_path)
     expected_data = _pd.ExcelFile(file_path_expected)
@@ -94,10 +107,16 @@ def compare_xls_files(testCase: _ut.TestCase, file_path: str, file_path_expected
                 This reduces the feedback of the test to a dType check.
                 Ignoring the dType ensures better feedback.
             """
-            if abs_tolerance:
-                _pd.testing.assert_frame_equal(df_new, df_expected, atol=abs_tolerance, check_dtype=False)
-            else:
-                _pd.testing.assert_frame_equal(df_new, df_expected, check_dtype=False)
+            try:
+                if abs_tolerance:
+                    _pd.testing.assert_frame_equal(df_new, df_expected, atol=abs_tolerance, check_dtype=False)
+                else:
+                    _pd.testing.assert_frame_equal(df_new, df_expected, check_dtype=False)
+            except AssertionError:
+                """ Plot differences in sheet to simplify comparison"""
+                if manual_test:
+                    plot_dfs_and_differences(df_new, df_expected, sheet)
+                raise AssertionError
 
 
 class TestXlsExamples(_ut.TestCase):
@@ -167,7 +186,7 @@ class TestXlsExamples(_ut.TestCase):
         """
         old_data_path = str(expected_data_dir / "test_run_basic_example.xls")
         new_data_path = str(expected_data_dir / "test_results_basic_example_after_merge.xls")
-        compare_xls_files(self, new_data_path, old_data_path, _SHEET_NAMES, abs_tolerance=1e-4)
+        compare_xls_files(self, new_data_path, old_data_path, _SHEET_NAMES, abs_tolerance=1e-4, manual_test=True)
 
 
 if __name__ == '__main__':
