@@ -81,7 +81,7 @@ def compare_xls_files(testCase: _ut.TestCase, file_path: str, file_path_expected
                 _pd.testing.assert_frame_equal(df_new, df_expected, atol=abs_tolerance)
             else:
                 _pd.testing.assert_frame_equal(df_new, df_expected)
-        except AssertionError as ae:
+        except AssertionError:
             """ Optihood doesn't export the results in a consistent way.
                 Therefore, this hack reorders the results.
                 Instead, the export should be ordered consistently.
@@ -121,6 +121,9 @@ class TestXlsExamples(_ut.TestCase):
         compare_xls_files(self, excel_file_path, expected_data_path, _SHEET_NAMES, abs_tolerance=1e-4)
 
     def test_basic_after_merge(self):
+        """ End2End test to ensure user example is reproducible.
+            This test will need to be adjusted, as Gurobi doesn't reproduce exact values between computing systems.
+        """
 
         # =============================
         # make into helper
@@ -136,6 +139,9 @@ class TestXlsExamples(_ut.TestCase):
         compare_xls_files(self, excel_file_path, expected_data_path, _SHEET_NAMES, abs_tolerance=1e-4)
 
     def test_sankey_basic_example(self):
+        """ End2End test to ensure the Sankey diagram of the user example is reproduced.
+            This test is deterministic, as it uses a given result.
+        """
         optimizationType = "costs"
         resultFileName = "test_run_basic_example.xls"
         plot_sankey_diagram(test_results_dir, 4, optimizationType, resultFileName, expected_data_dir, show_figs=False)
@@ -148,12 +154,17 @@ class TestXlsExamples(_ut.TestCase):
         assert False == True
 
     def test_html_comparison(self):
+        """ The html files tend to only differ by a random UUID.
+        """
         uuid_expected = "0fbea2e5-8f67-4d21-8fe7-897e199ac035"
         compare_html_files(self, expected_data_dir / "Sankey_4_costs_old_uuid.html",
                            expected_data_dir / "test_Sankey_basic_example.html", uuid_expected)
 
-    @_pt.mark.skip()
+    @_pt.mark.skip(reason='Manual test to check quality of feedback when comparing xls files.')
     def test_compare_results_before_and_after_merge(self):
+        """ Used to show the quality of feedback between different xls files.
+            These examples also show a change in the optimization results, which needs to be evaluated.
+        """
         old_data_path = str(expected_data_dir / "test_run_basic_example.xls")
         new_data_path = str(expected_data_dir / "test_results_basic_example_after_merge.xls")
         compare_xls_files(self, new_data_path, old_data_path, _SHEET_NAMES, abs_tolerance=1e-4)
