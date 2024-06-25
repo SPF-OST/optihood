@@ -1,26 +1,28 @@
-import warnings
-
-import numpy as np
-import pandas as pd
-from optihood._helpers import *
-import oemof.solph as solph
-from oemof.tools import logger
-import logging
-import os
-import pprint as pp
 from configparser import ConfigParser
 from datetime import datetime, timedelta
+import enum as _enum
+import logging
+import numpy as np
+import oemof.solph as solph
+from oemof.tools import logger
+import pandas as pd
+import pprint as pp
+import os
+import typing as _tp
+import warnings
 
 try:
     import matplotlib.pyplot as plt
 except ImportError:
     plt = None
 
-from optihood.constraints import *
 from optihood.buildings import Building
+from optihood.constraints import *
+from optihood._helpers import *
 from optihood.links import Link
 import optihood.IO.groupScenarioWriter as _gsw
 import optihood.IO.individualScenarioWriter as _isw
+
 
 class OptimizationProperties:
     """
@@ -63,6 +65,25 @@ class OptimizationProperties:
     def includeCarbonBenefits(self):
         return self._includeCarbonBenefits
 
+
+class NodeKeys(_enum.StrEnum):
+    buses = "buses"
+    grid_connection = "grid_connection"
+    commodity_sources = "commodity_sources"
+    solar = "solar"
+    transformers = "transformers"
+    demand = "demand"
+    storages = "storages"
+    stratified_storage = "stratified_storage"
+    profiles = "profiles"
+
+
+def get_data_from_df(df: pd.DataFrame, column_name: str):
+    return df[column_name]
+
+
+def get_data_from_excel_file(data: pd.ExcelFile, column_name: str):
+    return data.parse(column_name)
 
 
 class EnergyNetworkClass(solph.EnergySystem):
@@ -130,7 +151,8 @@ class EnergyNetworkClass(solph.EnergySystem):
         self._optimizationType = opt
         logging.info("Defining the energy network from the excel file: {}".format(filePath))
         data = pd.ExcelFile(filePath)
-        nodesData = self.createNodesData(data, filePath, numberOfBuildings, clusterSize)
+        initial_nodal_data = self.get_nodal_data_from_Excel(data)
+        nodesData = self.createNodesData(initial_nodal_data, filePath, numberOfBuildings, clusterSize)
         # nodesData["buses"]["excess costs"] = nodesData["buses"]["excess costs indiv"]
         # nodesData["electricity_cost"]["cost"] = nodesData["electricity_cost"]["cost indiv"]
 
@@ -165,19 +187,39 @@ class EnergyNetworkClass(solph.EnergySystem):
         self.add(*self._nodesList)
         logging.info("Nodes successfully added to the energy network")
 
-    def createNodesData(self, data, filePath, numBuildings, clusterSize):
-        self.__noOfBuildings = numBuildings
-        nodesData = {
-            "buses": data.parse("buses"),
-            "grid_connection": data.parse("grid_connection"),
-            "commodity_sources": data.parse("commodity_sources"),
-            "solar": data.parse("solar"),
-            "transformers": data.parse("transformers"),
-            "demand": data.parse("demand"),
-            "storages": data.parse("storages"),
-            "stratified_storage": data.parse("stratified_storage"),
-            "profiles": data.parse("profiles")
+    def get_nodal_data_from_df(self, data: pd.DataFrame):
+        nodes_data = self.get_nodal_data(get_data_from_df, data)
+
+        return nodes_data
+
+    def get_nodal_data_from_Excel(self, data: pd.ExcelFile):
+        nodes_data = self.get_nodal_data(get_data_from_excel_file, data)
+
+        return nodes_data
+
+    @staticmethod
+    def get_nodal_data(func, data: _tp.Union[pd.ExcelFile, pd.DataFrame]):
+        f""" Uses a specified function to get the nodal data from a specified entry point.
+            e.g.:
+            func = {get_data_from_excel_file}
+            func = {get_data_from_df}            
+        """
+        nodes_data = {
+            NodeKeys.buses.value: func(data, NodeKeys.buses.value),
+            NodeKeys.grid_connection.value: func(data, NodeKeys.grid_connection.value),
+            NodeKeys.commodity_sources.value: func(data, NodeKeys.commodity_sources.value),
+            NodeKeys.solar.value: func(data, NodeKeys.solar.value),
+            NodeKeys.transformers.value: func(data, NodeKeys.transformers.value),
+            NodeKeys.demand.value: func(data, NodeKeys.demand.value),
+            NodeKeys.storages.value: func(data, NodeKeys.storages.value),
+            NodeKeys.stratified_storage.value: func(data, NodeKeys.stratified_storage.value),
+            NodeKeys.profiles.value: func(data, NodeKeys.profiles.value)
         }
+        return nodes_data
+
+    def createNodesData(self, nodesData, filePath, numBuildings, clusterSize):
+        self.__noOfBuildings = numBuildings
+
         # update stratified_storage index
         nodesData["stratified_storage"].set_index("label", inplace=True)
 
