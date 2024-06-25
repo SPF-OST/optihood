@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-      - "75-get-optihood-under-ci" # remove this ASAP
   pull_request:
     branches:
       - '*'
