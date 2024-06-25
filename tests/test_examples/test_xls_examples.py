@@ -68,20 +68,26 @@ def plot_dfs_and_differences(df_new: _pd.DataFrame, df_expected: _pd.DataFrame, 
     fig, axs = _plt.subplots(3, 1)
     df_new.plot(ax=axs[0])
     df_expected.plot(ax=axs[1])
-    df_diff = df_new - df_expected
-    df_diff.plot(ax=axs[2])
+    if df_new.shape == df_expected.shape:
+        df_diff = df_new - df_expected
+        df_diff.plot(ax=axs[2])
+    else:
+        sheet_name += ' SHAPE MISMATCH!'
     axs[0].set_title(f'sheet name: {sheet_name}')
-    _plt.show(block=True)
 
 
 def compare_xls_files(testCase: _ut.TestCase, file_path: str, file_path_expected: str,
                       sheet_names_expected: _tp.Sequence[str], abs_tolerance: _tp.Optional[float] = None,
                       manual_test: bool = False):
-    """ Used to provide better feedback when comparing xls files. """
+    """ Used to provide better feedback when comparing xls files.
+        Assembles all errors before raising them.
+        Manual testing allows plotting of the differences, given equal dataframes.
+    """
     data = _pd.ExcelFile(file_path)
     expected_data = _pd.ExcelFile(file_path_expected)
 
     check_sheet_names(testCase, data, sheet_names_expected)
+    errors = []
 
     print("")
     for sheet in sheet_names_expected:
@@ -94,7 +100,7 @@ def compare_xls_files(testCase: _ut.TestCase, file_path: str, file_path_expected
                 _pd.testing.assert_frame_equal(df_new, df_expected, atol=abs_tolerance)
             else:
                 _pd.testing.assert_frame_equal(df_new, df_expected)
-        except AssertionError:
+        except AssertionError as current_error:
             """ Optihood doesn't export the results in a consistent way.
                 Therefore, this hack reorders the results.
                 Instead, the export should be ordered consistently.
@@ -112,11 +118,16 @@ def compare_xls_files(testCase: _ut.TestCase, file_path: str, file_path_expected
                     _pd.testing.assert_frame_equal(df_new, df_expected, atol=abs_tolerance, check_dtype=False)
                 else:
                     _pd.testing.assert_frame_equal(df_new, df_expected, check_dtype=False)
-            except AssertionError:
-                """ Plot differences in sheet to simplify comparison"""
+            except AssertionError as current_error_2:
+                errors.append(current_error)
+                errors.append(current_error_2)
                 if manual_test:
+                    """ Plot differences in sheet to simplify comparison. """
                     plot_dfs_and_differences(df_new, df_expected, sheet)
-                raise AssertionError
+    if errors:
+        if manual_test:
+            _plt.show(block=True)
+        raise Exception(errors)
 
 
 class TestXlsExamples(_ut.TestCase):
