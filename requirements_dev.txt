@@ -1,5 +1,4 @@
-﻿-r requirements.txt
--e file:.
+﻿-e file:.
 
 coverage==7.5.4
 pytest==8.2.2
