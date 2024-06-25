@@ -1117,7 +1117,7 @@ class EnergyNetworkClass(solph.EnergySystem):
                 self._storageContentSH = self.calcStateofCharge("shStorage", f"Building{i}")
                 self._storageContentDHW = self.calcStateofCharge("dhwStorage", f"Building{i}")
             hSB_sheet.append(f'heatStorageBus_Building{i}') #name of the different heatStorageBuses
-        with pd.ExcelWriter(file_name) as writer:
+        with pd.ExcelWriter(file_name, engine='openpyxl') as writer:
             busLabelList = []
             for i in self.nodes:
                 if "buses._bus.Bus" in str(type(i)).replace("<oemof.solph.", "").replace("'>", ""):
