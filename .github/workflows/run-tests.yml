@@ -72,7 +72,7 @@ jobs:
           }
 
       - name: Create virtual environment
-        run: py -3.9 -m venv venv
+        run: py -3.12 -m venv venv
 
       - name: Install dependencies
         run: |
