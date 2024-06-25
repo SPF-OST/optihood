@@ -56,12 +56,9 @@ jobs:
 #      - name: Run pip-compile-multi
 #        run: venv\Scripts\pip-compile-multi -d requirements --no-upgrade
 
-  test:
+  prepare_environment:
+    # This is separate, to remove the need for the environment to be re-installed before re-running the tests.
     runs-on: [self-hosted, etna]
-    
-#    env:
-#      PYTRNSYS_DEPENDENCY_CHANGED: ${{github.event_name == 'repository_dispatch' && github.event.client_payload.type == 'run-tests-and-build-executable'}}
-
     steps:
       - uses: actions/checkout@v3
 
@@ -80,6 +77,20 @@ jobs:
           venv\Scripts\python -m pip install wheel
           venv\Scripts\python -m pip install -r requirements.txt
           venv\Scripts\python -m pip install -r requirements_dev.txt
+
+  test:
+    runs-on: [self-hosted, etna]
+
+    # only runs if previous job completed successfully.
+    # This is separate, to remove the need for the environment to be re-installed before re-running the tests.
+    needs: prepare_environment
+
+
+#    env:
+#      PYTRNSYS_DEPENDENCY_CHANGED: ${{github.event_name == 'repository_dispatch' && github.event.client_payload.type == 'run-tests-and-build-executable'}}
+
+    steps:
+      - uses: actions/checkout@v3
 
 #      - name: Static type checking with mypy
 #        run: venv\Scripts\python dev-tools/devTools.py --type
