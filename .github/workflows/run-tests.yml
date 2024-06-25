@@ -55,9 +55,12 @@ jobs:
 #      - name: Run pip-compile-multi
 #        run: venv\Scripts\pip-compile-multi -d requirements --no-upgrade
 
-  prepare_environment:
-    # This is separate, to remove the need for the environment to be re-installed before re-running the tests.
+  test:
     runs-on: [self-hosted, etna]
+
+#    env:
+#      PYTRNSYS_DEPENDENCY_CHANGED: ${{github.event_name == 'repository_dispatch' && github.event.client_payload.type == 'run-tests-and-build-executable'}}
+
     steps:
       - uses: actions/checkout@v3
 
@@ -71,26 +74,12 @@ jobs:
         run: py -3.12 -m venv venv
 
       - name: Install dependencies
+        # Using --no-compile to reduce compile time on CI by not compiling unused .pyc files.
         run: |
           venv\Scripts\python -m pip install --upgrade pip
           venv\Scripts\python -m pip install wheel
           venv\Scripts\python -m pip install --no-compile -r requirements.txt
           venv\Scripts\python -m pip install --no-compile -r requirements_dev.txt
-      # trying --no-compile to reduce compile time on CI.
-
-  test:
-    runs-on: [self-hosted, etna]
-
-    # only runs if previous job completed successfully.
-    # This is separate, to remove the need for the environment to be re-installed before re-running the tests.
-    needs: prepare_environment
-
-
-#    env:
-#      PYTRNSYS_DEPENDENCY_CHANGED: ${{github.event_name == 'repository_dispatch' && github.event.client_payload.type == 'run-tests-and-build-executable'}}
-
-    steps:
-      - uses: actions/checkout@v3
 
 #      - name: Static type checking with mypy
 #        run: venv\Scripts\python dev-tools/devTools.py --type
