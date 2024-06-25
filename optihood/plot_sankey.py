@@ -1,12 +1,15 @@
 import sys
 from random import random
-import os
-import plotly.graph_objects as go
-import pandas as pd
-from optihood.plot_functions import getData
-import numpy as np
-from optihood.labelDict import labelDictGenerator, positionDictGenerator
 from matplotlib import colors
+import numpy as np
+import os
+import pandas as pd
+import pathlib as _pl
+import plotly.graph_objects as go
+
+from optihood.plot_functions import getData
+from optihood.labelDict import labelDictGenerator, positionDictGenerator
+
 
 def addCapacities(nodes, dataDict, buildings, UseLabelDict, labelDict, mergedLinks):
     capacities = ["sufficient"] * len(nodes)
@@ -203,6 +206,9 @@ def displaySankey(fileName, UseLabelDict, labelDict, positionDict, labels, build
                  }
     data = readResults(fileName, buildings, ColorDict, UseLabelDict, labelDict, positionDict, labels, mergedLinks)
 
+    file_path = _pl.Path(fileName)
+    title_name_for_file = file_path.stem + file_path.suffix
+
     node = data[0]['node']
     link = data[0]['link']
     if hideBuildingNumber == True:
@@ -212,7 +218,7 @@ def displaySankey(fileName, UseLabelDict, labelDict, positionDict, labels, build
                               node=node
                               )) #snap, perpendicular,freeform, fixed
     fig.update_layout(
-        title=fileName +" for buildings " + str(buildings),
+        title=title_name_for_file +" for buildings " + str(buildings),
         font=dict(size=10, color='black'),
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
@@ -232,13 +238,15 @@ def displaySankey(fileName, UseLabelDict, labelDict, positionDict, labels, build
     return fig
 
 
-def plot(excelFileName, outputFileName, numberOfBuildings, UseLabelDict, labels, optimType, mergedLinks=False, hideBuildingNumber=False):
+def plot(excelFileName, outputFileName, numberOfBuildings, UseLabelDict, labels, optimType, mergedLinks=False, hideBuildingNumber=False, show_figs=True):
     BUILDINGSLIST = list(range(1, numberOfBuildings + 1))
     labelDict = labelDictGenerator(numberOfBuildings, labels, optimType, mergedLinks)
     positionDict = positionDictGenerator(labels, optimType, mergedLinks)
     fig = displaySankey(excelFileName, UseLabelDict, labelDict, positionDict, labels, BUILDINGSLIST, mergedLinks, hideBuildingNumber)
-    fig.show()
-    fig.write_html(outputFileName)
+
+    fig.write_html(outputFileName, div_id="0fbea2e5-8f67-4d21-8fe7-897e199ac035")  # this is hardcoded to make the htmls reproducible
+    if show_figs:
+        fig.show()
 
 
 if __name__ == "__main__":

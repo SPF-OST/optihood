@@ -1,0 +1,120 @@
+name: Run tests #and static checks
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - '*'
+  repository_dispatch:
+    types:
+      - run-tests # -and-build-executable
+
+jobs:
+#  developer-install:
+#    runs-on: [ self-hosted, etna ]
+#
+#    defaults:
+#      run:
+#        working-directory: dev_install/pytrnsys_gui
+#
+#    steps:
+#      - uses: actions/checkout@v3
+#        with:
+#          path: dev_install/pytrnsys_gui
+#
+#      - uses: actions/checkout@v3
+#        with:
+#          repository: SPF-OST/pytrnsys
+#          path: dev_install/pytrnsys
+#
+#      - name: Remove old venv
+#        run: |
+#          if (Test-Path -LiteralPath venv) {
+#            Remove-Item -LiteralPath venv -Recurse
+#          }
+#
+#      - name: Create virtual environment
+#        run: py -3.12 -m venv venv
+#
+#      - name: Install dependencies
+#        run: |
+#          venv\Scripts\python -m pip install wheel
+#          venv\Scripts\python -m pip install -r requirements/dev.txt
+#
+#      - name: Generate UI code from Qt Creator Studio .ui files
+#        run: venv\Scripts\python dev-tools\generateGuiClassesFromQtCreatorStudioUiFiles.py
+#
+#      - name: Tag install
+#        run: venv\Scripts\python setup.py egg_info -b dev
+#
+#      - name: Check that trnsysGUI can be imported
+#        run: venv\Scripts\python pytest -v
+#
+#      - name: Run pip-compile-multi
+#        run: venv\Scripts\pip-compile-multi -d requirements --no-upgrade
+
+  test:
+    runs-on: [self-hosted, etna]
+
+#    env:
+#      PYTRNSYS_DEPENDENCY_CHANGED: ${{github.event_name == 'repository_dispatch' && github.event.client_payload.type == 'run-tests-and-build-executable'}}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Remove old venv
+        run: |
+          if (Test-Path -LiteralPath venv) {
+            Remove-Item -LiteralPath venv -Recurse
+          }
+
+      - name: Create virtual environment
+        run: py -3.12 -m venv venv
+
+      - name: Install dependencies
+        # Using --no-compile to reduce compile time on CI by not compiling unused .pyc files.
+        run: |
+          venv\Scripts\python -m pip install --upgrade pip
+          venv\Scripts\python -m pip install wheel
+          venv\Scripts\python -m pip install --no-compile -r requirements.txt
+          venv\Scripts\python -m pip install --no-compile -r requirements_dev.txt
+
+#      - name: Static type checking with mypy
+#        run: venv\Scripts\python dev-tools/devTools.py --type
+#
+#      - name: Lint with pylint
+#        run: venv\Scripts\python dev-tools/devTools.py --lint --keep-results
+#
+#      - name: Syntax checking with black
+#        run: venv\Scripts\python dev-tools/devTools.py --black --keep-results
+#
+#      - name: Generate class and package diagrams
+#        run: venv\Scripts\python dev-tools/devTools.py --diagram=dot --keep-results
+
+      - name: Test with pytest
+        run: venv\Scripts\python dev-tools/devTools.py --unit --keep-results
+#
+#      - name: Post coverage report to Coveralls
+#        uses: coverallsapp/github-action@master
+#        with:
+#          github-token: ${{ secrets.GITHUB_TOKEN }}
+#          path-to-lcov: test-results/coverage.lcov
+#
+#      - name: Upload test results and coverage reports
+#        uses: actions/upload-artifact@v3
+#        with:
+#          name: test-results-and-coverage-report-windows
+#          path: test-results
+#        # Use always() to always run this step to publish test results when there are test failures
+#        if: ${{ always() }}
+
+#      - if: github.event_name == 'push' || env.PYTRNSYS_DEPENDENCY_CHANGED == 'true'
+#        name: Trigger build of executable for push
+#        uses: peter-evans/repository-dispatch@v2
+#        with:
+#          repository: SPF-OST/pytrnsys_gui
+#          token: ${{ secrets.GITHUB_TOKEN }}
+#          event-type: build-executable-push
+#          client-payload: '{"type": "build-executable-push"}'

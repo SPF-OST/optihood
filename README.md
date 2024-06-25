@@ -64,7 +64,12 @@ commands could be used.
     oemof successfully installed.
     *****************************
     ```
-5.  To test whether the installation worked well, you could run a [basic example](https://github.com/SPF-OST/OptiHood/tree/main/data/examples/).
+5. To test whether the installation worked well, you could run a [basic example](https://github.com/SPF-OST/OptiHood/tree/main/data/examples/).
+
+6. Run the test suite using:
+```commandline
+    pytest
+```
 
 ## Defining an energy network
 

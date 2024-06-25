@@ -14,6 +14,7 @@ from dateutil.parser import isoparse
 import itertools
 import pandas as pd
 import os
+import xlrd as _xlrd
 
 # This file defines different functions for the plotting of the results of the optimization.
 # The plots are made at the end of this file, introducing a .xls file previously created during the optimization.
@@ -684,10 +685,20 @@ def getData(filepath):
     :param filepath: path to the Excel containing the results of the optimization
     :return: the different dicts created during the optimization
     """
-    wb = load_workbook(filepath, read_only=True, keep_links=False)
     dict_sheet = {}
-    for sheet in wb.sheetnames:
-        dict_sheet[sheet] = pd.read_excel(filepath, sheet_name=sheet, index_col=0, engine='openpyxl')
+    if "xlsx" in filepath:
+        wb = load_workbook(filepath, read_only=True, keep_links=False)
+        sheet_names = wb.sheetnames
+        engine = 'openpyxl'
+    elif "xls" in filepath:
+        wb = _xlrd.open_workbook(filepath)
+        sheet_names = wb.sheet_names()
+        engine = 'xlrd'
+    else:
+        raise NotImplementedError
+
+    for sheet in sheet_names:
+        dict_sheet[sheet] = pd.read_excel(filepath, sheet_name=sheet, index_col=0, engine=engine)
 
     return dict_sheet
 
