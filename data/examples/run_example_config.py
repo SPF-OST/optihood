@@ -4,6 +4,7 @@ import os
 from optihood.energy_network import EnergyNetworkGroup as EnergyNetwork
 
 if __name__ == '__main__':
+    """ This case is currently BROKEN."""
 
     optimization_type = "cost"
     scenario = "HP_GS_PV"

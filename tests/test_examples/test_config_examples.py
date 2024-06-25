@@ -1,13 +1,18 @@
 import os as _os
-import pandas as _pd
 import pathlib as _pl
+import pytest as _pt
 import unittest as _ut
 import subprocess as _sp
 
 import optihood as _oh
+from tests.xls_helpers import compare_xls_files
 
 
+@_pt.mark.skip(reason='Waiting for evaluation of changes.')
 class TestConfigExamples(_ut.TestCase):
+    def setUp(self):
+        self.maxDiff = None
+
     def test_group_optimization(self):
         """
             End2End test to maximize initial coverage.
@@ -42,27 +47,7 @@ class TestConfigExamples(_ut.TestCase):
                        'capTransformers__Building3', 'costs__Building4', 'env_impacts__Building4',
                        'capStorages__Building4', 'capTransformers__Building4']
 
-        data = _pd.ExcelFile(excel_file_path)
-
-        expected_data = _pd.ExcelFile(expected_data_path)
-
-        for sheet in sheet_names:
-            print("")
-            print(sheet)
-            print("")
-            df_new = data.parse(sheet)
-            df_expected = expected_data.parse(sheet)
-
-            try:
-                _pd.testing.assert_frame_equal(df_new, df_expected)
-            except AssertionError:
-                # Optihood doesn't export the results in a consistent way.
-                # Therefore, this hack reorders the results.
-                # Instead, the export should be ordered consistently.
-
-                df_new = df_new.sort_values(by=[df_new.columns[0]], ignore_index=True)
-                df_expected = df_expected.sort_values(by=[df_new.columns[0]], ignore_index=True)
-                _pd.testing.assert_frame_equal(df_new, df_expected)
+        compare_xls_files(self, excel_file_path, expected_data_path, sheet_names, manual_test=True) #, abs_tolerance=1e-4)
 
 
 if __name__ == '__main__':

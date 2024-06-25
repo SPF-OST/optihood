@@ -10,7 +10,8 @@ from optihood.IO import individualScenarioWriter as _isw
 
 
 class TestGroupScenarioWriter(_ut.TestCase):
-    # def setUp(self) -> None:
+    def setUp(self):
+        self.maxDiff = None
 
     def test_create_scenario_file(self):
         """
@@ -39,7 +40,8 @@ class TestGroupScenarioWriter(_ut.TestCase):
 
 
 class TestIndividualScenarioWriter(_ut.TestCase):
-    # def setUp(self) -> None:
+    def setUp(self):
+        self.maxDiff = None
 
     def test_create_scenario_file(self):
         """
