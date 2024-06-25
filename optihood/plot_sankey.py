@@ -238,7 +238,7 @@ def plot(excelFileName, outputFileName, numberOfBuildings, UseLabelDict, labels,
     positionDict = positionDictGenerator(labels, optimType, mergedLinks)
     fig = displaySankey(excelFileName, UseLabelDict, labelDict, positionDict, labels, BUILDINGSLIST, mergedLinks, hideBuildingNumber)
 
-    fig.write_html(outputFileName)
+    fig.write_html(outputFileName, div_id="0fbea2e5-8f67-4d21-8fe7-897e199ac035")  # this is hardcoded to make the htmls reproducible
     if show_figs:
         fig.show()
 
