@@ -192,13 +192,19 @@ class EnergyNetworkClass(solph.EnergySystem):
 
         return nodes_data
 
+    def get_nodal_data_from_dict_with_dfs(self, data: dict):
+        """ Facade as the interface is the same as for the DataFrame version. """
+        nodes_data = self.get_nodal_data(get_data_from_df, data)
+
+        return nodes_data
+
     def get_nodal_data_from_Excel(self, data: pd.ExcelFile):
         nodes_data = self.get_nodal_data(get_data_from_excel_file, data)
 
         return nodes_data
 
     @staticmethod
-    def get_nodal_data(func, data: _tp.Union[pd.ExcelFile, pd.DataFrame]):
+    def get_nodal_data(func, data: _tp.Union[pd.ExcelFile, pd.DataFrame, dict]):
         f""" Uses a specified function to get the nodal data from a specified entry point.
             e.g.:
             func = {get_data_from_excel_file}
