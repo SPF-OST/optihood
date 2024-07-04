@@ -17,7 +17,8 @@ def plot_dfs_and_differences(df_new: _pd.DataFrame, df_expected: _pd.DataFrame, 
     df_new.plot(ax=axs[0])
     df_expected.plot(ax=axs[1])
     if df_new.shape == df_expected.shape:
-        df_diff = df_new - df_expected
+        # avoids str - str errors.
+        df_diff = df_new.select_dtypes(exclude=[object]) - df_expected.select_dtypes(exclude=[object])
         df_diff.plot(ax=axs[2])
     else:
         sheet_name += ' SHAPE MISMATCH!'
