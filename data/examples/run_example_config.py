@@ -26,6 +26,7 @@ if __name__ == '__main__':
     numberOfBuildings = 4
     optimizationType = "costs"  # set as "env" for environmental optimization and "costs" for cost optimization
     mergeLinkBuses = True
+    merge_buses = ["electricity", "space_heat", "domestic_hot_water"]
     dispatchMode = True  # Set to True to run the optimization in dispatch mode
 
     # solver specific command line options
@@ -54,7 +55,7 @@ if __name__ == '__main__':
     network.createScenarioFile(os.path.join(inputFilePath, configFileName), os.path.join(inputFilePath, inputfileName),
                                numberOfBuildings)
     network.setFromExcel(os.path.join(inputFilePath, inputfileName), numberOfBuildings, opt=optimizationType,
-                         mergeLinkBuses=mergeLinkBuses, dispatchMode=dispatchMode)
+                         mergeLinkBuses=mergeLinkBuses, mergeBuses=merge_buses, dispatchMode=dispatchMode)
 
     # optimize the energy network
     limit, capacitiesTransformers, capacitiesStorages = network.optimize(solver='gurobi',

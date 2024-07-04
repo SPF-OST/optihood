@@ -1266,7 +1266,7 @@ class EnergyNetworkGroup(EnergyNetworkClass):
 
         _gsw.create_scenario_file(configFilePath, excelFilePath, numberOfBuildings)
 
-    def setFromExcel(self, filePath, numberOfBuildings, clusterSize={}, opt="costs", mergeLinkBuses=False, dispatchMode=False, includeCarbonBenefits=False):
+    def setFromExcel(self, filePath, numberOfBuildings, clusterSize={}, opt="costs", mergeLinkBuses=False, mergeBuses=None, mergeHeatSourceSink=False, dispatchMode=False, includeCarbonBenefits=False):
         # does Excel file exist?
         if not filePath or not os.path.isfile(filePath):
             logging.error("Excel data file {} not found.".format(filePath))
@@ -1274,7 +1274,8 @@ class EnergyNetworkGroup(EnergyNetworkClass):
         self._dispatchMode = dispatchMode
         data = pd.ExcelFile(filePath)
         self._optimizationType = opt
-        nodesData = self.createNodesData(data, filePath, numberOfBuildings, clusterSize)
+        initial_nodal_data = self.get_nodal_data_from_Excel(data)
+        nodesData = self.createNodesData(initial_nodal_data, filePath, numberOfBuildings, clusterSize)
         # nodesData["buses"]["excess costs"] = nodesData["buses"]["excess costs group"]
         # nodesData["electricity_cost"]["cost"] = nodesData["electricity_cost"]["cost group"]
 
