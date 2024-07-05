@@ -1,9 +1,15 @@
+import pathlib as _pl
 import typing as _tp
 import unittest as _ut
 
 import matplotlib as _mpl
 import pandas as _pd
 from matplotlib import pyplot as _plt
+
+
+def compare_txt_files(testCase: _ut.TestCase, file_path1: _pl.Path, file_path2: _pl.Path):
+    with open(file_path1) as f1, open(file_path2) as f2:
+        _ut.TestCase.assertListEqual(testCase, list(f1), list(f2))
 
 
 def check_sheet_names(testCase: _ut.TestCase, data: _pd.ExcelFile, sheet_names_expected: _tp.Sequence[str]):

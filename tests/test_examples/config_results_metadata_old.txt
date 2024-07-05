@@ -1,0 +1,72 @@
+************** Optimized Capacities for Building1 **************
+Invested in 41.9 kW HP.
+     Annual COP = 4.2
+Invested in 8.0 kW GWHP.
+     Annual COP = 3.3
+Invested in 0.4 kWp  PV.
+Invested in 0.0 kWh Electrical Storage.
+Invested in 760.3 L DHW Storage Tank.
+Invested in 5753.7 L SH Storage Tank.
+
+************** Optimized Capacities for Building2 **************
+Invested in 41.5 kW HP.
+     Annual COP = 4.2
+Invested in 7.9 kW GWHP.
+     Annual COP = 3.3
+Invested in 0.4 kWp  PV.
+Invested in 0.0 kWh Electrical Storage.
+Invested in 757.5 L DHW Storage Tank.
+Invested in 5650.5 L SH Storage Tank.
+
+************** Optimized Capacities for Building3 **************
+Invested in 42.1 kW HP.
+     Annual COP = 4.1
+Invested in 7.9 kW GWHP.
+     Annual COP = 3.2
+Invested in 0.4 kWp  PV.
+Invested in 0.0 kWh Electrical Storage.
+Invested in 756.1 L DHW Storage Tank.
+Invested in 5668.2 L SH Storage Tank.
+
+************** Optimized Capacities for Building4 **************
+Invested in 41.1 kW HP.
+     Annual COP = 4.1
+Invested in 7.8 kW GWHP.
+     Annual COP = 3.3
+Invested in 0.4 kWp  PV.
+Invested in 0.0 kWh Electrical Storage.
+Invested in 747.7 L DHW Storage Tank.
+Invested in 5661.6 L SH Storage Tank.
+
+Investment Costs for the system: 66641.35293922147 CHF
+Operation Costs for the system: 8194.23047413591 CHF
+Feed In Costs for the system: 0.0 CHF
+Total Costs for the system: 74835.58341335738 CHF
+Environmental impact from input resources for the system: 5976.376489393681 kg CO2 eq
+Environmental impact from energy conversion technologies for the system: 4248.797766777278 kg CO2 eq
+Total: 10225.17425617096 kg CO2 eq
+
+Meta Results:
+{'objective': 58188.59350951918,
+ 'problem': {'Lower bound': 58188.59350951917,
+             'Name': 'x82645',
+             'Number of binary variables': 0,
+             'Number of constraints': 78170,
+             'Number of continuous variables': 73717,
+             'Number of integer variables': 0,
+             'Number of nonzeros': 212645,
+             'Number of objectives': 1,
+             'Number of variables': 73717,
+             'Sense': <ProblemSense.minimize: 'minimize'>,
+             'Upper bound': 58188.59350951917},
+ 'solver': {'Error rc': 0,
+            'Message': 'Model was solved to optimality (subject to '
+                       'tolerances), and an optimal solution is available.',
+            'Return code': '0',
+            'Status': <SolverStatus.ok: 'ok'>,
+            'Termination condition': <TerminationCondition.optimal: 'optimal'>,
+            'Termination message': 'Model was solved to optimality (subject to '
+                                   'tolerances), and an optimal solution is '
+                                   'available.',
+            'Time': 1.2519843578338623,
+            'Wall time': '0.7950000762939453'}}

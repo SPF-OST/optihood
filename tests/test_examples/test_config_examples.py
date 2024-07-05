@@ -5,7 +5,7 @@ import unittest as _ut
 import subprocess as _sp
 
 import optihood as _oh
-from tests.xls_helpers import compare_xls_files
+from tests.xls_helpers import compare_xls_files, compare_txt_files
 
 cwd = _os.getcwd()
 packageDir = _pl.Path(_oh.__file__).resolve().parent
@@ -28,8 +28,8 @@ _SHEET_NAMES = ['gridBus__Building1', 'electricityProdBus__Building1', 'electric
 
 
 class TestConfigExamples(_ut.TestCase):
-    def setUp(self):
-        self.maxDiff = None
+    # def setUp(self):
+    #     self.maxDiff = None
 
     @_pt.mark.skipif(True, reason='waiting for evaluation. needs to be skipped for CI for now.')
     def test_group_optimization_before_merge(self):
@@ -80,6 +80,26 @@ class TestConfigExamples(_ut.TestCase):
         old_data_path = str(expected_data_dir / "test_run_example_config.xls")
         new_data_path = str(expected_data_dir / "test_run_example_config_after_merge.xls")
         compare_xls_files(self, new_data_path, old_data_path, _SHEET_NAMES, abs_tolerance=1e-4, manual_test=True)
+
+    @_pt.mark.skip(reason='Manual test to show differences between old and new metadata.')
+    def test_compare_meta_data_results_before_and_after_merge(self):
+        """ Currently, this does not provide quality feedback.
+            Often, pycharm can open a diff window for the test.
+            This is not the case for this comparison, however.
+         """
+        old_data_path = _pl.Path(cwd) / "config_results_metadata_old.txt"
+        new_data_path = _pl.Path(cwd) / "config_results_metadata_new.txt"
+        compare_txt_files(self, old_data_path, new_data_path)
+
+
+# Reasonable comparison values for:
+# - Investment Costs for the system: 0.1 CHF
+# - Operation Costs for the system: 1 CHF
+# - Feed In Costs for the system: absolute
+# - Total Costs for the system: 1 CHF
+# - Environmental impact from input resources for the system: 5 kg CO2 eq
+# - Environmental impact from energy conversion technologies for the system: 0.1 kg CO2 eq
+# - Total: 5 kg CO2 eq
 
 
 if __name__ == '__main__':
