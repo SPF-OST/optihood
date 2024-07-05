@@ -13,7 +13,7 @@ _input_data_dir = packageDir / ".." / "data" / "excels" / "basic_example"
 _examples_dir = packageDir / ".." / "data" / "examples"
 
 
-class TestEnergyNetworkGroup:
+class TestEnergyNetwork:
     def test_set_from_excel(self):
         """ File System touching test to check see whether network is populated correctly using a scenario. """
 
@@ -23,22 +23,18 @@ class TestEnergyNetworkGroup:
         time_period = _pd.date_range("2018-01-01 00:00:00", "2018-01-31 23:00:00", freq="60min")
         nr_of_buildings = 4
         optimization_type = "costs"  # set as "env" for environmental optimization and "costs" for cost optimization
-        merge_link_buses = True
-        merge_buses = ["electricity", "space_heat", "domestic_hot_water"]
-        dispatch_mode = True  # Set to True to run the optimization in dispatch mode
 
         # When
         _os.chdir(_examples_dir)
-        network = _en.EnergyNetworkGroup(time_period)
-        network.setFromExcel(_input_data_path, nr_of_buildings, opt=optimization_type,
-                             mergeLinkBuses=merge_link_buses, mergeBuses=merge_buses, dispatchMode=dispatch_mode)
+        network = _en.EnergyNetworkClass(time_period)
+        network.setFromExcel(_input_data_path, nr_of_buildings, opt=optimization_type)
         _os.chdir(cwd)
 
         # Then
         errors = []
-        check_assertion(errors, len(network.groups), 117)
+        check_assertion(errors, len(network.groups), 147)
 
-        check_assertion(errors, len(network.nodes), 110)
+        check_assertion(errors, len(network.nodes), 140)
 
         check_assertion(errors, network.results, None)
 
