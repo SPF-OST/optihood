@@ -7,6 +7,13 @@ import pandas as _pd
 from matplotlib import pyplot as _plt
 
 
+def check_assertion(errors: list, actual, expected):
+    try:
+        assert actual == expected
+    except AssertionError as current_error:
+        errors.append(current_error)
+
+
 def compare_txt_files(testCase: _ut.TestCase, file_path1: _pl.Path, file_path2: _pl.Path):
     with open(file_path1) as f1, open(file_path2) as f2:
         _ut.TestCase.assertListEqual(testCase, list(f1), list(f2))
