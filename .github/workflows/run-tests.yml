@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - '80-adjust-energynetworkcreate_nodes_data-to-allow-for-multiple-entry-points'
   pull_request:
     branches:
       - '*'
