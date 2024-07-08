@@ -1,0 +1,84 @@
+************** Optimized Capacities for Building1 **************
+Invested in 0.0 kW HP.
+     Annual COP = 5.8
+Invested in 0.0 kW GWHP.
+     Annual COP = 12.8
+Invested in 0.0 kW CHP.
+Invested in 25.6 kW GasBoiler.
+Invested in 0.0 m² SolarCollector.
+Invested in 0.0 kWp  PV.
+Invested in 0.0 kWh Electrical Storage.
+Invested in 473.8 L DHW Storage Tank.
+Invested in 0.0 L SH Storage Tank.
+
+************** Optimized Capacities for Building2 **************
+Invested in 0.0 kW HP.
+     Annual COP = 0.0
+Invested in 0.0 kW GWHP.
+     Annual COP = 0.0
+Invested in 0.0 kW CHP.
+Invested in 56.2 kW GasBoiler.
+Invested in 0.0 m² SolarCollector.
+Invested in 0.0 kWp  PV.
+Invested in 0.0 kWh Electrical Storage.
+Invested in 601.1 L DHW Storage Tank.
+Invested in 0.0 L SH Storage Tank.
+
+************** Optimized Capacities for Building3 **************
+Invested in 0.0 kW HP.
+     Annual COP = 0.0
+Invested in 0.0 kW GWHP.
+     Annual COP = 0.0
+Invested in 0.0 kW CHP.
+Invested in 96.8 kW GasBoiler.
+Invested in 0.0 m² SolarCollector.
+Invested in 0.0 kWp  PV.
+Invested in 0.0 kWh Electrical Storage.
+Invested in 1209.3 L DHW Storage Tank.
+Invested in 0.0 L SH Storage Tank.
+
+************** Optimized Capacities for Building4 **************
+Invested in 0.0 kW HP.
+     Annual COP = 9.0
+Invested in 0.0 kW GWHP.
+     Annual COP = 17.1
+Invested in 0.0 kW CHP.
+Invested in 32.0 kW GasBoiler.
+Invested in 0.0 m² SolarCollector.
+Invested in 0.0 kWp  PV.
+Invested in 0.0 kWh Electrical Storage.
+Invested in 601.1 L DHW Storage Tank.
+Invested in 0.0 L SH Storage Tank.
+
+Investment Costs for the system: 6553.86737278896 CHF
+Operation Costs for the system: 2723.40810822238 CHF
+Feed In Costs for the system: 0.0 CHF
+Total Costs for the system: 9277.27548101134 CHF
+Environmental impact from input resources for the system: 1976.5702412131693 kg CO2 eq
+Environmental impact from energy conversion technologies for the system: 275.8831704580989 kg CO2 eq
+Total: 2252.4534116712684 kg CO2 eq
+
+Meta Results:
+{'objective': 19603.343530221173,
+ 'problem': {'Lower bound': 19590.169677962258,
+             'Name': 'x137005',
+             'Number of binary variables': 36,
+             'Number of constraints': 128090,
+             'Number of continuous variables': 128041,
+             'Number of integer variables': 36,
+             'Number of nonzeros': 340329,
+             'Number of objectives': 1,
+             'Number of variables': 128077,
+             'Sense': <ProblemSense.minimize: 'minimize'>,
+             'Upper bound': 19603.34353022115},
+ 'solver': {'Error rc': 0,
+            'Message': 'Model was solved to optimality (subject to '
+                       'tolerances), and an optimal solution is available.',
+            'Return code': '0',
+            'Status': <SolverStatus.ok: 'ok'>,
+            'Termination condition': <TerminationCondition.optimal: 'optimal'>,
+            'Termination message': 'Model was solved to optimality (subject to '
+                                   'tolerances), and an optimal solution is '
+                                   'available.',
+            'Time': 6.282844305038452,
+            'Wall time': '5.424999952316284'}}
