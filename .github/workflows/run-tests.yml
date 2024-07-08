@@ -48,7 +48,7 @@ jobs:
 #        run: venv\Scripts\python dev-tools/devTools.py --black --keep-results
 
       - name: Generate class and package diagrams
-        run: venv\Scripts\python dev-tools/devTools.py --diagram=dot --keep-results
+        run: venv\Scripts\python dev-tools/devTools.py --diagram=pdf --keep-results
 
       - name: Test with pytest
         run: venv\Scripts\python dev-tools/devTools.py --unit --keep-results
