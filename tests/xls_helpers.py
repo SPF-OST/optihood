@@ -83,3 +83,10 @@ def compare_xls_files(testCase: _ut.TestCase, file_path: str, file_path_expected
         if manual_test:
             _plt.show(block=True)
         raise Exception(errors)
+
+
+def check_assertion(testCase: _ut.TestCase, errors: list, actual, expected):
+    try:
+        testCase.assertEqual(actual, expected)
+    except AssertionError as current_error:
+        errors.append(current_error)
