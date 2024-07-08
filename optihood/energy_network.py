@@ -152,6 +152,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         logging.info("Defining the energy network from the excel file: {}".format(filePath))
         data = pd.ExcelFile(filePath)
         initial_nodal_data = self.get_nodal_data_from_Excel(data)
+        data.close()
         nodesData = self.createNodesData(initial_nodal_data, filePath, numberOfBuildings, clusterSize)
         # nodesData["buses"]["excess costs"] = nodesData["buses"]["excess costs indiv"]
         # nodesData["electricity_cost"]["cost"] = nodesData["electricity_cost"]["cost indiv"]
@@ -1272,9 +1273,10 @@ class EnergyNetworkGroup(EnergyNetworkClass):
             logging.error("Excel data file {} not found.".format(filePath))
         logging.info("Defining the energy network from the excel file: {}".format(filePath))
         self._dispatchMode = dispatchMode
-        data = pd.ExcelFile(filePath)
         self._optimizationType = opt
+        data = pd.ExcelFile(filePath)
         initial_nodal_data = self.get_nodal_data_from_Excel(data)
+        data.close()
         nodesData = self.createNodesData(initial_nodal_data, filePath, numberOfBuildings, clusterSize)
         # nodesData["buses"]["excess costs"] = nodesData["buses"]["excess costs group"]
         # nodesData["electricity_cost"]["cost"] = nodesData["electricity_cost"]["cost group"]

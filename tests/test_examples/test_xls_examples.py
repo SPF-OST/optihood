@@ -1,11 +1,12 @@
 import os as _os
 import pathlib as _pl
-import pytest as _pt
 import re as _re
-import sys
 import subprocess as _sp
+import sys
 import typing as _tp
 import unittest as _ut
+
+import pytest as _pt
 
 import optihood as oh
 from tests.xls_helpers import compare_xls_files
