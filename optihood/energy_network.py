@@ -1276,7 +1276,7 @@ class EnergyNetworkGroup(EnergyNetworkClass):
         self._optimizationType = opt
         data = pd.ExcelFile(filePath)
         initial_nodal_data = self.get_nodal_data_from_Excel(data)
-        data.close()
+        # data.close()
         nodesData = self.createNodesData(initial_nodal_data, filePath, numberOfBuildings, clusterSize)
         # nodesData["buses"]["excess costs"] = nodesData["buses"]["excess costs group"]
         # nodesData["electricity_cost"]["cost"] = nodesData["electricity_cost"]["cost group"]
