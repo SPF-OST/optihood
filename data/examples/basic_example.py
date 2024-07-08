@@ -63,7 +63,7 @@ if __name__ == '__main__':
     inputfileName = "scenario.xls"
 
     resultFilePath = curDir / ".." / "results"
-    resultFileName ="results_basic_example.xls"
+    resultFileName ="results_basic_example.xlsx"
 
     # initialize parameters
     numberOfBuildings = 4
