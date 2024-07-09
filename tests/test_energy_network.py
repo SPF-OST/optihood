@@ -56,6 +56,8 @@ class TestEnergyNetwork(_ut.TestCase):
             raise ExceptionGroup(f"found {len(errors)} errors", errors)
 
     def test_get_nodal_data_from_Excel(self):
+        """ File System touching test to get an initial grip on what the nodal data should be after reading the
+        scenario."""
         network = _en.EnergyNetworkClass(None)
 
         data = _pd.ExcelFile(_input_data_path)
@@ -89,3 +91,23 @@ class TestEnergyNetwork(_ut.TestCase):
 
         if errors:
             raise ExceptionGroup(f"found {len(errors)} errors", errors)
+
+    def test_set_from_csvs(self):
+        """ File system touching test.
+            Compare network state of the csv variety with that of the Excel variety.
+        """
+        time_period = _pd.date_range("2018-01-01 00:00:00", "2018-01-31 23:00:00", freq="60min")
+        nr_of_buildings = 4
+        optimization_type = "costs"  # set as "env" for environmental optimization and "costs" for cost optimization
+
+        # When
+        _os.chdir(_examples_dir)
+        network_csv = _en.EnergyNetworkClass(time_period)
+        network_csv.setFromcsv(_input_data_path, nr_of_buildings, opt=optimization_type)
+
+        network_excel = _en.EnergyNetworkClass(time_period)
+        network_excel.setFromExcel(_input_data_path, nr_of_buildings, opt=optimization_type)
+        _os.chdir(cwd)
+
+        # Then
+        assert network_csv == network_excel

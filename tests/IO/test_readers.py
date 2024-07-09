@@ -24,7 +24,7 @@ class TestCsvScenarioReader(_ut.TestCase):
         data.close()
 
     def test_read(self):
-        """Test to ensure new reader produces 'similar' inputs to optihood."""
+        """ Test to ensure new reader produces 'identical' inputs to optihood."""
         csvReader = _ior.CsvScenarioReader(_CSV_DIR_PATH)
         nodal_data = csvReader.read_scenario()
 

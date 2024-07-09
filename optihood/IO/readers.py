@@ -17,15 +17,25 @@ class CsvReader:
     # _csv.QUOTE_NOTNULL]
 
     def read(self, file_name: str) -> _pd.DataFrame:
-        df = _pd.read_csv(self.dir_path / file_name, quoting=_csv.QUOTE_MINIMAL)
+        # read_csv does not have as strong a parser as ExcelFile.parse.
+        # One issue the following addresses, is the "nr as string" outputs.
+
+        df = _pd.read_csv(self.dir_path / file_name)
         for column in df.columns:
             self.make_nrs_numeric(df, column)
 
         return df
 
     @staticmethod
-    def make_nrs_numeric(df: _pd.DataFrame, column_name: str):
-        df[column_name] = df[column_name].apply(_pd.to_numeric, errors="ignore")
+    def make_nrs_numeric(df: _pd.DataFrame, column_name: str) -> None:
+        # Fix using "coerce" and re-filling NaN values.
+        # Unfortunately, this applies to full text columns as well.
+
+        if df[column_name].dtype == object:
+            series_old = df[column_name].copy(deep=True)
+            df[column_name] = df[column_name].apply(_pd.to_numeric, errors="coerce")
+            nan_map = df[column_name].isna()
+            df[column_name][nan_map] = series_old[nan_map]
 
 
 @_dc.dataclass
