@@ -1,0 +1,13 @@
+label,building,active,from,fixed,nominal value,building model
+electricityDemand,1,1,electricityInBus,1,1,
+spaceHeatingDemand,1,1,shDemandBus,1,1,
+domesticHotWaterDemand,1,1,dhwDemandBus,1,1,
+electricityDemand,2,1,electricityInBus,1,1,
+spaceHeatingDemand,2,1,shDemandBus,1,1,
+domesticHotWaterDemand,2,1,dhwDemandBus,1,1,
+electricityDemand,3,1,electricityInBus,1,1,
+spaceHeatingDemand,3,1,shDemandBus,1,1,
+domesticHotWaterDemand,3,1,dhwDemandBus,1,1,
+electricityDemand,4,1,electricityInBus,1,1,
+spaceHeatingDemand,4,1,shDemandBus,1,1,
+domesticHotWaterDemand,4,1,dhwDemandBus,1,1,

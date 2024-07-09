@@ -1,0 +1,9 @@
+label,building,to,variable costs,CO2 impact,active
+naturalGasResource,1,naturalGasBus,0.087,0.228,1
+electricityResource,1,gridBus,0.204,..\excels\basic_example\electricity_impact.csv,1
+naturalGasResource,2,naturalGasBus,0.087,0.228,1
+electricityResource,2,gridBus,0.204,..\excels\basic_example\electricity_impact.csv,1
+naturalGasResource,3,naturalGasBus,0.087,0.228,1
+electricityResource,3,gridBus,0.204,..\excels\basic_example\electricity_impact.csv,1
+naturalGasResource,4,naturalGasBus,0.087,0.228,1
+electricityResource,4,gridBus,0.204,..\excels\basic_example\electricity_impact.csv,1
