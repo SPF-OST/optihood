@@ -15,5 +15,3 @@ CHP,4,1,naturalGasBus,"electricityProdBus,shSourceBus,dhwStorageBus","0.25,0.6,0
 HP,4,1,electricityInBus,"shSourceBus,dhwStorageBus",3.5,150,150,,5,20,0.05,0.5,0.1,8204,1078,0,0,280.9
 GWHP,4,1,electricityInBus,"shSourceBus,dhwStorageBus",4.5,150,150,,5,20,0.05,0.5,0.1,28533,4501,0,0,280.9
 GasBoiler,4,1,naturalGasBus,"shSourceBus,dhwStorageBus","0.9, 0.9",100,100,,5,40,0,0.5,0.1,4288.4,75.98,0,0,51.2
-,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,
