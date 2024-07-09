@@ -57,7 +57,7 @@ class TestEnergyNetwork(_ut.TestCase):
 
     def test_get_nodal_data_from_Excel(self):
         network = _en.EnergyNetworkClass(None)
-        _os.chdir(_examples_dir)
+
         data = _pd.ExcelFile(_input_data_path)
         initial_nodal_data = network.get_nodal_data_from_Excel(data)
         data.close()

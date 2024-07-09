@@ -1,6 +1,4 @@
-from configparser import ConfigParser
 from datetime import datetime, timedelta
-import enum as _enum
 import logging
 import numpy as np
 import oemof.solph as solph
@@ -9,7 +7,8 @@ import pandas as pd
 import pprint as pp
 import os
 import typing as _tp
-import warnings
+
+from optihood.entities import NodeKeys
 
 try:
     import matplotlib.pyplot as plt
@@ -64,18 +63,6 @@ class OptimizationProperties:
     @property
     def includeCarbonBenefits(self):
         return self._includeCarbonBenefits
-
-
-class NodeKeys(_enum.StrEnum):
-    buses = "buses"
-    grid_connection = "grid_connection"
-    commodity_sources = "commodity_sources"
-    solar = "solar"
-    transformers = "transformers"
-    demand = "demand"
-    storages = "storages"
-    stratified_storage = "stratified_storage"
-    profiles = "profiles"
 
 
 def get_data_from_df(df: pd.DataFrame, column_name: str):
