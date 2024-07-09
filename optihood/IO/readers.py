@@ -1,5 +1,4 @@
 import configparser as _cp
-import csv as _csv
 import dataclasses as _dc
 import pathlib as _pl
 
@@ -10,11 +9,7 @@ import optihood.entities as _ent
 
 @_dc.dataclass
 class CsvReader:
-    # add quoting flag according to possibilities.
     dir_path: _pl.Path
-
-    # quoting_flag: [_csv.QUOTE_NONNUMERIC, _csv.QUOTE_NONE, _csv.QUOTE_ALL, _csv.QUOTE_MINIMAL, _csv.QUOTE_STRINGS,
-    # _csv.QUOTE_NOTNULL]
 
     def read(self, file_name: str) -> _pd.DataFrame:
         # read_csv does not have as strong a parser as ExcelFile.parse.
@@ -61,6 +56,10 @@ class CsvScenarioReader(CsvReader):
         }
 
     def read_scenario(self) -> dict[str, _pd.DataFrame]:
+        # Fine-grained feedback could be provided using validators for the individual files.
+        # This would include information related to the models,
+        # e.g. T range should be between 7 and 12 deg C for chillers.
+
         data = {}
         errors = []
         for key, rel_path in self.relative_file_paths.items():
@@ -77,6 +76,7 @@ class CsvScenarioReader(CsvReader):
             #     errors.append(validation_error)
 
         if errors:
+            # Should this be added to logging as well?
             raise ExceptionGroup("Issues with CSV files.", errors)
 
         return data
