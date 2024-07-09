@@ -6,7 +6,7 @@ import pandas as _pd
 
 import optihood as _oh
 import optihood.energy_network as _en
-from tests.xls_helpers import check_assertion
+from tests.xls_helpers import check_assertion, check_dataframe_assertion
 
 cwd = _os.getcwd()
 packageDir = _pl.Path(_oh.__file__).resolve().parent
@@ -116,4 +116,13 @@ class TestEnergyNetwork(_ut.TestCase):
         _os.chdir(cwd)
 
         # Then
-        assert network_csv == network_excel
+        sorted_csv_nodes = sorted(list(network_csv.nodes))
+        sorted_excel_nodes = sorted(list(network_excel.nodes))
+        for i in range(len(sorted_csv_nodes)):
+            sorted_csv_nodes[i] = str(sorted_csv_nodes[i])
+            sorted_excel_nodes[i] = str(sorted_excel_nodes[i])
+        self.assertListEqual(sorted_csv_nodes, sorted_excel_nodes)
+        assert network_csv.results == network_excel.results
+        # signals
+        check_dataframe_assertion([], network_csv.timeincrement, network_excel.timeincrement)
+        assert (network_csv.timeindex == network_excel.timeindex).all()
