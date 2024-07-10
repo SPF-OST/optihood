@@ -1,0 +1,9 @@
+label,building,active,from,to,connect,electrical_consumption,peripheral_losses,latitude,longitude,tilt,azimuth,efficiency,eta_0,a_1,a_2,temp_collector_inlet,delta_temp_n,capacity_max,capacity_min,lifetime,maintenance,installation,planification,invest_base,invest_cap,heat_impact,elec_impact,impact_cap,roof_area,zenith_angle
+solarCollector,1,1,electricityInBus,dhwStorageBus,solarConnectBus,0.02,0.05,47.23,8.34,45,225,,0.73,1.7,0.016,20,40,100,0,25,0.05,0.15,0.05,11034,706.36,0,0,0,400,20
+solarCollector,2,1,electricityInBus,dhwStorageBus,solarConnectBus,0.02,0.05,47.23,8.34,45,225,,0.73,1.7,0.016,20,40,100,0,25,0.05,0.15,0.05,11034,706.36,0,0,0,400,20
+solarCollector,3,1,electricityInBus,dhwStorageBus,solarConnectBus,0.02,0.05,47.23,8.34,45,225,,0.73,1.7,0.016,20,40,100,0,25,0.05,0.15,0.05,11034,706.36,0,0,0,400,20
+solarCollector,4,1,electricityInBus,dhwStorageBus,solarConnectBus,0.02,0.05,47.23,8.34,45,225,,0.73,1.7,0.016,20,40,100,0,25,0.05,0.15,0.05,11034,706.36,0,0,0,400,20
+pv,1,1,x,electricityProdBus,x,x,0.05,47.23,8.34,45,225,0.2,x,x,x,x,40,100,0.4,30,0,0,0.05,17950,1103,0,0,0,400,20
+pv,2,1,x,electricityProdBus,x,x,0.05,47.23,8.34,45,225,0.2,x,x,x,x,40,100,0.4,30,0,0,0.05,17950,1103,0,0,0,400,20
+pv,3,1,x,electricityProdBus,x,x,0.05,47.23,8.34,45,225,0.2,x,x,x,x,40,100,0.4,30,0,0,0.05,17950,1103,0,0,0,400,20
+pv,4,1,x,electricityProdBus,x,x,0.05,47.23,8.34,45,225,0.2,x,x,x,x,40,100,0.4,30,0,0,0.05,17950,1103,0,0,0,400,20

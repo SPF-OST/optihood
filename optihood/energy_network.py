@@ -1,26 +1,30 @@
-import warnings
-
-import numpy as np
-import pandas as pd
-from optihood._helpers import *
-import oemof.solph as solph
-from oemof.tools import logger
 import logging
 import os
+import pathlib as _pl
 import pprint as pp
-from configparser import ConfigParser
+import typing as _tp
 from datetime import datetime, timedelta
+
+import numpy as np
+import oemof.solph as solph
+import pandas as pd
+from oemof.tools import logger
+
+from optihood.entities import NodeKeys
 
 try:
     import matplotlib.pyplot as plt
 except ImportError:
     plt = None
 
-from optihood.constraints import *
 from optihood.buildings import Building
+from optihood.constraints import *
+from optihood._helpers import *
 from optihood.links import Link
 import optihood.IO.groupScenarioWriter as _gsw
 import optihood.IO.individualScenarioWriter as _isw
+import optihood.IO.readers as _re
+
 
 class OptimizationProperties:
     """
@@ -63,6 +67,13 @@ class OptimizationProperties:
     def includeCarbonBenefits(self):
         return self._includeCarbonBenefits
 
+
+def get_data_from_df(df: pd.DataFrame, column_name: str):
+    return df[column_name]
+
+
+def get_data_from_excel_file(data: pd.ExcelFile, column_name: str):
+    return data.parse(column_name)
 
 
 class EnergyNetworkClass(solph.EnergySystem):
@@ -119,21 +130,23 @@ class EnergyNetworkClass(solph.EnergySystem):
         super(EnergyNetworkClass, self).__init__(timeindex=timestamp, infer_last_interval=True)
 
     def setFromExcel(self, filePath, numberOfBuildings, clusterSize={}, opt="costs", mergeLinkBuses=False, mergeBuses=None, mergeHeatSourceSink=False, dispatchMode=False, includeCarbonBenefits=False):
-        # does Excel file exist?
-        if not filePath or not os.path.isfile(filePath):
-            logging.error("Excel data file {} not found.".format(filePath))                                                                               
-        if mergeLinkBuses and self._temperatureLevels:
-            logging.error("The options mergeLinkBuses and temperatureLevels should not be set True at the same time. "
-                          "This use case is not supported in the present version of optihood. Only one of "
-                          "mergeLinkBuses and temperatureLevels should be set to True.")
+        self.check_file_path(filePath)
+        self.check_mutually_exclusive_inputs(mergeLinkBuses)
         self._dispatchMode = dispatchMode
         self._optimizationType = opt
         logging.info("Defining the energy network from the excel file: {}".format(filePath))
         data = pd.ExcelFile(filePath)
-        nodesData = self.createNodesData(data, filePath, numberOfBuildings, clusterSize)
+        initial_nodal_data = self.get_nodal_data_from_Excel(data)
+        data.close()
+
+        self.set_using_nodal_data(clusterSize, filePath, includeCarbonBenefits, initial_nodal_data, mergeBuses,
+                                  mergeHeatSourceSink, mergeLinkBuses, numberOfBuildings, opt)
+
+    def set_using_nodal_data(self, clusterSize, filePath, includeCarbonBenefits, initial_nodal_data, mergeBuses,
+                             mergeHeatSourceSink, mergeLinkBuses, numberOfBuildings, opt):
+        nodesData = self.createNodesData(initial_nodal_data, filePath, numberOfBuildings, clusterSize)
         # nodesData["buses"]["excess costs"] = nodesData["buses"]["excess costs indiv"]
         # nodesData["electricity_cost"]["cost"] = nodesData["electricity_cost"]["cost indiv"]
-
         if clusterSize:
             demandProfiles = {}
             for i in range(1, numberOfBuildings + 1):
@@ -160,24 +173,62 @@ class EnergyNetworkClass(solph.EnergySystem):
                 nodesData["natGas_impact"] = natGasImpact
                 nodesData["natGas_cost"] = natGasCost
             nodesData["weather_data"] = weatherData
-        self._convertNodes(nodesData, opt, mergeLinkBuses, mergeBuses, mergeHeatSourceSink, includeCarbonBenefits, clusterSize)
+        self._convertNodes(nodesData, opt, mergeLinkBuses, mergeBuses, mergeHeatSourceSink, includeCarbonBenefits,
+                           clusterSize)
         logging.info("Nodes from Excel file {} successfully converted".format(filePath))
         self.add(*self._nodesList)
         logging.info("Nodes successfully added to the energy network")
 
-    def createNodesData(self, data, filePath, numBuildings, clusterSize):
-        self.__noOfBuildings = numBuildings
-        nodesData = {
-            "buses": data.parse("buses"),
-            "grid_connection": data.parse("grid_connection"),
-            "commodity_sources": data.parse("commodity_sources"),
-            "solar": data.parse("solar"),
-            "transformers": data.parse("transformers"),
-            "demand": data.parse("demand"),
-            "storages": data.parse("storages"),
-            "stratified_storage": data.parse("stratified_storage"),
-            "profiles": data.parse("profiles")
+    def check_mutually_exclusive_inputs(self, mergeLinkBuses):
+        if mergeLinkBuses and self._temperatureLevels:
+            logging.error("The options mergeLinkBuses and temperatureLevels should not be set True at the same time. "
+                          "This use case is not supported in the present version of optihood. Only one of "
+                          "mergeLinkBuses and temperatureLevels should be set to True.")
+
+    @staticmethod
+    def check_file_path(filePath):
+        if not filePath or not os.path.isfile(filePath):
+            logging.error(f"File {filePath} not found.")
+
+    def get_nodal_data_from_df(self, data: pd.DataFrame):
+        nodes_data = self.get_nodal_data(get_data_from_df, data)
+
+        return nodes_data
+
+    def get_nodal_data_from_dict_with_dfs(self, data: dict):
+        """ Facade as the interface is the same as for the DataFrame version. """
+        nodes_data = self.get_nodal_data(get_data_from_df, data)
+
+        return nodes_data
+
+    def get_nodal_data_from_Excel(self, data: pd.ExcelFile):
+        nodes_data = self.get_nodal_data(get_data_from_excel_file, data)
+
+        return nodes_data
+
+    @staticmethod
+    def get_nodal_data(func, data: _tp.Union[pd.ExcelFile, pd.DataFrame, dict]):
+        f""" Uses a specified function to get the nodal data from a specified entry point.
+            e.g.:
+            func = {get_data_from_excel_file}
+            func = {get_data_from_df}            
+        """
+        nodes_data = {
+            NodeKeys.buses.value: func(data, NodeKeys.buses.value),
+            NodeKeys.grid_connection.value: func(data, NodeKeys.grid_connection.value),
+            NodeKeys.commodity_sources.value: func(data, NodeKeys.commodity_sources.value),
+            NodeKeys.solar.value: func(data, NodeKeys.solar.value),
+            NodeKeys.transformers.value: func(data, NodeKeys.transformers.value),
+            NodeKeys.demand.value: func(data, NodeKeys.demand.value),
+            NodeKeys.storages.value: func(data, NodeKeys.storages.value),
+            NodeKeys.stratified_storage.value: func(data, NodeKeys.stratified_storage.value),
+            NodeKeys.profiles.value: func(data, NodeKeys.profiles.value)
         }
+        return nodes_data
+
+    def createNodesData(self, nodesData, file_or_folder_path, numBuildings, clusterSize):
+        self.__noOfBuildings = numBuildings
+
         # update stratified_storage index
         nodesData["stratified_storage"].set_index("label", inplace=True)
 
@@ -246,7 +297,7 @@ class EnergyNetworkClass(solph.EnergySystem):
             nodesData["electricity_cost"].index = pd.to_datetime(nodesData["electricity_cost"].index, format='%d.%m.%Y %H:%M')
 
         if "naturalGasResource" in nodesData["commodity_sources"]["label"].values:
-            if type(natGasImpact) == float or (natGasImpact.split('.')[0].replace('-','').isdigit() and natGasImpact.split('.')[1].replace('-','').isdigit()):
+            if isinstance(natGasImpact, (float, np.float64)) or (natGasImpact.split('.')[0].replace('-','').isdigit() and natGasImpact.split('.')[1].replace('-','').isdigit()):
                 # for constant impact
                 natGasImpactValue = float(natGasImpact)
                 logging.info("Constant value for natural gas impact")
@@ -328,7 +379,7 @@ class EnergyNetworkClass(solph.EnergySystem):
                     nodesData["building_model"][i + 1][param] = float(bmParamers[bmParamers["Building Number"] == (i+1)][param].iloc[0])
         else:
             logging.info("Building model either not selected or invalid string value entered")
-        logging.info("Data from Excel file {} imported.".format(filePath))
+        logging.info(f"Data from file {file_or_folder_path} imported.")
         return nodesData
 
     def _checkStorageTemperatureGradient(self, temp_c):
@@ -1193,6 +1244,25 @@ class EnergyNetworkClass(solph.EnergySystem):
                 capacitiesTransformersBuilding = pd.DataFrame.from_dict(capacitiesTransformers, orient='index')
                 capacitiesTransformersBuilding.to_excel(writer, sheet_name="capTransformers__" + buildingLabel)
 
+    def set_from_csv(self, input_data_dir: _pl.Path, nr_of_buildings: int, clusterSize={}, opt: str = "costs",
+                   mergeLinkBuses: bool = False, mergeBuses: _tp.Optional[_tp.Sequence[str]] = None,
+                   mergeHeatSourceSink: bool = False, dispatchMode: bool = False, includeCarbonBenefits: bool = False):
+        self.check_dir_path(input_data_dir)
+        self.check_mutually_exclusive_inputs(mergeLinkBuses)
+        self._dispatchMode = dispatchMode
+        self._optimizationType = opt
+        logging.info(f"Defining the energy network from the input files: {input_data_dir}")
+
+        csvReader = _re.CsvScenarioReader(input_data_dir)
+        initial_nodal_data = csvReader.read_scenario()
+        self.set_using_nodal_data(clusterSize, input_data_dir, includeCarbonBenefits, initial_nodal_data, mergeBuses,
+                                  mergeHeatSourceSink, mergeLinkBuses, nr_of_buildings, opt)
+
+    @staticmethod
+    def check_dir_path(dir_path: _pl.Path):
+        if not dir_path or not os.path.isdir(dir_path):
+            logging.error(f"Directory {dir_path} not found.")
+
 
 class EnergyNetworkIndiv(EnergyNetworkClass):
     # # sunsetted, please use parent instead
@@ -1218,15 +1288,17 @@ class EnergyNetworkGroup(EnergyNetworkClass):
 
         _gsw.create_scenario_file(configFilePath, excelFilePath, numberOfBuildings)
 
-    def setFromExcel(self, filePath, numberOfBuildings, clusterSize={}, opt="costs", mergeLinkBuses=False, dispatchMode=False, includeCarbonBenefits=False):
+    def setFromExcel(self, filePath, numberOfBuildings, clusterSize={}, opt="costs", mergeLinkBuses=False, mergeBuses=None, mergeHeatSourceSink=False, dispatchMode=False, includeCarbonBenefits=False):
         # does Excel file exist?
         if not filePath or not os.path.isfile(filePath):
             logging.error("Excel data file {} not found.".format(filePath))
         logging.info("Defining the energy network from the excel file: {}".format(filePath))
         self._dispatchMode = dispatchMode
-        data = pd.ExcelFile(filePath)
         self._optimizationType = opt
-        nodesData = self.createNodesData(data, filePath, numberOfBuildings, clusterSize)
+        data = pd.ExcelFile(filePath)
+        initial_nodal_data = self.get_nodal_data_from_Excel(data)
+        # data.close()
+        nodesData = self.createNodesData(initial_nodal_data, filePath, numberOfBuildings, clusterSize)
         # nodesData["buses"]["excess costs"] = nodesData["buses"]["excess costs group"]
         # nodesData["electricity_cost"]["cost"] = nodesData["electricity_cost"]["cost group"]
 
@@ -1259,7 +1331,7 @@ class EnergyNetworkGroup(EnergyNetworkClass):
         nodesData["links"]= data.parse("links")
         self._convertNodes(nodesData, opt, mergeLinkBuses, mergeBuses, mergeHeatSourceSink, includeCarbonBenefits, clusterSize)
         self._addLinks(nodesData["links"], numberOfBuildings, mergeLinkBuses)
-        logging.info("Nodes from Excel file {} successfully converted".format(filePath))
+        logging.info(f"Nodes from file {filePath} successfully converted")
         self.add(*self._nodesList)
         logging.info("Nodes successfully added to the energy network")
 

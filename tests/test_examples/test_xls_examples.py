@@ -1,11 +1,12 @@
 import os as _os
 import pathlib as _pl
-import pytest as _pt
 import re as _re
-import sys
 import subprocess as _sp
+import sys
 import typing as _tp
 import unittest as _ut
+
+import pytest as _pt
 
 import optihood as oh
 from tests.xls_helpers import compare_xls_files
@@ -90,7 +91,7 @@ class TestXlsExamples(_ut.TestCase):
         _os.chdir(cwd)
         # =============================
 
-        excel_file_path = str(example_path / "results_basic_example.xls")
+        excel_file_path = str(example_path / "results_basic_example.xlsx")
         expected_data_path = str(expected_data_dir / "test_results_basic_example_after_merge.xls")
 
         compare_xls_files(self, excel_file_path, expected_data_path, _SHEET_NAMES, abs_tolerance=1e-4)

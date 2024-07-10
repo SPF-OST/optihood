@@ -1,0 +1,17 @@
+label,building,active,from,to,efficiency,capacity_DHW,capacity_SH,capacity_el,capacity_min,lifetime,maintenance,installation,planification,invest_base,invest_cap,heat_impact,elec_impact,impact_cap
+CHP,1,1,naturalGasBus,"electricityProdBus,shSourceBus,dhwStorageBus","0.25,0.6,0.6",100,100,65,5,20,0.05,0.5,0.1,19137,887,0,0,359.7
+HP,1,1,electricityInBus,"shSourceBus,dhwStorageBus",3.5,150,150,,5,20,0.05,0.5,0.1,8204,1078,0,0,280.9
+GWHP,1,1,electricityInBus,"shSourceBus,dhwStorageBus",4.5,150,150,,5,20,0.05,0.5,0.1,28533,4501,0,0,280.9
+GasBoiler,1,1,naturalGasBus,"shSourceBus,dhwStorageBus","0.9, 0.9",100,100,,5,40,0,0.5,0.1,4288.4,75.98,0,0,51.2
+CHP,2,1,naturalGasBus,"electricityProdBus,shSourceBus,dhwStorageBus","0.25,0.6,0.6",100,100,65,5,20,0.05,0.5,0.1,19137,887,0,0,359.7
+GWHP,2,1,electricityInBus,"shSourceBus,dhwStorageBus",4.5,150,150,,5,20,0.05,0.5,0.1,28533,4501,0,0,280.9
+HP,2,1,electricityInBus,"shSourceBus,dhwStorageBus",3.5,150,150,,5,20,0.05,0.5,0.1,8204,1078,0,0,280.9
+GasBoiler,2,1,naturalGasBus,"shSourceBus,dhwStorageBus","0.9, 0.9",100,100,,5,40,0,0.5,0.1,4288.4,75.98,0,0,51.2
+CHP,3,1,naturalGasBus,"electricityProdBus,shSourceBus,dhwStorageBus","0.25,0.6,0.6",100,100,65,5,20,0.05,0.5,0.1,19137,887,0,0,359.7
+HP,3,1,electricityInBus,"shSourceBus,dhwStorageBus",3.5,150,150,,5,20,0.05,0.5,0.1,8204,1078,0,0,280.9
+GWHP,3,1,electricityInBus,"shSourceBus,dhwStorageBus",4.5,150,150,,5,20,0.05,0.5,0.1,28533,4501,0,0,280.9
+GasBoiler,3,1,naturalGasBus,"shSourceBus,dhwStorageBus","0.9, 0.9",100,100,,5,40,0,0.5,0.1,4288.4,75.98,0,0,51.2
+CHP,4,1,naturalGasBus,"electricityProdBus,shSourceBus,dhwStorageBus","0.25,0.6,0.6",100,100,65,5,20,0.05,0.5,0.1,19137,887,0,0,359.7
+HP,4,1,electricityInBus,"shSourceBus,dhwStorageBus",3.5,150,150,,5,20,0.05,0.5,0.1,8204,1078,0,0,280.9
+GWHP,4,1,electricityInBus,"shSourceBus,dhwStorageBus",4.5,150,150,,5,20,0.05,0.5,0.1,28533,4501,0,0,280.9
+GasBoiler,4,1,naturalGasBus,"shSourceBus,dhwStorageBus","0.9, 0.9",100,100,,5,40,0,0.5,0.1,4288.4,75.98,0,0,51.2
