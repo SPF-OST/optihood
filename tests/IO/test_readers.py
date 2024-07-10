@@ -38,3 +38,19 @@ class TestCsvScenarioReader(_ut.TestCase):
 
         if errors:
             raise ExceptionGroup(f"found {len(errors)} errors", errors)
+
+    def test_read_without_future_warning(self):
+        """Test to ensure new reader produces 'identical' inputs to optihood."""
+        csvReader = _ior.CsvScenarioReader(_CSV_DIR_PATH, use_function='future')
+        nodal_data = csvReader.read_scenario()
+
+        errors = []
+
+        check_assertion(self, errors, nodal_data.keys(), self.expected_nodal_data.keys())
+
+        for key, df_current in nodal_data.items():
+            # check_dtype=False to simplify comparison between Excel and CSV files.
+            check_dataframe_assertion(errors, df_current, self.expected_nodal_data[key], check_dtype=False)
+
+        if errors:
+            raise ExceptionGroup(f"found {len(errors)} errors", errors)

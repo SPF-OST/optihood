@@ -9,7 +9,19 @@ import optihood.entities as _ent
 
 @_dc.dataclass
 class CsvReader:
+    """ use_function is currently implemented to deal with deprecation of a pandas feature
+    (_pd.to_numeric, errors="ignore").
+    This can be set to 'current' or 'future'.
+    """
+
     dir_path: _pl.Path
+    use_function: str = 'current'  # or 'future'
+
+    def __post_init__(self):
+        if self.use_function == 'current':
+            self.make_nrs_numeric = self.make_nrs_numeric_current
+        elif self.use_function == 'future':
+            self.make_nrs_numeric = self.make_nrs_numeric_without_future_warning
 
     def read(self, file_name: str) -> _pd.DataFrame:
         # read_csv does not have as strong a parser as ExcelFile.parse.
@@ -22,7 +34,11 @@ class CsvReader:
         return df
 
     @staticmethod
-    def make_nrs_numeric(df: _pd.DataFrame, column_name: str) -> None:
+    def make_nrs_numeric_current(df: _pd.DataFrame, column_name: str):
+        df[column_name] = df[column_name].apply(_pd.to_numeric, errors="ignore")
+
+    @staticmethod
+    def make_nrs_numeric_without_future_warning(df: _pd.DataFrame, column_name: str) -> None:
         # Fix using "coerce" and re-filling NaN values.
         # Unfortunately, this applies to full text columns as well.
 
@@ -43,6 +59,7 @@ class CsvScenarioReader(CsvReader):
     relative_file_paths: dict[str, str] = _dc.field(init=False)
 
     def __post_init__(self):
+        super().__post_init__()
         self.relative_file_paths = {
             _ent.NodeKeys.buses: "buses.csv",
             _ent.NodeKeys.grid_connection: "grid_connection.csv",
