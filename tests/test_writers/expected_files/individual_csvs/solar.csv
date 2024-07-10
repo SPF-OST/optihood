@@ -1,0 +1,2 @@
+,label,building,from,to,connect,electrical_consumption,peripheral_losses,latitude,longitude,tilt,azimuth,eta_0,a_1,a_2,temp_collector_inlet,delta_temp_n,capacity_max,capacity_min,lifetime,maintenance,installation,planification,invest_base,invest_cap,heat_impact,elec_impact,impact_cap,active
+0,pv,1,,electricityProdBus,,,0.05,47.49,7.59,30,180,,,,,40,500,0.4,30,0.02,0,0,17950,1103,0,0,1131,1.0

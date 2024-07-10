@@ -62,16 +62,17 @@ class CsvScenarioReader(CsvReader):
 
     def __post_init__(self):
         super().__post_init__()
+        paths = _ent.CsvInputFilePathsRelative
         self.relative_file_paths = {
-            _ent.NodeKeys.buses: "buses.csv",
-            _ent.NodeKeys.grid_connection: "grid_connection.csv",
-            _ent.NodeKeys.commodity_sources: "commodity_sources.csv",
-            _ent.NodeKeys.solar: "solar.csv",
-            _ent.NodeKeys.transformers: "transformers.csv",
-            _ent.NodeKeys.demand: "demand.csv",
-            _ent.NodeKeys.storages: "storages.csv",
-            _ent.NodeKeys.stratified_storage: "stratified_storage.csv",
-            _ent.NodeKeys.profiles: "profiles.csv",
+            _ent.NodeKeys.buses: paths.buses,
+            _ent.NodeKeys.grid_connection: paths.grid_connection,
+            _ent.NodeKeys.commodity_sources: paths.commodity_sources,
+            _ent.NodeKeys.solar: paths.solar,
+            _ent.NodeKeys.transformers: paths.transformers,
+            _ent.NodeKeys.demand: paths.demand,
+            _ent.NodeKeys.storages: paths.storages,
+            _ent.NodeKeys.stratified_storage: paths.stratified_storage,
+            _ent.NodeKeys.profiles: paths.profiles,
         }
 
     def read_scenario(self) -> dict[str, _pd.DataFrame]:

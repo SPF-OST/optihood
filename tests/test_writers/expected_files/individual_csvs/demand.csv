@@ -1,0 +1,4 @@
+,label,building,active,from,fixed,nominal value,building model
+0,electricityDemand,1,1,electricityInBus,1,1,
+1,spaceHeatingDemand,1,1,shDemandBus,1,1,
+2,domesticHotWaterDemand,1,1,domesticHotWaterBus,1,1,

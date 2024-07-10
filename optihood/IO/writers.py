@@ -7,6 +7,7 @@ import pandas as _pd
 
 import optihood.IO.groupScenarioWriter as _gsw
 import optihood.IO.individualScenarioWriter as _isw
+import optihood.entities as _ent
 
 
 @_dc.dataclass()
@@ -48,14 +49,26 @@ class ScenarioFileWriterExcel(ScenarioCreator):
         write_prepared_data_and_sheets_to_excel(file_path, self.data)
 
 
-def write_prepared_data_and_sheets_to_CSVs(file_path, data):
-    pass
-
-
 class ScenarioFileWriterCSV(ScenarioCreator):
-    def _write_scenario_to_file(self, file_path: _pl.Path) -> None:
-        # maybe this can be inlined?
-        write_prepared_data_and_sheets_to_CSVs(file_path, self.data)
+    def __post_init__(self):
+        super().__post_init__()
+        paths = _ent.CsvInputFilePathsRelative
+        self.relative_file_paths = {
+            _ent.NodeKeys.buses: paths.buses,
+            _ent.NodeKeys.grid_connection: paths.grid_connection,
+            _ent.NodeKeys.commodity_sources: paths.commodity_sources,
+            _ent.NodeKeys.solar: paths.solar,
+            _ent.NodeKeys.transformers: paths.transformers,
+            _ent.NodeKeys.demand: paths.demand,
+            _ent.NodeKeys.storages: paths.storages,
+            _ent.NodeKeys.stratified_storage: paths.stratified_storage,
+            _ent.NodeKeys.profiles: paths.profiles,
+        }
+
+    def _write_scenario_to_file(self, folder_path: _pl.Path) -> None:
+        for key, path in self.relative_file_paths.items():
+            file_path = folder_path / path
+            write_to_csv(file_path, self.data[key])
 
 
 def write_prepared_data_and_sheets_to_excel(excel_file_path: _pl.Path, excel_data: dict):
@@ -63,3 +76,7 @@ def write_prepared_data_and_sheets_to_excel(excel_file_path: _pl.Path, excel_dat
     with _pd.ExcelWriter(excel_file_path, engine='openpyxl') as writer:
         for sheet, data in excel_data.items():
             data.to_excel(writer, sheet_name=sheet, index=False)
+
+
+def write_to_csv(file_path: _pl.Path, data_sheet: _pd.DataFrame) -> None:
+    data_sheet.to_csv(file_path)
