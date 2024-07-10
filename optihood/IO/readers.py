@@ -46,7 +46,9 @@ class CsvReader:
             series_old = df[column_name].copy(deep=True)
             df[column_name] = df[column_name].apply(_pd.to_numeric, errors="coerce")
             nan_map = df[column_name].isna()
-            df[column_name][nan_map] = series_old[nan_map]
+            if len(nan_map) > 0:
+                df[column_name] = df[column_name].astype(object)
+                df.loc[nan_map, column_name] = series_old[nan_map]
 
 
 @_dc.dataclass

@@ -297,7 +297,7 @@ class EnergyNetworkClass(solph.EnergySystem):
             nodesData["electricity_cost"].index = pd.to_datetime(nodesData["electricity_cost"].index, format='%d.%m.%Y %H:%M')
 
         if "naturalGasResource" in nodesData["commodity_sources"]["label"].values:
-            if type(natGasImpact) == float or (natGasImpact.split('.')[0].replace('-','').isdigit() and natGasImpact.split('.')[1].replace('-','').isdigit()):
+            if isinstance(natGasImpact, (float, np.float64)) or (natGasImpact.split('.')[0].replace('-','').isdigit() and natGasImpact.split('.')[1].replace('-','').isdigit()):
                 # for constant impact
                 natGasImpactValue = float(natGasImpact)
                 logging.info("Constant value for natural gas impact")
