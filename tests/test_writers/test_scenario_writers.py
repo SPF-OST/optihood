@@ -7,6 +7,7 @@ import optihood as _oh
 
 from optihood.IO import groupScenarioWriter as _gsw
 from optihood.IO import individualScenarioWriter as _isw
+import optihood.IO.writers as _wr
 
 
 class TestGroupScenarioWriter(_ut.TestCase):
@@ -29,8 +30,8 @@ class TestGroupScenarioWriter(_ut.TestCase):
 
         sheet_names = ['buses', 'grid_connection', 'commodity_sources', 'solar', 'transformers', 'demand', 'storages', 'stratified_storage', 'profiles']
 
-        # data = _gsw.createScenarioFile(0, config_file_path, excel_file_path, numberOfBuildings=4, writeToFileOrReturnData='data')
-        _gsw.create_scenario_file(config_file_path, excel_file_path, numberOfBuildings=4)
+        scenarioFileWriter = _wr.ScenarioFileWriterExcel(config_file_path, nr_of_buildings=4, version='grouped')
+        scenarioFileWriter.write(excel_file_path)
 
         data = _pd.ExcelFile(excel_file_path)
         expected_data = _pd.ExcelFile(expected_data_path)
@@ -53,16 +54,16 @@ class TestIndividualScenarioWriter(_ut.TestCase):
         """
         packageDir = _pl.Path(_oh.__file__).resolve().parent
         config_file_path = packageDir / ".." / "data" / "configs" / "basic_example_config" / "scenario_HP_GS_PV_indiv.ini"
-        excel_file_path = "test_individual_scenario_writer.xls"
+        excel_file_path = _pl.Path("test_individual_scenario_writer.xls")
         expected_data_dir = _pl.Path(__file__).resolve().parent / "expected_files"
         expected_data_path = str(expected_data_dir / "test_individual_scenario_writer.xls")
 
         sheet_names = ['buses', 'grid_connection', 'commodity_sources', 'solar', 'transformers', 'demand', 'storages', 'stratified_storage', 'profiles']
 
-        # data = _gsw.createScenarioFile(0, config_file_path, excel_file_path, numberOfBuildings=4, writeToFileOrReturnData='data')
-        _isw.create_scenario_file(config_file_path, excel_file_path, 0)
+        scenarioFileWriter = _wr.ScenarioFileWriterExcel(config_file_path, building_nrs=0, version='individual')
+        scenarioFileWriter.write(excel_file_path)
 
-        data = _pd.ExcelFile(excel_file_path)
+        data = _pd.ExcelFile(str(excel_file_path))
         expected_data = _pd.ExcelFile(expected_data_path)
 
         for sheet in sheet_names:
