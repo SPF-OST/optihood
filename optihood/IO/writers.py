@@ -1,12 +1,11 @@
 import abc as _abc
 import dataclasses as _dc
 import pathlib as _pl
+import typing as _tp
 
 import pandas as _pd
 
 import optihood.IO.groupScenarioWriter as _gsw
-import typing as _tp
-
 import optihood.IO.individualScenarioWriter as _isw
 
 
@@ -28,13 +27,11 @@ class ScenarioCreator:
             self.get_scenario = self.get_individual_scenario
 
     def get_grouped_scenario(self):
-        # refactor to remove excel file input
-        data = _gsw.create_scenario_file(self.config_file_path, self.config_file_path, self.nr_of_buildings, writeToFileOrReturnData='data')
+        data = _gsw.create_scenario_file(self.config_file_path, self.nr_of_buildings)
         return data
 
     def get_individual_scenario(self):
-        # refactor to remove excel file input
-        data = _isw.create_scenario_file(self.config_file_path, self.config_file_path, self.building_nrs, self.nr_of_buildings, writeToFileOrReturnData='data')
+        data = _isw.create_scenario_file(self.config_file_path, self.building_nrs, self.nr_of_buildings)
         return data
 
     @_abc.abstractmethod
