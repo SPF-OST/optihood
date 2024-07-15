@@ -1,12 +1,10 @@
-from configparser import ConfigParser
 import numpy as np
 import pandas as pd
 
 import optihood.IO.readers as _rd
-import optihood.IO.writers as _sw
 
 
-def create_scenario_file(configFilePath, excel_file_path, numberOfBuildings, writeToFileOrReturnData='file'):
+def create_scenario_file(configFilePath, numberOfBuildings):
     """
     function to create the input excel file from a config file
     saves the generated excel file at the path given by excel_file_path
@@ -110,11 +108,7 @@ def create_scenario_file(configFilePath, excel_file_path, numberOfBuildings, wri
 
     add_buildings_to_excel_data(excel_data, numberOfBuildings)
 
-    if writeToFileOrReturnData == 'file':
-        _sw.write_prepared_data_and_sheets_to_excel(excel_file_path, excel_data)
-        return
-    elif writeToFileOrReturnData == 'data':
-        return excel_data
+    return excel_data
 
 
 def get_excel_variable_names(isGroup=False):
@@ -221,6 +215,3 @@ def add_buildings_to_excel_data(excel_data, numberOfBuildings):
             buildingNo = [i for i in range(1, numberOfBuildings + 1)] * len(excel_data[sheet].index)
             excel_data[sheet] = pd.DataFrame(np.repeat(data.values, numberOfBuildings, axis=0), columns=data.columns)
             excel_data[sheet]['building'] = buildingNo
-
-
-

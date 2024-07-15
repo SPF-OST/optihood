@@ -1,13 +1,10 @@
-from configparser import ConfigParser
-import numpy as np
 import pandas as pd
 
-import optihood.IO.readers as _rd
-import optihood.IO.writers as _sw
 import optihood.IO.groupScenarioWriter as _gsw
+import optihood.IO.readers as _rd
 
 
-def create_scenario_file(configFilePath, excel_file_path, building, numberOfBuildings=1, writeToFileOrReturnData='file'):
+def create_scenario_file(configFilePath, building, numberOfBuildings=1):
     """
     function to create the input excel file from a config file
     saves the generated excel file at the path given by excel_file_path
@@ -109,12 +106,4 @@ def create_scenario_file(configFilePath, excel_file_path, building, numberOfBuil
 
     _gsw.add_buildings_to_excel_data(excel_data, numberOfBuildings)
 
-    if writeToFileOrReturnData == 'file':
-        _sw.write_prepared_data_and_sheets_to_excel(excel_file_path, excel_data)
-        return
-
-    elif writeToFileOrReturnData == 'data':
-        return excel_data
-
-
-
+    return excel_data

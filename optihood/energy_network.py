@@ -10,6 +10,8 @@ import oemof.solph as solph
 import pandas as pd
 from oemof.tools import logger
 
+import optihood.IO.writers as _wr
+from optihood.IO.writers import ScenarioFileWriterExcel, ScenarioFileWriterCSV
 from optihood.entities import NodeKeys
 
 try:
@@ -1275,18 +1277,24 @@ class EnergyNetworkIndiv(EnergyNetworkClass):
 
     @staticmethod
     def createScenarioFile(configFilePath, excelFilePath, building, numberOfBuildings):
-        warnings.warn(f'"EnergyNetworkIndiv.createScenarioFile" will be sunsetted. Please use {_gsw.__name__}.{_gsw.create_scenario_file.__name__} instead.')
+        warnings.warn(f'"EnergyNetworkIndiv.createScenarioFile" will be sunsetted. Please use '
+                      f'{_wr.__name__}.{_wr.ScenarioFileWriterExcel.__name__} or '
+                      f'{_wr.__name__}.{_wr.ScenarioFileWriterCSV} instead.')
 
-        _isw.create_scenario_file(configFilePath, excelFilePath, building, numberOfBuildings)
+        scenarioFileWriter = _wr.ScenarioFileWriterExcel(configFilePath, building_nrs=building, version="individual")
+        scenarioFileWriter.write(excelFilePath)
 
 
 class EnergyNetworkGroup(EnergyNetworkClass):
     @staticmethod
     def createScenarioFile(configFilePath, excelFilePath, numberOfBuildings):
+        warnings.warn(f'"EnergyNetworkGroup.createScenarioFile" will be sunsetted. Please use '
+                      f'{_wr.__name__}.{_wr.ScenarioFileWriterExcel.__name__} or '
+                      f'{_wr.__name__}.{_wr.ScenarioFileWriterCSV} instead.')
 
-        warnings.warn(f'"EnergyNetworkGroup.createScenarioFile" will be sunsetted. Please use {_gsw.__name__}.{_gsw.create_scenario_file.__name__} instead.')
-
-        _gsw.create_scenario_file(configFilePath, excelFilePath, numberOfBuildings)
+        scenarioFileWriter = _wr.ScenarioFileWriterExcel(configFilePath, nr_of_buildings=numberOfBuildings,
+                                                         version="grouped")
+        scenarioFileWriter.write(excelFilePath)
 
     def setFromExcel(self, filePath, numberOfBuildings, clusterSize={}, opt="costs", mergeLinkBuses=False, mergeBuses=None, mergeHeatSourceSink=False, dispatchMode=False, includeCarbonBenefits=False):
         # does Excel file exist?

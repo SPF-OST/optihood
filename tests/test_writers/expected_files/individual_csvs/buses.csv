@@ -1,0 +1,10 @@
+,label,building,excess,excess costs,active
+0,gridBus,1,0,,1
+1,electricityProdBus,1,0,,1
+2,electricityInBus,1,0,,1
+3,shDemandBus,1,0,,1
+4,domesticHotWaterBus,1,0,,1
+5,shSourceBus,1,0,,1
+6,dhwStorageBus,1,0,,1
+7,electricityBus,1,1,-0.09,1
+8,spaceHeatingBus,1,0,,1

@@ -11,3 +11,15 @@ class NodeKeys(_enum.StrEnum):
     storages = "storages"
     stratified_storage = "stratified_storage"
     profiles = "profiles"
+
+
+class CsvInputFilePathsRelative(_enum.StrEnum):
+    buses = "buses.csv"
+    grid_connection = "grid_connection.csv"
+    commodity_sources = "commodity_sources.csv"
+    solar = "solar.csv"
+    transformers = "transformers.csv"
+    demand = "demand.csv"
+    storages = "storages.csv"
+    stratified_storage = "stratified_storage.csv"
+    profiles = "profiles.csv"

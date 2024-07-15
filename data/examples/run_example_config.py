@@ -1,6 +1,8 @@
 import pandas as pd
 import os
+import pathlib as pl
 
+from optihood.IO.writers import ScenarioFileWriterExcel
 from optihood.energy_network import EnergyNetworkGroup as EnergyNetwork
 
 if __name__ == '__main__':
@@ -13,7 +15,7 @@ if __name__ == '__main__':
     timePeriod = pd.date_range("2018-01-01 00:00:00", "2018-01-31 23:00:00", freq="60min")
 
     # define paths for input and result files
-    inputFilePath = f"..\\configs\\basic_example_config"
+    inputFilePath = pl.Path(f"..\\configs\\basic_example_config")
     configFileName = f"scenario_{scenario}_group.ini"
     inputfileName = f"scenario_{scenario}.xls"  # excel file which would be created by createScenarioFile()
 
@@ -49,11 +51,13 @@ if __name__ == '__main__':
         # "cbc": {"tee": False}
     }
 
+    # create scenario file from config file
+    scenarioFileWriter = ScenarioFileWriterExcel(inputFilePath / configFileName, version='grouped',
+                                                 nr_of_buildings=numberOfBuildings)
+    scenarioFileWriter.write(inputFilePath / inputfileName)
+
     # create an energy network and set the network parameters from an excel file
     network = EnergyNetwork(timePeriod)
-    # create scenario file from config file
-    network.createScenarioFile(os.path.join(inputFilePath, configFileName), os.path.join(inputFilePath, inputfileName),
-                               numberOfBuildings)
     network.setFromExcel(os.path.join(inputFilePath, inputfileName), numberOfBuildings, opt=optimizationType,
                          mergeLinkBuses=mergeLinkBuses, mergeBuses=merge_buses, dispatchMode=dispatchMode)
 
