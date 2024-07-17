@@ -50,3 +50,16 @@ class BusTypes(_enum.StrEnum):
     dhwStorageBus = "dhwStorageBus"
     solarConnectBus = "solarConnectBus"
 
+
+class CommoditySourcesLabels(_enum.StrEnum):
+    label = "label"
+    building = "building"
+    to = "to"
+    variable_costs = "variable costs"
+    CO2_impact = "CO2 impact"
+    active = "active"
+
+
+class CommoditySourceTypes(_enum.StrEnum):
+    naturalGasResource = "naturalGasResource"
+    electricityResource = "electricityResource"
