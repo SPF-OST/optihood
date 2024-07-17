@@ -13,6 +13,9 @@ class NodeKeys(_enum.StrEnum):
     profiles = "profiles"
 
 
+sheet_names = [e.value for e in NodeKeys]
+
+
 class CsvInputFilePathsRelative(_enum.StrEnum):
     buses = "buses.csv"
     grid_connection = "grid_connection.csv"
