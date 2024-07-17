@@ -80,3 +80,19 @@ class DemandTypes(_enum.StrEnum):
     spaceHeatingDemand = "spaceHeatingDemand"
     domesticHotWaterDemand = "domesticHotWaterDemand"
 
+
+class GridConnectionLabels(_enum.StrEnum):
+    label = "label"
+    building = "building"
+    from_bus = "from"
+    to = "to"
+    efficiency = "efficiency"
+
+
+class GridConnectionTypes(_enum.StrEnum):
+    gridElectricity = "gridElectricity"
+    electricitySource = "electricitySource"
+    producedElectricity = "producedElectricity"
+    domesticHotWater = "domesticHotWater"
+    shSource = "shSource"
+    spaceHeating = "spaceHeating"
