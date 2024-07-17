@@ -96,3 +96,18 @@ class GridConnectionTypes(_enum.StrEnum):
     domesticHotWater = "domesticHotWater"
     shSource = "shSource"
     spaceHeating = "spaceHeating"
+
+
+class LinksLabels(_enum.StrEnum):
+    label = "label"
+    active = "active"
+    efficiency = "efficiency"
+    invest_base = "invest_base"
+    invest_cap = "invest_cap"
+    investment = "investment"
+
+
+class LinksTypes(_enum.StrEnum):
+    electricityLink = "electricityLink"
+    shLink = "shLink"
+    dhwLink = "dhwLink"
