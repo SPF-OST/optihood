@@ -111,3 +111,16 @@ class LinksTypes(_enum.StrEnum):
     electricityLink = "electricityLink"
     shLink = "shLink"
     dhwLink = "dhwLink"
+
+
+class ProfileLabels(_enum.StrEnum):
+    name = "name"
+    path = "path"
+    info = "INFO"
+
+
+class ProfileTypes(_enum.StrEnum):
+    demand = "demand_profiles"
+    weather = "weather_data"
+
+
