@@ -26,3 +26,27 @@ class CsvInputFilePathsRelative(_enum.StrEnum):
     storages = "storages.csv"
     stratified_storage = "stratified_storage.csv"
     profiles = "profiles.csv"
+
+
+class BusesLabels(_enum.StrEnum):
+    label = "label"
+    building = "building"
+    excess = "excess"
+    excess_costs = "excess costs"
+    active = "active"
+
+
+class BusTypes(_enum.StrEnum):
+    naturalGasBus = "naturalGasBus"
+    gridBus = "gridBus"
+    electricityBus = "electricityBus"
+    electricityProdBus = "electricityProdBus"
+    electricityInBus = "electricityInBus"
+    shSourceBus = "shSourceBus"
+    spaceHeatingBus = "spaceHeatingBus"
+    shDemandBus = "shDemandBus"
+    domesticHotWaterBus = "domesticHotWaterBus"
+    dhwDemandBus = "dhwDemandBus"
+    dhwStorageBus = "dhwStorageBus"
+    solarConnectBus = "solarConnectBus"
+
