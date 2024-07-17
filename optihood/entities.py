@@ -161,3 +161,33 @@ class SolarLabels(_enum.StrEnum):
 class SolarTypes(_enum.StrEnum):
     solarCollector = "solarCollector"
     pv = "pv"
+
+
+class StorageLabels(_enum.StrEnum):
+    label = "label"
+    building = "building"
+    active = "active"
+    from_bus = "from"
+    to = "to"
+    efficiency_inflow = "efficiency_inflow"
+    efficiency_outflow = "efficiency_outflow"
+    initial_capacity = "initial_capacity"
+    capacity_min = "capacity_min"
+    capacity_max = "capacity_max"
+    capacity_loss = "capacity_loss"
+    lifetime = "lifetime"
+    maintenance = "maintenance"
+    installation = "installation"
+    planification = "planification"
+    invest_base = "invest_base"
+    invest_cap = "invest_cap"
+    heat_impact = "heat_impact"
+    elec_impact = "elec_impact"
+    impact_cap = "impact_cap"
+
+
+class StorageTypes(_enum.StrEnum):
+    electricalStorage = "electricalStorage"
+    shStorage = "shStorage"
+    dhwStorage = "dhwStorage"
+    
