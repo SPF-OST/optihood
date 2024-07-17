@@ -63,3 +63,20 @@ class CommoditySourcesLabels(_enum.StrEnum):
 class CommoditySourceTypes(_enum.StrEnum):
     naturalGasResource = "naturalGasResource"
     electricityResource = "electricityResource"
+
+
+class DemandLabels(_enum.StrEnum):
+    label = "label"
+    building = "building"
+    active = "active"
+    from_bus = "from"  # 'from' cannot be used as an attribute: 'from package import stuff'
+    fixed = "fixed"
+    nominal_value = "nominal value"
+    building_model = "building model"
+
+
+class DemandTypes(_enum.StrEnum):
+    electricityDemand = "electricityDemand"
+    spaceHeatingDemand = "spaceHeatingDemand"
+    domesticHotWaterDemand = "domesticHotWaterDemand"
+
