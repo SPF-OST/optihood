@@ -11,8 +11,7 @@ import pandas as pd
 from oemof.tools import logger
 
 import optihood.IO.writers as _wr
-from optihood.IO.writers import ScenarioFileWriterExcel, ScenarioFileWriterCSV
-from optihood.entities import NodeKeys
+import optihood.entities as _ent
 
 try:
     import matplotlib.pyplot as plt
@@ -23,8 +22,6 @@ from optihood.buildings import Building
 from optihood.constraints import *
 from optihood._helpers import *
 from optihood.links import Link
-import optihood.IO.groupScenarioWriter as _gsw
-import optihood.IO.individualScenarioWriter as _isw
 import optihood.IO.readers as _re
 
 
@@ -216,29 +213,37 @@ class EnergyNetworkClass(solph.EnergySystem):
             func = {get_data_from_df}            
         """
         nodes_data = {
-            NodeKeys.buses.value: func(data, NodeKeys.buses.value),
-            NodeKeys.grid_connection.value: func(data, NodeKeys.grid_connection.value),
-            NodeKeys.commodity_sources.value: func(data, NodeKeys.commodity_sources.value),
-            NodeKeys.solar.value: func(data, NodeKeys.solar.value),
-            NodeKeys.transformers.value: func(data, NodeKeys.transformers.value),
-            NodeKeys.demand.value: func(data, NodeKeys.demand.value),
-            NodeKeys.storages.value: func(data, NodeKeys.storages.value),
-            NodeKeys.stratified_storage.value: func(data, NodeKeys.stratified_storage.value),
-            NodeKeys.profiles.value: func(data, NodeKeys.profiles.value)
+            _ent.NodeKeys.buses.value: func(data, _ent.NodeKeys.buses.value),
+            _ent.NodeKeys.grid_connection.value: func(data, _ent.NodeKeys.grid_connection.value),
+            _ent.NodeKeys.commodity_sources.value: func(data, _ent.NodeKeys.commodity_sources.value),
+            _ent.NodeKeys.solar.value: func(data, _ent.NodeKeys.solar.value),
+            _ent.NodeKeys.transformers.value: func(data, _ent.NodeKeys.transformers.value),
+            _ent.NodeKeys.demand.value: func(data, _ent.NodeKeys.demand.value),
+            _ent.NodeKeys.storages.value: func(data, _ent.NodeKeys.storages.value),
+            _ent.NodeKeys.stratified_storage.value: func(data, _ent.NodeKeys.stratified_storage.value),
+            _ent.NodeKeys.profiles.value: func(data, _ent.NodeKeys.profiles.value)
         }
         return nodes_data
+
+    @staticmethod
+    def get_values_from_dataframe(df: pd.DataFrame, identifier: str, identifier_column: str, desired_column: str):
+        f""" Find any {identifier} entries in the {identifier_column} and return the 
+             {desired_column} value of those rows."""
+        row_indices = df[identifier_column] == identifier
+        values = df.loc[row_indices, desired_column].iloc[0]
+        return values
 
     def createNodesData(self, nodesData, file_or_folder_path, numBuildings, clusterSize):
         self.__noOfBuildings = numBuildings
 
         # update stratified_storage index
-        nodesData["stratified_storage"].set_index("label", inplace=True)
+        nodesData[_ent.NodeKeys.stratified_storage.value].set_index(_ent.StratifiedStorageLabels.label.value, inplace=True)
 
         # extract input data from CSVs
-        electricityImpact = nodesData["commodity_sources"].loc[nodesData["commodity_sources"]["label"] == "electricityResource", "CO2 impact"].iloc[0]
-        electricityCost = nodesData["commodity_sources"].loc[nodesData["commodity_sources"]["label"] == "electricityResource", "variable costs"].iloc[0]
-        demandProfilesPath = nodesData["profiles"].loc[nodesData["profiles"]["name"] == "demand_profiles", "path"].iloc[0]
-        weatherDataPath = nodesData["profiles"].loc[nodesData["profiles"]["name"] == "weather_data", "path"].iloc[0]
+        electricityImpact = self.get_values_from_dataframe(nodesData[_ent.NodeKeys.commodity_sources.value], _ent.CommoditySourceTypes.electricityResource.value, _ent.CommoditySourcesLabels.label.value, _ent.CommoditySourcesLabels.CO2_impact.value)
+        electricityCost = nodesData[_ent.NodeKeys.commodity_sources.value].loc[nodesData[_ent.NodeKeys.commodity_sources.value]["label"] == "electricityResource", "variable costs"].iloc[0]
+        demandProfilesPath = nodesData[_ent.NodeKeys.profiles.value].loc[nodesData[_ent.NodeKeys.profiles.value][_ent.ProfileLabels.name.value] == _ent.ProfileTypes.demand.value, _ent.ProfileLabels.path.value].iloc[0]
+        weatherDataPath = nodesData[_ent.NodeKeys.profiles.value].loc[nodesData[_ent.NodeKeys.profiles.value]["name"] == "weather_data", "path"].iloc[0]
 
         if "naturalGasResource" in nodesData["commodity_sources"]["label"].values:
             natGasCost = nodesData["commodity_sources"].loc[nodesData["commodity_sources"]["label"] == "naturalGasResource", "variable costs"].iloc[0]

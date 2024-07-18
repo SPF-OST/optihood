@@ -235,4 +235,3 @@ class TransformerTypes(_enum.StrEnum):
     HP = "HP"
     GWHP = "GWHP"
     GasBoiler = "GasBoiler"
-    
