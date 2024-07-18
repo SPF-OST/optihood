@@ -183,7 +183,7 @@ def _maybeCreateDiagrams(arguments):
         return
 
     diagramsFormat = arguments.diagramsFormat if arguments.diagramsFormat else "pdf"
-    cmd = f"{_SCRIPTS_DIR / 'pyreverse'} -k -o {diagramsFormat} -p optihood -d test-results optihood"
+    cmd = f"{_SCRIPTS_DIR / 'pyreverse'} -o {diagramsFormat} -p optihood -d test-results optihood"
     _printAndRun(cmd.split())
 
 
