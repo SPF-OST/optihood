@@ -190,4 +190,22 @@ class StorageTypes(_enum.StrEnum):
     electricalStorage = "electricalStorage"
     shStorage = "shStorage"
     dhwStorage = "dhwStorage"
-    
+
+
+class StratifiedStorageLabels(_enum.StrEnum):
+    label = "label"
+    diameter = "diameter"
+    temp_h = "temp_h"
+    temp_c = "temp_c"
+    temp_env = "temp_env"
+    inflow_conversion_factor = "inflow_conversion_factor"
+    outflow_conversion_factor = "outflow_conversion_factor"
+    s_iso = "s_iso"
+    lamb_iso = "lamb_iso"
+    alpha_inside = "alpha_inside"
+    alpha_outside = "alpha_outside"
+
+
+class StratifiedStorageTypes(_enum.StrEnum):
+    dhwStorage = "dhwStorage"
+    shStorage = "shStorage"
