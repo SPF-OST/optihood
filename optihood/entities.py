@@ -13,9 +13,6 @@ class NodeKeys(_enum.StrEnum):
     profiles = "profiles"
 
 
-sheet_names = [e.value for e in NodeKeys]
-
-
 class CsvInputFilePathsRelative(_enum.StrEnum):
     buses = "buses.csv"
     grid_connection = "grid_connection.csv"
@@ -209,3 +206,33 @@ class StratifiedStorageLabels(_enum.StrEnum):
 class StratifiedStorageTypes(_enum.StrEnum):
     dhwStorage = "dhwStorage"
     shStorage = "shStorage"
+
+
+class TransformerLabels(_enum.StrEnum):
+    label = "label"
+    building = "building"
+    active = "active"
+    from_bus = "from"
+    to = "to"
+    efficiency = "efficiency"
+    capacity_DHW = "capacity_DHW"
+    capacity_SH = "capacity_SH"
+    capacity_el = "capacity_el"
+    capacity_min = "capacity_min"
+    lifetime = "lifetime"
+    maintenance = "maintenance"
+    installation = "installation"
+    planification = "planification"
+    invest_base = "invest_base"
+    invest_cap = "invest_cap"
+    heat_impact = "heat_impact"
+    elec_impact = "elec_impact"
+    impact_cap = "impact_cap"
+
+
+class TransformerTypes(_enum.StrEnum):
+    CHP = "CHP"
+    HP = "HP"
+    GWHP = "GWHP"
+    GasBoiler = "GasBoiler"
+    
