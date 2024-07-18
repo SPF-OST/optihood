@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-      - '82-create-scenario-csvs-from-ini-file'
+      - '84-*'
   pull_request:
     branches:
       - '*'
