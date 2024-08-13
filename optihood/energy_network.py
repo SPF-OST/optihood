@@ -240,8 +240,9 @@ class EnergyNetworkClass(solph.EnergySystem):
         nodesData[_ent.NodeKeys.stratified_storage.value].set_index(_ent.StratifiedStorageLabels.label.value, inplace=True)
 
         # extract input data from CSVs
-        electricityImpact = self.get_values_from_dataframe(nodesData[_ent.NodeKeys.commodity_sources.value], _ent.CommoditySourceTypes.electricityResource.value, _ent.CommoditySourcesLabels.label.value, _ent.CommoditySourcesLabels.CO2_impact.value)
-        electricityCost = nodesData[_ent.NodeKeys.commodity_sources.value].loc[nodesData[_ent.NodeKeys.commodity_sources.value]["label"] == "electricityResource", "variable costs"].iloc[0]
+        if "electricityResource" in nodesData["commodity_sources"]["label"].values:
+            electricityImpact = self.get_values_from_dataframe(nodesData[_ent.NodeKeys.commodity_sources.value], _ent.CommoditySourceTypes.electricityResource.value, _ent.CommoditySourcesLabels.label.value, _ent.CommoditySourcesLabels.CO2_impact.value)
+            electricityCost = nodesData[_ent.NodeKeys.commodity_sources.value].loc[nodesData[_ent.NodeKeys.commodity_sources.value]["label"] == "electricityResource", "variable costs"].iloc[0]
         demandProfilesPath = nodesData[_ent.NodeKeys.profiles.value].loc[nodesData[_ent.NodeKeys.profiles.value][_ent.ProfileLabels.name.value] == _ent.ProfileTypes.demand.value, _ent.ProfileLabels.path.value].iloc[0]
         weatherDataPath = nodesData[_ent.NodeKeys.profiles.value].loc[nodesData[_ent.NodeKeys.profiles.value]["name"] == "weather_data", "path"].iloc[0]
 
@@ -255,53 +256,57 @@ class EnergyNetworkClass(solph.EnergySystem):
         if (not os.listdir(demandProfilesPath)) or (not os.path.exists(demandProfilesPath)):
             logging.error("Error in the demand profiles path: The folder is either empty or does not exist")
         else:
-            i = 0
+            #i = 0                                                                                                                 # commented for MPC branch !!!!!!
             for filename in os.listdir(demandProfilesPath): #this path should contain csv file(s) (one for each building's profiles)
-                i += 1      # Building number
-                if i > numBuildings:
+                #i += 1      # Building number                                                                                     # commented for MPC branch !!!!!!
+                """if i > numBuildings:
                     logging.warning("Demand profiles folder has more files than the number of buildings specified")
-                    break
+                    break"""                                                                                                       # commented for MPC branch !!!!!!
+                i = int(filename.split('_')[1].split('.')[0])                                                                      # specific to MPC branch !!!!!!
                 demandProfiles.update({i: pd.read_csv(os.path.join(demandProfilesPath, filename), delimiter=";")})
 
             nodesData["demandProfiles"] = demandProfiles
             # set datetime index
-            for i in range(numBuildings):
+            #for i in range(numBuildings):                                                                                         # commented for MPC branch !!!!!!
+            for i in nodesData["demandProfiles"].keys():
+                i = i - 1                                                                                                          # specific to MPC branch !!!!!!
                 nodesData["demandProfiles"][i + 1].timestamp = pd.to_datetime(nodesData["demandProfiles"][i + 1].timestamp, format='%Y-%m-%d %H:%M:%S')
                 nodesData["demandProfiles"][i + 1].set_index("timestamp", inplace=True)
                 if not clusterSize:
                     nodesData["demandProfiles"][i + 1] = nodesData["demandProfiles"][i + 1][self.timeindex[0]:self.timeindex[-1]]
 
-        if type(electricityImpact) == np.float64 or type(electricityImpact) == np.int64:
-            # for constant impact
-            electricityImpactValue = electricityImpact
-            logging.info("Constant value for electricity impact")
-            nodesData["electricity_impact"] = pd.DataFrame()
-            nodesData["electricity_impact"]["impact"] = (nodesData["demandProfiles"][1].shape[0]) * [
-                electricityImpactValue]
-            nodesData["electricity_impact"].index = nodesData["demandProfiles"][1].index
-        elif not os.path.exists(electricityImpact):
-            logging.error("Error in electricity impact file path")
-        else:
-            nodesData["electricity_impact"] = pd.read_csv(electricityImpact, delimiter=";")
-            # set datetime index
-            nodesData["electricity_impact"].set_index("timestamp", inplace=True)
-            nodesData["electricity_impact"].index = pd.to_datetime(nodesData["electricity_impact"].index, format='%d.%m.%Y %H:%M')
+        if "electricityResource" in nodesData["commodity_sources"]["label"].values:
+            if type(electricityImpact) == np.float64 or type(electricityImpact) == np.int64:
+                # for constant impact
+                electricityImpactValue = electricityImpact
+                logging.info("Constant value for electricity impact")
+                nodesData["electricity_impact"] = pd.DataFrame()
+                nodesData["electricity_impact"]["impact"] = (nodesData["demandProfiles"][1].shape[0]) * [
+                    electricityImpactValue]
+                nodesData["electricity_impact"].index = nodesData["demandProfiles"][1].index
+            elif not os.path.exists(electricityImpact):
+                logging.error("Error in electricity impact file path")
+            else:
+                nodesData["electricity_impact"] = pd.read_csv(electricityImpact, delimiter=";")
+                # set datetime index
+                nodesData["electricity_impact"].set_index("timestamp", inplace=True)
+                nodesData["electricity_impact"].index = pd.to_datetime(nodesData["electricity_impact"].index, format='%d.%m.%Y %H:%M')
 
-        if type(electricityCost) == np.float64 or type(electricityCost) == np.int64:
-            # for constant cost
-            electricityCostValue = electricityCost
-            logging.info("Constant value for electricity cost")
-            nodesData["electricity_cost"] = pd.DataFrame()
-            nodesData["electricity_cost"]["cost"] = (nodesData["demandProfiles"][1].shape[0]) * [
-                electricityCostValue]
-            nodesData["electricity_cost"].index = nodesData["demandProfiles"][1].index
-        elif not os.path.exists(electricityCost):
-            logging.error("Error in electricity cost file path")
-        else:
-            nodesData["electricity_cost"] = pd.read_csv(electricityCost, delimiter=";")
-            # set datetime index
-            nodesData["electricity_cost"].set_index("timestamp", inplace=True)
-            nodesData["electricity_cost"].index = pd.to_datetime(nodesData["electricity_cost"].index, format='%d.%m.%Y %H:%M')
+            if type(electricityCost) == np.float64 or type(electricityCost) == np.int64:
+                # for constant cost
+                electricityCostValue = electricityCost
+                logging.info("Constant value for electricity cost")
+                nodesData["electricity_cost"] = pd.DataFrame()
+                nodesData["electricity_cost"]["cost"] = (nodesData["demandProfiles"][1].shape[0]) * [
+                    electricityCostValue]
+                nodesData["electricity_cost"].index = nodesData["demandProfiles"][1].index
+            elif not os.path.exists(electricityCost):
+                logging.error("Error in electricity cost file path")
+            else:
+                nodesData["electricity_cost"] = pd.read_csv(electricityCost, delimiter=";")
+                # set datetime index
+                nodesData["electricity_cost"].set_index("timestamp", inplace=True)
+                nodesData["electricity_cost"].index = pd.to_datetime(nodesData["electricity_cost"].index, format='%d.%m.%Y %H:%M')
 
         if "naturalGasResource" in nodesData["commodity_sources"]["label"].values:
             if isinstance(natGasImpact, (float, np.float64)) or (natGasImpact.split('.')[0].replace('-','').isdigit() and natGasImpact.split('.')[1].replace('-','').isdigit()):
