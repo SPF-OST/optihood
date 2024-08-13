@@ -105,14 +105,21 @@ class Building:
             self.__busDict[label] = busDictBuilding1[label]
 
     def linkBuses(self, busesToMerge):
+        linkBusesSet = False
         if "electricity" in busesToMerge:
             self.__linkBuses.extend(["electricityBus", "electricityInBus"])
+            linkBusesSet = True
         if "space_heat" in busesToMerge:
             self.__linkBuses.extend(["spaceHeatingBus", "shDemandBus"])
+            linkBusesSet = True
         if "domestic_hot_water" in busesToMerge:
             self.__linkBuses.extend(["domesticHotWaterBus", "dhwDemandBus"])
+            linkBusesSet = True
         if "heat_buses" in busesToMerge:
             self.__linkBuses.extend(["heatDemandBus0", "heatDemandBus2"])
+            linkBusesSet = True
+        if not linkBusesSet and busesToMerge:
+            self.__linkBuses.extend(busesToMerge)
 
     def addPV(self, data, data_timeseries, opt, dispatchMode):
         # Create Source objects from table 'commodity sources'
