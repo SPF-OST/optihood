@@ -270,13 +270,14 @@ class EnergyNetworkClass(solph.EnergySystem):
 
             nodesData["demandProfiles"] = demandProfiles
             # set datetime index
-            #for i in range(numBuildings):                                                                                         # commented for MPC branch !!!!!!
-            for i in nodesData["demandProfiles"].keys():
-                i = i - 1                                                                                                          # specific to MPC branch !!!!!!
-                nodesData["demandProfiles"][i + 1].timestamp = pd.to_datetime(nodesData["demandProfiles"][i + 1].timestamp, format='%Y-%m-%d %H:%M:%S')
-                nodesData["demandProfiles"][i + 1].set_index("timestamp", inplace=True)
-                if not clusterSize:
-                    nodesData["demandProfiles"][i + 1] = nodesData["demandProfiles"][i + 1][self.timeindex[0]:self.timeindex[-1]]
+            for i in range(numBuildings):
+                if (i + 1) in nodesData["demandProfiles"].keys():                                                                  # specific to MPC branch !!!!!!
+                    nodesData["demandProfiles"][i + 1].timestamp = pd.to_datetime(nodesData["demandProfiles"][i + 1].timestamp, format='%Y-%m-%d %H:%M:%S')
+                    nodesData["demandProfiles"][i + 1].set_index("timestamp", inplace=True)
+                    if not clusterSize:
+                        nodesData["demandProfiles"][i + 1] = nodesData["demandProfiles"][i + 1][self.timeindex[0]:self.timeindex[-1]]
+                else:                                                                                                              # specific to MPC branch !!!!!!
+                    nodesData["demandProfiles"][i + 1] = None
 
         if "electricityResource" in nodesData["commodity_sources"]["label"].values:
             if type(electricityImpact) == np.float64 or type(electricityImpact) == np.int64:

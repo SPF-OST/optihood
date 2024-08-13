@@ -410,12 +410,12 @@ class Building:
                     paramList = ['gAreaWindows', 'rDistribution', 'cDistribution', 'rWall', 'cWall', 'rIndoor',
                               'cIndoor', 'qDistributionMin', 'qDistributionMax', 'tIndoorMin', 'tIndoorMax',
                               'tIndoorInit', 'tWallInit', 'tDistributionInit']
-                    for param in paramList:
+                    """for param in paramList:                                                                                          # commented for MPC branch !!!!!!!!!!!!!
                         if 'tIndoorSet' in buildingModelParams['timeseries'].columns and param in ['tIndoorMin', 'tIndoorMax']:
                             continue
                         if buildingModelParams[param] != '' and param != 'tIndoorMin':
                             args.update({param:buildingModelParams[param]})
-                        elif param == 'tIndoorMin':
+                        elif param == 'tIndoorMin': # separate TIndoorMin for day and night
                             tIndoorNight = 20
                             tIndoorDay = 22
                             tlow = [tIndoorNight, tIndoorNight, tIndoorNight, tIndoorNight, tIndoorNight, tIndoorNight,
@@ -423,6 +423,14 @@ class Building:
                                   tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay,
                                   tIndoorNight, tIndoorNight, tIndoorNight, tIndoorNight]*365
                             args.update({'tIndoorMin': np.array(tlow)})
+                    self.__nodesList.append(SinkRCModel(**args)) """
+
+                    for param in paramList:                                                                                         # this is specific to MPC branch (entire for loop) !!!!!!!!!!!!!!!
+                        if 'tIndoorSet' in buildingModelParams['timeseries'].columns and param in ['tIndoorMin', 'tIndoorMax']:
+                            continue
+                        if buildingModelParams[param] != '':
+                            circuit = int(de["label"].split('Demand')[1])
+                            args.update({param: buildingModelParams[param][circuit]})
                     self.__nodesList.append(SinkRCModel(**args))
                 else:
                     # set static inflow values, if any
