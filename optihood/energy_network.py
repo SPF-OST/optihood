@@ -243,6 +243,9 @@ class EnergyNetworkClass(solph.EnergySystem):
         if "electricityResource" in nodesData["commodity_sources"]["label"].values:
             electricityImpact = self.get_values_from_dataframe(nodesData[_ent.NodeKeys.commodity_sources.value], _ent.CommoditySourceTypes.electricityResource.value, _ent.CommoditySourcesLabels.label.value, _ent.CommoditySourcesLabels.CO2_impact.value)
             electricityCost = nodesData[_ent.NodeKeys.commodity_sources.value].loc[nodesData[_ent.NodeKeys.commodity_sources.value]["label"] == "electricityResource", "variable costs"].iloc[0]
+        else:
+            nodesData["electricity_impact"] = None
+            nodesData["electricity_cost"] = None
         demandProfilesPath = nodesData[_ent.NodeKeys.profiles.value].loc[nodesData[_ent.NodeKeys.profiles.value][_ent.ProfileLabels.name.value] == _ent.ProfileTypes.demand.value, _ent.ProfileLabels.path.value].iloc[0]
         weatherDataPath = nodesData[_ent.NodeKeys.profiles.value].loc[nodesData[_ent.NodeKeys.profiles.value]["name"] == "weather_data", "path"].iloc[0]
 
@@ -368,7 +371,8 @@ class EnergyNetworkClass(solph.EnergySystem):
                 internalGains = internalGains[self.timeindex[0]:self.timeindex[-1]]
             if not os.path.exists(bmodelparamsPath):
                 logging.error("Error in building model parameters file path.")
-            bmParamers = pd.read_csv(bmodelparamsPath, delimiter=';')
+            #bmParamers = pd.read_csv(bmodelparamsPath, delimiter=';')                                                          # commented for MPC branch !!!!!!
+            bmParamers = pd.read_csv(bmodelparamsPath, delimiter=',')                                                           # specific to MPC branch !!!!!!
             for i in range(numBuildings):
                 nodesData["building_model"][i + 1] = {}
                 nodesData["building_model"][i + 1]["timeseries"] = pd.DataFrame()
@@ -388,7 +392,11 @@ class EnergyNetworkClass(solph.EnergySystem):
                              'qDistributionMin', 'qDistributionMax', 'tIndoorMin', 'tIndoorMax', 'tIndoorInit',
                              'tWallInit', 'tDistributionInit']
                 for param in paramList:
-                    nodesData["building_model"][i + 1][param] = float(bmParamers[bmParamers["Building Number"] == (i+1)][param].iloc[0])
+                    # nodesData["building_model"][i + 1][param] = float(bmParamers[bmParamers["Building Number"] == (i+1)][param].iloc[0])      # commented for MPC branch !!!!!!
+                    nodesData["building_model"][i + 1][param] = {}                                                                              # specific to MPC branch !!!!!!
+                    for circuit in bmParamers[bmParamers["Building Number"] == (i + 1)].Circuit.values:                                         # specific to MPC branch !!!!!!
+                        nodesData["building_model"][i + 1][param][circuit] = float(
+                            bmParamers[bmParamers["Building Number"] == (i + 1)][bmParamers["Circuit"] == circuit][param].iloc[0])
         else:
             logging.info("Building model either not selected or invalid string value entered")
         logging.info(f"Data from file {file_or_folder_path} imported.")

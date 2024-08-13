@@ -84,7 +84,7 @@ class Building:
                         self.__costParam["excess"+label] = float(b["excess costs"])
                     if "shortage" in b:
                         self.__nodesList.append(
-                            solph.Source(
+                            solph.components.Source(
                                 label="shortage"+label,
                                 outputs={
                                     self.__busDict[label]: solph.Flow(
@@ -389,7 +389,7 @@ class Building:
                     inputBusLabel = de["from"]+'__'+self.__buildingLabel
 
                 if de["building model"] == 'Yes':   # Should a building model be used?
-                    # Only valid for SH demands at the moment
+                    # Only valid for SH demands
                     if "spaceHeatingDemand" not in sinkLabel:
                         logging.error("Building model has been selected for one or more demands other than space heating. "
                                       "This is not supported in optihood.")
