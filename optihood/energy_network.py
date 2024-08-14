@@ -584,49 +584,50 @@ class EnergyNetworkClass(solph.EnergySystem):
             self._postprocessingClusters(clusterSize)
 
         # calculate results (CAPEX, OPEX, FeedIn Costs, environmental impacts etc...) for each building
-        self._calculateResultsPerBuilding(mergeLinkBuses)
+        #self._calculateResultsPerBuilding(mergeLinkBuses)                                                                  # commented for MPC version !!!!!!!!!!!!!
 
         return envImpact, capacitiesTransformersNetwork, capacitiesStoragesNetwork
 
     def printbuildingModelTemperatures(self, filename):
         df = pd.DataFrame()
-        df["timestamp"] = self.timeindex
+        df["timestamp"] = self.timeindex[0:-1]
         for i in range(self.__noOfBuildings):
             bNo = i + 1
-            tIndoor = [v for k, v in self._optimizationModel.SinkRCModelBlock.tIndoor.get_values().items() if
-                       k[0].label.endswith(f"Building{bNo}")]
-            tDistribution = [v for k, v in self._optimizationModel.SinkRCModelBlock.tDistribution.get_values().items() if
-                             k[0].label.endswith(f"Building{bNo}")]
-            tWall = [v for k, v in self._optimizationModel.SinkRCModelBlock.tWall.get_values().items() if
-                     k[0].label.endswith(f"Building{bNo}")]
-            epsilonIndoor = [v for k, v in self._optimizationModel.SinkRCModelBlock.epsilonIndoor.get_values().items() if
-                             k[0].label.endswith(f"Building{bNo}")]
-            tIndoor_prev = [v for k, v in self._optimizationModel.SinkRCModelBlock.tIndoor_prev.get_values().items() if
-                            k[0].label.endswith(f"Building{bNo}")]
-            tDistribution_prev = [v for k, v in
-                                  self._optimizationModel.SinkRCModelBlock.tDistribution_prev.get_values().items() if
-                                  k[0].label.endswith(f"Building{bNo}")]
-            tWall_prev = [v for k, v in self._optimizationModel.SinkRCModelBlock.tWall_prev.get_values().items() if
-                          k[0].label.endswith(f"Building{bNo}")]
-            df[f"tIndoor_B{bNo}"] = tIndoor
-            df[f"tDistribution_B{bNo}"] = tDistribution
-            df[f"tWall_B{bNo}"] = tWall
-            df[f"tIndoor_prev_B{bNo}"] = tIndoor_prev
-            df[f"tDistribution_prev_B{bNo}"] = tDistribution_prev
-            df[f"tWall_prev_B{bNo}"] = tWall_prev
-            df[f"epsilonIndoor_B{bNo}"] = epsilonIndoor
+            for cNo in range(3):                                                                                            # cNo related stuff is specific to MPC branch !!!!!!!!!!!!!!!!!!!!!!
+                tIndoor = [v for k, v in self._optimizationModel.SinkRCModelBlock.tIndoor.get_values().items() if
+                           k[0].label.endswith(f"Building{bNo}") and f"{cNo}__" in k[0].label]
+                tDistribution = [v for k, v in self._optimizationModel.SinkRCModelBlock.tDistribution.get_values().items() if
+                                 k[0].label.endswith(f"Building{bNo}") and f"{cNo}__" in k[0].label]
+                tWall = [v for k, v in self._optimizationModel.SinkRCModelBlock.tWall.get_values().items() if
+                         k[0].label.endswith(f"Building{bNo}") and f"{cNo}__" in k[0].label]
+                epsilonIndoor = [v for k, v in self._optimizationModel.SinkRCModelBlock.epsilonIndoor.get_values().items() if
+                                 k[0].label.endswith(f"Building{bNo}") and f"{cNo}__" in k[0].label]
+                tIndoor_prev = [v for k, v in self._optimizationModel.SinkRCModelBlock.tIndoor_prev.get_values().items() if
+                                k[0].label.endswith(f"Building{bNo}") and f"{cNo}__" in k[0].label]
+                tDistribution_prev = [v for k, v in
+                                      self._optimizationModel.SinkRCModelBlock.tDistribution_prev.get_values().items() if
+                                      k[0].label.endswith(f"Building{bNo}") and f"{cNo}__" in k[0].label]
+                tWall_prev = [v for k, v in self._optimizationModel.SinkRCModelBlock.tWall_prev.get_values().items() if
+                              k[0].label.endswith(f"Building{bNo}") and f"{cNo}__" in k[0].label]
+                if tIndoor:                                                                                                         # specific to MPC branch !!!!!!!!!!!!!!!!!
+                    df[f"tIndoor_B{bNo}_C{cNo}"] = tIndoor
+                    df[f"tDistribution_B{bNo}_C{cNo}"] = tDistribution
+                    df[f"tWall_B{bNo}_C{cNo}"] = tWall
+                    df[f"tIndoor_prev_B{bNo}_C{cNo}"] = tIndoor_prev
+                    df[f"tDistribution_prev_B{bNo}_C{cNo}"] = tDistribution_prev
+                    df[f"tWall_prev_B{bNo}_C{cNo}"] = tWall_prev
+                    df[f"epsilonIndoor_B{bNo}_C{cNo}"] = epsilonIndoor
         df.to_csv(filename, sep=';', index=False)
 
     def saveUnprocessedResults(self, resultFile):
         with pd.ExcelWriter(resultFile) as writer:
             busLabelList = []
             for i in self.nodes:
-                if str(type(i)).replace("<class 'oemof.solph.", "").replace("'>", "") == "network.bus.Bus":
+                if str(type(i)).replace("<class 'oemof.solph.", "").replace("'>", "") == "buses._bus.Bus":
                     busLabelList.append(i.label)
             for i in busLabelList:
                 result = pd.DataFrame.from_dict(solph.views.node(self._optimizationResults, i)["sequences"])
                 result.to_excel(writer, sheet_name=i)
-            writer.save()
 
     def _updateCapacityDictInputInvestment(self, transformerFlowCapacityDict):
         components = ["CHP", "GWHP", "HP", "GasBoiler", "ElectricRod", "Chiller"]

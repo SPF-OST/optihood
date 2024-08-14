@@ -83,15 +83,16 @@ class Building:
                         # add the excess production cost to self.__costParam
                         self.__costParam["excess"+label] = float(b["excess costs"])
                     if "shortage" in b:
-                        self.__nodesList.append(
-                            solph.components.Source(
-                                label="shortage"+label,
-                                outputs={
-                                    self.__busDict[label]: solph.Flow(
-                                        variable_costs=float(b["shortage costs"])*(opt == "costs")  # if opt = "env" variable costs should be zero
-                                    )}))
-                        # add the excess production cost to self.__costParam
-                        self.__costParam["shortage"+label] = float(b["shortage costs"])
+                        if b["shortage"]:
+                            self.__nodesList.append(
+                                solph.components.Source(
+                                    label="shortage"+label,
+                                    outputs={
+                                        self.__busDict[label]: solph.Flow(
+                                            variable_costs=float(b["shortage costs"])*(opt == "costs")  # if opt = "env" variable costs should be zero
+                                        )}))
+                            # add the excess production cost to self.__costParam
+                            self.__costParam["shortage"+label] = float(b["shortage costs"])
 
         if (mergeLinkBuses or mergeHeatSourceSink) and self.__buildingLabel=='Building1':
             return self.__busDict

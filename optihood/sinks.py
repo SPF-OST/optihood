@@ -57,9 +57,10 @@ class SinkRCModel(solph.components.Sink):
             tIndoorInit=21,
             tWallInit=21,
             tDistributionInit=21,
+            outputs=None,
             **kwargs,
     ):
-        super().__init__(**kwargs)
+        super().__init__(custom_attributes={"outputs": outputs},**kwargs)
         self.rDistribution = rDistribution
         self.cDistribution = cDistribution
         self.rIndoor = rIndoor
@@ -214,7 +215,8 @@ class SinkRCModelBlock(ScalarBlock):
             for t in m.TIMESTEPS:
                 for g in group:
                     lhs = self.tIndoor[g, t]
-                    rhs = g.tIndoorMin[t] - self.epsilonIndoor[g, t]
+                    #rhs = g.tIndoorMin[t] - self.epsilonIndoor[g, t]                                                       # commented for MPC branch   !!!!!!!!!!!!!!!
+                    rhs = g.tIndoorMin - self.epsilonIndoor[g, t]                                                           # specific to MPC branch   !!!!!!!!!!!!!!
                     block.indoor_comfort_lower_limit.add((g, t), (lhs >= rhs))
 
         self.indoor_comfort_lower_limit = Constraint(group, m.TIMESTEPS, noruleinit=True)
