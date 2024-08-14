@@ -545,6 +545,9 @@ class EnergyNetworkClass(solph.EnergySystem):
                                       f"please check if PV efficiency, roof area and zenith angle are present in input "
                                       f"file")
                         pass
+
+                if c.lower() == "storagesharedcapacity":
+                    self._optimizationModel = sharedStorageCapacityConstraintBuilding1(self._optimizationModel)
                 if c.lower() == 'totalpvcapacity':
                     self._optimizationModel = totalPVCapacityConstraint(self._optimizationModel, numberOfBuildings)
                     logging.info(f"Optional constraint {c} successfully added to the optimization model")

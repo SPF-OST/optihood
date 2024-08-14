@@ -23,7 +23,22 @@ def dailySHStorageConstraint(om):
 
     return om
 
-def multiTemperatureStorageCapacityConstaint(om, storageNodes, optType):
+def sharedStorageCapacityConstraintBuilding1(om):
+    storageCapacityDict = {}
+    if hasattr(om, 'GenericInvestmentStorageBlock'):
+        for x in om.GenericInvestmentStorageBlock.INVESTSTORAGES:
+            if x.label.endswith("Building1"):
+                storageCapacityDict[x] = om.GenericInvestmentStorageBlock.invest[x]
+        totalCapacity = sum(storageCapacityDict[x] for x in storageCapacityDict)
+        maxCapacity = 6440 * 4.186 * (80 - 15) / 3600            # 6440 L to kWh
+        setattr(
+            om,
+            "SharedStorage_maxConstraint",
+            pyo.Constraint(expr=(totalCapacity <= maxCapacity)),
+        )
+    return om
+
+def multiTemperatureStorageCapacityConstaint(om, storageNodes):
     """Constraint on thermal storage capacity when multiple temperature levels exist"""
     storageCapacityDict = {}
     storageMaxCapacity = {}
