@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - '84-*'
   pull_request:
     branches:
       - '*'
@@ -17,6 +16,8 @@ jobs:
 
   test:
     runs-on: [self-hosted, etna]
+    env:
+      PY_COLORS: "1"
 
     steps:
       - uses: actions/checkout@v4

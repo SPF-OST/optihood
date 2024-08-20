@@ -1,2 +1,2 @@
-,label,building,to,variable costs,CO2 impact,active
-0,electricityResource,1,gridBus,0.204,..\excels\basic_example\electricity_impact.csv,1
+label,building,to,variable costs,CO2 impact,active
+electricityResource,1,gridBus,0.204,..\excels\basic_example\electricity_impact.csv,1
