@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - '84-*'
   pull_request:
     branches:
       - '*'
@@ -17,6 +16,8 @@ jobs:
 
   test:
     runs-on: [self-hosted, etna]
+    env:
+      PY_COLORS: "1"
 
     steps:
       - uses: actions/checkout@v4
@@ -51,8 +52,6 @@ jobs:
         run: venv\Scripts\python dev-tools/devTools.py --diagram=pdf --keep-results
 
       - name: Test with pytest
-        env:
-          PY_COLORS: "1"
         run: venv\Scripts\python dev-tools/devTools.py --unit --keep-results
 #
 #      - name: Post coverage report to Coveralls
