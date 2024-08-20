@@ -1,3 +1,3 @@
-,label,diameter,temp_h,temp_c,temp_env,inflow_conversion_factor,outflow_conversion_factor,s_iso,lamb_iso,alpha_inside,alpha_outside
-0,shStorage,1,35,15,15,1,1,100,0.03,100,10
-1,dhwStorage,1,60,15,15,1,1,100,0.03,100,10
+label,diameter,temp_h,temp_c,temp_env,inflow_conversion_factor,outflow_conversion_factor,s_iso,lamb_iso,alpha_inside,alpha_outside
+shStorage,1,35,15,15,1,1,100,0.03,100,10
+dhwStorage,1,60,15,15,1,1,100,0.03,100,10

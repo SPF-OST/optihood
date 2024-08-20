@@ -79,4 +79,4 @@ def write_prepared_data_and_sheets_to_excel(excel_file_path: _pl.Path, excel_dat
 
 
 def write_to_csv(file_path: _pl.Path, data_sheet: _pd.DataFrame) -> None:
-    data_sheet.to_csv(file_path)
+    data_sheet.to_csv(file_path, index=False)

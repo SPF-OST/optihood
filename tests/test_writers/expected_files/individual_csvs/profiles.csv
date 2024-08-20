@@ -1,3 +1,3 @@
-,name,path
-0,weather_data,..\excels\basic_example\weather.csv
-0,demand_profiles,..\excels\basic_example\demand_profiles\building1
+name,path
+weather_data,..\excels\basic_example\weather.csv
+demand_profiles,..\excels\basic_example\demand_profiles\building1
