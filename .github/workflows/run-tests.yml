@@ -51,6 +51,7 @@ jobs:
         run: venv\Scripts\python dev-tools/devTools.py --diagram=pdf --keep-results
 
       - name: Test with pytest
+        env: PY_COLORS: "1"
         run: venv\Scripts\python dev-tools/devTools.py --unit --keep-results
 #
 #      - name: Post coverage report to Coveralls
