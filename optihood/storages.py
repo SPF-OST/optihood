@@ -15,6 +15,8 @@ from pyomo.environ import Var
 import oemof.solph as solph
 from oemof.solph._plumbing import sequence as solph_sequence
 from optihood.links import LinkStorageDummyInput, Link
+from optihood.genericstorage_pit import GenericStoragePit
+import numpy as np
 
 class ElectricalStorage(solph.components.GenericStorage):
     def __init__(self, buildingLabel, input, output, loss_rate, initial_storage, efficiency_in, efficiency_out,
@@ -125,7 +127,7 @@ class ThermalStorage(solph.components.GenericStorage):
                 height = data.at[label, 'height']
                 angle = data.at[label, 'angle']
                 fixed_losses_relative = 3 * u_value * (temp_c - temp_env) / (height * c * rho * (temp_h - temp_c)) * time_increment *3600
-                loss_rate = 0#0.4 * fixed_losses_relative#2 * u_value / (s_base * c * rho * math.sin(angle * np.pi / 180)) * time_increment
+                loss_rate = 0 # 0.4 * fixed_losses_relative # 2 * u_value / (s_base * c * rho * math.sin(angle * np.pi / 180)) * time_increment
                 fixed_losses_absolute = 0
             else:
                 loss_rate = 0
@@ -140,6 +142,96 @@ class ThermalStorage(solph.components.GenericStorage):
 
         return u_value, loss_rate, fixed_losses_relative, fixed_losses_absolute, capacity_min, capacity_max, epc, env_capa
 
+class ThermalStoragePit(GenericStoragePit):
+    def __init__(self, label, stratifiedStorageParams, input, output, initial_storage, min, max, volume_cost, base,
+                 varc, env_flow, env_cap, dispatchMode, rho= 1, c=4.186):
+
+        height_multiplication_factor, loss_rate, fixed_losses_relative, capacity_min, capacity_max, epc, env_capa, \
+        temp_h, temp_c = \
+            self._precalculate(stratifiedStorageParams,label.split("__")[0],min,max,volume_cost,env_cap, rho=rho, c=c)
+
+        storageLabel = label.split("__")[0]
+
+        if dispatchMode:
+            investArgs={'minimum':capacity_min,
+                'maximum':capacity_max,
+                'ep_costs':epc,
+                'custom_attributes': {'env_per_capa': env_capa}}
+        else:
+            investArgs={'minimum':capacity_min,
+                'maximum':capacity_max,
+                'ep_costs':epc,
+                'existing':0,
+                'nonconvex':True,
+                'offset':base,
+                'custom_attributes': {'env_per_capa': env_capa}}
+
+        super(ThermalStoragePit, self).__init__(
+            label=label,
+            inputs={
+                input: solph.Flow(investment=solph.Investment(ep_costs=0)),
+            },
+            outputs={
+                output: solph.Flow(investment=solph.Investment(ep_costs=0), variable_costs=varc, custom_attributes=
+                {'env_per_flow':env_flow} )
+            },
+            loss_rate=loss_rate,
+            initial_storage_level=initial_storage,
+            fixed_losses_relative=fixed_losses_relative,
+            fixed_losses_absolute=0,
+            height_multiplication_factor=height_multiplication_factor,
+            temp_h=temp_h,
+            temp_c=temp_c,
+            rho=rho,
+            c=c,
+            inflow_conversion_factor=stratifiedStorageParams.at[storageLabel, 'inflow_conversion_factor'],
+            outflow_conversion_factor=stratifiedStorageParams.at[storageLabel, 'outflow_conversion_factor'],
+            invest_relation_input_capacity=1,
+            invest_relation_output_capacity=1,
+            balanced=False,
+            investment=solph.Investment(**investArgs),
+        )
+
+    def _precalculate(self, data, label, min, max, volume_cost, env_cap, rho, c, time_increment=1):
+        temp_h = data.at[label, 'temp_h']
+        temp_c = data.at[label, 'temp_c']
+        temp_env = data.at[label, 'temp_env']
+        temp_ground = data.at[label, 'temp_ground']
+        alpha_inside = data.at[label, 'alpha_inside']
+        alpha_outside = data.at[label, 'alpha_outside']
+        s_iso_top = data.at[label, 's_iso']
+        lamb_iso_top = data.at[label, 'lamb_iso']
+        s_iso_bot = data.at[label, 's_iso_bot']
+        lamb_iso_bot = data.at[label, 'lamb_iso_bot']
+
+        # U-value for the top insulation
+        denominator_top = 1 / alpha_inside + s_iso_top * 1e-3 / lamb_iso_top + 1 / alpha_outside
+        u_value_top = 1 / denominator_top  # W/(m2*K)
+
+        # U-value for the wall/bottom insulation
+        denominator_bot = 1 / alpha_inside + s_iso_bot * 1e-3 / lamb_iso_bot + 1 / alpha_outside
+        u_value_wall_bot = 1 / denominator_bot  # W/(m2*K)
+
+        # Height multiplication factor
+        height_multiplication_factor = (151 / 3) * rho * c * (temp_h - temp_c)
+
+        # Loss rate calculation
+        loss_rate = (u_value_wall_bot * 84 * np.sqrt(5) * time_increment * 3600) / (151 * rho * c * 1e6)  # m
+
+        # Fixed losses relative calculation
+        fixed_losses_relative = (u_value_top * 243 * (temp_h - temp_env) * time_increment * 3600
+                                 + u_value_wall_bot * 75 * (temp_c - temp_ground) * time_increment * 3600
+                                 + u_value_wall_bot * 84 * np.sqrt(5) * (temp_c - temp_ground)*time_increment*3600)\
+                                 / (151 * rho * c * 1e6 * (temp_h - temp_c))  # m
+
+        L_to_kWh = c * rho * (temp_h - temp_c) / 3600  # converts L data to kWh data for oemof GenericStorage class
+        capacity_min = min * L_to_kWh
+        capacity_max = max * L_to_kWh
+        epc = volume_cost / L_to_kWh
+        env_capa = env_cap / L_to_kWh
+
+        return height_multiplication_factor, loss_rate, fixed_losses_relative, capacity_min, capacity_max, epc, \
+            env_capa, temp_h, temp_c
 
 class ThermalStorageTemperatureLevels:
     def __init__(self, label, stratifiedStorageParams, inputs, outputs, initial_storage, min, max, volume_cost, base, varc, env_flow, env_cap, dispatchMode):
