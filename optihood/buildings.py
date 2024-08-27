@@ -822,6 +822,16 @@ class Building:
                                                         self._calculateInvest(s)[0]*(opt == "costs") + envImpactPerCapacity*(opt == "env"),
                                                         self._calculateInvest(s)[1]*(opt == "costs"), float(s["heat_impact"])*(opt == "env"),
                                                         float(s["heat_impact"]), envImpactPerCapacity, dispatchMode))
+                elif (s["label"] == "pitStorage0" or s["label"] == "pitStorage1") and not temperatureLevels:
+                    self.__nodesList.append(ThermalStoragePit(storageLabel,
+                                                           stratifiedStorageParams, self.__busDict[inputBusLabel],
+                                                           self.__busDict[outputBusLabel],
+                                                        float(s["initial capacity"]), float(s["capacity min"]),
+                                                        float(s["capacity max"]),
+                                                        self._calculateInvest(s)[0]*(opt == "costs") + envImpactPerCapacity*(opt == "env"),
+                                                        self._calculateInvest(s)[1]*(opt == "costs"), float(s["heat_impact"])*(opt == "env"),
+                                                        float(s["heat_impact"]), envImpactPerCapacity, dispatchMode))
+
                 elif s["label"] == "thermalStorage" and temperatureLevels:
                     storage = ThermalStorageTemperatureLevels(storageLabel,
                                stratifiedStorageParams, inputBuses,
