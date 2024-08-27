@@ -93,8 +93,9 @@ class EnergyNetworkClass(solph.EnergySystem):
         self._thermalStorageList = []
         self._storageContentSH = {}
         self._storageContentDHW = {}
+        self._storageContentPIT0 = {}
+        self._storageContentPIT1 = {}
         self._storageContentTS = {}
-        self._storageContent = {}
         self.__inputs = {}                          # dictionary of list of inputs indexed by the building label
         self.__technologies = {}                    # dictionary of list of technologies indexed by the building label
         self.__capacitiesTransformersBuilding = {}  # dictionary of dictionary of optimized capacities of transformers indexed by the building label
@@ -437,8 +438,10 @@ class EnergyNetworkClass(solph.EnergySystem):
             self.__Ldhw = self._rho * self._c * (self.__temperatureDHW - data["stratified_storage"].loc["dhwStorage", "temp_c"]) / 3600
             if 'tankStorage' in data['storages']['label'].unique():
                 self.__LgenericStorage['tankStorage'] = self._rho * self._c * (data["stratified_storage"].loc["tankStorage", "temp_h"] - data["stratified_storage"].loc["tankStorage", "temp_c"]) / 3600 #TO BE IMPROVED
-            if 'pitStorage' in data['storages']['label'].unique():
-                self.__LgenericStorage['pitStorage'] = self._rho * self._c * (data["stratified_storage"].loc["pitStorage", "temp_h"] - data["stratified_storage"].loc["pitStorage", "temp_c"]) / 3600
+            if 'pitStorage0' in data['storages']['label'].unique():
+                self.__LgenericStorage['pitStorage0'] = self._rho * self._c * (data["stratified_storage"].loc["pitStorage0", "temp_h"] - data["stratified_storage"].loc["pitStorage0", "temp_c"]) / 3600
+            if 'pitStorage1' in data['storages']['label'].unique():
+                self.__LgenericStorage['pitStorage1'] = self._rho * self._c * (data["stratified_storage"].loc["pitStorage1", "temp_h"] - data["stratified_storage"].loc["pitStorage1", "temp_c"]) / 3600
             if 'boreholeStorage' in data['storages']['label'].unique():
                 self.__LgenericStorage['boreholeStorage'] = self._rho * self._c * (data["stratified_storage"].loc["boreholeStorage", "temp_h"] - data["stratified_storage"].loc["boreholeStorage", "temp_c"]) / 3600
             if 'aquifierStorage' in data['storages']['label'].unique():
@@ -667,10 +670,17 @@ class EnergyNetworkClass(solph.EnergySystem):
         for x in storageCapacityDict:
             index = str(x)
             if x in storageList:  # useful when we want to implement two or more storage units of the same type
-                capacitiesInvestedStorages[index] = capacitiesInvestedStorages[index] + \
-                                                    optimizationModel.GenericInvestmentStorageBlock.invest[x].value
+                if str(x).startswith(('sh', 'dh', 'el')):
+                    capacitiesInvestedStorages[index] = capacitiesInvestedStorages[index] + \
+                                                        optimizationModel.GenericInvestmentStorageBlock.invest[x].value
+                else:
+                    capacitiesInvestedStorages[index] = capacitiesInvestedStorages[index] + \
+                                                        optimizationModel.GenericInvestmentStorageBlockPit.invest[x].value
             else:
-                capacitiesInvestedStorages[str(x)] = optimizationModel.GenericInvestmentStorageBlock.invest[x].value
+                if str(x).startswith(('sh', 'dh', 'el')):
+                    capacitiesInvestedStorages[str(x)] = optimizationModel.GenericInvestmentStorageBlock.invest[x].value
+                else:
+                    capacitiesInvestedStorages[index] = optimizationModel.GenericInvestmentStorageBlockPit.invest[x].value
 
         # Convert kWh into L
         capacitiesInvestedStorages = self._compensateStorageCapacities(capacitiesInvestedStorages)
@@ -772,8 +782,10 @@ class EnergyNetworkClass(solph.EnergySystem):
                 capacitiesStorages[storage] = capacitiesStorages[storage] / self.__Ltank
             elif "tank" in storage and not self._temperatureLevels:
                 capacitiesStorages[storage] = capacitiesStorages[storage] / self.__LgenericStorage['tankStorage']
-            elif "pitStorage" in storage and not self._temperatureLevels:
-                capacitiesStorages[storage] = capacitiesStorages[storage] / self.__LgenericStorage['pitStorage']
+            elif "pitStorage0" in storage and not self._temperatureLevels:
+                capacitiesStorages[storage] = capacitiesStorages[storage] / self.__LgenericStorage['pitStorage0']
+            elif "pitStorage1" in storage and not self._temperatureLevels:
+                capacitiesStorages[storage] = capacitiesStorages[storage] / self.__LgenericStorage['pitStorage1']
             elif "borehole" in storage and not self._temperatureLevels:
                 capacitiesStorages[storage] = capacitiesStorages[storage] / self.__LgenericStorage['boreholeStorage']
             elif "aquifier" in storage and not self._temperatureLevels:
@@ -1018,21 +1030,22 @@ class EnergyNetworkClass(solph.EnergySystem):
         return self._metaResults
 
     def calcStateofCharge(self, type, building):
+        s = {}
         if "thermalStorage" in type:
             for i,temperature in enumerate(self.__operationTemperatures):
                 thermal_type = type + str(temperature)[:2]
                 if thermal_type + '__' + building in self.groups:
                     storage = self.groups[thermal_type + '__' + building]
-                    self._storageContent.setdefault(building, {})[thermal_type] = self._optimizationResults[(storage, None)]["sequences"]
+                    s.setdefault(building, {})[thermal_type] = self._optimizationResults[(storage, None)]["sequences"]
                 if temperature == self.__operationTemperatures[-1]:
-                    lists = np.array(list(self._storageContent[building].values()))
+                    lists = np.array(list(s[building].values()))
                     # Calculate the sum of corresponding elements in the arrays
                     sums = np.sum(lists, axis=0)
-                    self._storageContent[building][thermal_type][f'Overall_storage_content_{building}'] = sums
+                    s[building][thermal_type][f'Overall_storage_content_{building}'] = sums
         elif type + '__' + building in self.groups:
             storage = self.groups[type + '__' + building]
-            self._storageContent[building] = self._optimizationResults[(storage, None)]["sequences"]
-        return self._storageContent
+            s[building] = self._optimizationResults[(storage, None)]["sequences"]
+        return s.copy()
 
     def printInvestedCapacities(self, capacitiesInvestedTransformers, capacitiesInvestedStorages):
         if self._temperatureLevels:
@@ -1172,8 +1185,10 @@ class EnergyNetworkClass(solph.EnergySystem):
             if self._temperatureLevels:
                 self._storageContentTS = self.calcStateofCharge("thermalStorage", f"Building{i}")
             else:
-                self._storageContentSH = self.calcStateofCharge("shStorage", f"Building{i}")
-                self._storageContentDHW = self.calcStateofCharge("dhwStorage", f"Building{i}")
+                self._storageContentSH.update(self.calcStateofCharge("shStorage", f"Building{i}"))
+                self._storageContentDHW.update(self.calcStateofCharge("dhwStorage", f"Building{i}"))
+                self._storageContentPIT0.update(self.calcStateofCharge("pitStorage0", f"Building{i}"))
+                self._storageContentPIT1.update(self.calcStateofCharge("pitStorage1", f"Building{i}"))
             hSB_sheet.append(f'heatStorageBus_Building{i}') #name of the different heatStorageBuses
         with pd.ExcelWriter(file_name, engine='openpyxl') as writer:
             busLabelList = []
@@ -1191,6 +1206,7 @@ class EnergyNetworkClass(solph.EnergySystem):
                             resultDHW = pd.DataFrame.from_dict(solph.views.node(self._optimizationResults, i)["sequences"])  # result sequences of DHW bus
                             resultDHWStorage = pd.DataFrame.from_dict(solph.views.node(self._optimizationResults, dhwStorageBusLabel)["sequences"])  # result sequences of DHW storage bus
                             result = pd.concat([resultDHW, resultDHWStorage], axis=1, sort=True)
+                            result = pd.concat([result, self._storageContentPIT0[i.split("__")[1]]], axis=1, sort=True)
                         else:
                             result = pd.DataFrame.from_dict(solph.views.node(self._optimizationResults, i)["sequences"])  # result sequences of DHW bus
                     elif mergeLinkBuses and "dhwStorageBus" in i and "sequences" in solph.views.node(self._optimizationResults, i):
