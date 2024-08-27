@@ -2,7 +2,7 @@ def labelDictGenerator(numBuildings, labels, optimType, mergedLinks):
     base = {"electricityLink":"elLink", "shLink":"shLink", "dhwLink":"dhwLink", "naturalGasResource":"natGas", "naturalGasBus":"natGas", "qSource":"qSource", "heatSourceBus":"hSB", "gridBus":"grid", "pv":"pv", "electricityResource":"grid", "gridElectricity":"grid", "GasBoiler":"gasBoiler",
     "CHP":"CHP", "electricityBus":"prodEl", "electricityProdBus":"localEl", "producedElectricity":"prodEl", "electricitySource":"localEl", "electricalStorage":"Bat", "excesselectricityBus":"exEl",
     "excessshDemandBus":"exSh", "electricityInBus":"usedEl", "HP":"HP", "GWHP":"GWHP", "GWHP35":"GWHP35", "GWHP60":"GWHP60", "solarCollector":"solar", "solarConnectBus":"solar","heat_solarCollector":"solar", "excess_solarheat":"exSolar",
-    "shSource":"prodSH","shSourceBus":"prodSH", "spaceHeatingBus":"shBus", "spaceHeating":"shBus", "shStorage":"shStor", "shDemandBus":"shBus", "dhwStorageBus":"dhwStor", "dhwStorage":"dhwStor", "domesticHotWaterBus":"dhwBus",
+    "shSource":"prodSH","shSourceBus":"prodSH", "spaceHeatingBus":"shBus", "spaceHeating":"shBus", "shStorage":"shStor", "shDemandBus":"shBus", "dhwStorageBus":"dhwStor", "dhwStorage":"dhwStor", "pitStorage0":"pitStor0", "pitStorage1":"pitStor1" , "domesticHotWaterBus":"dhwBus",
     "domesticHotWater":"dhwBus", "dhwDemandBus":"dhwBus", "electricityDemand":"Q_el", "emobilityDemand":"Q_mob", "spaceHeatingDemand":"Q_sh", "domesticHotWaterDemand":"Q_dhw", "excessshSourceBus":"exSh",
     "ElectricRod":"ElectricRod"}
     if not mergedLinks and optimType == 'group':
@@ -70,6 +70,10 @@ def labelDictGenerator(numBuildings, labels, optimType, mergedLinks):
         if "StorageDhw" in labels:
             base["dhwStorageBus"]=labels["StorageDhw"]
             base["dhwStorage"]=labels["StorageDhw"]
+        if "StoragePit0" in labels:
+            base["pitStorage0"] = labels["StoragePit0"]
+        if "StoragePit1" in labels:
+            base["pitStorage1"] = labels["StoragePit1"]
         if "dhwBus" in labels and (mergedLinks or optimType == 'indiv'):
             base["domesticHotWaterBus"]=labels["dhwBus"]
             base["domesticHotWater"]=labels["dhwBus"]
@@ -104,7 +108,7 @@ def labelDictGenerator(numBuildings, labels, optimType, mergedLinks):
 
 def positionDictGenerator(labels, optimType, mergedLinks):
     labelsList = ['natGas', 'grid', 'pv', 'CHP', 'gasBoiler', 'localEl', 'prodEl', 'elLink', 'shLink', 'dhwLink', 'Bat',
-                  'usedEl', 'HP', 'GWHP', 'ElectricRod', 'solar', 'exSolar', 'prodSH', 'shStor', 'dhwStor', 'exEl',
+                  'usedEl', 'HP', 'GWHP', 'ElectricRod', 'solar', 'exSolar', 'prodSH', 'shStor', 'dhwStor', 'pitStor0', 'pitStor1', 'exEl',
                   'Q_el', 'Q_mob', 'Q_sh', 'Q_dhw', 'exSh', 'dhwBus', 'shBus', 'qSource', 'hSB']
     if not mergedLinks and optimType == 'group':
         labelsList.extend(['usedEl', 'usedSH', 'prodDHW'])
@@ -327,6 +331,8 @@ labelDict = {
     "shDemandBus__Building1": "shBus_B1",
     "dhwStorageBus__Building1": "dhwStor_B1",
     "dhwStorage__Building1": "dhwStor_B1",
+    "pitStorage0__Building1": "pitStor0_B1",
+    "pitStorage1__Building1": "pitStor1_B1",
     "domesticHotWaterBus__Building1": "dhwBus_B1",
     'domesticHotWater__Building1': "dhwBus_B1",
     "dhwDemandBus__Building1": "dhwBus_B1",
@@ -375,6 +381,8 @@ labelDict = {
     "shDemandBus__Building2": "shBus_B2",
     "dhwStorageBus__Building2": "dhwStor_B2",
     "dhwStorage__Building2": "dhwStor_B2",
+    "pitStorage0__Building2": "pitStor0_B2",
+    "pitStorage1__Building2": "pitStor1_B2",
     "domesticHotWaterBus__Building2": "dhwBus_B2",
     'domesticHotWater__Building2': "dhwBus_B2",
     "dhwDemandBus__Building2": "dhwBus_B2",
@@ -422,6 +430,8 @@ labelDict = {
     "shDemandBus__Building3": "shBus_B3",
     "dhwStorageBus__Building3": "dhwStor_B3",
     "dhwStorage__Building3": "dhwStor_B3",
+    "pitStorage0__Building3": "pitStor0_B3",
+    "pitStorage1__Building3": "pitStor1_B3",
     "domesticHotWaterBus__Building3": "dhwBus_B3",
     'domesticHotWater__Building3': "dhwBus_B3",
     "dhwDemandBus__Building3": "dhwBus_B3",
@@ -469,6 +479,8 @@ labelDict = {
     "shDemandBus__Building4": "shBus_B4",
     "dhwStorageBus__Building4": "dhwStor_B4",
     "dhwStorage__Building4": "dhwStor_B4",
+    "pitStorage0__Building4": "pitStor0_B4",
+    "pitStorage1__Building4": "pitStor1_B4",
     "domesticHotWaterBus__Building4": "dhwBus_B4",
     'domesticHotWater__Building4': "dhwBus_B4",
     "dhwDemandBus__Building4": "dhwBus_B4",
@@ -517,6 +529,8 @@ labelDict = {
     "shDemandBus__Building5": "Q_sh_B5",
     "dhwStorageBus__Building5": "dhwStor_B5",
     "dhwStorage__Building5": "dhwStor_B5",
+    "pitStorage0__Building5": "pitStor0_B5",
+    "pitStorage1__Building5": "pitStor1_B5",
     "domesticHotWaterBus__Building5": "prodDHW_B5",
     'domesticHotWater__Building5': "usedDHW_B5",
     "dhwDemandBus__Building5": "Q_dhw_B5",
@@ -563,6 +577,8 @@ labelDict = {
     "shDemandBus__Building6": "Q_sh_B6",
     "dhwStorageBus__Building6": "dhwStor_B6",
     "dhwStorage__Building6": "dhwStor_B6",
+    "pitStorage0__Building6": "pitStor0_B6",
+    "pitStorage1__Building6": "pitStor1_B6",
     "domesticHotWaterBus__Building6": "prodDHW_B6",
     'domesticHotWater__Building6': "usedDHW_B6",
     "dhwDemandBus__Building6": "Q_dhw_B6",
@@ -595,6 +611,8 @@ labelPositionDict={
     #"usedSH":	[0.75, 0.58],
     "shStor":	[0.68, 0.37],
     "dhwStor":	[0.65, 0.85],
+    "pitStor0": [0.82, 0.6],
+    "pitStor1": [0.82, 0.6],
     #"usedDHW": [0.8, 0.85],
     #"prodDHW": [0.75, 0.85],
     "exEl": [0.999, 0.25],
