@@ -670,14 +670,14 @@ class EnergyNetworkClass(solph.EnergySystem):
         for x in storageCapacityDict:
             index = str(x)
             if x in storageList:  # useful when we want to implement two or more storage units of the same type
-                if str(x).startswith(('sh', 'dh', 'el')):
+                if str(x).startswith(('sh', 'dh', 'el', 'th')):
                     capacitiesInvestedStorages[index] = capacitiesInvestedStorages[index] + \
                                                         optimizationModel.GenericInvestmentStorageBlock.invest[x].value
                 else:
                     capacitiesInvestedStorages[index] = capacitiesInvestedStorages[index] + \
                                                         optimizationModel.GenericInvestmentStorageBlockPit.invest[x].value
             else:
-                if str(x).startswith(('sh', 'dh', 'el')):
+                if str(x).startswith(('sh', 'dh', 'el', 'th')):
                     capacitiesInvestedStorages[str(x)] = optimizationModel.GenericInvestmentStorageBlock.invest[x].value
                 else:
                     capacitiesInvestedStorages[index] = optimizationModel.GenericInvestmentStorageBlockPit.invest[x].value
@@ -1181,14 +1181,23 @@ class EnergyNetworkClass(solph.EnergySystem):
 
     def exportToExcel(self, file_name, mergeLinkBuses=False):
         hSB_sheet = [] #Special sheet for the merged heatStorageBus
-        for i in range(1, self.__noOfBuildings+1):
+        # Create a mapping between storage content names and their corresponding storage types
+        storage_mapping = {
+            "SH": "shStorage",
+            "DHW": "dhwStorage",
+            "PIT0": "pitStorage0",
+            "PIT1": "pitStorage1"}
+
+        for i in range(1, self.__noOfBuildings + 1):
+            building_label = f"Building{i}"
+
             if self._temperatureLevels:
-                self._storageContentTS = self.calcStateofCharge("thermalStorage", f"Building{i}")
+                self._storageContentTS = self.calcStateofCharge("thermalStorage", building_label)
             else:
-                self._storageContentSH.update(self.calcStateofCharge("shStorage", f"Building{i}"))
-                self._storageContentDHW.update(self.calcStateofCharge("dhwStorage", f"Building{i}"))
-                self._storageContentPIT0.update(self.calcStateofCharge("pitStorage0", f"Building{i}"))
-                self._storageContentPIT1.update(self.calcStateofCharge("pitStorage1", f"Building{i}"))
+                for storage_name, storage_type in storage_mapping.items():
+                    storage_content = getattr(self, f"_storageContent{storage_name}")
+                    storage_content.update(self.calcStateofCharge(storage_type, building_label))
+
             hSB_sheet.append(f'heatStorageBus_Building{i}') #name of the different heatStorageBuses
         with pd.ExcelWriter(file_name, engine='openpyxl') as writer:
             busLabelList = []
