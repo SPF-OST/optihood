@@ -84,7 +84,7 @@ class Building:
                         self.__costParam["excess"+label] = float(b["excess costs"])
                     if "shortage" in b:
                         self.__nodesList.append(
-                            solph.Source(
+                            solph.components.Source(
                                 label="shortage"+label,
                                 outputs={
                                     self.__busDict[label]: solph.Flow(
