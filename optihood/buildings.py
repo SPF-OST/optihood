@@ -303,7 +303,7 @@ class Building:
         if not dataGridSeparation.empty:
             for i, gs in dataGridSeparation.iterrows():
                 if mergeLinkBuses:
-                    if gs["label"] in ['gridElectricity','electricitySource','shSource']:
+                    if gs["label"] in ['gridElectricity','electricitySource','shSource', 'spaceHeating', 'domesticHotWater']:    # make automatic later !!! Hardcoded for GridMPC 'spaceHeating' and 'domesticHotWater' was added
                         label = gs["label"]+'__'+self.__buildingLabel
                     else:
                         label = gs["label"]
