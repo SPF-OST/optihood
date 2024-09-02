@@ -28,13 +28,13 @@ def sharedStorageCapacityConstraintBuilding1(om):
     if hasattr(om, 'GenericInvestmentStorageBlock'):
         for x in om.GenericInvestmentStorageBlock.INVESTSTORAGES:
             if 'dhwStorage' in x.label and x.label.endswith("Building1"):
-                conv_factor = 4.186 * (60 - 15) / 3600
+                conv_factor = 4.186 * (60 - 15) / 3600                      # L to kWh conversion factor
             elif 'shStorage' in x.label and x.label.endswith("Building1"):
                 conv_factor = 4.186 * (35 - 25) / 3600
             if x.label.endswith("Building1"):
                 storageCapacityDict[x] = om.GenericInvestmentStorageBlock.invest[x] / conv_factor
         totalCapacity = sum(storageCapacityDict[x] for x in storageCapacityDict)
-        capacity = 6440            # 6440 L to kWh
+        capacity = 6440            # 6440 L
         setattr(
             om,
             "SharedStorage_maxConstraint",
