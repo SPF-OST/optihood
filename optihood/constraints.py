@@ -27,15 +27,26 @@ def sharedStorageCapacityConstraintBuilding1(om):
     storageCapacityDict = {}
     if hasattr(om, 'GenericInvestmentStorageBlock'):
         for x in om.GenericInvestmentStorageBlock.INVESTSTORAGES:
+            if 'dhwStorage' in x.label and x.label.endswith("Building1"):
+                conv_factor = 4.186 * (60 - 15) / 3600
+            elif 'shStorage' in x.label and x.label.endswith("Building1"):
+                conv_factor = 4.186 * (35 - 25) / 3600
             if x.label.endswith("Building1"):
-                storageCapacityDict[x] = om.GenericInvestmentStorageBlock.invest[x]
+                storageCapacityDict[x] = om.GenericInvestmentStorageBlock.invest[x] / conv_factor
         totalCapacity = sum(storageCapacityDict[x] for x in storageCapacityDict)
-        maxCapacity = 6440 * 4.186 * (80 - 15) / 3600            # 6440 L to kWh
+        capacity = 6440            # 6440 L to kWh
         setattr(
             om,
             "SharedStorage_maxConstraint",
-            pyo.Constraint(expr=(totalCapacity <= maxCapacity)),
+            pyo.Constraint(expr=(totalCapacity <= capacity)),
         )
+
+        setattr(
+            om,
+            "SharedStorage_minConstraint",
+            pyo.Constraint(expr=(totalCapacity >= capacity)),
+        )
+
     return om
 
 def multiTemperatureStorageCapacityConstaint(om, storageNodes):
