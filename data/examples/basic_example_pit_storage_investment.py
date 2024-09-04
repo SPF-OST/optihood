@@ -109,7 +109,7 @@ def main(dump_and_restore=False):
 
     # Read data file
     curDir = _pl.Path(__file__).resolve().parent
-    inputFilePath = curDir / ".." / "excels" / "basic_example_pit_storage"
+    inputFilePath = r"T:\ndimri\Fabian Paulsson\optihood"
     inputfileName = "input_demand.csv"
     data = pd.read_csv(os.path.join(inputFilePath, inputfileName), delimiter=',')
 
