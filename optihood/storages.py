@@ -213,7 +213,7 @@ class ThermalStoragePit(GenericStoragePit):
         u_value_wall_bot = 1 / denominator_bot  # W/(m2*K)
 
         # Height multiplication factor
-        height_multiplication_factor = (151 / 3) * rho * c * (temp_h - temp_c)
+        height_multiplication_factor = (151 / 3) * rho * c * 1e6 * (temp_h - temp_c)
 
         # Loss rate calculation
         loss_rate = (u_value_wall_bot * 84 * np.sqrt(5) * time_increment * 3600) / (151 * rho * c * 1e6)  # m
