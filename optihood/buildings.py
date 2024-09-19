@@ -10,6 +10,7 @@ from optihood.storages import *
 from optihood.sinks import SinkRCModel
 from optihood.links import LinkTemperatureDemand
 from optihood._helpers import *
+from optihood.custom_components import *
 
 intRate = 0.05
 
@@ -771,6 +772,19 @@ class Building:
                                                   outputs=outputDict,
                                                   conversion_factors=convFactors))
     
+    def _addPeakObjectiveTransformer(self, data, opt):
+        label = data["label"] + '__' + self.__buildingLabel
+        inputBusLabels = [data["from"].split(",")[0] + '__' + self.__buildingLabel, data["from"].split(",")[1] + '__' + self.__buildingLabel]
+        inputBuses = [self.__busDict[i] for i in inputBusLabels]
+        outputBus = self.__busDict[data["to"] + '__' + self.__buildingLabel]
+        investArgs = {'ep_costs': float(data["invest_cap"]),
+                      'minimum': float(data["capacity_min"]),
+                      'maximum': float(data["capacity_SH"]),}
+        self.__nodesList.append(PeakObjectiveTransformer(label=label,
+                                                         inputs={i: solph.Flow() for i in inputBuses},
+                                                         outputs={outputBus: solph.Flow(investment=solph.Investment(**investArgs))}))
+
+
     def addTransformer(self, data, operationTemperatures, temperatureAmb, temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode, temperatureLevels):
         for i, t in data.iterrows():
             if t["active"]:
@@ -788,6 +802,8 @@ class Building:
                     self._addElectricRod(t, opt, mergeLinkBuses, dispatchMode, temperatureLevels)
                 elif t["label"] == "Chiller":
                     self._addChiller(t, operationTemperatures[0], temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode)
+                elif t["label"] == "peakObjective":
+                    self._addPeakObjectiveTransformer(t, opt)
                 else:
                     logging.warning("Transformer label not identified, adding generic transformer component...")
                     self._addGenericTransformer(t)

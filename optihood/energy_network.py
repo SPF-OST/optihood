@@ -128,7 +128,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         logging.info("Initializing the energy network")
         super(EnergyNetworkClass, self).__init__(timeindex=timestamp, infer_last_interval=True)
 
-    def setFromExcel(self, filePath, numberOfBuildings, clusterSize={}, opt="costs", mergeLinkBuses=False, mergeBuses=None, mergeHeatSourceSink=False, dispatchMode=False, includeCarbonBenefits=False):
+    def setFromExcel(self, filePath, numberOfBuildings, clusterSize={}, opt="costs", mergeLinkBuses=False, mergeBuses=None, mergeHeatSourceSink=False, dispatchMode=False, includeCarbonBenefits=False, demandAdjust24h=False):
         self.check_file_path(filePath)
         self.check_mutually_exclusive_inputs(mergeLinkBuses)
         self._dispatchMode = dispatchMode
@@ -139,11 +139,11 @@ class EnergyNetworkClass(solph.EnergySystem):
         data.close()
 
         self.set_using_nodal_data(clusterSize, filePath, includeCarbonBenefits, initial_nodal_data, mergeBuses,
-                                  mergeHeatSourceSink, mergeLinkBuses, numberOfBuildings, opt)
+                                  mergeHeatSourceSink, mergeLinkBuses, numberOfBuildings, opt, demandAdjust24h)
 
     def set_using_nodal_data(self, clusterSize, filePath, includeCarbonBenefits, initial_nodal_data, mergeBuses,
-                             mergeHeatSourceSink, mergeLinkBuses, numberOfBuildings, opt):
-        nodesData = self.createNodesData(initial_nodal_data, filePath, numberOfBuildings, clusterSize)
+                             mergeHeatSourceSink, mergeLinkBuses, numberOfBuildings, opt, demandAdjust24h):
+        nodesData = self.createNodesData(initial_nodal_data, filePath, numberOfBuildings, clusterSize, demandAdjust24h)
         # nodesData["buses"]["excess costs"] = nodesData["buses"]["excess costs indiv"]
         # nodesData["electricity_cost"]["cost"] = nodesData["electricity_cost"]["cost indiv"]
         if clusterSize:
@@ -233,7 +233,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         values = df.loc[row_indices, desired_column].iloc[0]
         return values
 
-    def createNodesData(self, nodesData, file_or_folder_path, numBuildings, clusterSize):
+    def createNodesData(self, nodesData, file_or_folder_path, numBuildings, clusterSize, demandAdjust24h):
         self.__noOfBuildings = numBuildings
 
         # update stratified_storage index
@@ -274,8 +274,14 @@ class EnergyNetworkClass(solph.EnergySystem):
                 if (i + 1) in nodesData["demandProfiles"].keys():                                                                  # specific to MPC branch !!!!!!
                     nodesData["demandProfiles"][i + 1].timestamp = pd.to_datetime(nodesData["demandProfiles"][i + 1].timestamp, format='%Y-%m-%d %H:%M:%S')
                     nodesData["demandProfiles"][i + 1].set_index("timestamp", inplace=True)
-                    if not clusterSize:
+                    if not clusterSize and not demandAdjust24h:
                         nodesData["demandProfiles"][i + 1] = nodesData["demandProfiles"][i + 1][self.timeindex[0]:self.timeindex[-1]]
+                    elif not clusterSize and demandAdjust24h:
+                        if self.timeindex[0].hour != 0:
+                            top_rows = nodesData["demandProfiles"][i + 1].head(self.timeindex[0].hour)
+                            nodesData["demandProfiles"][i + 1] = nodesData["demandProfiles"][i + 1].shift(-self.timeindex[0].hour)[:-self.timeindex[0].hour]
+                            nodesData["demandProfiles"][i + 1] = pd.concat([nodesData["demandProfiles"][i + 1], top_rows], axis=0)
+                        nodesData["demandProfiles"][i + 1].index = self.timeindex[0:-1]
                 else:                                                                                                              # specific to MPC branch !!!!!!
                     nodesData["demandProfiles"][i + 1] = None
 
@@ -357,7 +363,7 @@ class EnergyNetworkClass(solph.EnergySystem):
                                                                           format='%Y.%m.%d %H:%M:%S')
             nodesData["weather_data"].set_index("timestamp", inplace=True)
             if (not clusterSize) and nodesData["weather_data"].index.year.unique().__len__() == 1:
-                nodesData["weather_data"] = nodesData["weather_data"][self.timeindex[0]:self.timeindex[-1]]
+                nodesData["weather_data"] = nodesData["weather_data"][self.timeindex[0]:self.timeindex[-2]]
 
         nodesData["building_model"] = {}
         if (nodesData['demand']['building model'].notna().any()) and (nodesData['demand']['building model'] == 'Yes').any():
@@ -368,7 +374,7 @@ class EnergyNetworkClass(solph.EnergySystem):
             internalGains = pd.read_csv(internalGainsPath, delimiter=';')
             internalGains.timestamp = pd.to_datetime(internalGains.timestamp, format='%d.%m.%Y %H:%M')
             internalGains.set_index("timestamp", inplace=True)
-            if not clusterSize:
+            if not clusterSize and not demandAdjust24h:
                 internalGains = internalGains[self.timeindex[0]:self.timeindex[-1]]
             if not os.path.exists(bmodelparamsPath):
                 logging.error("Error in building model parameters file path.")
@@ -548,6 +554,8 @@ class EnergyNetworkClass(solph.EnergySystem):
 
                 if c.lower() == "storagesharedcapacity":
                     self._optimizationModel = sharedStorageCapacityConstraintBuilding1(self._optimizationModel)
+                if c.lower() == "peakobjective":
+                    self._optimizationModel = peakObjectiveConstraint(self._optimizationModel)
                 if c.lower() == 'totalpvcapacity':
                     self._optimizationModel = totalPVCapacityConstraint(self._optimizationModel, numberOfBuildings)
                     logging.info(f"Optional constraint {c} successfully added to the optimization model")
@@ -1319,7 +1327,7 @@ class EnergyNetworkGroup(EnergyNetworkClass):
                                                          version="grouped")
         scenarioFileWriter.write(excelFilePath)
 
-    def setFromExcel(self, filePath, numberOfBuildings, clusterSize={}, opt="costs", mergeLinkBuses=False, mergeBuses=None, mergeHeatSourceSink=False, dispatchMode=False, includeCarbonBenefits=False):
+    def setFromExcel(self, filePath, numberOfBuildings, clusterSize={}, opt="costs", mergeLinkBuses=False, mergeBuses=None, mergeHeatSourceSink=False, dispatchMode=False, includeCarbonBenefits=False, demandAdjust24h=False):
         # does Excel file exist?
         if not filePath or not os.path.isfile(filePath):
             logging.error("Excel data file {} not found.".format(filePath))
@@ -1329,7 +1337,7 @@ class EnergyNetworkGroup(EnergyNetworkClass):
         data = pd.ExcelFile(filePath)
         initial_nodal_data = self.get_nodal_data_from_Excel(data)
         # data.close()
-        nodesData = self.createNodesData(initial_nodal_data, filePath, numberOfBuildings, clusterSize)
+        nodesData = self.createNodesData(initial_nodal_data, filePath, numberOfBuildings, clusterSize, demandAdjust24h)
         # nodesData["buses"]["excess costs"] = nodesData["buses"]["excess costs group"]
         # nodesData["electricity_cost"]["cost"] = nodesData["electricity_cost"]["cost group"]
 

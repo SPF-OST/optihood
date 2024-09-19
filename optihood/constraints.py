@@ -49,6 +49,31 @@ def sharedStorageCapacityConstraintBuilding1(om):
 
     return om
 
+
+def peakObjectiveConstraint(om):
+    peakObjectiveInputFlow1 = [(i, o) for (i, o) in om.flows if "peak35bus" in i.label and "peakObjective" in o.label]
+    peakObjectiveInputFlow2 = [(i, o) for (i, o) in om.flows if "peak65bus" in i.label and "peakObjective" in o.label]
+    flowMatch1 = [(i, o) for (i, o) in om.flows if "spaceHeatingLinkBus" in o.label]
+    flowMatch2 = [(i, o) for (i, o) in om.flows if "domesticHotWaterLinkBus" in o.label]
+
+    for t in om.TIMESTEPS:
+        lhs_1 = om.flow[peakObjectiveInputFlow1[0][0], peakObjectiveInputFlow1[0][1], t]
+        rhs_1 = om.flow[flowMatch1[0][0], flowMatch1[0][1], t]
+        lhs_2 = om.flow[peakObjectiveInputFlow2[0][0], peakObjectiveInputFlow2[0][1], t]
+        rhs_2 = om.flow[flowMatch2[0][0], flowMatch2[0][1], t]
+        setattr(
+            om,
+            f"peakflow1_{t}",
+            pyo.Constraint(expr=(lhs_1 == rhs_1)),
+        )
+        setattr(
+            om,
+            f"peakflow2_{t}",
+            pyo.Constraint(expr=(lhs_2 == rhs_2)),
+        )
+    return om
+
+
 def multiTemperatureStorageCapacityConstaint(om, storageNodes):
     """Constraint on thermal storage capacity when multiple temperature levels exist"""
     storageCapacityDict = {}
