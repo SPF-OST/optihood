@@ -845,7 +845,7 @@ class Building:
                                                             float(s["elec_impact"])*(opt == "env"),
                                                             float(s["elec_impact"]), envImpactPerCapacity, dispatchMode))
 
-                elif (s["label"] == "dhwStorage" or s["label"] == "shStorage") and not temperatureLevels:
+                elif ("dhwStorage" in s["label"] or "shStorage" in s["label"]) and not temperatureLevels:
                     self.__nodesList.append(ThermalStorage(storageLabel,
                                                            stratifiedStorageParams, self.__busDict[inputBusLabel],
                                                            self.__busDict[outputBusLabel],
@@ -854,7 +854,7 @@ class Building:
                                                         self._calculateInvest(s)[0]*(opt == "costs") + envImpactPerCapacity*(opt == "env"),
                                                         self._calculateInvest(s)[1]*(opt == "costs"), float(s["heat_impact"])*(opt == "env"),
                                                         float(s["heat_impact"]), envImpactPerCapacity, dispatchMode))
-                elif s["label"] == "thermalStorage" and temperatureLevels:
+                elif "thermalStorage" in s["label"] and temperatureLevels:
                     storage = ThermalStorageTemperatureLevels(storageLabel,
                                stratifiedStorageParams, inputBuses,
                                outputBuses,
@@ -870,7 +870,7 @@ class Building:
                     for i in range(len(inputBuses)):
                         self.__nodesList.append(storage.getStorageLevel(i))
                         self.__nodesList.extend(storage.getDummyComponents(i))
-                elif s["label"] != "dhwStorage" and s["label"] != "shStorage" and s["label"] != "thermalStorage":  #"Storage" in s["label"]
+                elif "dhwStorage" not in s["label"] and "shStorage" not in s["label"] and "thermalStorage" not in s["label"]:  #"Storage" in s["label"]
                     is_tank = False
                     self.__nodesList.append(ThermalStorage(storageLabel,
                            stratifiedStorageParams, self.__busDict[inputBusLabel],
