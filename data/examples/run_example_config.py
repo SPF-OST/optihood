@@ -5,8 +5,7 @@ import pathlib as pl
 from optihood.IO.writers import ScenarioFileWriterExcel
 from optihood.energy_network import EnergyNetworkGroup as EnergyNetwork
 
-if __name__ == '__main__':
-    """ This case is currently BROKEN."""
+if __name__ == '__main__':    
 
     optimization_type = "cost"
     scenario = "HP_GS_PV"
