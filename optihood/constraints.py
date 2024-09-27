@@ -282,21 +282,20 @@ def PVTElectricalThermalCapacityConstraint(om, numBuildings):
         if elCapacity or shCapacity:
             elCapacity = elCapacity[0]
             shCapacity = shCapacity[0]
-            if dhwCapacity:
-                dhwCapacity = dhwCapacity[0]
             areaUnitCapEl = areaUnitCapEl[0]
             areaUnitCapSh = areaUnitCapSh[0]
-            expr = (elCapacity*areaUnitCapEl == shCapacity*areaUnitCapSh)
+            expr1 = (elCapacity * areaUnitCapEl == shCapacity * areaUnitCapSh)
             setattr(
                 om,
-                "PVTSizeConstrElTh_B"+str(b),
-                pyo.Constraint(expr=expr),
+                "PVTSizeConstrElTh_B" + str(b),
+                pyo.Constraint(expr=expr1),
             )
             if dhwCapacity:
-                expr = (dhwCapacity == shCapacity)
+                dhwCapacity = dhwCapacity[0]
+                expr2 = (dhwCapacity == shCapacity)
                 setattr(
                     om,
                     "PVTSizeConstrDhwSh_B" + str(b),
-                    pyo.Constraint(expr=expr),
+                    pyo.Constraint(expr=expr2),
                 )
     return om
