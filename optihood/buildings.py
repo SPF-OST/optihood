@@ -275,9 +275,11 @@ class Building:
                                                        epc, base, env_capa, env_flow, varc, dispatchMode)
                 nodes = [pvtcollector.getPVT("el_source")]
                 for t in ["heat_source", "heat_transformer", "excess_heat_sink"]:
-                    sh, dhw = pvtcollector.getPVT(t)
+                    sh, T2, dhw = pvtcollector.getPVT(t)
                     if outputBuses.__len__() == 3:
                         nodes.extend([sh, dhw])
+                    elif outputBuses.__len__() == 4:
+                        nodes.extend([sh, T2, dhw])
                     else:
                         nodes.extend([sh])
                 for x in nodes:
@@ -289,11 +291,17 @@ class Building:
                 self.__technologies.append(
                     [outputBuses[0], s["label"] + 'SH__' + self.__buildingLabel])
 
-                if outputBuses.__len__() == 3:
+                if outputBuses.__len__() >= 3:
                     self.__envParam['heatSource_DHW' + s['label'] + '__' + self.__buildingLabel] = [env_flow, 0, 0]
                     self.__costParam['heatSource_DHW' + s['label'] + '__' + self.__buildingLabel] = [0, 0]
                     self.__technologies.append(
-                        [outputBuses[1], s["label"] + 'DHW__' + self.__buildingLabel])
+                        [outputBuses[-2], s["label"] + 'DHW__' + self.__buildingLabel])
+
+                if outputBuses.__len__() == 4:
+                    self.__envParam['heatSource_T2' + s['label'] + '__' + self.__buildingLabel] = [env_flow, 0, 0]
+                    self.__costParam['heatSource_T2' + s['label'] + '__' + self.__buildingLabel] = [0, 0]
+                    self.__technologies.append(
+                        [outputBuses[1], s["label"] + 'T2__' + self.__buildingLabel])
 
 
     def addGridSeparation(self, dataGridSeparation, mergeLinkBuses):
