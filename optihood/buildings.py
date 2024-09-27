@@ -83,15 +83,16 @@ class Building:
                         # add the excess production cost to self.__costParam
                         self.__costParam["excess"+label] = float(b["excess costs"])
                     if "shortage" in b:
-                        self.__nodesList.append(
-                            solph.Source(
-                                label="shortage"+label,
-                                outputs={
-                                    self.__busDict[label]: solph.Flow(
-                                        variable_costs=float(b["shortage costs"])*(opt == "costs")  # if opt = "env" variable costs should be zero
-                                    )}))
-                        # add the excess production cost to self.__costParam
-                        self.__costParam["shortage"+label] = float(b["shortage costs"])
+                        if b["shortage"]:
+                            self.__nodesList.append(
+                                solph.components.Source(
+                                    label="shortage"+label,
+                                    outputs={
+                                        self.__busDict[label]: solph.Flow(
+                                            variable_costs=float(b["shortage costs"])*(opt == "costs")  # if opt = "env" variable costs should be zero
+                                        )}))
+                            # add the excess production cost to self.__costParam
+                            self.__costParam["shortage"+label] = float(b["shortage costs"])
 
         if (mergeLinkBuses or mergeHeatSourceSink) and self.__buildingLabel=='Building1':
             return self.__busDict
@@ -232,12 +233,12 @@ class Building:
                     inputBusLabel = s["from"]
                 else:
                     inputBusLabel = s["from"] + '__' + self.__buildingLabel
-
-                outputBuses = [self.__busDict[s["to"].split(",")[0] + '__' + self.__buildingLabel],
-                               self.__busDict[s["to"].split(",")[1] + '__' + self.__buildingLabel],
-                               self.__busDict[s["to"].split(",")[2] + '__' + self.__buildingLabel]]
-                connectBuses = [self.__busDict[s["connect"].split(",")[0] + '__' + self.__buildingLabel],
-                               self.__busDict[s["connect"].split(",")[1] + '__' + self.__buildingLabel]]
+                outputBuses = [self.__busDict[o + '__' + self.__buildingLabel] for o in s["to"].split(",")]
+                connectBuses = [self.__busDict[c + '__' + self.__buildingLabel] for c in s["connect"].split(",")]
+                if isinstance(s["delta_temp_n"], float) or isinstance(s["delta_temp_n"], int):
+                    delta_temp_n = [float(s["delta_temp_n"])]
+                else:
+                    delta_temp_n = [float(t) for t in s["delta_temp_n"].split(",")]
                 if opt == "costs":
                     epc = self._calculateInvest(s)[0]
                     base = self._calculateInvest(s)[1]
@@ -270,26 +271,38 @@ class Building:
                                                        float(s["longitude"]), float(s["tilt"]), s["roof_area"],
                                                        float(s["zenith_angle"]), float(s["azimuth"]),
                                                        float(s["eta_0"]), float(s["a_1"]), float(s["a_2"]), float(s["temp_collector_inlet"]),data_timeseries['tre200h0'],
-                                                       float(s["delta_temp_n"]), data_timeseries['gls'], data_timeseries['str.diffus'], float(s["capacity_min"]), float(s["capacity_max"]),
-                                                       epc, base, env_capa, env_flow, varc, dispatchMode,
-                                                        float(s["pv_efficiency"]))
+                                                       delta_temp_n, data_timeseries['gls'], data_timeseries['str.diffus'], float(s["capacity_min"]), float(s["capacity_max"]),
+                                                       epc, base, env_capa, env_flow, varc, dispatchMode)
                 nodes = [pvtcollector.getPVT("el_source")]
                 for t in ["heat_source", "heat_transformer", "excess_heat_sink"]:
-                    nodes.append(pvtcollector.getPVT(t))
+                    sh, T2, dhw = pvtcollector.getPVT(t)
+                    if outputBuses.__len__() == 3:
+                        nodes.extend([sh, dhw])
+                    elif outputBuses.__len__() == 4:
+                        nodes.extend([sh, T2, dhw])
+                    else:
+                        nodes.extend([sh])
                 for x in nodes:
                     self.__nodesList.append(x)
 
-
-                self.__envParam['heatSourceSH_' + s['label'] + '__' + self.__buildingLabel] = envParam
-                self.__envParam['heatSourceDHW_' + s['label'] + '__' + self.__buildingLabel] = [env_flow, 0, 0]
-                self.__costParam['heatSourceSH_' + s['label'] + '__' + self.__buildingLabel] = [self._calculateInvest(s)[0],
-                                                                                            self._calculateInvest(s)[1]]
-                self.__costParam['heatSourceDHW_' + s['label'] + '__' + self.__buildingLabel] = [0, 0]
-
+                self.__envParam['heatSource_SH' + s['label'] + '__' + self.__buildingLabel] = envParam
+                self.__costParam['heatSource_SH' + s['label'] + '__' + self.__buildingLabel] = [self._calculateInvest(s)[0],
+                                                                                                self._calculateInvest(s)[1]]
                 self.__technologies.append(
                     [outputBuses[0], s["label"] + 'SH__' + self.__buildingLabel])
-                self.__technologies.append(
-                    [outputBuses[1], s["label"] + 'DHW__' + self.__buildingLabel])
+
+                if outputBuses.__len__() >= 3:
+                    self.__envParam['heatSource_DHW' + s['label'] + '__' + self.__buildingLabel] = [env_flow, 0, 0]
+                    self.__costParam['heatSource_DHW' + s['label'] + '__' + self.__buildingLabel] = [0, 0]
+                    self.__technologies.append(
+                        [outputBuses[-2], s["label"] + 'DHW__' + self.__buildingLabel])
+
+                if outputBuses.__len__() == 4:
+                    self.__envParam['heatSource_T2' + s['label'] + '__' + self.__buildingLabel] = [env_flow, 0, 0]
+                    self.__costParam['heatSource_T2' + s['label'] + '__' + self.__buildingLabel] = [0, 0]
+                    self.__technologies.append(
+                        [outputBuses[1], s["label"] + 'T2__' + self.__buildingLabel])
+
 
     def addGridSeparation(self, dataGridSeparation, mergeLinkBuses):
         if not dataGridSeparation.empty:
@@ -454,6 +467,10 @@ class Building:
         hpSHLabel = data["label"] + '__' + self.__buildingLabel
         if mergeLinkBuses and data["from"] in self.__linkBuses:
             inputBusLabel = [data["from"]]
+        elif mergeLinkBuses and any([b in self.__linkBuses for b in data["from"].split(',')]):
+            inputBusLabel = [i + '__' + self.__buildingLabel for i in data["from"].split(",") if
+                             i not in self.__linkBuses]
+            inputBusLabel.extend([i for i in data["from"].split(",") if i in self.__linkBuses])
         elif mergeHeatSourceSink and any([b in self.__heatSourceSinkBuses for b in data["from"].split(',')]):
             inputBusLabel = [i + '__' + self.__buildingLabel for i in data["from"].split(",") if
                              i not in self.__heatSourceSinkBuses]
