@@ -274,15 +274,16 @@ def PVTElectricalThermalCapacityConstraint(om, numBuildings):
     pvtShOutFlows = [(i, o) for (i, o) in om.flows if ("heatSource_SHpvt" in i.label)]
     pvtDhwOutFlows = [(i, o) for (i, o) in om.flows if ("heatSource_DHWpvt" in i.label)]
     for b in range(1, numBuildings + 1):
-        elCapacity = [om.InvestmentFlow.invest[i, o] for (i, o) in pvtElOutFlows if ((f'__Building{b}') in o.label)]
-        shCapacity = [om.InvestmentFlow.invest[i, o] for (i, o) in pvtShOutFlows if ((f'__Building{b}') in o.label)]
-        dhwCapacity = [om.InvestmentFlow.invest[i, o] for (i, o) in pvtDhwOutFlows if ((f'__Building{b}') in o.label)]
+        elCapacity = [om.InvestmentFlowBlock.invest[i, o] for (i, o) in pvtElOutFlows if ((f'__Building{b}') in o.label)]
+        shCapacity = [om.InvestmentFlowBlock.invest[i, o] for (i, o) in pvtShOutFlows if ((f'__Building{b}') in o.label)]
+        dhwCapacity = [om.InvestmentFlowBlock.invest[i, o] for (i, o) in pvtDhwOutFlows if ((f'__Building{b}') in o.label)]
         areaUnitCapEl = [getattr(om.flows[i, o].investment, 'space_el') for (i, o) in pvtElOutFlows if ((f'__Building{b}') in o.label)]
         areaUnitCapSh = [getattr(om.flows[i, o].investment, 'space') for (i, o) in pvtShOutFlows if ((f'__Building{b}') in o.label)]
         if elCapacity or shCapacity:
             elCapacity = elCapacity[0]
             shCapacity = shCapacity[0]
-            dhwCapacity = dhwCapacity[0]
+            if dhwCapacity:
+                dhwCapacity = dhwCapacity[0]
             areaUnitCapEl = areaUnitCapEl[0]
             areaUnitCapSh = areaUnitCapSh[0]
             expr = (elCapacity*areaUnitCapEl == shCapacity*areaUnitCapSh)
@@ -291,10 +292,11 @@ def PVTElectricalThermalCapacityConstraint(om, numBuildings):
                 "PVTSizeConstrElTh_B"+str(b),
                 pyo.Constraint(expr=expr),
             )
-            expr = (dhwCapacity == shCapacity)
-            setattr(
-                om,
-                "PVTSizeConstrDhwSh_B" + str(b),
-                pyo.Constraint(expr=expr),
-            )
+            if dhwCapacity:
+                expr = (dhwCapacity == shCapacity)
+                setattr(
+                    om,
+                    "PVTSizeConstrDhwSh_B" + str(b),
+                    pyo.Constraint(expr=expr),
+                )
     return om

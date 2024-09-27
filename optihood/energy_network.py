@@ -1083,8 +1083,8 @@ class EnergyNetworkClass(solph.EnergySystem):
                 if invest > 0.05:
                     print("Invested in {:.1f} kWp  PV.".format(invest))
             if ("heatSource_SHpvt__" + buildingLabel, "pvtConnectBusSH__" + buildingLabel) in capacitiesInvestedTransformers:
+                invest = capacitiesInvestedTransformers[("heatSource_SHpvt__" + buildingLabel, "pvtConnectBusSH__" + buildingLabel)]
                 if invest > 0.05:
-                    invest = capacitiesInvestedTransformers[("heatSource_SHpvt__" + buildingLabel, "pvtConnectBusSH__" + buildingLabel)]
                     print("Invested in {:.1f} m² PVT collector.".format(invest))
             if "electricalStorage__" + buildingLabel in capacitiesInvestedStorages:
                 invest = capacitiesInvestedStorages["electricalStorage__" + buildingLabel]
