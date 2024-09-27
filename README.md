@@ -40,6 +40,7 @@ commands could be used.
 
 3. Install the requirements into the created virtual environment. The requirements.txt file needs Python 3.12. If using another version, use pip tools to compile the provided requirements.in file before installing the requirements:
     ```commandline
+    venv\Scripts\python.exe -m pip install --upgrade pip
     pip install wheel
     pip install -r requirements.txt
     ```
