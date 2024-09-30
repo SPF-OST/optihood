@@ -1,21 +1,67 @@
 import json
 from textwrap import dedent as d
+import typing as _tp
 
 import dash
 import plotly.express as px
-from dash import dcc
-from dash import html
-from dash.dependencies import Input, Output
+from dash import html, dcc, Input, Output, State, callback
+import dash_cytoscape as cyto
 import matplotlib.pyplot as plt
 
-"""
-This example comes directly from the Plotly homepage.
-https://community.plotly.com/t/use-hover-trace-as-input-for-callback/34390
-"""
+app = dash.Dash('Optihood input Visualizer')
 
 
-def setup_app(figure_handle: plt.Figure) -> dash.Dash:
-    app = dash.Dash('Optihood input Visualizer')
+def setup_cytoscape_app(nodes: _tp.Dict[str, _tp.Dict[str, _tp.Union[str, float]]] , edges) -> dash.Dash:
+    """
+    This example comes directly from the Plotly homepage.
+    http://dash.plotly.com/cytoscape/events
+    """
+    styles = {
+        'pre': {
+            'border': 'thin lightgrey solid',
+            'overflowX': 'scroll'
+        }
+    }
+
+    default_stylesheet = [
+        {
+            'selector': 'node',
+            'style': {
+                'label': 'data(label)'
+            }
+        },
+    ]
+
+    app.layout = html.Div([
+        cyto.Cytoscape(
+            id='cytoscape-event-callbacks-3',
+            layout={'name': 'preset'},
+            elements=edges + nodes,
+            stylesheet=default_stylesheet,
+            style={'width': '100%', 'height': '450px'}
+        ),
+        html.Button('Add Node', id='btn-add-node-example', n_clicks_timestamp=0),
+        html.Button('Remove Node', id='btn-remove-node-example', n_clicks_timestamp=0),
+        dcc.Markdown(id='cytoscape-selectedNodeData-markdown')
+    ])
+
+    @callback(Output('cytoscape-selectedNodeData-markdown', 'children'),
+          Input('cytoscape-event-callbacks-3', 'selectedNodeData'))
+    def displaySelectedNodeData(data_list):
+        if data_list is None:
+            return "No nodes selected."
+
+        selected_nodes_list = [f"{data['label']}, {data['lat']}, {data['long']}" for data in data_list]
+        return "You selected the nodes: " + "\n* ".join(selected_nodes_list)
+
+    return app
+
+
+def setup_plotly_app(figure_handle: plt.Figure) -> dash.Dash:
+    """
+    This example comes directly from the Plotly homepage.
+    https://community.plotly.com/t/use-hover-trace-as-input-for-callback/34390
+    """
 
     styles = {
         'pre': {
@@ -104,12 +150,53 @@ def setup_app(figure_handle: plt.Figure) -> dash.Dash:
     return app
 
 
-def run_visualizer(figure_handle: plt.Figure) -> None:
-    app = setup_app(figure_handle)
+def run_fig_visualizer(figure_handle: plt.Figure) -> None:
+    app = setup_plotly_app(figure_handle)
+    app.run_server(debug=True)
+
+
+def run_cytoscape_visualizer(nodes, edges) -> None:
+    app = setup_cytoscape_app(nodes, edges)
     app.run_server(debug=True)
 
 
 if __name__ == '__main__':
-    df = px.data.iris()
-    fig = px.scatter_matrix(df[['sepal_length', 'sepal_width']])
-    run_visualizer(fig)
+    version = "plotly"
+    if version == "plotly":
+        df = px.data.iris()
+        fig = px.scatter_matrix(df[['sepal_length', 'sepal_width']])
+        run_fig_visualizer(fig)
+    elif version == "cytoscape":
+        nodes_dict = [
+            {
+                'data': {'id': short, 'label': label, "lat": lat, "long": long},
+                'position': {'x': 20 * lat, 'y': -20 * long}
+            }
+            for short, label, long, lat in (
+                ('la', 'Los Angeles', 34.03, -118.25),
+                ('nyc', 'New York', 40.71, -74),
+                ('to', 'Toronto', 43.65, -79.38),
+                ('mtl', 'Montreal', 45.50, -73.57),
+                ('van', 'Vancouver', 49.28, -123.12),
+                ('chi', 'Chicago', 41.88, -87.63),
+                ('bos', 'Boston', 42.36, -71.06),
+                ('hou', 'Houston', 29.76, -95.37)
+            )
+        ]
+
+        edges_dict = [
+            {'data': {'source': source, 'target': target}}
+            for source, target in (
+                ('van', 'la'),
+                ('la', 'chi'),
+                ('hou', 'chi'),
+                ('to', 'mtl'),
+                ('mtl', 'bos'),
+                ('nyc', 'bos'),
+                ('to', 'hou'),
+                ('to', 'nyc'),
+                ('la', 'nyc'),
+                ('nyc', 'bos')
+            )
+        ]
+        run_cytoscape_visualizer(nodes_dict, edges_dict)
