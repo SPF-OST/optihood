@@ -9,7 +9,8 @@ class TestNodalDataExample(_ut.TestCase):
     def setUp(self):
         self.maxDiff = None
         energyType = stv.EnergyTypes.electricity
-        self.nodalData = stv.NodalDataExample('la', 'Los Angeles', 'van', 'hou', energyType, 34.03, -118.25)
+        self.nodalData = stv.NodalDataExample('la', 'Los Angeles', 'van', 'hou', energyType, True, 34.03,
+                                              -118.25)
 
     def test_get_nodal_infos(self):
         result = self.nodalData.get_nodal_infos()
@@ -67,7 +68,8 @@ class TestCommoditySourcesConverter(_ut.TestCase):
         self.assertDictEqual(result[0], expected_dict)
 
     def test_get_edge_infos_ignored(self):
-        assert False
+        result = self.nodalDataFalse.get_edge_infos()
+        self.assertListEqual(result, [])
 
     def test_read_nodal_infos(self):
         assert False

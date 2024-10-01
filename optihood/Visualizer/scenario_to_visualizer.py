@@ -26,6 +26,7 @@ class ScenarioToVisualizerAbstract:
     from_node: _tp.Optional[_tp.Union[str, _abc.Sequence[str]]]  # sources do not have this
     to_node: _tp.Optional[_tp.Union[str, _abc.Sequence[str]]]  # sinks do not have this
     energy_type: _tp.Type[EnergyTypes]
+    active: bool
     edges_into_node: list[dict[str, dict[str, _tp.Union[str, float, int]]]] = _dc.field(init=False)
     edges_out_of_node: list[dict[str, dict[str, _tp.Union[str, float, int]]]] = _dc.field(init=False)
 
@@ -33,6 +34,8 @@ class ScenarioToVisualizerAbstract:
         raise NotImplementedError('Do not access parent class directly')
 
     def get_edge_infos(self) -> list[dict[str, dict[str, _tp.Union[str, float, int]]]]:
+        if not self.active:
+            return []
         self.edges_into_node = []
         if self.from_node:
             if not isinstance(self.from_node, list):

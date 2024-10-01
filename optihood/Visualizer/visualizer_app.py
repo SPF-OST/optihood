@@ -238,14 +238,14 @@ if __name__ == '__main__':
         NodalData = stv.scenario_data_factory(stv.ScenarioDataTypes.example)
         energy_type = stv.EnergyTypes.electricity
         nodal_data_list = [
-            NodalData('la', 'Los_Angeles', 'van', 'chi', energy_type, 34.03, -118.25 ),
-            NodalData('nyc', 'New_York', 'to', 'bos', energy_type, 40.71, -74 ),
-            NodalData('to', 'Toronto', 'hou', ['hou', 'nyc', 'mtl'], energy_type, 43.65, -79.38 ),
-            NodalData('mtl', 'Montreal', 'to', 'bos', energy_type, 45.50, -73.57 ),
-            NodalData('van', 'Vancouver', None, 'la', energy_type, 49.28, -123.12 ),
-            NodalData('chi', 'Chicago', 'la', 'hou',energy_type,  41.88, -87.63 ),
-            NodalData('bos', 'Boston', "nyc", None, energy_type, 42.36, -71.06 ),
-            NodalData('hou', 'Houston', "chi", 'chi', energy_type, 29.76, -95.37)
+            NodalData('la', 'Los_Angeles', 'van', 'chi', energy_type, True, 34.03, -118.25),
+            NodalData('nyc', 'New_York', 'to', 'bos', energy_type, True, 40.71, -74),
+            NodalData('to', 'Toronto', 'hou', ['hou', 'nyc', 'mtl'], energy_type, True, 43.65, -79.38),
+            NodalData('mtl', 'Montreal', 'to', 'bos', energy_type, True, 45.50, -73.57 ),
+            NodalData('van', 'Vancouver', None, 'la', energy_type, True, 49.28, -123.12 ),
+            NodalData('chi', 'Chicago', 'la', 'hou',energy_type,  True, 41.88, -87.63 ),
+            NodalData('bos', 'Boston', "nyc", None, energy_type, True, 42.36, -71.06 ),
+            NodalData('hou', 'Houston', "chi", 'chi', energy_type, True, 29.76, -95.37)
         ]
         nodes_dict = []
         edges_dict = []
