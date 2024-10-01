@@ -199,6 +199,7 @@ Werkzeug==3.0.4
 click==8.1.7
 dash==2.18.1
 dash-core-components==2.0.0
+dash_cytoscape==1.0.2
 dash-html-components==2.0.0
 dash-table==5.0.0
 importlib-metadata==8.5.0
