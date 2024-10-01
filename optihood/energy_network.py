@@ -1074,8 +1074,8 @@ class EnergyNetworkClass(solph.EnergySystem):
                 investSH = capacitiesInvestedTransformers["GasBoiler__" + buildingLabel, shOutputLabel + buildingLabel]
                 if investSH > 0.05:
                     print("Invested in {:.1f} kW GasBoiler.".format(investSH))
-            if ("heat_solarCollector__" + buildingLabel, "solarConnectBus__" + buildingLabel) in capacitiesInvestedTransformers:
-                invest = capacitiesInvestedTransformers[("heat_solarCollector__" + buildingLabel, "solarConnectBus__" + buildingLabel)]
+            if ("heatSource_SHsolarCollector__" + buildingLabel, "solarConnectBus__" + buildingLabel) in capacitiesInvestedTransformers:
+                invest = capacitiesInvestedTransformers[("heatSource_SHsolarCollector__" + buildingLabel, "solarConnectBus__" + buildingLabel)]
                 if invest > 0.05:
                     print("Invested in {:.1f} m² SolarCollector.".format(invest))
             if ("pv__" + buildingLabel, "electricityProdBus__" + buildingLabel) in capacitiesInvestedTransformers:

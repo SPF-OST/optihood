@@ -200,7 +200,7 @@ def roof_area_limit(model, keyword1, keyword2, nb):
             limit_name,
             pyo.Expression(
                 expr=sum(
-                    model.InvestmentFlow.invest[inflow, outflow]
+                    model.InvestmentFlowBlock.invest[inflow, outflow]
                     * getattr(invest_flows[inflow, outflow], keyword1)
                     for (inflow, outflow) in invest_flows
                 )
