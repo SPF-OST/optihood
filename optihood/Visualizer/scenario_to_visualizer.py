@@ -7,12 +7,23 @@ class ScenarioDataTypes(_enum.StrEnum):
     example: str = 'example'
 
 
+class EnergyTypes(_enum.StrEnum):
+    electricity = 'electricity'
+    domestic_hot_water = "DHW"
+    space_heating = "SH"
+    gas = 'gas'
+    oil = 'oil'
+    hydrogen = 'H2'
+
+
 @_dc.dataclass()
 class ScenarioToVisualizerAbstract:
+    """ From node and to node could also use enums. """
     id: str
     label: str
     from_node: str
     to_node: str
+    energy_type: _tp.Type[EnergyTypes]
 
     def get_nodal_infos(self):
         raise NotImplementedError('Do not access parent class directly')
@@ -54,7 +65,7 @@ class NodalDataExample(ScenarioToVisualizerAbstract):
         return f"{data['label']}, {data['lat']}, {data['long']}"
 
     def get_edge_infos(self):
-        return {'data': {'source': self.from_node, 'target': self.to_node}}
+        return {'data': {'source': self.from_node, 'target': self.to_node, 'energy_type': self.energy_type.value}}
 
     @staticmethod
     def read_edge_infos(data: dict[str, _tp.Union[str, float, int]]):
