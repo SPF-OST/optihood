@@ -55,11 +55,13 @@ class ScenarioToVisualizerAbstract:
         return all_edges
 
     @staticmethod
-    def read_nodal_infos(data: dict[str, _tp.Union[str, float, int]]):
-        raise NotImplementedError('Do not access parent class directly')
+    def read_nodal_infos(data: dict[str, _tp.Union[str, float, int]]) -> _tp.Optional[str]:
+        """ Adding line breaks for every entry would look cleaner. """
+        return f"{data}"
 
     @staticmethod
     def read_edge_infos(data: dict[str, _tp.Union[str, float, int]]):
+        """ This may never be needed. """
         raise NotImplementedError('Do not access parent class directly')
 
 
@@ -83,19 +85,6 @@ class NodalDataExample(ScenarioToVisualizerAbstract):
             'position': {'x': 20 * self.latitude, 'y': -20 * self.longitude}
         }
 
-    @staticmethod
-    def read_nodal_infos(data: dict[str, _tp.Union[str, float, int]]) -> str:
-        return f"{data['label']}, {data['lat']}, {data['long']}"
-
-    # def get_edge_infos(self) -> dict[str, dict[str, _tp.Union[str, float, int]]]:
-    #     """ no edge exists if one or the other is missing. """
-    #     if self.from_node and self.to_node:
-    #         return {'data': {'source': self.from_node, 'target': self.to_node, 'energy_type': self.energy_type.value}}
-
-    @staticmethod
-    def read_edge_infos(data: dict[str, _tp.Union[str, float, int]]):
-        raise NotImplementedError
-
 
 @_dc.dataclass()
 class CommoditySourcesConverter(ScenarioToVisualizerAbstract):
@@ -112,8 +101,3 @@ class CommoditySourcesConverter(ScenarioToVisualizerAbstract):
         if self.active:
             return {"data": {'id': self.id, 'label': self.label, "building": self.building,
                              "variable_costs": self.variable_costs, "CO2_impact": self.CO2_impact}}
-        return
-
-    @staticmethod
-    def read_nodal_infos(data: dict[str, _tp.Union[str, float, int]]):
-        pass

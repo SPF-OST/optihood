@@ -23,7 +23,7 @@ class TestNodalDataExample(_ut.TestCase):
     def test_read_nodal_infos(self):
         data = {'id': 'la', 'label': 'Los Angeles', "lat": -118.25, "long": 34.03}
         result = stv.NodalDataExample.read_nodal_infos(data)
-        expected_string = "Los Angeles, -118.25, 34.03"
+        expected_string = "{'id': 'la', 'label': 'Los Angeles', 'lat': -118.25, 'long': 34.03}"
         self.assertEqual(result, expected_string)
 
     def test_get_edge_infos(self):
@@ -72,4 +72,8 @@ class TestCommoditySourcesConverter(_ut.TestCase):
         self.assertListEqual(result, [])
 
     def test_read_nodal_infos(self):
-        assert False
+        data = {'id': 'la', 'label': 'Los Angeles', "building": 1, "variable_costs": 0.024, 'CO2_impact': 0.018}
+        result = stv.CommoditySourcesConverter.read_nodal_infos(data)
+        expected_string = ("{'id': 'la', 'label': 'Los Angeles', 'building': 1, 'variable_costs': 0.024, 'CO2_impact': "
+                           "0.018}")
+        self.assertEqual(result, expected_string)
