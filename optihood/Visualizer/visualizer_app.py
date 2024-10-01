@@ -11,6 +11,14 @@ import matplotlib.pyplot as plt
 
 from optihood.Visualizer import scenario_to_visualizer as stv
 
+"""
+    The dash technology restricts the passing of information to a list of dicts with limited elements (str, int, float).
+    Thus, polymorphism is now working around the dictionary as follows:
+    - Prepare dicts to be given to dash from polymorphic classes
+    - Use same classes to read the dict again and produce the string needed for the UI.
+    - These classes should be usable in different technology, which is likely required to move forward to a GUI.
+"""
+
 
 def setup_cytoscape_app(nodes: _tp.Dict[str, _tp.Dict[str, _tp.Union[str, float]]], edges) -> dash.Dash:
     """
