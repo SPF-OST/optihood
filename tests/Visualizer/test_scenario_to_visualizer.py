@@ -9,7 +9,7 @@ class TestNodalDataExample(_ut.TestCase):
     def setUp(self):
         self.maxDiff = None
         energyType = stv.EnergyTypes.electricity
-        self.nodalData = stv.NodalDataExample('la', 'Los Angeles', 'van', 'la', energyType, 34.03, -118.25)
+        self.nodalData = stv.NodalDataExample('la', 'Los Angeles', 'van', 'hou', energyType, 34.03, -118.25)
 
     def test_get_nodal_infos(self):
         result = self.nodalData.get_nodal_infos()
@@ -27,8 +27,10 @@ class TestNodalDataExample(_ut.TestCase):
 
     def test_get_edge_infos(self):
         result = self.nodalData.get_edge_infos()
-        expected_dict = {'data': {'source': 'van', 'target': 'la', 'energy_type': 'electricity'}}
-        self.assertDictEqual(result, expected_dict)
+        expected_dict_0 = {'data': {'source': 'van', 'target': 'la', 'energy_type': 'electricity'}}
+        expected_dict_1 = {'data': {'source': 'la', 'target': 'hou', 'energy_type': 'electricity'}}
+        self.assertDictEqual(result[0], expected_dict_0)
+        self.assertDictEqual(result[1], expected_dict_1)
 
     def test_read_edge_infos(self):
         with _pt.raises(NotImplementedError):
@@ -60,7 +62,9 @@ class TestCommoditySourcesConverter(_ut.TestCase):
         self.assertIsNone(result)
 
     def test_get_edge_infos(self):
-        assert False
+        result = self.nodalData.get_edge_infos()
+        expected_dict = {'data': {'source': 'elRes', 'target': 'gridBus', 'energy_type': 'electricity'}}
+        self.assertDictEqual(result, expected_dict)
 
     def test_get_edge_infos_ignored(self):
         assert False

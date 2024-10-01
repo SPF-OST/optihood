@@ -1,7 +1,8 @@
+import collections.abc as _abc
 import dataclasses as _dc
 import enum as _enum
-import typing as _tp
 import pathlib as _pl
+import typing as _tp
 
 
 class ScenarioDataTypes(_enum.StrEnum):
@@ -22,15 +23,33 @@ class ScenarioToVisualizerAbstract:
     """ From node and to node could also use enums. """
     id: str
     label: str
-    from_node: _tp.Optional[str]  # sources do not have this
-    to_node: _tp.Optional[str]  # sinks do not have this
+    from_node: _tp.Optional[_tp.Union[str, _abc.Sequence[str]]]  # sources do not have this
+    to_node: _tp.Optional[_tp.Union[str, _abc.Sequence[str]]]  # sinks do not have this
     energy_type: _tp.Type[EnergyTypes]
+    edges_into_node: list[dict[str, dict[str, _tp.Union[str, float, int]]]] = _dc.field(init=False)
+    edges_out_of_node: list[dict[str, dict[str, _tp.Union[str, float, int]]]] = _dc.field(init=False)
 
     def get_nodal_infos(self):
         raise NotImplementedError('Do not access parent class directly')
 
-    def get_edge_infos(self):
-        raise NotImplementedError('Do not access parent class directly')
+    def get_edge_infos(self) -> list[dict[str, dict[str, _tp.Union[str, float, int]]]]:
+        self.edges_into_node = []
+        if self.from_node:
+            if not isinstance(self.from_node, list):
+                self.from_node = [self.from_node]
+            for from_node in self.from_node:
+                self.edges_into_node.append({'data': {'source': from_node, 'target': self.id,
+                                                      'energy_type': self.energy_type.value}})
+        self.edges_out_of_node = []
+        if self.to_node:
+            if not isinstance(self.to_node, list):
+                self.to_node = [self.to_node]
+            for to_node in self.to_node:
+                self.edges_out_of_node.append({'data': {'source': self.id, 'target': to_node,
+                                                        'energy_type': self.energy_type.value}})
+
+        all_edges = self.edges_into_node + self.edges_out_of_node
+        return all_edges
 
     @staticmethod
     def read_nodal_infos(data: dict[str, _tp.Union[str, float, int]]):
@@ -62,11 +81,13 @@ class NodalDataExample(ScenarioToVisualizerAbstract):
         }
 
     @staticmethod
-    def read_nodal_infos(data: dict[str, _tp.Union[str, float, int]]):
+    def read_nodal_infos(data: dict[str, _tp.Union[str, float, int]]) -> str:
         return f"{data['label']}, {data['lat']}, {data['long']}"
 
-    def get_edge_infos(self):
-        return {'data': {'source': self.from_node, 'target': self.to_node, 'energy_type': self.energy_type.value}}
+    # def get_edge_infos(self) -> dict[str, dict[str, _tp.Union[str, float, int]]]:
+    #     """ no edge exists if one or the other is missing. """
+    #     if self.from_node and self.to_node:
+    #         return {'data': {'source': self.from_node, 'target': self.to_node, 'energy_type': self.energy_type.value}}
 
     @staticmethod
     def read_edge_infos(data: dict[str, _tp.Union[str, float, int]]):
@@ -79,6 +100,10 @@ class CommoditySourcesConverter(ScenarioToVisualizerAbstract):
     variable_costs: _tp.Union[float, _pl.Path]
     CO2_impact: _tp.Union[float, _pl.Path]
     active: bool
+
+    def __post_init__(self):
+        if self.from_node:
+            raise Warning(f'Commodity sources do not have a from node. Received {self.from_node}.')
 
     def get_nodal_infos(self) -> _tp.Optional[dict[str, dict[str, _tp.Union[str, int, float, _pl.Path]]]]:
         if self.active:
