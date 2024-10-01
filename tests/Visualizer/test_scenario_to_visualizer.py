@@ -77,3 +77,32 @@ class TestCommoditySourcesConverter(_ut.TestCase):
         expected_string = ("{'id': 'la', 'label': 'Los Angeles', 'building': 1, 'variable_costs': 0.024, 'CO2_impact': "
                            "0.018}")
         self.assertEqual(result, expected_string)
+
+
+class TestBusesConverter(_ut.TestCase):
+    def setUp(self):
+        self.maxDiff = None
+        energyType = stv.EnergyTypes.electricity
+        self.path = _pl.Path("..\\excels\\basic_example\\electricity_impact.csv")
+        self.nodalData = stv.BusesConverter('gridBus', 'gridBus', None, None, energyType, building=1, excess=1,
+                                            excess_costs=0.024, active=True)
+        self.nodalDataExtended = stv.BusesConverter('gridBus', 'gridBus', None, None, energyType, building=1, excess=1,
+                                                    excess_costs=0.024, active=True, shortage=True,
+                                                    shortage_costs=0.012)
+
+    def test_get_nodal_infos(self):
+        result = self.nodalData.get_nodal_infos()
+        expected_dict = {
+            'data': {'id': 'gridBus', 'label': 'gridBus', "building": 1, "excess": 1, "excess_costs": 0.024,
+                     'shortage': None, "shortage_costs": None}
+        }
+        self.assertDictEqual(result, expected_dict)
+
+    def test_get_nodal_infos_extended(self):
+        result = self.nodalDataExtended.get_nodal_infos()
+        expected_dict = {
+            'data': {'id': 'gridBus', 'label': 'gridBus', "building": 1, "excess": 1, "excess_costs": 0.024,
+                     'shortage': True, "shortage_costs": 0.012}
+        }
+        self.assertDictEqual(result, expected_dict)
+

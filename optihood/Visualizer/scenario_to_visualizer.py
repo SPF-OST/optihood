@@ -91,7 +91,6 @@ class CommoditySourcesConverter(ScenarioToVisualizerAbstract):
     building: int
     variable_costs: _tp.Union[float, _pl.Path]
     CO2_impact: _tp.Union[float, _pl.Path]
-    active: bool
 
     def __post_init__(self):
         if self.from_node:
@@ -101,3 +100,25 @@ class CommoditySourcesConverter(ScenarioToVisualizerAbstract):
         if self.active:
             return {"data": {'id': self.id, 'label': self.label, "building": self.building,
                              "variable_costs": self.variable_costs, "CO2_impact": self.CO2_impact}}
+
+
+@_dc.dataclass()
+class BusesConverter(ScenarioToVisualizerAbstract):
+    building: int
+    excess: int
+    excess_costs: _tp.Union[float, _pl.Path]
+    shortage: _tp.Optional[bool] = None
+    shortage_costs: _tp.Optional[_tp.Union[float, _pl.Path]] = None
+
+    def __post_init__(self):
+        if self.from_node:
+            raise Warning(f'Buses tend not to have a from node assigned in the scenario. Received {self.from_node}.')
+        if self.to_node:
+            raise Warning(f'Buses tend not to have a from node assigned in the scenario. Received {self.from_node}.')
+
+    def get_nodal_infos(self) -> _tp.Optional[dict[str, dict[str, _tp.Union[str, int, float, _pl.Path]]]]:
+        if self.active:
+            return {"data": {'id': self.id, 'label': self.label, "building": self.building,
+                             "excess": self.excess, "excess_costs": self.excess_costs, "shortage": self.shortage,
+                             "shortage_costs": self.shortage_costs}}
+
