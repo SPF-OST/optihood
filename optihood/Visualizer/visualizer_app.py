@@ -1,8 +1,7 @@
 import json
 from textwrap import dedent as d
 import typing as _tp
-import dataclasses as _dc
-import enum as _enum
+
 
 import dash
 import plotly.express as px
@@ -10,36 +9,7 @@ from dash import html, dcc, Input, Output, State, callback
 import dash_cytoscape as cyto
 import matplotlib.pyplot as plt
 
-
-@_dc.dataclass()
-class NodalDataExample:
-    id: str
-    label: str
-    longitude: float
-    latitude: float
-
-    def get_nodal_infos(self):
-        return {
-            'data': {'id': self.id, 'label': self.label, "lat": self.latitude, "long": self.longitude},
-            'position': {'x': 20 * self.latitude, 'y': -20 * self.longitude}
-        }
-
-    @staticmethod
-    def read_nodal_infos(data: dict[str, _tp.Union[str, float, int]]):
-        return f"{data['label']}, {data['lat']}, {data['long']}"
-
-
-class NodalDataTypes(_enum.StrEnum):
-    example: str = 'example'
-
-
-def nodal_data_factory(nodal_data_type: str):
-    nodal_data_types = {NodalDataTypes.example: NodalDataExample}
-
-    if nodal_data_type not in nodal_data_types:
-        raise NotImplementedError("received unexpected type")
-
-    return nodal_data_types[nodal_data_type]
+from optihood.Visualizer import scenario_to_visualizer as stv
 
 
 def setup_cytoscape_app(nodes: _tp.Dict[str, _tp.Dict[str, _tp.Union[str, float]]], edges) -> dash.Dash:
@@ -83,7 +53,7 @@ def setup_cytoscape_app(nodes: _tp.Dict[str, _tp.Dict[str, _tp.Union[str, float]
         if data_list is None:
             return "No nodes selected."
 
-        NodalData = nodal_data_factory(NodalDataTypes.example)
+        NodalData = stv.scenario_data_factory(stv.ScenarioDataTypes.example)
         selected_nodes_list = [NodalData.read_nodal_infos(data) for data in data_list]
         return "You selected the nodes: " + "\n* ".join(selected_nodes_list)
 
@@ -257,7 +227,7 @@ if __name__ == '__main__':
         fig = px.scatter_matrix(df[['sepal_length', 'sepal_width']])
         run_fig_visualizer(fig)
     elif version == "cytoscape":
-        NodalData = nodal_data_factory(NodalDataTypes.example)
+        NodalData = stv.scenario_data_factory(stv.ScenarioDataTypes.example)
         nodal_data_list = [
             NodalData('la', 'Los Angeles', 34.03, -118.25),
             NodalData('nyc', 'New York', 40.71, -74),
