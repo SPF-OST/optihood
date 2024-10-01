@@ -111,9 +111,6 @@ class CommoditySourcesConverter(ScenarioToVisualizerAbstract):
                              "variable_costs": self.variable_costs, "CO2_impact": self.CO2_impact}}
         return
 
-    def get_edge_infos(self):
-        pass
-
     @staticmethod
     def read_nodal_infos(data: dict[str, _tp.Union[str, float, int]]):
         pass

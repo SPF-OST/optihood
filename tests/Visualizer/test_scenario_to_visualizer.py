@@ -64,7 +64,7 @@ class TestCommoditySourcesConverter(_ut.TestCase):
     def test_get_edge_infos(self):
         result = self.nodalData.get_edge_infos()
         expected_dict = {'data': {'source': 'elRes', 'target': 'gridBus', 'energy_type': 'electricity'}}
-        self.assertDictEqual(result, expected_dict)
+        self.assertDictEqual(result[0], expected_dict)
 
     def test_get_edge_infos_ignored(self):
         assert False
