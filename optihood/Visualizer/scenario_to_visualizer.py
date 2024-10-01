@@ -3,6 +3,7 @@ import dataclasses as _dc
 import enum as _enum
 import pathlib as _pl
 import typing as _tp
+
 import pandas as _pd
 
 
@@ -26,7 +27,7 @@ class ScenarioToVisualizerAbstract:
     label: str
     from_node: _tp.Optional[_tp.Union[str, _abc.Sequence[str]]]  # sources do not have this
     to_node: _tp.Optional[_tp.Union[str, _abc.Sequence[str]]]  # sinks do not have this
-    energy_type: _tp.Type[EnergyTypes]
+    energy_type: EnergyTypes
     active: bool
     edges_into_node: list[dict[str, dict[str, _tp.Union[str, float, int]]]] = _dc.field(init=False)
     edges_out_of_node: list[dict[str, dict[str, _tp.Union[str, float, int]]]] = _dc.field(init=False)
@@ -106,6 +107,17 @@ class CommoditySourcesConverter(ScenarioToVisualizerAbstract):
         if self.active:
             return {"data": {'id': self.id, 'label': self.label, "building": self.building,
                              "variable_costs": self.variable_costs, "CO2_impact": self.CO2_impact}}
+
+    @staticmethod
+    def set_from_dataFrame(df: _pd.DataFrame) -> _abc.Sequence[_tp.Type[ScenarioToVisualizerAbstract]]:
+        list_of_demands = []
+        for i, line in df.iterrows():
+            energyType = EnergyTypes.electricity
+            list_of_demands.append(CommoditySourcesConverter(line['label'], line['label'], None, line['to'], energyType,
+                                                             active=line['active'], building=line['building'],
+                                                             variable_costs=line['variable costs'],
+                                                             CO2_impact=line['CO2 impact']))
+        return list_of_demands
 
 
 @_dc.dataclass()

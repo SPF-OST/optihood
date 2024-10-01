@@ -15,6 +15,7 @@ import optihood.Visualizer.scenario_to_visualizer as stv
 #
 
 # TODO: adjust id to provided values.
+# TODO: adjust energy types according to actual values.
 
 class TestNodalDataExample(_ut.TestCase):
     def setUp(self):
@@ -88,6 +89,25 @@ class TestCommoditySourcesConverter(_ut.TestCase):
         expected_string = ("{'id': 'la', 'label': 'Los Angeles', 'building': 1, 'variable_costs': 0.024, 'CO2_impact': "
                            "0.018}")
         self.assertEqual(result, expected_string)
+
+    def test_set_from_dataFrame(self):
+        data_df = _pd.DataFrame(index=[0],
+                                data={"label": "electricityResource",
+                                      "building": 1,
+                                      "active": 1,
+                                      "to": "gridBus",
+                                      "variable costs": 0.204,
+                                      "CO2 impact": self.path,
+                                      })
+        result = stv.CommoditySourcesConverter.set_from_dataFrame(data_df)
+        expected_dict = {
+            'data': {'id': 'electricityResource', 'label': 'electricityResource', "building": 1,
+                     "variable_costs": 0.204, "CO2_impact": self.path}
+        }
+
+        # Flesh out test?
+        self.assertDictEqual(result[0].get_nodal_infos(), expected_dict)
+
 
 
 class TestBusesConverter(_ut.TestCase):
