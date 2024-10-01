@@ -237,33 +237,20 @@ if __name__ == '__main__':
     elif version == "cytoscape":
         NodalData = stv.scenario_data_factory(stv.ScenarioDataTypes.example)
         nodal_data_list = [
-            NodalData('la', 'Los Angeles', 34.03, -118.25),
-            NodalData('nyc', 'New York', 40.71, -74),
-            NodalData('to', 'Toronto', 43.65, -79.38),
-            NodalData('mtl', 'Montreal', 45.50, -73.57),
-            NodalData('van', 'Vancouver', 49.28, -123.12),
-            NodalData('chi', 'Chicago', 41.88, -87.63),
-            NodalData('bos', 'Boston', 42.36, -71.06),
-            NodalData('hou', 'Houston', 29.76, -95.37)
+            NodalData('la', 'Los_Angeles', 'van', 'la', 34.03, -118.25 ),
+            NodalData('nyc', 'New_York', 'la', 'chi', 40.71, -74 ),
+            NodalData('to', 'Toronto', 'hou', 'chi', 43.65, -79.38 ),
+            NodalData('mtl', 'Montreal', 'to', 'mtl', 45.50, -73.57 ),
+            NodalData('van', 'Vancouver', 'mtl', 'bos', 49.28, -123.12 ),
+            NodalData('chi', 'Chicago', 'nyc', 'bos', 41.88, -87.63 ),
+            NodalData('bos', 'Boston', 'to', 'hou', 42.36, -71.06 ),
+            NodalData('hou', 'Houston', 'to', 'nyc', 29.76, -95.37)
         ]
         nodes_dict = []
+        edges_dict = []
         for i, nodalData in enumerate(nodal_data_list):
             nodes_dict.append(nodalData.get_nodal_infos())
+            edges_dict.append(nodalData.get_edge_infos())
 
-        edges_dict = [
-            {'data': {'source': source, 'target': target}}
-            for source, target in (
-                ('van', 'la'),
-                ('la', 'chi'),
-                ('hou', 'chi'),
-                ('to', 'mtl'),
-                ('mtl', 'bos'),
-                ('nyc', 'bos'),
-                ('to', 'hou'),
-                ('to', 'nyc'),
-                ('la', 'nyc'),
-                ('nyc', 'bos')
-            )
-        ]
         app = dash.Dash('Optihood input Visualizer')
         run_cytoscape_visualizer(nodes_dict, edges_dict)
