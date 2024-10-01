@@ -1,5 +1,6 @@
 import unittest as _ut
 import pytest as _pt
+import pathlib as _pl
 
 import optihood.Visualizer.scenario_to_visualizer as stv
 
@@ -32,3 +33,37 @@ class TestNodalDataExample(_ut.TestCase):
     def test_read_edge_infos(self):
         with _pt.raises(NotImplementedError):
             self.nodalData.read_edge_infos({'stuff': 0})
+
+
+class TestCommoditySourcesConverter(_ut.TestCase):
+    def setUp(self):
+        self.maxDiff = None
+        energyType = stv.EnergyTypes.electricity
+        self.path = _pl.Path("..\\excels\\basic_example\\electricity_impact.csv")
+        self.nodalData = stv.CommoditySourcesConverter('elRes', 'electricityResource', None, 'gridBus', energyType,
+                                                       building=1, variable_costs=0.204, CO2_impact=self.path,
+                                                       active=True)
+        self.nodalDataFalse = stv.CommoditySourcesConverter('elRes', 'electricityResource', None, 'gridBus', energyType,
+                                                            building=1, variable_costs=0.204, CO2_impact=self.path,
+                                                            active=False)
+
+    def test_get_nodal_infos(self):
+        result = self.nodalData.get_nodal_infos()
+        expected_dict = {
+            'data': {'id': 'elRes', 'label': 'electricityResource', "building": 1, "variable_costs": 0.204,
+                     "CO2_impact": self.path}
+        }
+        self.assertDictEqual(result, expected_dict)
+
+    def test_get_nodal_infos_ignored(self):
+        result = self.nodalDataFalse.get_nodal_infos()
+        self.assertIsNone(result)
+
+    def test_get_edge_infos(self):
+        assert False
+
+    def test_get_edge_infos_ignored(self):
+        assert False
+
+    def test_read_nodal_infos(self):
+        assert False

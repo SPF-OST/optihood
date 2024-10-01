@@ -1,6 +1,7 @@
 import dataclasses as _dc
 import enum as _enum
 import typing as _tp
+import pathlib as _pl
 
 
 class ScenarioDataTypes(_enum.StrEnum):
@@ -21,8 +22,8 @@ class ScenarioToVisualizerAbstract:
     """ From node and to node could also use enums. """
     id: str
     label: str
-    from_node: str
-    to_node: str
+    from_node: _tp.Optional[str]  # sources do not have this
+    to_node: _tp.Optional[str]  # sinks do not have this
     energy_type: _tp.Type[EnergyTypes]
 
     def get_nodal_infos(self):
@@ -70,3 +71,24 @@ class NodalDataExample(ScenarioToVisualizerAbstract):
     @staticmethod
     def read_edge_infos(data: dict[str, _tp.Union[str, float, int]]):
         raise NotImplementedError
+
+
+@_dc.dataclass()
+class CommoditySourcesConverter(ScenarioToVisualizerAbstract):
+    building: int
+    variable_costs: _tp.Union[float, _pl.Path]
+    CO2_impact: _tp.Union[float, _pl.Path]
+    active: bool
+
+    def get_nodal_infos(self) -> _tp.Optional[dict[str, dict[str, _tp.Union[str, int, float, _pl.Path]]]]:
+        if self.active:
+            return {"data": {'id': self.id, 'label': self.label, "building": self.building,
+                             "variable_costs": self.variable_costs, "CO2_impact": self.CO2_impact}}
+        return
+
+    def get_edge_infos(self):
+        pass
+
+    @staticmethod
+    def read_nodal_infos(data: dict[str, _tp.Union[str, float, int]]):
+        pass
