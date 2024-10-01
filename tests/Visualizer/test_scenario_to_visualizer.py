@@ -30,5 +30,5 @@ class TestNodalDataExample(_ut.TestCase):
         self.assertDictEqual(result, expected_dict)
 
     def test_read_edge_infos(self):
-        # with _pt.raise()
-        self.fail()
+        with _pt.raises(NotImplementedError):
+            self.nodalData.read_edge_infos({'stuff': 0})
