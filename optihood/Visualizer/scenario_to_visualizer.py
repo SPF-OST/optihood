@@ -188,3 +188,24 @@ class DemandConverter(ScenarioToVisualizerAbstract):
                                                    fixed=line['fixed'], nominal_value=line['nominal value'],
                                                    building_model=line['building model']))
         return list_of_demands
+
+
+@_dc.dataclass()
+class GridConnectionConverter(ScenarioToVisualizerAbstract):
+    building: int
+    efficiency: float
+
+    def get_nodal_infos(self) -> _tp.Optional[dict[str, dict[str, _tp.Union[str, int, float, _pl.Path]]]]:
+        if self.active:
+            return {"data": {'id': self.id, 'label': self.label, "building": self.building,
+                             "efficiency": self.efficiency, }}
+
+    @staticmethod
+    def set_from_dataFrame(df: _pd.DataFrame) -> _abc.Sequence[_tp.Type[ScenarioToVisualizerAbstract]]:
+        list_of_demands = []
+        for i, line in df.iterrows():
+            energyType = EnergyTypes.electricity
+            list_of_demands.append(GridConnectionConverter(line['label'], line['label'], line['from'], line['to'],
+                                                           energyType, active=line['active'], building=line['building'],
+                                                           efficiency=line['efficiency']))
+        return list_of_demands

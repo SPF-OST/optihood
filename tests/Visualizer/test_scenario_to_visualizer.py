@@ -8,10 +8,13 @@ import optihood.Visualizer.scenario_to_visualizer as stv
 
 
 # list of uncertainties
+# - check docs
 # - demand:
 #   - fixed?
 #   - nominal_value
 #   - building model
+# - grid connection
+#   - efficiency
 #
 
 # TODO: adjust id to provided values.
@@ -195,6 +198,38 @@ class TestDemandConverter(_ut.TestCase):
             'data': {'id': 'electricityDemand', 'label': 'electricityDemand', "building": 1, "fixed": 1,
                      "nominal_value": 1,
                      'building_model': None}
+        }
+
+        # Flesh out test?
+        self.assertDictEqual(result[0].get_nodal_infos(), expected_dict)
+
+
+class TestGridConnectionConverter(_ut.TestCase):
+    def setUp(self):
+        self.maxDiff = None
+        energyType = stv.EnergyTypes.electricity
+        self.nodalData = stv.GridConnectionConverter('gridEl', 'gridElectricity', "gridBus", "electricityInBus",
+                                                     energyType, building=1, efficiency=1, active=True)
+
+    def test_get_nodal_infos(self):
+        result = self.nodalData.get_nodal_infos()
+        expected_dict = {
+            'data': {'id': 'gridEl', 'label': 'gridElectricity', "building": 1, "efficiency": 1}
+        }
+        self.assertDictEqual(result, expected_dict)
+
+    def test_set_from_dataFrame(self):
+        data_df = _pd.DataFrame(index=None,
+                                data={"label": ["gridElectricity", "electricitySource", "producedElectricity"],
+                                      "building": [1, 1, 1],
+                                      "active": [1, 1, 1],
+                                      "from": ["gridBus", "electricityProdBus", "electricityBus"],
+                                      "to": ["electricityInBus", "electricityBus", "electricityInBus"],
+                                      "efficiency": [1, 1, 1],
+                                      })
+        result = stv.GridConnectionConverter.set_from_dataFrame(data_df)
+        expected_dict = {
+            'data': {'id': 'gridElectricity', 'label': 'gridElectricity', "building": 1, "efficiency": 1, }
         }
 
         # Flesh out test?
