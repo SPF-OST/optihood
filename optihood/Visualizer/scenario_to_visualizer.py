@@ -122,3 +122,20 @@ class BusesConverter(ScenarioToVisualizerAbstract):
                              "excess": self.excess, "excess_costs": self.excess_costs, "shortage": self.shortage,
                              "shortage_costs": self.shortage_costs}}
 
+
+@_dc.dataclass()
+class DemandConverter(ScenarioToVisualizerAbstract):
+    building: int
+    fixed: int
+    nominal_value: int
+    building_model: _tp.Optional[bool] = None
+
+    def __post_init__(self):
+        if self.to_node:
+            raise Warning(f'Buses tend not to have a from node assigned in the scenario. Received {self.from_node}.')
+
+    def get_nodal_infos(self) -> _tp.Optional[dict[str, dict[str, _tp.Union[str, int, float, _pl.Path]]]]:
+        if self.active:
+            return {"data": {'id': self.id, 'label': self.label, "building": self.building,
+                             "fixed": self.fixed, "nominal_value": self.nominal_value,
+                             "building_model": self.building_model}}

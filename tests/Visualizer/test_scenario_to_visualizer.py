@@ -5,6 +5,12 @@ import pathlib as _pl
 import optihood.Visualizer.scenario_to_visualizer as stv
 
 
+# list of uncertainties
+# - demand:
+#   - fixed?
+#   - nominal_value
+#   - building model
+#
 class TestNodalDataExample(_ut.TestCase):
     def setUp(self):
         self.maxDiff = None
@@ -106,3 +112,29 @@ class TestBusesConverter(_ut.TestCase):
         }
         self.assertDictEqual(result, expected_dict)
 
+
+class TestDemandConverter(_ut.TestCase):
+    def setUp(self):
+        self.maxDiff = None
+        energyType = stv.EnergyTypes.electricity
+        self.path = _pl.Path("..\\excels\\basic_example\\electricity_impact.csv")
+        self.nodalData = stv.DemandConverter('elDem', 'electricityDemand', None, None, energyType, building=1, fixed=1,
+                                             nominal_value=1, active=True)
+        self.nodalDataExtended = stv.DemandConverter('elDem', 'electricityDemand', None, None, energyType, building=1,
+                                                     fixed=1, nominal_value=1, active=True, building_model=True)
+
+    def test_get_nodal_infos(self):
+        result = self.nodalData.get_nodal_infos()
+        expected_dict = {
+            'data': {'id': 'elDem', 'label': 'electricityDemand', "building": 1, "fixed": 1, "nominal_value": 1,
+                     'building_model': None}
+        }
+        self.assertDictEqual(result, expected_dict)
+
+    def test_get_nodal_infos_extended(self):
+        result = self.nodalDataExtended.get_nodal_infos()
+        expected_dict = {
+            'data': {'id': 'elDem', 'label': 'electricityDemand', "building": 1, "fixed": 1, "nominal_value": 1,
+                     'building_model': True}
+        }
+        self.assertDictEqual(result, expected_dict)
