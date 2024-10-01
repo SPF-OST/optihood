@@ -809,7 +809,7 @@ class Building:
                     logging.warning("Transformer label not identified, adding generic transformer component...")
                     self._addGenericTransformer(t)
 
-    def addStorage(self, data, stratifiedStorageParams, opt, mergeLinkBuses, dispatchMode, temperatureLevels):
+    def addStorage(self, data, storageParams, ambientTemperature, opt, mergeLinkBuses, dispatchMode, temperatureLevels):
         sList = []
         for i, s in data.iterrows():
             if s["active"]:
@@ -817,7 +817,7 @@ class Building:
                 if temperatureLevels and s["label"] == "thermalStorage":
                     inputBuses = [self.__busDict[iLabel + '__' + self.__buildingLabel] for iLabel in s["from"].split(",")]
                     outputBuses = [self.__busDict[oLabel + '__' + self.__buildingLabel] for oLabel in s["to"].split(",")]
-                    storTemperatures = stratifiedStorageParams.at[s["label"],"temp_h"].split(",")
+                    storTemperatures = storageParams["stratified_storage"].at[s["label"],"temp_h"].split(",")
                     self.__technologies.append([outputBuses[0].label, f'dummy_{storageLabel.replace("thermalStorage",f"thermalStorage{int(storTemperatures[0])}")}'])
                     self.__technologies.append([outputBuses[1].label, storageLabel.replace("thermalStorage",f"thermalStorage{int(storTemperatures[-1])}")])
                 else:
@@ -848,7 +848,7 @@ class Building:
 
                 elif (s["label"] == "dhwStorage" or s["label"] == "shStorage") and not temperatureLevels:
                     self.__nodesList.append(ThermalStorage(storageLabel,
-                                                           stratifiedStorageParams, self.__busDict[inputBusLabel],
+                                                           storageParams["stratified_storage"], self.__busDict[inputBusLabel],
                                                            self.__busDict[outputBusLabel],
                                                         float(s["initial capacity"]), float(s["capacity min"]),
                                                         float(s["capacity max"]),
@@ -857,7 +857,7 @@ class Building:
                                                         float(s["heat_impact"]), envImpactPerCapacity, dispatchMode))
                 elif s["label"] == "thermalStorage" and temperatureLevels:
                     storage = ThermalStorageTemperatureLevels(storageLabel,
-                               stratifiedStorageParams, inputBuses,
+                               storageParams["stratified_storage"], inputBuses,
                                outputBuses,
                                float(s["initial capacity"]), float(s["capacity min"]),
                                float(s["capacity max"]),
@@ -871,10 +871,24 @@ class Building:
                     for i in range(len(inputBuses)):
                         self.__nodesList.append(storage.getStorageLevel(i))
                         self.__nodesList.extend(storage.getDummyComponents(i))
+                elif "iceStorage" in s["label"]:
+                    self.__nodesList.append(IceStorage(label=storageLabel,input=self.__busDict[inputBusLabel],
+                                                       output=self.__busDict[outputBusLabel],
+                                                       tStorInit=float(storageParams["ice_storage"].at[s["label"],"intitial_temp"]),
+                                                       fMax=float(storageParams["ice_storage"].at[s["label"],"max_ice_fraction"]),
+                                                       rho=float(storageParams["ice_storage"].at[s["label"],"rho_fluid"]),
+                                                       V=float(s["capacity max"]),
+                                                       hfluid=float(storageParams["ice_storage"].at[s["label"],"h_fluid"]),
+                                                       cp=float(storageParams["ice_storage"].at[s["label"],"cp_fluid"]),
+                                                       Tamb=ambientTemperature,
+                                                       UAtank=float(storageParams["ice_storage"].at[s["label"],"UA_tank"]),
+                                                       inflow_conversion_factor=float(storageParams["ice_storage"].at[s["label"],"inflow_conversion_factor"]),
+                                                       outflow_conversion_factor=float(storageParams["ice_storage"].at[s["label"],"outflow_conversion_factor"])))
+
                 elif s["label"] != "dhwStorage" and s["label"] != "shStorage" and s["label"] != "thermalStorage":  #"Storage" in s["label"]
                     is_tank = False
                     self.__nodesList.append(ThermalStorage(storageLabel,
-                           stratifiedStorageParams, self.__busDict[inputBusLabel],
+                           storageParams["stratified_storage"], self.__busDict[inputBusLabel],
                            self.__busDict[outputBusLabel],
                            float(s["initial capacity"]), float(s["capacity min"]),
                            float(s["capacity max"]),

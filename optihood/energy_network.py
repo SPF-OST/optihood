@@ -223,6 +223,8 @@ class EnergyNetworkClass(solph.EnergySystem):
             _ent.NodeKeys.stratified_storage.value: func(data, _ent.NodeKeys.stratified_storage.value),
             _ent.NodeKeys.profiles.value: func(data, _ent.NodeKeys.profiles.value)
         }
+        if "ice_storage" in _ent.NodeKeys:
+            nodes_data.update({_ent.NodeKeys.ice_storage.value: func(data, _ent.NodeKeys.ice_storage.value)})
         return nodes_data
 
     @staticmethod
@@ -236,8 +238,9 @@ class EnergyNetworkClass(solph.EnergySystem):
     def createNodesData(self, nodesData, file_or_folder_path, numBuildings, clusterSize):
         self.__noOfBuildings = numBuildings
 
-        # update stratified_storage index
+        # update stratified_storage and ice storage index
         nodesData[_ent.NodeKeys.stratified_storage.value].set_index(_ent.StratifiedStorageLabels.label.value, inplace=True)
+        nodesData[_ent.NodeKeys.ice_storage.value].set_index(_ent.IceStorageLabels.label.value, inplace=True)
 
         # extract input data from CSVs
         electricityImpact = self.get_values_from_dataframe(nodesData[_ent.NodeKeys.commodity_sources.value], _ent.CommoditySourceTypes.electricityResource.value, _ent.CommoditySourcesLabels.label.value, _ent.CommoditySourcesLabels.CO2_impact.value)
@@ -443,6 +446,9 @@ class EnergyNetworkClass(solph.EnergySystem):
                 self.__LgenericStorage['boreholeStorage'] = self._rho * self._c * (data["stratified_storage"].loc["boreholeStorage", "temp_h"] - data["stratified_storage"].loc["boreholeStorage", "temp_c"]) / 3600
             if 'aquifierStorage' in data['storages']['label'].unique():
                 self.__LgenericStorage['aquifierStorage'] = self._rho * self._c * (data["stratified_storage"].loc["aquifierStorage", "temp_h"] - data["stratified_storage"].loc["aquifierStorage", "temp_c"]) / 3600
+        # Storage conversion m3 - kWh for ice storage
+        if 'iceStorage' in data['storages']['label'].unique():
+            self.__m3IceStorage = self._rho * 1000 * self._c * (10 - 0) / 3600
         self._addBuildings(data, opt, mergeLinkBuses, mergeBuses, mergeHeatSourceSink, includeCarbonBenefits, clusterSize)
 
     def _addBuildings(self, data, opt, mergeLinkBuses, mergeBuses, mergeHeatSourceSink, includeCarbonBenefits, clusterSize):
@@ -473,7 +479,9 @@ class EnergyNetworkClass(solph.EnergySystem):
                 bmdata = {}
             b.addSink(data["demand"][data["demand"]["building"] == i], data["demandProfiles"][i], bmdata, mergeLinkBuses, mergeHeatSourceSink, self._temperatureLevels)
             b.addTransformer(data["transformers"][data["transformers"]["building"] == i], self.__operationTemperatures, self.__temperatureAmb, self.__temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, self._dispatchMode, self._temperatureLevels)
-            storageList = b.addStorage(data["storages"][data["storages"]["building"] == i], data["stratified_storage"], opt, mergeLinkBuses, self._dispatchMode, self._temperatureLevels)
+            storageParams = {"stratified_storage": data["stratified_storage"],
+                             "ice_storage": data["ice_storage"]}
+            storageList = b.addStorage(data["storages"][data["storages"]["building"] == i], storageParams, self.__temperatureAmb, opt, mergeLinkBuses, self._dispatchMode, self._temperatureLevels)
             b.addSolar(data["solar"][(data["solar"]["building"] == i) & (data["solar"]["label"] == "solarCollector")], data["weather_data"], opt, mergeLinkBuses, self._dispatchMode, self._temperatureLevels)
             b.addPV(data["solar"][(data["solar"]["building"] == i) & (data["solar"]["label"] == "pv")], data["weather_data"], opt, self._dispatchMode)
             b.addPVT(data["solar"][(data["solar"]["building"] == i) & (data["solar"]["label"] == "pvt")], data["weather_data"], opt, mergeLinkBuses, self._dispatchMode)
@@ -778,6 +786,8 @@ class EnergyNetworkClass(solph.EnergySystem):
                 capacitiesStorages[storage] = capacitiesStorages[storage] / self.__LgenericStorage['boreholeStorage']
             elif "aquifier" in storage and not self._temperatureLevels:
                 capacitiesStorages[storage] = capacitiesStorages[storage] / self.__LgenericStorage['aquifierStorage']
+            elif "iceStorage" in storage:
+                capacitiesStorages[storage] = capacitiesStorages[storage]/self.__m3IceStorage
         return capacitiesStorages
 
     def _postprocessingClusters(self, clusterSize):
