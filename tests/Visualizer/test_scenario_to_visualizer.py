@@ -1,6 +1,8 @@
-import unittest as _ut
-import pytest as _pt
 import pathlib as _pl
+import unittest as _ut
+
+import pandas as _pd
+import pytest as _pt
 
 import optihood.Visualizer.scenario_to_visualizer as stv
 
@@ -11,6 +13,9 @@ import optihood.Visualizer.scenario_to_visualizer as stv
 #   - nominal_value
 #   - building model
 #
+
+# TODO: adjust id to provided values.
+
 class TestNodalDataExample(_ut.TestCase):
     def setUp(self):
         self.maxDiff = None
@@ -138,3 +143,22 @@ class TestDemandConverter(_ut.TestCase):
                      'building_model': True}
         }
         self.assertDictEqual(result, expected_dict)
+
+    def test_set_from_dataFrame(self):
+        data_df = _pd.DataFrame(index=None,
+                                data={"label": ["electricityDemand", "spaceHeatingDemand", "domesticHotWaterDemand"],
+                                      "building": [1, 1, 1],
+                                      "active": [1, 1, 1],
+                                      "from": ["electricityInBus", "shDemandBus", "domesticHotWaterBus"],
+                                      "fixed": [1, 1, 1],
+                                      "nominal value": [1, 1, 1],
+                                      "building model": [None, None, None],
+                                      })
+        result = stv.DemandConverter.set_from_dataFrame(data_df)
+        expected_dict = {
+            'data': {'id': 'electricityDemand', 'label': 'electricityDemand', "building": 1, "fixed": 1, "nominal_value": 1,
+                     'building_model': None}
+        }
+
+        # Flesh out test?
+        self.assertDictEqual(result[0].get_nodal_infos(), expected_dict)

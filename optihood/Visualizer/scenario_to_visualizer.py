@@ -3,6 +3,7 @@ import dataclasses as _dc
 import enum as _enum
 import pathlib as _pl
 import typing as _tp
+import pandas as _pd
 
 
 class ScenarioDataTypes(_enum.StrEnum):
@@ -62,6 +63,11 @@ class ScenarioToVisualizerAbstract:
     @staticmethod
     def read_edge_infos(data: dict[str, _tp.Union[str, float, int]]):
         """ This may never be needed. """
+        raise NotImplementedError('Do not access parent class directly')
+
+    @staticmethod
+    def set_from_dataFrame(df: _pd.DataFrame):  # -> _tp.Type[ScenarioToVisualizerAbstract]
+        """ Typing does not allow usage of this class's type."""
         raise NotImplementedError('Do not access parent class directly')
 
 
@@ -139,3 +145,14 @@ class DemandConverter(ScenarioToVisualizerAbstract):
             return {"data": {'id': self.id, 'label': self.label, "building": self.building,
                              "fixed": self.fixed, "nominal_value": self.nominal_value,
                              "building_model": self.building_model}}
+
+    @staticmethod
+    def set_from_dataFrame(df: _pd.DataFrame) -> _abc.Sequence[_tp.Type[ScenarioToVisualizerAbstract]]:
+        list_of_demands = []
+        for i, line in df.iterrows():
+            energyType = EnergyTypes.electricity
+            list_of_demands.append(DemandConverter(line['label'], line['label'], line['from'], None, energyType,
+                                                   active=line['active'], building=line['building'],
+                                                   fixed=line['fixed'], nominal_value=line['nominal value'],
+                                                   building_model=line['building model']))
+        return list_of_demands
