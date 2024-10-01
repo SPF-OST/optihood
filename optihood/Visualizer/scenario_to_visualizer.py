@@ -140,6 +140,26 @@ class BusesConverter(ScenarioToVisualizerAbstract):
                              "excess": self.excess, "excess_costs": self.excess_costs, "shortage": self.shortage,
                              "shortage_costs": self.shortage_costs}}
 
+    @staticmethod
+    def set_from_dataFrame(df: _pd.DataFrame) -> _abc.Sequence[_tp.Type[ScenarioToVisualizerAbstract]]:
+        list_of_demands = []
+        for i, line in df.iterrows():
+            energyType = EnergyTypes.electricity
+            # TODO: check whether shortage is given without shortage costs.
+            if 'shortage' not in line.keys():
+                line['shortage'] = None
+            if 'shortage costs' not in line.keys():
+                line['shortage costs'] = None
+            list_of_demands.append(
+                BusesConverter(line['label'], line['label'], None, None, energyType,
+                               active=line['active'], building=line['building'],
+                               excess=line['excess'],
+                               excess_costs=line['excess costs'],
+                               shortage=line['shortage'],
+                               shortage_costs=line['shortage costs']
+                               ))
+        return list_of_demands
+
 
 @_dc.dataclass()
 class DemandConverter(ScenarioToVisualizerAbstract):

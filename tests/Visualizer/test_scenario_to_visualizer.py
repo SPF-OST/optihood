@@ -109,7 +109,6 @@ class TestCommoditySourcesConverter(_ut.TestCase):
         self.assertDictEqual(result[0].get_nodal_infos(), expected_dict)
 
 
-
 class TestBusesConverter(_ut.TestCase):
     def setUp(self):
         self.maxDiff = None
@@ -136,6 +135,23 @@ class TestBusesConverter(_ut.TestCase):
                      'shortage': True, "shortage_costs": 0.012}
         }
         self.assertDictEqual(result, expected_dict)
+
+    def test_set_from_dataFrame(self):
+        data_df = _pd.DataFrame(index=None,
+                                data={"label": ["gridBus", "electricityProdBus", "electricityInBus", "shDemandBus"],
+                                      "building": [1, 1, 1, 1],
+                                      "active": [1, 1, 1, 1],
+                                      "excess": [False, False, True, False],
+                                      "excess costs": [None, None, -0.09, None],
+                                      })
+        result = stv.BusesConverter.set_from_dataFrame(data_df)
+        expected_dict = {
+            'data': {'id': 'electricityInBus', 'label': 'electricityInBus', "building": 1, "excess": 1, "excess_costs": -0.09,
+                     'shortage': None, "shortage_costs": None}
+        }
+
+        # Flesh out test?
+        self.assertDictEqual(result[2].get_nodal_infos(), expected_dict)
 
 
 class TestDemandConverter(_ut.TestCase):
@@ -176,7 +192,8 @@ class TestDemandConverter(_ut.TestCase):
                                       })
         result = stv.DemandConverter.set_from_dataFrame(data_df)
         expected_dict = {
-            'data': {'id': 'electricityDemand', 'label': 'electricityDemand', "building": 1, "fixed": 1, "nominal_value": 1,
+            'data': {'id': 'electricityDemand', 'label': 'electricityDemand', "building": 1, "fixed": 1,
+                     "nominal_value": 1,
                      'building_model': None}
         }
 
