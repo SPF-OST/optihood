@@ -2,8 +2,29 @@ import dataclasses as _dc
 import enum as _enum
 import typing as _tp
 
+
 @_dc.dataclass()
-class NodalDataExample:
+class ScenarioToVisualizerAbstract:
+    id: str
+    label: str
+
+    def get_nodal_infos(self):
+        raise NotImplementedError('Do not access parent class directly')
+
+    def get_edge_infos(self):
+        raise NotImplementedError('Do not access parent class directly')
+
+    @staticmethod
+    def read_nodal_infos(data: dict[str, _tp.Union[str, float, int]]):
+        raise NotImplementedError('Do not access parent class directly')
+
+    @staticmethod
+    def read_edge_infos(data: dict[str, _tp.Union[str, float, int]]):
+        raise NotImplementedError('Do not access parent class directly')
+
+
+@_dc.dataclass()
+class NodalDataExample(ScenarioToVisualizerAbstract):
     id: str
     label: str
     longitude: float
@@ -24,7 +45,7 @@ class ScenarioDataTypes(_enum.StrEnum):
     example: str = 'example'
 
 
-def scenario_data_factory(scenario_data_type: ScenarioDataTypes):
+def scenario_data_factory(scenario_data_type: ScenarioDataTypes) -> _tp.Type[ScenarioToVisualizerAbstract]:
     scenario_data_types = {ScenarioDataTypes.example: NodalDataExample}
 
     if scenario_data_type not in scenario_data_types:
