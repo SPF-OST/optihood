@@ -6,6 +6,8 @@ import pytest as _pt
 
 import optihood.Visualizer.scenario_to_visualizer as stv
 
+# TODO: solar, storages, transformers
+# TOSKIP: stratified storage, profiles
 
 # list of uncertainties
 # - check docs
@@ -19,6 +21,7 @@ import optihood.Visualizer.scenario_to_visualizer as stv
 
 # TODO: adjust id to provided values.
 # TODO: adjust energy types according to actual values.
+
 
 class TestNodalDataExample(_ut.TestCase):
     def setUp(self):

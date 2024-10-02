@@ -6,6 +6,8 @@ import typing as _tp
 
 import pandas as _pd
 
+from optihood.entities import NodeKeys as sheets
+
 
 class ScenarioDataTypes(_enum.StrEnum):
     example: str = 'example'
@@ -72,11 +74,16 @@ class ScenarioToVisualizerAbstract:
         raise NotImplementedError('Do not access parent class directly')
 
 
-def scenario_data_factory(scenario_data_type: ScenarioDataTypes) -> _tp.Type[ScenarioToVisualizerAbstract]:
-    scenario_data_types = {ScenarioDataTypes.example: NodalDataExample}
+def scenario_data_factory(scenario_data_type: str) -> _tp.Optional[_tp.Type[ScenarioToVisualizerAbstract]]:
+    scenario_data_types = {ScenarioDataTypes.example: NodalDataExample,
+                           sheets.buses: BusesConverter,
+                           sheets.commodity_sources: CommoditySourcesConverter,
+                           sheets.demand: DemandConverter,
+                           sheets.grid_connection: GridConnectionConverter}
 
     if scenario_data_type not in scenario_data_types:
-        raise NotImplementedError("received unexpected type")
+        # raise NotImplementedError("received unexpected type")
+        return  # <- until all sheets are implemented
 
     return scenario_data_types[scenario_data_type]
 
