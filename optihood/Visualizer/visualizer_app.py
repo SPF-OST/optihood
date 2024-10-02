@@ -20,9 +20,11 @@ import optihood.Visualizer.convert_scenario as _cv
 """
 
 
-def setup_cytoscape_app(graphData: _tp.Optional[_cv.EnergyNetworkGraphData],
-                        nodes: _tp.Optional[_tp.Dict[str, _tp.Dict[str, _tp.Union[str, float]]]],
-                        edges: _tp.Optional[_tp.Dict[str, _tp.Dict[str, _tp.Union[str, float]]]]) -> dash.Dash:
+# TODO: better to overload input.
+
+def setup_cytoscape_app(graphData: _tp.Optional[_cv.EnergyNetworkGraphData] = None,
+                        nodes: _tp.Optional[_tp.Dict[str, _tp.Dict[str, _tp.Union[str, float]]]] = None,
+                        edges: _tp.Optional[_tp.Dict[str, _tp.Dict[str, _tp.Union[str, float]]]] = None) -> dash.Dash:
     """
     This example comes directly from the Plotly homepage.
     http://dash.plotly.com/cytoscape/events
@@ -55,13 +57,13 @@ def setup_cytoscape_app(graphData: _tp.Optional[_cv.EnergyNetworkGraphData],
     app.layout = html.Div([
         cyto.Cytoscape(
             id='cytoscape-event-callbacks-3',
-            layout={'name': 'preset'},
+            layout={'name': 'breadthfirst'},
             elements=edges + nodes,
             stylesheet=default_stylesheet,
-            style={'width': '100%', 'height': '450px'}
+            style={'width': '100%', 'height': '640px'}
         ),
-        html.Button('Add Node', id='btn-add-node-example', n_clicks_timestamp=0),
-        html.Button('Remove Node', id='btn-remove-node-example', n_clicks_timestamp=0),
+        # html.Button('Add Node', id='btn-add-node-example', n_clicks_timestamp=0),
+        # html.Button('Remove Node', id='btn-remove-node-example', n_clicks_timestamp=0),
         dcc.Markdown(id='cytoscape-selectedNodeData-markdown')
     ])
 
@@ -75,61 +77,61 @@ def setup_cytoscape_app(graphData: _tp.Optional[_cv.EnergyNetworkGraphData],
         selected_nodes_list = [NodalData.read_nodal_infos(data) for data in data_list]
         return "You selected the nodes: " + "\n* ".join(selected_nodes_list)
 
-    @callback(Output('cytoscape-event-callbacks-3', 'elements'),
-              Input('btn-add-node-example', 'n_clicks_timestamp'),
-              Input('btn-remove-node-example', 'n_clicks_timestamp'),
-              State('cytoscape-event-callbacks-3', 'elements'))
-    def update_elements(btn_add, btn_remove, elements):
-        current_nodes, deleted_nodes = get_current_and_deleted_nodes(elements)
-        # If the add button was clicked most recently and there are nodes to add
-        if int(btn_add) > int(btn_remove) and len(deleted_nodes):
-
-            # We pop one node from deleted nodes and append it to nodes list.
-            current_nodes.append(deleted_nodes.pop())
-            # Get valid edges -- both source and target nodes are in the current graph
-            cy_edges = get_current_valid_edges(current_nodes, edges)
-            return cy_edges + current_nodes
-
-        # If the remove button was clicked most recently and there are nodes to remove
-        elif int(btn_remove) > int(btn_add) and len(current_nodes):
-            current_nodes.pop()
-            cy_edges = get_current_valid_edges(current_nodes, edges)
-            return cy_edges + current_nodes
-
-        # Neither have been clicked yet (or fallback condition)
-        return elements
-
-    def get_current_valid_edges(current_nodes, all_edges):
-        """Returns edges that are present in Cytoscape:
-        its source and target nodes are still present in the graph.
-        """
-        valid_edges = []
-        node_ids = {n['data']['id'] for n in current_nodes}
-
-        for e in all_edges:
-            if e['data']['source'] in node_ids and e['data']['target'] in node_ids:
-                valid_edges.append(e)
-        return valid_edges
-
-    def get_current_and_deleted_nodes(elements):
-        """Returns nodes that are present in Cytoscape and the deleted nodes
-        """
-        current_nodes = []
-        deleted_nodes = []
-
-        # get current graph nodes
-        for ele in elements:
-            # if the element is a node
-            if 'source' not in ele['data']:
-                current_nodes.append(ele)
-
-        # get deleted nodes
-        node_ids = {n['data']['id'] for n in current_nodes}
-        for n in nodes:
-            if n['data']['id'] not in node_ids:
-                deleted_nodes.append(n)
-
-        return current_nodes, deleted_nodes
+    # @callback(Output('cytoscape-event-callbacks-3', 'elements'),
+    #           Input('btn-add-node-example', 'n_clicks_timestamp'),
+    #           Input('btn-remove-node-example', 'n_clicks_timestamp'),
+    #           State('cytoscape-event-callbacks-3', 'elements'))
+    # def update_elements(btn_add, btn_remove, elements):
+    #     current_nodes, deleted_nodes = get_current_and_deleted_nodes(elements)
+    #     # If the add button was clicked most recently and there are nodes to add
+    #     if int(btn_add) > int(btn_remove) and len(deleted_nodes):
+    #
+    #         # We pop one node from deleted nodes and append it to nodes list.
+    #         current_nodes.append(deleted_nodes.pop())
+    #         # Get valid edges -- both source and target nodes are in the current graph
+    #         cy_edges = get_current_valid_edges(current_nodes, edges)
+    #         return cy_edges + current_nodes
+    #
+    #     # If the remove button was clicked most recently and there are nodes to remove
+    #     elif int(btn_remove) > int(btn_add) and len(current_nodes):
+    #         current_nodes.pop()
+    #         cy_edges = get_current_valid_edges(current_nodes, edges)
+    #         return cy_edges + current_nodes
+    #
+    #     # Neither have been clicked yet (or fallback condition)
+    #     return elements
+    #
+    # def get_current_valid_edges(current_nodes, all_edges):
+    #     """Returns edges that are present in Cytoscape:
+    #     its source and target nodes are still present in the graph.
+    #     """
+    #     valid_edges = []
+    #     node_ids = {n['data']['id'] for n in current_nodes}
+    #
+    #     for e in all_edges:
+    #         if e['data']['source'] in node_ids and e['data']['target'] in node_ids:
+    #             valid_edges.append(e)
+    #     return valid_edges
+    #
+    # def get_current_and_deleted_nodes(elements):
+    #     """Returns nodes that are present in Cytoscape and the deleted nodes
+    #     """
+    #     current_nodes = []
+    #     deleted_nodes = []
+    #
+    #     # get current graph nodes
+    #     for ele in elements:
+    #         # if the element is a node
+    #         if 'source' not in ele['data']:
+    #             current_nodes.append(ele)
+    #
+    #     # get deleted nodes
+    #     node_ids = {n['data']['id'] for n in current_nodes}
+    #     for n in nodes:
+    #         if n['data']['id'] not in node_ids:
+    #             deleted_nodes.append(n)
+    #
+    #     return current_nodes, deleted_nodes
 
     return app
 
@@ -232,9 +234,9 @@ def run_fig_visualizer(figure_handle: plt.Figure) -> None:
     app.run_server(debug=True)
 
 
-def run_cytoscape_visualizer(graphData: _tp.Optional[_cv.EnergyNetworkGraphData],
-                             nodes: _tp.Optional[_tp.Dict[str, _tp.Dict[str, _tp.Union[str, float]]]],
-                             edges: _tp.Optional[_tp.Dict[str, _tp.Dict[str, _tp.Union[str, float]]]]) -> None:
+def run_cytoscape_visualizer(graphData: _tp.Optional[_cv.EnergyNetworkGraphData] = None,
+                             nodes: _tp.Optional[_tp.Dict[str, _tp.Dict[str, _tp.Union[str, float]]]] = None,
+                             edges: _tp.Optional[_tp.Dict[str, _tp.Dict[str, _tp.Union[str, float]]]] = None) -> None:
     app = setup_cytoscape_app(graphData, nodes, edges)
     app.run_server(debug=True)
 

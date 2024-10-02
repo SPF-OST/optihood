@@ -37,8 +37,8 @@ class TestVisualizeEnergyNetwork(_ut.TestCase):
 
         # When
         converters = _cs.get_converters(initial_nodal_data)
-        graph_data = _cs.get_graph_data(converters)
-        _va.run_cytoscape_visualizer(graph_data=graph_data)
+        graphData = _cs.get_graph_data(converters)
+        _va.run_cytoscape_visualizer(graphData=graphData)
 
 
         self.assertEqual(True, False)  # add assertion here
