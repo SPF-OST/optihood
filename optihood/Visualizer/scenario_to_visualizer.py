@@ -130,7 +130,8 @@ class CommoditySourcesConverter(ScenarioToVisualizerAbstract):
             energyType = EnergyTypes.electricity
             if not line['active']:
                 line['active'] = True
-            list_of_demands.append(CommoditySourcesConverter(line['label'], line['label'], None, line['to'], energyType,
+            list_of_demands.append(CommoditySourcesConverter(line['label'], line['label'], None,
+                                                             line['to'].split(sep=','), energyType,
                                                              active=line['active'], building=line['building'],
                                                              variable_costs=line['variable costs'],
                                                              CO2_impact=line['CO2 impact']))
@@ -214,7 +215,8 @@ class DemandConverter(ScenarioToVisualizerAbstract):
         for i, line in df.iterrows():
             energyType = EnergyTypes.electricity
 
-            list_of_demands.append(DemandConverter(line['label'], line['label'], line['from'], None, energyType,
+            list_of_demands.append(DemandConverter(line['label'], line['label'], line['from'].split(sep=',')
+, None, energyType,
                                                    active=line['active'], building=line['building'],
                                                    fixed=line['fixed'], nominal_value=line['nominal value'],
                                                    building_model=line['building model']))
@@ -242,7 +244,8 @@ class GridConnectionConverter(ScenarioToVisualizerAbstract):
         for i, line in df.iterrows():
             energyType = EnergyTypes.electricity
 
-            list_of_demands.append(GridConnectionConverter(line['label'], line['label'], line['from'], line['to'],
+            list_of_demands.append(GridConnectionConverter(line['label'], line['label'], line['from'].split(sep=','),
+                                                           line['to'].split(sep=','),
                                                            energyType, active=line['active'],
                                                            building=line['building'],
                                                            efficiency=line['efficiency']))
