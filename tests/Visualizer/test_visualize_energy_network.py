@@ -1,8 +1,8 @@
 import os as _os
 import pathlib as _pl
 import unittest as _ut
+import pytest as _pt
 
-import dash as _dash
 import pandas as _pd
 
 import optihood as _oh
@@ -16,10 +16,10 @@ _input_data_dir = packageDir / ".." / "data" / "excels" / "basic_example"
 _examples_dir = packageDir / ".." / "data" / "examples"
 _input_data_path = _input_data_dir / "scenario.xls"
 
+manual = True
 
 
-
-
+@_pt.mark.skipif(manual, reason="Manual test of visualizer")
 class TestVisualizeEnergyNetwork(_ut.TestCase):
     def setUp(self):
         self.maxDiff = None

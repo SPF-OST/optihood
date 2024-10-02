@@ -329,12 +329,12 @@ class TransformersConverter(ScenarioToVisualizerAbstract):
 @_dc.dataclass()
 class StoragesConverter(ScenarioToVisualizerAbstract):
     building: int
-    efficiency_inflow: float
-    efficiency_outflow: float
+    efficiency_inflow: _tp.Optional[float]
+    efficiency_outflow: _tp.Optional[float]
     initial_capacity: float
     capacity_min: float
     capacity_max: float
-    capacity_loss: float
+    capacity_loss: _tp.Optional[float]
     lifetime: float
     maintenance: float
     installation: float
