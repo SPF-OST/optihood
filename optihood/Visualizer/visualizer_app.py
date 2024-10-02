@@ -131,15 +131,32 @@ def setup_cytoscape_app(graphData: _tp.Optional[_cv.EnergyNetworkGraphData] = No
             'selector': f'.{stv.EnergyTypes.electricity.value}',
             'style': {
                 "line-style": 'dashed',
-                # 'background-color': '#BFD7B5',
+                'line-color': 'blue',
                 # 'label': 'data(label)'
             }
         },
         {
             'selector': f'.{stv.EnergyTypes.domestic_hot_water.value}',
             'style': {
-                "line-style": 'dotted',
-                # 'background-color': '#BFD7B5',
+                # "line-style": 'dashed',
+                # 'line-dash-pattern': [6, 3],
+                'line-color': 'red',
+                # 'label': 'data(label)'
+            }
+        },
+        {
+            'selector': f'.{stv.EnergyTypes.space_heating.value}',
+            'style': {
+                # 'curve-style': 'segments',
+                'line-color': 'black',
+                # 'label': 'data(label)'
+            }
+        },
+        {
+            'selector': f'.{stv.EnergyTypes.gas.value}',
+            'style': {
+                'curve-style': 'segments',
+                'line-color': 'purple',
                 # 'label': 'data(label)'
             }
         },

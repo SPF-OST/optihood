@@ -48,15 +48,17 @@ class ScenarioToVisualizerAbstract:
             if not isinstance(self.from_node, list):
                 self.from_node = [self.from_node]
             for from_node in self.from_node:
+                energy_type = get_energy_type_based_on_both_labels(self.id, from_node)
                 self.edges_into_node.append({'data': {'source': from_node, 'target': self.id},
-                                             "classes": self.energy_type.value})
+                                             "classes": energy_type.value})
         self.edges_out_of_node = []
         if self.to_node:
             if not isinstance(self.to_node, list):
                 self.to_node = [self.to_node]
             for to_node in self.to_node:
+                energy_type = get_energy_type_based_on_both_labels(self.id, to_node)
                 self.edges_out_of_node.append({'data': {'source': self.id, 'target': to_node},
-                                               "classes": self.energy_type.value})
+                                               "classes": energy_type.value})
 
         all_edges = self.edges_into_node + self.edges_out_of_node
         return all_edges
@@ -407,3 +409,41 @@ class StoragesConverter(ScenarioToVisualizerAbstract):
                                   )
             )
         return list_of_demands
+
+
+def get_energy_type(label: str):
+    if "electric" in label or "grid" in label or "pv" in label or "Electric" in label:
+        return EnergyTypes.electricity
+
+    if "sh" in label or "spaceHeating" in label:
+        return EnergyTypes.space_heating
+
+    if "dhw" in label or "domesticHotWater" in label:
+        return EnergyTypes.domestic_hot_water
+
+    if "gas" in label or "Gas" in label:
+        return EnergyTypes.gas
+
+    print(f'Unknown label type found: {label}')
+    return EnergyTypes.electricity
+
+
+def get_energy_type_based_on_both_labels(label: str, other_label: str) -> EnergyTypes:
+    """ Edges are based on the current node and another (to or from)."""
+    if "HP" in label or "solar" in label or "GasBoiler" in label or "CHP" in label or "GWHP" in label:
+        # For some reason, "HP" in label is not enough for HP, CHP, and GWHP
+        return get_energy_type(other_label)
+
+    return get_energy_type(label)
+
+
+
+@_dc.dataclass()
+class LinksConverter(ScenarioToVisualizerAbstract):
+    def get_nodal_infos(self):
+        raise NotImplementedError
+
+    @staticmethod
+    def set_from_dataFrame(df: _pd.DataFrame):
+        raise NotImplementedError
+
