@@ -118,8 +118,14 @@ class CommoditySourcesConverter(ScenarioToVisualizerAbstract):
     @staticmethod
     def set_from_dataFrame(df: _pd.DataFrame) -> _abc.Sequence[_tp.Type[ScenarioToVisualizerAbstract]]:
         list_of_demands = []
+
+        if 'active' not in df.columns:
+            df['active'] = True
+
         for i, line in df.iterrows():
             energyType = EnergyTypes.electricity
+            if not line['active']:
+                line['active'] = True
             list_of_demands.append(CommoditySourcesConverter(line['label'], line['label'], None, line['to'], energyType,
                                                              active=line['active'], building=line['building'],
                                                              variable_costs=line['variable costs'],
@@ -150,13 +156,20 @@ class BusesConverter(ScenarioToVisualizerAbstract):
     @staticmethod
     def set_from_dataFrame(df: _pd.DataFrame) -> _abc.Sequence[_tp.Type[ScenarioToVisualizerAbstract]]:
         list_of_demands = []
+
+        # TODO: check whether shortage is given without shortage costs.
+        if 'shortage' not in df.columns:
+            df['shortage'] = None
+
+        if 'shortage costs' not in df.columns:
+            df['shortage costs'] = None
+
+        if 'active' not in df.columns:
+            df['active'] = True
+
         for i, line in df.iterrows():
             energyType = EnergyTypes.electricity
-            # TODO: check whether shortage is given without shortage costs.
-            if 'shortage' not in line.keys():
-                line['shortage'] = None
-            if 'shortage costs' not in line.keys():
-                line['shortage costs'] = None
+
             list_of_demands.append(
                 BusesConverter(line['label'], line['label'], None, None, energyType,
                                active=line['active'], building=line['building'],
@@ -188,8 +201,13 @@ class DemandConverter(ScenarioToVisualizerAbstract):
     @staticmethod
     def set_from_dataFrame(df: _pd.DataFrame) -> _abc.Sequence[_tp.Type[ScenarioToVisualizerAbstract]]:
         list_of_demands = []
+
+        if 'active' not in df.columns:
+            df['active'] = True
+
         for i, line in df.iterrows():
             energyType = EnergyTypes.electricity
+
             list_of_demands.append(DemandConverter(line['label'], line['label'], line['from'], None, energyType,
                                                    active=line['active'], building=line['building'],
                                                    fixed=line['fixed'], nominal_value=line['nominal value'],
@@ -210,9 +228,15 @@ class GridConnectionConverter(ScenarioToVisualizerAbstract):
     @staticmethod
     def set_from_dataFrame(df: _pd.DataFrame) -> _abc.Sequence[_tp.Type[ScenarioToVisualizerAbstract]]:
         list_of_demands = []
+
+        if 'active' not in df.columns:
+            df['active'] = True
+
         for i, line in df.iterrows():
             energyType = EnergyTypes.electricity
+
             list_of_demands.append(GridConnectionConverter(line['label'], line['label'], line['from'], line['to'],
-                                                           energyType, active=line['active'], building=line['building'],
+                                                           energyType, active=line['active'],
+                                                           building=line['building'],
                                                            efficiency=line['efficiency']))
         return list_of_demands
