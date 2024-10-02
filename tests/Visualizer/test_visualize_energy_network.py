@@ -38,8 +38,7 @@ class TestVisualizeEnergyNetwork(_ut.TestCase):
         # When
         converters = _cs.get_converters(initial_nodal_data)
         graph_data = _cs.get_graph_data(converters)
-        app = _dash.Dash('Optihood input Visualizer')
-        _va.run_cytoscape_visualizer(graph_data)
+        _va.run_cytoscape_visualizer(graph_data=graph_data)
 
 
         self.assertEqual(True, False)  # add assertion here

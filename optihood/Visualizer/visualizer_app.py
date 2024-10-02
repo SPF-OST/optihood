@@ -2,7 +2,6 @@ import json
 from textwrap import dedent as d
 import typing as _tp
 
-
 import dash
 import plotly.express as px
 from dash import html, dcc, Input, Output, State, callback
@@ -10,6 +9,7 @@ import dash_cytoscape as cyto
 import matplotlib.pyplot as plt
 
 from optihood.Visualizer import scenario_to_visualizer as stv
+import optihood.Visualizer.convert_scenario as _cv
 
 """
     The dash technology restricts the passing of information to a list of dicts with limited elements (str, int, float).
@@ -20,11 +20,21 @@ from optihood.Visualizer import scenario_to_visualizer as stv
 """
 
 
-def setup_cytoscape_app(nodes: _tp.Dict[str, _tp.Dict[str, _tp.Union[str, float]]], edges) -> dash.Dash:
+def setup_cytoscape_app(graphData: _tp.Optional[_cv.EnergyNetworkGraphData],
+                        nodes: _tp.Optional[_tp.Dict[str, _tp.Dict[str, _tp.Union[str, float]]]],
+                        edges: _tp.Optional[_tp.Dict[str, _tp.Dict[str, _tp.Union[str, float]]]]) -> dash.Dash:
     """
     This example comes directly from the Plotly homepage.
     http://dash.plotly.com/cytoscape/events
     """
+    if not graphData and not nodes and not edges:
+        raise TypeError('Though all inputs are optional, either graphData or both Nodes and Edges need to be defined.')
+
+    if graphData:
+        nodes = graphData.nodes
+        edges = graphData.edges
+
+    app = dash.Dash('Optihood input Visualizer')
     styles = {
         'pre': {
             'border': 'thin lightgrey solid',
@@ -129,7 +139,7 @@ def setup_plotly_app(figure_handle: plt.Figure) -> dash.Dash:
     This example comes directly from the Plotly homepage.
     https://community.plotly.com/t/use-hover-trace-as-input-for-callback/34390
     """
-
+    app = dash.Dash('Optihood input Visualizer')
     styles = {
         'pre': {
             'border': 'thin lightgrey solid',
@@ -222,8 +232,10 @@ def run_fig_visualizer(figure_handle: plt.Figure) -> None:
     app.run_server(debug=True)
 
 
-def run_cytoscape_visualizer(nodes, edges) -> None:
-    app = setup_cytoscape_app(nodes, edges)
+def run_cytoscape_visualizer(graphData: _tp.Optional[_cv.EnergyNetworkGraphData],
+                             nodes: _tp.Optional[_tp.Dict[str, _tp.Dict[str, _tp.Union[str, float]]]],
+                             edges: _tp.Optional[_tp.Dict[str, _tp.Dict[str, _tp.Union[str, float]]]]) -> None:
+    app = setup_cytoscape_app(graphData, nodes, edges)
     app.run_server(debug=True)
 
 
@@ -241,10 +253,10 @@ if __name__ == '__main__':
             NodalData('la', 'Los_Angeles', 'van', 'chi', energy_type, True, 34.03, -118.25),
             NodalData('nyc', 'New_York', 'to', 'bos', energy_type, True, 40.71, -74),
             NodalData('to', 'Toronto', 'hou', ['hou', 'nyc', 'mtl'], energy_type, True, 43.65, -79.38),
-            NodalData('mtl', 'Montreal', 'to', 'bos', energy_type, True, 45.50, -73.57 ),
-            NodalData('van', 'Vancouver', None, 'la', energy_type, True, 49.28, -123.12 ),
-            NodalData('chi', 'Chicago', 'la', 'hou',energy_type,  True, 41.88, -87.63 ),
-            NodalData('bos', 'Boston', "nyc", None, energy_type, True, 42.36, -71.06 ),
+            NodalData('mtl', 'Montreal', 'to', 'bos', energy_type, True, 45.50, -73.57),
+            NodalData('van', 'Vancouver', None, 'la', energy_type, True, 49.28, -123.12),
+            NodalData('chi', 'Chicago', 'la', 'hou', energy_type, True, 41.88, -87.63),
+            NodalData('bos', 'Boston', "nyc", None, energy_type, True, 42.36, -71.06),
             NodalData('hou', 'Houston', "chi", 'chi', energy_type, True, 29.76, -95.37)
         ]
         nodes_dict = []
@@ -253,5 +265,4 @@ if __name__ == '__main__':
             nodes_dict.append(nodalData.get_nodal_infos())
             edges_dict += nodalData.get_edge_infos()
 
-        app = dash.Dash('Optihood input Visualizer')
         run_cytoscape_visualizer(nodes_dict, edges_dict)
