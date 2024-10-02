@@ -83,8 +83,8 @@ def scenario_data_factory(scenario_data_type: str) -> _tp.Optional[_tp.Type[Scen
                            sheets.commodity_sources: CommoditySourcesConverter,
                            sheets.demand: DemandConverter,
                            sheets.grid_connection: GridConnectionConverter,
-                           sheets.transformers: TransformersConverter}
-    # StoragesConverter
+                           sheets.transformers: TransformersConverter,
+                           sheets.storages: StoragesConverter}
 
     if scenario_data_type not in scenario_data_types:
         # raise NotImplementedError("received unexpected type")

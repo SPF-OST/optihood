@@ -150,7 +150,7 @@ def setup_cytoscape_app(graphData: _tp.Optional[_cv.EnergyNetworkGraphData] = No
     app.layout = html.Div([
         cyto.Cytoscape(
             id='cytoscape-event-callbacks-3',
-            layout={'name': 'breadthfirst'},  # cose
+            layout={'name': 'breadthfirst'},  # 'cose', 'breadthfirst'
             elements=edges + nodes,
             stylesheet=default_stylesheet,
             style={'width': '100%', 'height': '640px'}
