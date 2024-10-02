@@ -45,6 +45,7 @@ def setup_cytoscape_app(graphData: _tp.Optional[_cv.EnergyNetworkGraphData] = No
     }
 
     default_stylesheet = [
+        # selection colors
         {
             'selector': 'node',
             'style': {
@@ -52,6 +53,36 @@ def setup_cytoscape_app(graphData: _tp.Optional[_cv.EnergyNetworkGraphData] = No
                 'label': 'data(label)'
             }
         },
+
+        # node shapes
+        {
+            'selector': '.bus',
+            'style': {
+                "shape": 'rectangle',
+                # 'background-color': '#BFD7B5',
+                # 'label': 'data(label)'
+            }
+        },
+
+        # line styles
+        {
+            'selector': f'.{stv.EnergyTypes.electricity.value}',
+            'style': {
+                "line-style": 'dashed',
+                # 'background-color': '#BFD7B5',
+                # 'label': 'data(label)'
+            }
+        },
+        {
+            'selector': f'.{stv.EnergyTypes.domestic_hot_water.value}',
+            'style': {
+                "line-style": 'dotted',
+                # 'background-color': '#BFD7B5',
+                # 'label': 'data(label)'
+            }
+        },
+
+
     ]
 
     app.layout = html.Div([

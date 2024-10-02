@@ -40,20 +40,21 @@ class ScenarioToVisualizerAbstract:
     def get_edge_infos(self) -> list[dict[str, dict[str, _tp.Union[str, float, int]]]]:
         if not self.active:
             return []
+        
         self.edges_into_node = []
         if self.from_node:
             if not isinstance(self.from_node, list):
                 self.from_node = [self.from_node]
             for from_node in self.from_node:
-                self.edges_into_node.append({'data': {'source': from_node, 'target': self.id,
-                                                      'energy_type': self.energy_type.value}})
+                self.edges_into_node.append({'data': {'source': from_node, 'target': self.id},
+                                             "classes": self.energy_type.value})
         self.edges_out_of_node = []
         if self.to_node:
             if not isinstance(self.to_node, list):
                 self.to_node = [self.to_node]
             for to_node in self.to_node:
-                self.edges_out_of_node.append({'data': {'source': self.id, 'target': to_node,
-                                                        'energy_type': self.energy_type.value}})
+                self.edges_out_of_node.append({'data': {'source': self.id, 'target': to_node},
+                                               "classes": self.energy_type.value})
 
         all_edges = self.edges_into_node + self.edges_out_of_node
         return all_edges
@@ -151,7 +152,8 @@ class BusesConverter(ScenarioToVisualizerAbstract):
         if self.active:
             return {"data": {'id': self.id, 'label': self.label, "building": self.building,
                              "excess": self.excess, "excess_costs": self.excess_costs, "shortage": self.shortage,
-                             "shortage_costs": self.shortage_costs}}
+                             "shortage_costs": self.shortage_costs},
+                    'classes': 'bus'}
 
     @staticmethod
     def set_from_dataFrame(df: _pd.DataFrame) -> _abc.Sequence[_tp.Type[ScenarioToVisualizerAbstract]]:
