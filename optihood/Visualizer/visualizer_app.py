@@ -109,6 +109,12 @@ def setup_cytoscape_app(graphData: _tp.Optional[_cv.EnergyNetworkGraphData] = No
                 "shape": 'hexagon',
             }
         },
+        {
+            'selector': '.storage',
+            'style': {
+                "shape": 'star',
+            }
+        },
 
         # cluster color
         {

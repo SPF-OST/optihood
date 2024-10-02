@@ -8,6 +8,7 @@ import pandas as _pd
 
 from optihood.entities import NodeKeys as sheets
 from optihood.entities import TransformerLabels as trafo
+from optihood.entities import StorageLabels as store
 
 
 class ScenarioDataTypes(_enum.StrEnum):
@@ -83,6 +84,7 @@ def scenario_data_factory(scenario_data_type: str) -> _tp.Optional[_tp.Type[Scen
                            sheets.demand: DemandConverter,
                            sheets.grid_connection: GridConnectionConverter,
                            sheets.transformers: TransformersConverter}
+    # StoragesConverter
 
     if scenario_data_type not in scenario_data_types:
         # raise NotImplementedError("received unexpected type")
@@ -216,7 +218,7 @@ class DemandConverter(ScenarioToVisualizerAbstract):
             energyType = EnergyTypes.electricity
 
             list_of_demands.append(DemandConverter(line['label'], line['label'], line['from'].split(sep=',')
-, None, energyType,
+                                                   , None, energyType,
                                                    active=line['active'], building=line['building'],
                                                    fixed=line['fixed'], nominal_value=line['nominal value'],
                                                    building_model=line['building model']))
@@ -321,4 +323,87 @@ class TransformersConverter(ScenarioToVisualizerAbstract):
                                       elec_impact=line[trafo.elec_impact.value],
                                       impact_cap=line[trafo.impact_cap.value]
                                       ))
+        return list_of_demands
+
+
+@_dc.dataclass()
+class StoragesConverter(ScenarioToVisualizerAbstract):
+    building: int
+    efficiency_inflow: float
+    efficiency_outflow: float
+    initial_capacity: float
+    capacity_min: float
+    capacity_max: float
+    capacity_loss: float
+    lifetime: float
+    maintenance: float
+    installation: float
+    planification: float
+    invest_base: float
+    invest_cap: float
+    heat_impact: float
+    elec_impact: float
+    impact_cap: float
+
+    def get_nodal_infos(self) -> _tp.Optional[dict[str, dict[str, _tp.Union[str, int, float, _pl.Path]]]]:
+        if self.active:
+            return {"data": {'id': self.id, 'label': self.label, store.building.value: self.building,
+                             store.efficiency_inflow.value: self.efficiency_inflow,
+                             store.efficiency_outflow.value: self.efficiency_outflow,
+                             store.initial_capacity.value: self.initial_capacity,
+                             store.capacity_min.value: self.capacity_min,
+                             store.capacity_max.value: self.capacity_max,
+                             store.capacity_loss.value: self.capacity_loss,
+                             store.lifetime.value: self.lifetime,
+                             store.maintenance.value: self.maintenance,
+                             store.installation.value: self.installation,
+                             store.planification.value: self.planification,
+                             store.invest_base.value: self.invest_base,
+                             store.invest_cap.value: self.invest_cap,
+                             store.heat_impact.value: self.heat_impact,
+                             store.elec_impact.value: self.elec_impact,
+                             store.impact_cap.value: self.impact_cap,
+                             },
+                    "classes": "storage"}
+
+    @staticmethod
+    def set_from_dataFrame(df: _pd.DataFrame) -> _abc.Sequence[_tp.Type[ScenarioToVisualizerAbstract]]:
+        list_of_demands = []
+
+        if 'active' not in df.columns:
+            df['active'] = True
+
+        if store.efficiency_inflow not in df.columns:
+            df[store.efficiency_inflow] = None
+
+        if store.efficiency_outflow not in df.columns:
+            df[store.efficiency_outflow] = None
+
+        if store.capacity_loss not in df.columns:
+            df[store.capacity_loss] = None
+
+        for i, line in df.iterrows():
+            energyType = EnergyTypes.electricity
+
+            list_of_demands.append(
+                StoragesConverter(line['label'], line['label'], line['from'].split(sep=','),
+                                  line['to'].split(sep=','),
+                                  energyType, building=line[store.building.value], active=True,
+                                  efficiency_inflow=line[store.efficiency_inflow.value],
+                                  efficiency_outflow=line[store.efficiency_outflow.value],
+                                  initial_capacity=line[store.initial_capacity.value],
+                                  capacity_min=line[store.capacity_min.value],
+                                  capacity_max=line[store.capacity_max.value],
+                                  capacity_loss=line[store.capacity_loss.value],
+                                  lifetime=line[store.lifetime.value],
+                                  maintenance=line[store.maintenance.value],
+                                  installation=line[store.installation.value],
+                                  planification=line[store.planification.value],
+                                  invest_base=line[store.invest_base.value],
+                                  invest_cap=line[store.invest_cap.value],
+                                  heat_impact=line[store.heat_impact.value],
+                                  elec_impact=line[store.elec_impact.value],
+                                  impact_cap=line[store.impact_cap.value]
+                                  )
+            )
         return list_of_demands

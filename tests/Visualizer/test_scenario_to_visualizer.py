@@ -7,7 +7,7 @@ import pytest as _pt
 import optihood.Visualizer.scenario_to_visualizer as stv
 
 
-# TODO: solar, storages, transformers
+# TODO: solar
 # TOSKIP: stratified storage, profiles
 
 # list of uncertainties
@@ -22,6 +22,7 @@ import optihood.Visualizer.scenario_to_visualizer as stv
 
 # TODO: adjust id to provided values.
 # TODO: adjust energy types according to actual values.
+# TODO: put splitting of to and from nodes at higher level.
 
 
 class TestNodalDataExample(_ut.TestCase):
@@ -252,9 +253,6 @@ class TestGridConnectionConverter(_ut.TestCase):
 
 
 class TestTransformersConverter(_ut.TestCase):
-    # label,building,active,from,to,efficiency,capacity_DHW,capacity_SH,capacity_el,capacity_min,lifetime,maintenance,installation,planification,invest_base,invest_cap,heat_impact,elec_impact,impact_cap
-    # HP,1,1,electricityInBus,"shSourceBus,dhwStorageBus",3.5,500,500,,5,20,0.02,0,0,16679,2152,0,0,280.9
-    # GWHP,1,1,electricityInBus,"shSourceBus,dhwStorageBus",4.5,500,500,,5,20,0.02,0,0,22257,3052,0,0,772
     def setUp(self):
         self.maxDiff = None
         energyType = stv.EnergyTypes.electricity
@@ -319,7 +317,85 @@ class TestTransformersConverter(_ut.TestCase):
         # Flesh out test?
         self.assertDictEqual(result[0].get_nodal_infos(), expected_dict)
 
-        expected_dict_edge = {'data': {'source': 'electricityInBus', 'target': 'HP'},
+        expected_dict_edge = {'data': {'source': 'HP', 'target': 'shSourceBus'},
+                              'classes': 'electricity', }
+
+        self.assertDictEqual(result[0].get_edge_infos()[1], expected_dict_edge)
+
+
+class TestStorageConverter(_ut.TestCase):
+
+    def setUp(self):
+        self.maxDiff = None
+        energyType = stv.EnergyTypes.electricity
+        self.nodalData = stv.StoragesConverter('HP', 'HP', "electricityInBus", ["shSourceBus", "dhwStorageBus"],
+                                               energyType, building=1, active=True,
+                                               efficiency_inflow=0.9,
+                                               efficiency_outflow=0.86,
+                                               initial_capacity=0,
+                                               capacity_min=0,
+                                               capacity_max=1000000,
+                                               capacity_loss=0,
+                                               lifetime=15,
+                                               maintenance=0,
+                                               installation=0,
+                                               planification=0,
+                                               invest_base=5138,
+                                               invest_cap=981,
+                                               heat_impact=0,
+                                               elec_impact=0,
+                                               impact_cap=28.66
+                                               )
+
+    def test_get_nodal_infos(self):
+        result = self.nodalData.get_nodal_infos()
+        expected_dict = {
+            'data': {'id': 'HP', 'label': 'HP', "building": 1, "efficiency inflow": 0.9, "efficiency outflow": 0.86,
+                     'capacity loss': 0, 'capacity max': 1000000, 'capacity min': 0, 'elec_impact': 0, 'heat_impact': 0,
+                     'impact_cap': 28.66, 'installation': 0, 'invest_base': 5138, 'invest_cap': 981,
+                     'initial capacity': 0, 'lifetime': 15, 'maintenance': 0, 'planification': 0},
+            "classes": "storage"
+        }
+        self.assertDictEqual(result, expected_dict)
+
+    def test_set_from_dataFrame(self):
+        data_df = _pd.DataFrame(index=None,
+                                data={"label": ["electricalStorage", "shStorage", "dhwStorage"],
+                                      "building": [1, 1, 1],
+                                      "active": [1, 1, 1],
+                                      "from": ["electricityProdBus", "shSourceBus", "dhwStorageBus"],
+                                      "to": ["electricityBus", "spaceHeatingBus", "domesticHotWaterBus"],
+                                      "lifetime": [15, 20, 20],
+                                      "maintenance": [0, 0, 0],
+                                      "installation": [0, 0, 0],
+                                      "planification": [0, 0, 0],
+                                      "invest_base": [5138, 1092, 2132],
+                                      "invest_cap": [981, 1.41, 6.88],
+                                      "heat_impact": [0, 0, 0],
+                                      "elec_impact": [0, 0, 0],
+                                      "impact_cap": [28.66, 0.49, 0.49],
+                                      "efficiency inflow": [0.9, None, None],
+                                      "efficiency outflow": [0.86, None, None],
+                                      "initial capacity": [0, 0, 0],
+                                      "capacity min": [0, 0, 0],
+                                      "capacity max": [1000000, 1000000, 1000000],
+                                      "capacity loss": [0, None, None],
+                                      }
+                                )
+
+        result = stv.StoragesConverter.set_from_dataFrame(data_df)
+        expected_dict = {
+            'data': {'id': 'electricalStorage', 'label': 'electricalStorage', "building": 1, "efficiency inflow": 0.9, "efficiency outflow": 0.86,
+                     'capacity loss': 0.0, 'capacity max': 1000000, 'capacity min': 0, 'elec_impact': 0, 'heat_impact': 0,
+                     'impact_cap': 28.66, 'installation': 0, 'invest_base': 5138, 'invest_cap': 981.0,
+                     'initial capacity': 0, 'lifetime': 15, 'maintenance': 0, 'planification': 0},
+            "classes": "storage"
+        }
+
+        # Flesh out test?
+        self.assertDictEqual(result[0].get_nodal_infos(), expected_dict)
+
+        expected_dict_edge = {'data': {'source': 'electricityProdBus', 'target': 'electricalStorage'},
                               'classes': 'electricity', }
 
         self.assertDictEqual(result[0].get_edge_infos()[0], expected_dict_edge)
