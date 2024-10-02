@@ -6,6 +6,7 @@ import pytest as _pt
 
 import optihood.Visualizer.scenario_to_visualizer as stv
 
+
 # TODO: solar, storages, transformers
 # TOSKIP: stratified storage, profiles
 
@@ -157,7 +158,8 @@ class TestBusesConverter(_ut.TestCase):
                                       })
         result = stv.BusesConverter.set_from_dataFrame(data_df)
         expected_dict = {
-            'data': {'id': 'electricityInBus', 'label': 'electricityInBus', "building": 1, "excess": 1, "excess_costs": -0.09,
+            'data': {'id': 'electricityInBus', 'label': 'electricityInBus', "building": 1, "excess": 1,
+                     "excess_costs": -0.09,
                      'shortage': None, "shortage_costs": None},
             'classes': 'bus',
         }
@@ -247,3 +249,77 @@ class TestGridConnectionConverter(_ut.TestCase):
 
         # Flesh out test?
         self.assertDictEqual(result[0].get_nodal_infos(), expected_dict)
+
+
+class TestTransformersConverter(_ut.TestCase):
+    # label,building,active,from,to,efficiency,capacity_DHW,capacity_SH,capacity_el,capacity_min,lifetime,maintenance,installation,planification,invest_base,invest_cap,heat_impact,elec_impact,impact_cap
+    # HP,1,1,electricityInBus,"shSourceBus,dhwStorageBus",3.5,500,500,,5,20,0.02,0,0,16679,2152,0,0,280.9
+    # GWHP,1,1,electricityInBus,"shSourceBus,dhwStorageBus",4.5,500,500,,5,20,0.02,0,0,22257,3052,0,0,772
+    def setUp(self):
+        self.maxDiff = None
+        energyType = stv.EnergyTypes.electricity
+        self.nodalData = stv.TransformersConverter('HP', 'HP', "electricityInBus", ["shSourceBus", "dhwStorageBus"],
+                                                   energyType, building=1, efficiency=3.5, active=True,
+                                                   capacity_DHW=500,
+                                                   capacity_SH=500,
+                                                   capacity_min=5,
+                                                   lifetime=20,
+                                                   maintenance=0.02,
+                                                   installation=0,
+                                                   planification=0,
+                                                   invest_base=16679,
+                                                   invest_cap=2152,
+                                                   heat_impact=0,
+                                                   elec_impact=0,
+                                                   impact_cap=280.9
+                                                   )
+
+    def test_get_nodal_infos(self):
+        result = self.nodalData.get_nodal_infos()
+        expected_dict = {
+            'data': {'id': 'HP', 'label': 'HP', "building": 1, "efficiency": 3.5, 'capacity_DHW': 500,
+                     'capacity_SH': 500, 'capacity_el': None, 'capacity_min': 5, 'elec_impact': 0, 'heat_impact': 0,
+                     'impact_cap': 280.9, 'installation': 0, 'invest_base': 16679, 'invest_cap': 2152,
+                     'lifetime': 20, 'maintenance': 0.02, 'planification': 0},
+            "classes": "transformer"
+        }
+        self.assertDictEqual(result, expected_dict)
+
+    def test_set_from_dataFrame(self):
+        data_df = _pd.DataFrame(index=None,
+                                data={"label": ["HP", "GWHP"],
+                                      "building": [1, 1],
+                                      "active": [1, 1],
+                                      "from": ["electricityInBus", "electricityInBus"],
+                                      "to": ["shSourceBus,dhwStorageBus", "shSourceBus,dhwStorageBus"],
+                                      "efficiency": [3.5, 4.5],
+                                      "capacity_DHW": [500, 500],
+                                      "capacity_SH": [500, 500],
+                                      "capacity_el": [None, None],
+                                      "capacity_min": [5, 5],
+                                      "lifetime": [20, 20],
+                                      "maintenance": [0.02, 0.02],
+                                      "installation": [0, 0],
+                                      "planification": [0, 0],
+                                      "invest_base": [16679, 22257],
+                                      "invest_cap": [2152, 3052],
+                                      "heat_impact": [0, 0],
+                                      "elec_impact": [0, 0],
+                                      "impact_cap": [280.9, 772]})
+
+        result = stv.TransformersConverter.set_from_dataFrame(data_df)
+        expected_dict = {
+            'data': {'id': 'HP', 'label': 'HP', "building": 1, "efficiency": 3.5, 'capacity_DHW': 500,
+                     'capacity_SH': 500, 'capacity_el': None, 'capacity_min': 5, 'elec_impact': 0, 'heat_impact': 0,
+                     'impact_cap': 280.9, 'installation': 0, 'invest_base': 16679, 'invest_cap': 2152,
+                     'lifetime': 20, 'maintenance': 0.02, 'planification': 0},
+            "classes": "transformer"
+        }
+
+        # Flesh out test?
+        self.assertDictEqual(result[0].get_nodal_infos(), expected_dict)
+
+        expected_dict_edge = {'data': {'source': 'electricityInBus', 'target': 'HP'},
+                              'classes': 'electricity', }
+
+        self.assertDictEqual(result[0].get_edge_infos()[0], expected_dict_edge)

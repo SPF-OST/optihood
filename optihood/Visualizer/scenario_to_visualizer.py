@@ -7,6 +7,7 @@ import typing as _tp
 import pandas as _pd
 
 from optihood.entities import NodeKeys as sheets
+from optihood.entities import TransformerLabels as trafo
 
 
 class ScenarioDataTypes(_enum.StrEnum):
@@ -244,4 +245,76 @@ class GridConnectionConverter(ScenarioToVisualizerAbstract):
                                                            energyType, active=line['active'],
                                                            building=line['building'],
                                                            efficiency=line['efficiency']))
+        return list_of_demands
+
+
+@_dc.dataclass()
+class TransformersConverter(ScenarioToVisualizerAbstract):
+    building: int
+    efficiency: float
+    capacity_DHW: float
+    capacity_SH: float
+    capacity_min: float
+    lifetime: float
+    maintenance: float
+    installation: float
+    planification: float
+    invest_base: float
+    invest_cap: float
+    heat_impact: float
+    elec_impact: float
+    impact_cap: float
+    capacity_el: _tp.Optional[float] = None
+
+    def get_nodal_infos(self) -> _tp.Optional[dict[str, dict[str, _tp.Union[str, int, float, _pl.Path]]]]:
+        if self.active:
+            return {"data": {'id': self.id, 'label': self.label, trafo.building.value: self.building,
+                             trafo.efficiency.value: self.efficiency,
+                             trafo.capacity_DHW.value: self.capacity_DHW,
+                             trafo.capacity_SH.value: self.capacity_SH,
+                             trafo.capacity_min.value: self.capacity_min,
+                             trafo.lifetime.value: self.lifetime,
+                             trafo.maintenance.value: self.maintenance,
+                             trafo.installation.value: self.installation,
+                             trafo.planification.value: self.planification,
+                             trafo.invest_base.value: self.invest_base,
+                             trafo.invest_cap.value: self.invest_cap,
+                             trafo.heat_impact.value: self.heat_impact,
+                             trafo.elec_impact.value: self.elec_impact,
+                             trafo.impact_cap.value: self.impact_cap,
+                             trafo.capacity_el.value: self.capacity_el,
+                             },
+                    "classes": "transformer"}
+
+    @staticmethod
+    def set_from_dataFrame(df: _pd.DataFrame) -> _abc.Sequence[_tp.Type[ScenarioToVisualizerAbstract]]:
+        list_of_demands = []
+
+        if 'active' not in df.columns:
+            df['active'] = True
+
+        if 'capacity_el' not in df.columns:
+            df['capacity_el'] = None
+
+        for i, line in df.iterrows():
+            energyType = EnergyTypes.electricity
+
+            list_of_demands.append(
+                TransformersConverter(line['label'], line['label'], line['from'], line['to'],
+                                      energyType, active=line['active'],
+                                      building=line[trafo.building.value],
+                                      efficiency=line[trafo.efficiency.value],
+                                      capacity_DHW=line[trafo.capacity_DHW.value],
+                                      capacity_SH=line[trafo.capacity_SH.value],
+                                      capacity_min=line[trafo.capacity_min.value],
+                                      lifetime=line[trafo.lifetime.value],
+                                      maintenance=line[trafo.maintenance.value],
+                                      installation=line[trafo.installation.value],
+                                      planification=line[trafo.planification.value],
+                                      invest_base=line[trafo.invest_base.value],
+                                      invest_cap=line[trafo.invest_cap.value],
+                                      heat_impact=line[trafo.heat_impact.value],
+                                      elec_impact=line[trafo.elec_impact.value],
+                                      impact_cap=line[trafo.impact_cap.value]
+                                      ))
         return list_of_demands
