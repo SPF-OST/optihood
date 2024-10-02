@@ -46,8 +46,8 @@ class TestNodalDataExample(_ut.TestCase):
 
     def test_get_edge_infos(self):
         result = self.nodalData.get_edge_infos()
-        expected_dict_0 = {'data': {'source': 'van', 'target': 'la', 'energy_type': 'electricity'}}
-        expected_dict_1 = {'data': {'source': 'la', 'target': 'hou', 'energy_type': 'electricity'}}
+        expected_dict_0 = {'data': {'source': 'van', 'target': 'la'}, 'classes': 'electricity'}
+        expected_dict_1 = {'data': {'source': 'la', 'target': 'hou'}, 'classes': 'electricity'}
         self.assertDictEqual(result[0], expected_dict_0)
         self.assertDictEqual(result[1], expected_dict_1)
 
@@ -72,7 +72,8 @@ class TestCommoditySourcesConverter(_ut.TestCase):
         result = self.nodalData.get_nodal_infos()
         expected_dict = {
             'data': {'id': 'elRes', 'label': 'electricityResource', "building": 1, "variable_costs": 0.204,
-                     "CO2_impact": self.path}
+                     "CO2_impact": self.path},
+            'classes': 'source',
         }
         self.assertDictEqual(result, expected_dict)
 
@@ -82,7 +83,8 @@ class TestCommoditySourcesConverter(_ut.TestCase):
 
     def test_get_edge_infos(self):
         result = self.nodalData.get_edge_infos()
-        expected_dict = {'data': {'source': 'elRes', 'target': 'gridBus', 'energy_type': 'electricity'}}
+        expected_dict = {'data': {'source': 'elRes', 'target': 'gridBus'},
+                         'classes': 'electricity', }
         self.assertDictEqual(result[0], expected_dict)
 
     def test_get_edge_infos_ignored(self):
@@ -108,7 +110,8 @@ class TestCommoditySourcesConverter(_ut.TestCase):
         result = stv.CommoditySourcesConverter.set_from_dataFrame(data_df)
         expected_dict = {
             'data': {'id': 'electricityResource', 'label': 'electricityResource', "building": 1,
-                     "variable_costs": 0.204, "CO2_impact": self.path}
+                     "variable_costs": 0.204, "CO2_impact": self.path},
+            'classes': 'source',
         }
 
         # Flesh out test?
@@ -130,7 +133,8 @@ class TestBusesConverter(_ut.TestCase):
         result = self.nodalData.get_nodal_infos()
         expected_dict = {
             'data': {'id': 'gridBus', 'label': 'gridBus', "building": 1, "excess": 1, "excess_costs": 0.024,
-                     'shortage': None, "shortage_costs": None}
+                     'shortage': None, "shortage_costs": None},
+            'classes': 'bus',
         }
         self.assertDictEqual(result, expected_dict)
 
@@ -138,7 +142,8 @@ class TestBusesConverter(_ut.TestCase):
         result = self.nodalDataExtended.get_nodal_infos()
         expected_dict = {
             'data': {'id': 'gridBus', 'label': 'gridBus', "building": 1, "excess": 1, "excess_costs": 0.024,
-                     'shortage': True, "shortage_costs": 0.012}
+                     'shortage': True, "shortage_costs": 0.012},
+            'classes': 'bus',
         }
         self.assertDictEqual(result, expected_dict)
 
@@ -153,7 +158,8 @@ class TestBusesConverter(_ut.TestCase):
         result = stv.BusesConverter.set_from_dataFrame(data_df)
         expected_dict = {
             'data': {'id': 'electricityInBus', 'label': 'electricityInBus', "building": 1, "excess": 1, "excess_costs": -0.09,
-                     'shortage': None, "shortage_costs": None}
+                     'shortage': None, "shortage_costs": None},
+            'classes': 'bus',
         }
 
         # Flesh out test?
@@ -174,7 +180,8 @@ class TestDemandConverter(_ut.TestCase):
         result = self.nodalData.get_nodal_infos()
         expected_dict = {
             'data': {'id': 'elDem', 'label': 'electricityDemand', "building": 1, "fixed": 1, "nominal_value": 1,
-                     'building_model': None}
+                     'building_model': None},
+            'classes': 'demand',
         }
         self.assertDictEqual(result, expected_dict)
 
@@ -182,7 +189,8 @@ class TestDemandConverter(_ut.TestCase):
         result = self.nodalDataExtended.get_nodal_infos()
         expected_dict = {
             'data': {'id': 'elDem', 'label': 'electricityDemand', "building": 1, "fixed": 1, "nominal_value": 1,
-                     'building_model': True}
+                     'building_model': True},
+            'classes': 'demand',
         }
         self.assertDictEqual(result, expected_dict)
 
@@ -199,8 +207,8 @@ class TestDemandConverter(_ut.TestCase):
         result = stv.DemandConverter.set_from_dataFrame(data_df)
         expected_dict = {
             'data': {'id': 'electricityDemand', 'label': 'electricityDemand', "building": 1, "fixed": 1,
-                     "nominal_value": 1,
-                     'building_model': None}
+                     "nominal_value": 1, 'building_model': None},
+            'classes': 'demand',
         }
 
         # Flesh out test?
@@ -217,7 +225,8 @@ class TestGridConnectionConverter(_ut.TestCase):
     def test_get_nodal_infos(self):
         result = self.nodalData.get_nodal_infos()
         expected_dict = {
-            'data': {'id': 'gridEl', 'label': 'gridElectricity', "building": 1, "efficiency": 1}
+            'data': {'id': 'gridEl', 'label': 'gridElectricity', "building": 1, "efficiency": 1},
+            "classes": "grid_connection"
         }
         self.assertDictEqual(result, expected_dict)
 
@@ -232,7 +241,8 @@ class TestGridConnectionConverter(_ut.TestCase):
                                       })
         result = stv.GridConnectionConverter.set_from_dataFrame(data_df)
         expected_dict = {
-            'data': {'id': 'gridElectricity', 'label': 'gridElectricity', "building": 1, "efficiency": 1, }
+            'data': {'id': 'gridElectricity', 'label': 'gridElectricity', "building": 1, "efficiency": 1, },
+            "classes": "grid_connection"
         }
 
         # Flesh out test?

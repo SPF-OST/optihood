@@ -49,17 +49,67 @@ def setup_cytoscape_app(graphData: _tp.Optional[_cv.EnergyNetworkGraphData] = No
         {
             'selector': 'node',
             'style': {
-                # 'background-color': '#BFD7B5',
                 'label': 'data(label)'
             }
         },
 
         # node shapes
+            # ellipse
+            # triangle
+            # round-triangle
+            # rectangle
+            # round-rectangle
+            # bottom-round-rectangle
+            # cut-rectangle
+            # barrel
+            # rhomboid
+            # right-rhomboid
+            # diamond
+            # round-diamond
+            # pentagon
+            # round-pentagon
+            # hexagon
+            # round-hexagon
+            # concave-hexagon
+            # heptagon
+            # round-heptagon
+            # octagon
+            # round-octagon
+            # star
+            # tag
+            # round-tag
+            # vee
         {
             'selector': '.bus',
             'style': {
                 "shape": 'rectangle',
-                # 'background-color': '#BFD7B5',
+            }
+        },
+        {
+            'selector': '.demand',
+            'style': {
+                "shape": 'triangle',
+            }
+        },
+        {
+            'selector': '.transformer',
+            'style': {
+                "shape": 'ellipse',
+            }
+        },
+        {
+            'selector': '.source',
+            'style': {
+                "shape": 'diamond',
+            }
+        },
+
+        # cluster color
+        {
+            'selector': '.building',
+            'style': {
+                # "shape": 'rectangle',
+                'background-color': 'data(building)',
                 # 'label': 'data(label)'
             }
         },
@@ -88,7 +138,7 @@ def setup_cytoscape_app(graphData: _tp.Optional[_cv.EnergyNetworkGraphData] = No
     app.layout = html.Div([
         cyto.Cytoscape(
             id='cytoscape-event-callbacks-3',
-            layout={'name': 'breadthfirst'},
+            layout={'name': 'breadthfirst'},  # cose
             elements=edges + nodes,
             stylesheet=default_stylesheet,
             style={'width': '100%', 'height': '640px'}

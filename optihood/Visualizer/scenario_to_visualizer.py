@@ -40,7 +40,7 @@ class ScenarioToVisualizerAbstract:
     def get_edge_infos(self) -> list[dict[str, dict[str, _tp.Union[str, float, int]]]]:
         if not self.active:
             return []
-        
+
         self.edges_into_node = []
         if self.from_node:
             if not isinstance(self.from_node, list):
@@ -114,7 +114,8 @@ class CommoditySourcesConverter(ScenarioToVisualizerAbstract):
     def get_nodal_infos(self) -> _tp.Optional[dict[str, dict[str, _tp.Union[str, int, float, _pl.Path]]]]:
         if self.active:
             return {"data": {'id': self.id, 'label': self.label, "building": self.building,
-                             "variable_costs": self.variable_costs, "CO2_impact": self.CO2_impact}}
+                             "variable_costs": self.variable_costs, "CO2_impact": self.CO2_impact},
+                    'classes': 'source'}
 
     @staticmethod
     def set_from_dataFrame(df: _pd.DataFrame) -> _abc.Sequence[_tp.Type[ScenarioToVisualizerAbstract]]:
@@ -198,7 +199,8 @@ class DemandConverter(ScenarioToVisualizerAbstract):
         if self.active:
             return {"data": {'id': self.id, 'label': self.label, "building": self.building,
                              "fixed": self.fixed, "nominal_value": self.nominal_value,
-                             "building_model": self.building_model}}
+                             "building_model": self.building_model},
+                    "classes": "demand"}
 
     @staticmethod
     def set_from_dataFrame(df: _pd.DataFrame) -> _abc.Sequence[_tp.Type[ScenarioToVisualizerAbstract]]:
@@ -225,7 +227,8 @@ class GridConnectionConverter(ScenarioToVisualizerAbstract):
     def get_nodal_infos(self) -> _tp.Optional[dict[str, dict[str, _tp.Union[str, int, float, _pl.Path]]]]:
         if self.active:
             return {"data": {'id': self.id, 'label': self.label, "building": self.building,
-                             "efficiency": self.efficiency, }}
+                             "efficiency": self.efficiency, },
+                    "classes": "grid_connection"}
 
     @staticmethod
     def set_from_dataFrame(df: _pd.DataFrame) -> _abc.Sequence[_tp.Type[ScenarioToVisualizerAbstract]]:
