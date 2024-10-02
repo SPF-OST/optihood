@@ -81,7 +81,8 @@ def scenario_data_factory(scenario_data_type: str) -> _tp.Optional[_tp.Type[Scen
                            sheets.buses: BusesConverter,
                            sheets.commodity_sources: CommoditySourcesConverter,
                            sheets.demand: DemandConverter,
-                           sheets.grid_connection: GridConnectionConverter}
+                           sheets.grid_connection: GridConnectionConverter,
+                           sheets.transformers: TransformersConverter}
 
     if scenario_data_type not in scenario_data_types:
         # raise NotImplementedError("received unexpected type")
@@ -300,8 +301,8 @@ class TransformersConverter(ScenarioToVisualizerAbstract):
             energyType = EnergyTypes.electricity
 
             list_of_demands.append(
-                TransformersConverter(line['label'], line['label'], line['from'], line['to'],
-                                      energyType, active=line['active'],
+                TransformersConverter(line['label'], line['label'], line['from'].split(sep=','),
+                                      line['to'].split(sep=','), energyType, active=line['active'],
                                       building=line[trafo.building.value],
                                       efficiency=line[trafo.efficiency.value],
                                       capacity_DHW=line[trafo.capacity_DHW.value],

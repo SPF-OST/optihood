@@ -94,7 +94,7 @@ def setup_cytoscape_app(graphData: _tp.Optional[_cv.EnergyNetworkGraphData] = No
         {
             'selector': '.transformer',
             'style': {
-                "shape": 'ellipse',
+                "shape": 'right-rhomboid',
             }
         },
         {
