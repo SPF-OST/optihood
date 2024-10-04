@@ -412,16 +412,20 @@ class StoragesConverter(ScenarioToVisualizerAbstract):
 
 
 def get_energy_type(label: str):
-    if "electric" in label or "grid" in label or "pv" in label or "Electric" in label:
+    electric_parts = ["electric", "Electric", "grid", "pv"]
+    if any(flag in label for flag in electric_parts):
         return EnergyTypes.electricity
 
-    if "sh" in label or "spaceHeating" in label:
+    sh_parts = ["sh", "spaceHeating", "chiller", 'heatSource35']
+    if any(flag in label for flag in sh_parts):
         return EnergyTypes.space_heating
 
-    if "dhw" in label or "domesticHotWater" in label:
+    dhw_parts = ["dhw", "domesticHotWater", 'heatSource65']
+    if any(flag in label for flag in dhw_parts):
         return EnergyTypes.domestic_hot_water
 
-    if "gas" in label or "Gas" in label:
+    gas_parts = ["gas", "Gas"]
+    if any(flag in label for flag in gas_parts):
         return EnergyTypes.gas
 
     print(f'Unknown label type found: {label}')
@@ -430,7 +434,8 @@ def get_energy_type(label: str):
 
 def get_energy_type_based_on_both_labels(label: str, other_label: str) -> EnergyTypes:
     """ Edges are based on the current node and another (to or from)."""
-    if "HP" in label or "solar" in label or "GasBoiler" in label or "CHP" in label or "GWHP" in label:
+    transformer_parts = ["HP", "solar", "GasBoiler", "CHP", "GWHP", "Dummy", "Dummy"]
+    if any(flag in label for flag in transformer_parts):
         # For some reason, "HP" in label is not enough for HP, CHP, and GWHP
         return get_energy_type(other_label)
 
