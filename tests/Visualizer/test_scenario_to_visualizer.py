@@ -36,6 +36,7 @@ class TestNodalDataExample(_ut.TestCase):
     http://dash.plotly.com/cytoscape/events
     """
     def setUp(self):
+        """ Currently fails, as this is the only case where IDs are given directly. """
         self.maxDiff = None
         energyType = stv.EnergyTypes.electricity
         self.nodalData = stv.NodalDataExample('la', 'Los Angeles', 'van', 'hou', energyType, True, 34.03,
@@ -72,17 +73,17 @@ class TestCommoditySourcesConverter(_ut.TestCase):
         self.maxDiff = None
         energyType = stv.EnergyTypes.electricity
         self.path = _pl.Path("..\\excels\\basic_example\\electricity_impact.csv")
-        self.nodalData = stv.CommoditySourcesConverter('elRes', 'electricityResource', None, 'gridBus', energyType,
+        self.nodalData = stv.CommoditySourcesConverter('electricityResource', None, 'gridBus', energyType,
                                                        building=1, variable_costs=0.204, CO2_impact=self.path,
                                                        active=True)
-        self.nodalDataFalse = stv.CommoditySourcesConverter('elRes', 'electricityResource', None, 'gridBus', energyType,
+        self.nodalDataFalse = stv.CommoditySourcesConverter('electricityResource', None, 'gridBus', energyType,
                                                             building=1, variable_costs=0.204, CO2_impact=self.path,
                                                             active=False)
 
     def test_get_nodal_infos(self):
         result = self.nodalData.get_nodal_infos()
         expected_dict = {
-            'data': {'id': 'elRes', 'label': 'electricityResource', "building": 1, "variable_costs": 0.204,
+            'data': {'id': 'electricityResource_B1', 'label': 'electricityResource', "building": 1, "variable_costs": 0.204,
                      "CO2_impact": self.path},
             'classes': 'source',
         }
@@ -94,20 +95,13 @@ class TestCommoditySourcesConverter(_ut.TestCase):
 
     def test_get_edge_infos(self):
         result = self.nodalData.get_edge_infos()
-        expected_dict = {'data': {'source': 'elRes', 'target': 'gridBus'},
+        expected_dict = {'data': {'source': 'electricityResource_B1', 'target': 'gridBus'},
                          'classes': 'electricity', }
         self.assertDictEqual(result[0], expected_dict)
 
     def test_get_edge_infos_ignored(self):
         result = self.nodalDataFalse.get_edge_infos()
         self.assertListEqual(result, [])
-
-    def test_read_nodal_infos(self):
-        data = {'id': 'la', 'label': 'Los Angeles', "building": 1, "variable_costs": 0.024, 'CO2_impact': 0.018}
-        result = stv.CommoditySourcesConverter.read_nodal_infos(data)
-        expected_string = ("{'id': 'la', 'label': 'Los Angeles', 'building': 1, 'variable_costs': 0.024, 'CO2_impact': "
-                           "0.018}")
-        self.assertEqual(result, expected_string)
 
     def test_set_from_dataFrame(self):
         data_df = _pd.DataFrame(index=[0],
@@ -120,7 +114,7 @@ class TestCommoditySourcesConverter(_ut.TestCase):
                                       })
         result = stv.CommoditySourcesConverter.set_from_dataFrame(data_df)
         expected_dict = {
-            'data': {'id': 'electricityResource', 'label': 'electricityResource', "building": 1,
+            'data': {'id': 'electricityResource_B1', 'label': 'electricityResource', "building": 1,
                      "variable_costs": 0.204, "CO2_impact": self.path},
             'classes': 'source',
         }
@@ -134,16 +128,16 @@ class TestBusesConverter(_ut.TestCase):
         self.maxDiff = None
         energyType = stv.EnergyTypes.electricity
         self.path = _pl.Path("..\\excels\\basic_example\\electricity_impact.csv")
-        self.nodalData = stv.BusesConverter('gridBus', 'gridBus', None, None, energyType, building=1, excess=1,
+        self.nodalData = stv.BusesConverter('gridBus', None, None, energyType, building=1, excess=1,
                                             excess_costs=0.024, active=True)
-        self.nodalDataExtended = stv.BusesConverter('gridBus', 'gridBus', None, None, energyType, building=1, excess=1,
+        self.nodalDataExtended = stv.BusesConverter('gridBus', None, None, energyType, building=1, excess=1,
                                                     excess_costs=0.024, active=True, shortage=True,
                                                     shortage_costs=0.012)
 
     def test_get_nodal_infos(self):
         result = self.nodalData.get_nodal_infos()
         expected_dict = {
-            'data': {'id': 'gridBus', 'label': 'gridBus', "building": 1, "excess": 1, "excess_costs": 0.024,
+            'data': {'id': 'gridBus_B1', 'label': 'gridBus', "building": 1, "excess": 1, "excess_costs": 0.024,
                      'shortage': None, "shortage_costs": None},
             'classes': 'bus',
         }
@@ -152,7 +146,7 @@ class TestBusesConverter(_ut.TestCase):
     def test_get_nodal_infos_extended(self):
         result = self.nodalDataExtended.get_nodal_infos()
         expected_dict = {
-            'data': {'id': 'gridBus', 'label': 'gridBus', "building": 1, "excess": 1, "excess_costs": 0.024,
+            'data': {'id': 'gridBus_B1', 'label': 'gridBus', "building": 1, "excess": 1, "excess_costs": 0.024,
                      'shortage': True, "shortage_costs": 0.012},
             'classes': 'bus',
         }
@@ -168,7 +162,7 @@ class TestBusesConverter(_ut.TestCase):
                                       })
         result = stv.BusesConverter.set_from_dataFrame(data_df)
         expected_dict = {
-            'data': {'id': 'electricityInBus', 'label': 'electricityInBus', "building": 1, "excess": 1,
+            'data': {'id': 'electricityInBus_B1', 'label': 'electricityInBus', "building": 1, "excess": 1,
                      "excess_costs": -0.09,
                      'shortage': None, "shortage_costs": None},
             'classes': 'bus',
@@ -180,19 +174,22 @@ class TestBusesConverter(_ut.TestCase):
 
 class TestDemandConverter(_ut.TestCase):
     def setUp(self):
+        """ TODO: Perhaps another case with a specific building model would make sense.
+            Then, the appropriate edges need to be tested.
+        """
         self.maxDiff = None
         energyType = stv.EnergyTypes.electricity
         self.path = _pl.Path("..\\excels\\basic_example\\electricity_impact.csv")
-        self.nodalData = stv.DemandConverter('elDem', 'electricityDemand', None, None, energyType, building=1, fixed=1,
+        self.nodalData = stv.DemandConverter('electricityDemand', None, None, energyType, building=1, fixed=1,
                                              nominal_value=1, active=True)
-        self.nodalDataExtended = stv.DemandConverter('elDem', 'electricityDemand', None, None, energyType, building=1,
+        self.nodalDataExtended = stv.DemandConverter('electricityDemand', None, None, energyType, building=1,
                                                      fixed=1, nominal_value=1, active=True, building_model=True)
 
     def test_get_nodal_infos(self):
         result = self.nodalData.get_nodal_infos()
         expected_dict = {
-            'data': {'id': 'elDem', 'label': 'electricityDemand', "building": 1, "fixed": 1, "nominal_value": 1,
-                     'building_model': None},
+            'data': {'id': 'electricityDemand_B1', 'label': 'electricityDemand', "building": 1, "fixed": 1, "nominal_value": 1,
+                     'building model': None, 'building model out': None},
             'classes': 'demand',
         }
         self.assertDictEqual(result, expected_dict)
@@ -200,8 +197,8 @@ class TestDemandConverter(_ut.TestCase):
     def test_get_nodal_infos_extended(self):
         result = self.nodalDataExtended.get_nodal_infos()
         expected_dict = {
-            'data': {'id': 'elDem', 'label': 'electricityDemand', "building": 1, "fixed": 1, "nominal_value": 1,
-                     'building_model': True},
+            'data': {'id': 'electricityDemand_B1', 'label': 'electricityDemand', "building": 1, "fixed": 1, "nominal_value": 1,
+                     'building model': True, 'building model out': None},
             'classes': 'demand',
         }
         self.assertDictEqual(result, expected_dict)
@@ -218,8 +215,8 @@ class TestDemandConverter(_ut.TestCase):
                                       })
         result = stv.DemandConverter.set_from_dataFrame(data_df)
         expected_dict = {
-            'data': {'id': 'electricityDemand', 'label': 'electricityDemand', "building": 1, "fixed": 1,
-                     "nominal_value": 1, 'building_model': None},
+            'data': {'id': 'electricityDemand_B1', 'label': 'electricityDemand', "building": 1, "fixed": 1,
+                     "nominal_value": 1, 'building model': None, 'building model out': None},
             'classes': 'demand',
         }
 
@@ -231,13 +228,13 @@ class TestGridConnectionConverter(_ut.TestCase):
     def setUp(self):
         self.maxDiff = None
         energyType = stv.EnergyTypes.electricity
-        self.nodalData = stv.GridConnectionConverter('gridEl', 'gridElectricity', "gridBus", "electricityInBus",
+        self.nodalData = stv.GridConnectionConverter('gridElectricity', "gridBus", "electricityInBus",
                                                      energyType, building=1, efficiency=1, active=True)
 
     def test_get_nodal_infos(self):
         result = self.nodalData.get_nodal_infos()
         expected_dict = {
-            'data': {'id': 'gridEl', 'label': 'gridElectricity', "building": 1, "efficiency": 1},
+            'data': {'id': 'gridElectricity_B1', 'label': 'gridElectricity', "building": 1, "efficiency": 1},
             "classes": "grid_connection"
         }
         self.assertDictEqual(result, expected_dict)
@@ -253,7 +250,7 @@ class TestGridConnectionConverter(_ut.TestCase):
                                       })
         result = stv.GridConnectionConverter.set_from_dataFrame(data_df)
         expected_dict = {
-            'data': {'id': 'gridElectricity', 'label': 'gridElectricity', "building": 1, "efficiency": 1, },
+            'data': {'id': 'gridElectricity_B1', 'label': 'gridElectricity', "building": 1, "efficiency": 1, },
             "classes": "grid_connection"
         }
 
@@ -265,7 +262,7 @@ class TestTransformersConverter(_ut.TestCase):
     def setUp(self):
         self.maxDiff = None
         energyType = stv.EnergyTypes.electricity
-        self.nodalData = stv.TransformersConverter('HP', 'HP', "electricityInBus", ["shSourceBus", "dhwStorageBus"],
+        self.nodalData = stv.TransformersConverter('HP', "electricityInBus", ["shSourceBus", "dhwStorageBus"],
                                                    energyType, building=1, efficiency=3.5, active=True,
                                                    capacity_DHW=500,
                                                    capacity_SH=500,
@@ -284,7 +281,7 @@ class TestTransformersConverter(_ut.TestCase):
     def test_get_nodal_infos(self):
         result = self.nodalData.get_nodal_infos()
         expected_dict = {
-            'data': {'id': 'HP', 'label': 'HP', "building": 1, "efficiency": 3.5, 'capacity_DHW': 500,
+            'data': {'id': 'HP_B1', 'label': 'HP', "building": 1, "efficiency": 3.5, 'capacity_DHW': 500,
                      'capacity_SH': 500, 'capacity_el': None, 'capacity_min': 5, 'elec_impact': 0, 'heat_impact': 0,
                      'impact_cap': 280.9, 'installation': 0, 'invest_base': 16679, 'invest_cap': 2152,
                      'lifetime': 20, 'maintenance': 0.02, 'planification': 0},
@@ -316,7 +313,7 @@ class TestTransformersConverter(_ut.TestCase):
 
         result = stv.TransformersConverter.set_from_dataFrame(data_df)
         expected_dict = {
-            'data': {'id': 'HP', 'label': 'HP', "building": 1, "efficiency": 3.5, 'capacity_DHW': 500,
+            'data': {'id': 'HP_B1', 'label': 'HP', "building": 1, "efficiency": 3.5, 'capacity_DHW': 500,
                      'capacity_SH': 500, 'capacity_el': None, 'capacity_min': 5, 'elec_impact': 0, 'heat_impact': 0,
                      'impact_cap': 280.9, 'installation': 0, 'invest_base': 16679, 'invest_cap': 2152,
                      'lifetime': 20, 'maintenance': 0.02, 'planification': 0},
@@ -326,8 +323,8 @@ class TestTransformersConverter(_ut.TestCase):
         # Flesh out test?
         self.assertDictEqual(result[0].get_nodal_infos(), expected_dict)
 
-        expected_dict_edge = {'data': {'source': 'HP', 'target': 'shSourceBus'},
-                              'classes': 'electricity', }
+        expected_dict_edge = {'data': {'source': 'HP_B1', 'target': 'shSourceBus_B1'},
+                              'classes': 'SH', }
 
         self.assertDictEqual(result[0].get_edge_infos()[1], expected_dict_edge)
 
@@ -337,7 +334,7 @@ class TestStorageConverter(_ut.TestCase):
     def setUp(self):
         self.maxDiff = None
         energyType = stv.EnergyTypes.electricity
-        self.nodalData = stv.StoragesConverter('HP', 'HP', "electricityInBus", ["shSourceBus", "dhwStorageBus"],
+        self.nodalData = stv.StoragesConverter('HP', "electricityInBus", ["shSourceBus", "dhwStorageBus"],
                                                energyType, building=1, active=True,
                                                efficiency_inflow=0.9,
                                                efficiency_outflow=0.86,
@@ -359,7 +356,7 @@ class TestStorageConverter(_ut.TestCase):
     def test_get_nodal_infos(self):
         result = self.nodalData.get_nodal_infos()
         expected_dict = {
-            'data': {'id': 'HP', 'label': 'HP', "building": 1, "efficiency inflow": 0.9, "efficiency outflow": 0.86,
+            'data': {'id': 'HP_B1', 'label': 'HP', "building": 1, "efficiency inflow": 0.9, "efficiency outflow": 0.86,
                      'capacity loss': 0, 'capacity max': 1000000, 'capacity min': 0, 'elec_impact': 0, 'heat_impact': 0,
                      'impact_cap': 28.66, 'installation': 0, 'invest_base': 5138, 'invest_cap': 981,
                      'initial capacity': 0, 'lifetime': 15, 'maintenance': 0, 'planification': 0},
@@ -394,7 +391,7 @@ class TestStorageConverter(_ut.TestCase):
 
         result = stv.StoragesConverter.set_from_dataFrame(data_df)
         expected_dict = {
-            'data': {'id': 'electricalStorage', 'label': 'electricalStorage', "building": 1, "efficiency inflow": 0.9, "efficiency outflow": 0.86,
+            'data': {'id': 'electricalStorage_B1', 'label': 'electricalStorage', "building": 1, "efficiency inflow": 0.9, "efficiency outflow": 0.86,
                      'capacity loss': 0.0, 'capacity max': 1000000, 'capacity min': 0, 'elec_impact': 0, 'heat_impact': 0,
                      'impact_cap': 28.66, 'installation': 0, 'invest_base': 5138, 'invest_cap': 981.0,
                      'initial capacity': 0, 'lifetime': 15, 'maintenance': 0, 'planification': 0},
@@ -404,7 +401,7 @@ class TestStorageConverter(_ut.TestCase):
         # Flesh out test?
         self.assertDictEqual(result[0].get_nodal_infos(), expected_dict)
 
-        expected_dict_edge = {'data': {'source': 'electricityProdBus', 'target': 'electricalStorage'},
+        expected_dict_edge = {'data': {'source': 'electricityProdBus_B1', 'target': 'electricalStorage_B1'},
                               'classes': 'electricity', }
 
         self.assertDictEqual(result[0].get_edge_infos()[0], expected_dict_edge)
