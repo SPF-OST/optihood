@@ -28,6 +28,13 @@ import optihood.Visualizer.scenario_to_visualizer as stv
 
 
 class TestNodalDataExample(_ut.TestCase):
+    """
+    This test shows a simple example outside of our problem domain.
+    It helped create the architecture and is kept to keep the system flexible for unknown future objects.
+
+    This example comes directly from the Plotly homepage.
+    http://dash.plotly.com/cytoscape/events
+    """
     def setUp(self):
         self.maxDiff = None
         energyType = stv.EnergyTypes.electricity

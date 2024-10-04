@@ -193,10 +193,30 @@ class BusesConverter(ScenarioToVisualizerAbstract):
 
 @_dc.dataclass()
 class DemandConverter(ScenarioToVisualizerAbstract):
+    def get_edge_infos(self) -> list[dict[str, dict[str, _tp.Union[str, float, int]]]]:
+        if not self.active:
+            return []
+
+        all_normal_edges = super().get_edge_infos()
+
+        building_model_edges = []
+        if self.building_model_out:
+            if not isinstance(self.building_model_out, list):
+                self.building_model_out = [self.building_model_out]
+            for building_model_out in self.building_model_out:
+                energy_type = get_energy_type_based_on_both_labels(self.id, building_model_out)
+                building_model_edges.append({'data': {'source': self.id, 'target': building_model_out},
+                                               "classes": energy_type.value})
+
+        self.edges_out_of_node += building_model_edges
+
+        return all_normal_edges + building_model_edges
+
     building: int
     fixed: int
     nominal_value: int
     building_model: _tp.Optional[bool] = None
+    building_model_out: _tp.Optional[str] = None
 
     def __post_init__(self):
         if self.to_node:
@@ -206,7 +226,7 @@ class DemandConverter(ScenarioToVisualizerAbstract):
         if self.active:
             return {"data": {'id': self.id, 'label': self.label, "building": self.building,
                              "fixed": self.fixed, "nominal_value": self.nominal_value,
-                             "building_model": self.building_model},
+                             "building model": self.building_model, "building model out": self.building_model_out},
                     "classes": "demand"}
 
     @staticmethod
@@ -216,14 +236,24 @@ class DemandConverter(ScenarioToVisualizerAbstract):
         if 'active' not in df.columns:
             df['active'] = True
 
+        if 'building model' not in df.columns:
+            df['building model'] = None
+
+        if 'building model out' not in df.columns:
+            df['building model out'] = None
+
         for i, line in df.iterrows():
             energyType = EnergyTypes.electricity
+
+            if not line['building model'] == 'yes' and not line['building model'] == 'Yes':
+                line['building model out'] = None
 
             list_of_demands.append(DemandConverter(line['label'], line['label'], line['from'].split(sep=',')
                                                    , None, energyType,
                                                    active=line['active'], building=line['building'],
                                                    fixed=line['fixed'], nominal_value=line['nominal value'],
-                                                   building_model=line['building model']))
+                                                   building_model=line['building model'],
+                                                   building_model_out=line['building model out']))
         return list_of_demands
 
 
@@ -436,12 +466,11 @@ def get_energy_type_based_on_both_labels(label: str, other_label: str) -> Energy
     """ Edges are based on the current node and another (to or from)."""
 
     transformer_parts = ["HP", "solar", "GasBoiler", "Dummy", "Dummy"]
-    
+
     if any(flag in label for flag in transformer_parts):
         return get_energy_type(other_label)
 
     return get_energy_type(label)
-
 
 
 @_dc.dataclass()
@@ -452,4 +481,3 @@ class LinksConverter(ScenarioToVisualizerAbstract):
     @staticmethod
     def set_from_dataFrame(df: _pd.DataFrame):
         raise NotImplementedError
-
