@@ -24,6 +24,7 @@ import optihood.Visualizer.scenario_to_visualizer as stv
 # TODO: adjust energy types according to actual values.
 # TODO: put splitting of to and from nodes at higher level.
 # TODO: adjust diagram to have sources on the left and demands on the right.
+# TODO: numbering for id needs to propagate to to and from nodes.
 
 
 class TestNodalDataExample(_ut.TestCase):
