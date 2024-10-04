@@ -434,9 +434,10 @@ def get_energy_type(label: str):
 
 def get_energy_type_based_on_both_labels(label: str, other_label: str) -> EnergyTypes:
     """ Edges are based on the current node and another (to or from)."""
-    transformer_parts = ["HP", "solar", "GasBoiler", "CHP", "GWHP", "Dummy", "Dummy"]
+
+    transformer_parts = ["HP", "solar", "GasBoiler", "Dummy", "Dummy"]
+    
     if any(flag in label for flag in transformer_parts):
-        # For some reason, "HP" in label is not enough for HP, CHP, and GWHP
         return get_energy_type(other_label)
 
     return get_energy_type(label)
