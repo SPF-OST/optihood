@@ -117,6 +117,15 @@ def scenario_data_factory(scenario_data_type: str) -> _tp.Optional[_tp.Type[Scen
 class NodalDataExample(ScenarioToVisualizerAbstract):
     longitude: float
     latitude: float
+    _id: str = _dc.field(init=False)
+
+    @property
+    def id(self):
+        return self._id
+
+    @id.setter
+    def id(self, value):
+        self._id = value
 
     def get_nodal_infos(self):
         return {

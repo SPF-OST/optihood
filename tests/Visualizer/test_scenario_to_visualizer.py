@@ -39,8 +39,9 @@ class TestNodalDataExample(_ut.TestCase):
         """ Currently fails, as this is the only case where IDs are given directly. """
         self.maxDiff = None
         energyType = stv.EnergyTypes.electricity
-        self.nodalData = stv.NodalDataExample('la', 'Los Angeles', 'van', 'hou', energyType, True, 34.03,
+        self.nodalData = stv.NodalDataExample('Los Angeles', 'van', 'hou', energyType, True, 34.03,
                                               -118.25)
+        self.nodalData.id = 'la'
 
     def test_get_nodal_infos(self):
         result = self.nodalData.get_nodal_infos()
