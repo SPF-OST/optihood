@@ -234,6 +234,7 @@ class DemandConverter(ScenarioToVisualizerAbstract):
                     "classes": "demand"}
 
     def get_edge_infos(self) -> list[dict[str, dict[str, _tp.Union[str, float, int]]]]:
+        # TODO: fix building node as dummy and chiller not connecting properly.
         if not self.active:
             return []
 
@@ -270,6 +271,7 @@ class DemandConverter(ScenarioToVisualizerAbstract):
 
             if not line['building model'] == 'yes' and not line['building model'] == 'Yes':
                 line['building model out'] = None
+                building_model_out_nodes = None
 
             building = line['building']
             from_nodes = line['from'].split(sep=',')
