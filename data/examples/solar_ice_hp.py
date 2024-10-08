@@ -6,6 +6,12 @@ from optihood.IO.writers import ScenarioFileWriterExcel
 from optihood.energy_network import EnergyNetworkGroup as EnergyNetwork
 
 if __name__ == '__main__':
+    """
+    
+    This example is currently under development (use with caution) !
+    
+    """
+
     # set a time period for the optimization problem
     timePeriod = pd.date_range("2018-01-01 00:00:00", "2018-01-31 23:00:00", freq="60min")
 
