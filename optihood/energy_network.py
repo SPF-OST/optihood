@@ -223,7 +223,7 @@ class EnergyNetworkClass(solph.EnergySystem):
             _ent.NodeKeys.stratified_storage.value: func(data, _ent.NodeKeys.stratified_storage.value),
             _ent.NodeKeys.profiles.value: func(data, _ent.NodeKeys.profiles.value)
         }
-        if "ice_storage" in _ent.NodeKeys:
+        if "ice_storage" in data.sheet_names:
             nodes_data.update({_ent.NodeKeys.ice_storage.value: func(data, _ent.NodeKeys.ice_storage.value)})
         return nodes_data
 
