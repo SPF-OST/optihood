@@ -466,7 +466,7 @@ class EnergyNetworkClass(solph.EnergySystem):
                 natGasImpact = data["natGas_impact"]
             else:
                 natGasCost = natGasImpact = None
-            b.addSource(data["commodity_sources"][data["commodity_sources"]["building"] == i], data["electricity_impact"], data["electricity_cost"], natGasCost, natGasImpact, opt, mergeHeatSourceSink)
+            b.addSource(data["commodity_sources"][data["commodity_sources"]["building"] == i], data["electricity_impact"], data["electricity_cost"], natGasCost, natGasImpact, opt, mergeHeatSourceSink, mergeLinkBuses)
             if i in data["building_model"]:
                 bmdata = data["building_model"][i]
             else:
