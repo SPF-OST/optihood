@@ -433,7 +433,7 @@ class IceStorageBlock(ScalarBlock):
         self.ice_fraction_build = BuildAction(rule=_ice_fraction_rule)
 
         def _storage_balance_rule(block):
-            """rule defining the energy balance of every ice storage in every timestep"""
+            """rule defining the energy balance of an ice storage in every timestep"""
             for g in group:
                 for t in m.TIMESTEPS:
                     expr = 0
