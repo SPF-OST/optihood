@@ -240,7 +240,8 @@ class EnergyNetworkClass(solph.EnergySystem):
 
         # update stratified_storage and ice storage index
         nodesData[_ent.NodeKeys.stratified_storage.value].set_index(_ent.StratifiedStorageLabels.label.value, inplace=True)
-        nodesData[_ent.NodeKeys.ice_storage.value].set_index(_ent.IceStorageLabels.label.value, inplace=True)
+        if _ent.NodeKeys.ice_storage.value in nodesData:
+            nodesData[_ent.NodeKeys.ice_storage.value].set_index(_ent.IceStorageLabels.label.value, inplace=True)
 
         # extract input data from CSVs
         electricityImpact = self.get_values_from_dataframe(nodesData[_ent.NodeKeys.commodity_sources.value], _ent.CommoditySourceTypes.electricityResource.value, _ent.CommoditySourcesLabels.label.value, _ent.CommoditySourcesLabels.CO2_impact.value)
@@ -454,6 +455,10 @@ class EnergyNetworkClass(solph.EnergySystem):
     def _addBuildings(self, data, opt, mergeLinkBuses, mergeBuses, mergeHeatSourceSink, includeCarbonBenefits, clusterSize):
         numberOfBuildings = max(data["buses"]["building"])
         self.__buildings = [Building('Building' + str(i + 1)) for i in range(numberOfBuildings)]
+        storageParams = {}
+        for s in [_ent.NodeKeys.stratified_storage.value, _ent.NodeKeys.ice_storage.value]:
+            if s in data:
+                storageParams.update({s: data[s]})
         for b in self.__buildings:
             buildingLabel = b.getBuildingLabel()
             i = int(buildingLabel[8:])
@@ -479,8 +484,6 @@ class EnergyNetworkClass(solph.EnergySystem):
                 bmdata = {}
             b.addSink(data["demand"][data["demand"]["building"] == i], data["demandProfiles"][i], bmdata, mergeLinkBuses, mergeHeatSourceSink, self._temperatureLevels)
             b.addTransformer(data["transformers"][data["transformers"]["building"] == i], self.__operationTemperatures, self.__temperatureAmb, self.__temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, self._dispatchMode, self._temperatureLevels)
-            storageParams = {"stratified_storage": data["stratified_storage"],
-                             "ice_storage": data["ice_storage"]}
             storageList = b.addStorage(data["storages"][data["storages"]["building"] == i], storageParams, self.__temperatureAmb, opt, mergeLinkBuses, self._dispatchMode, self._temperatureLevels)
             b.addSolar(data["solar"][(data["solar"]["building"] == i) & (data["solar"]["label"] == "solarCollector")], data["weather_data"], opt, mergeLinkBuses, self._dispatchMode, self._temperatureLevels)
             b.addPV(data["solar"][(data["solar"]["building"] == i) & (data["solar"]["label"] == "pv")], data["weather_data"], opt, self._dispatchMode)
