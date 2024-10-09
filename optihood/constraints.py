@@ -73,6 +73,23 @@ def peakObjectiveConstraint(om):
         )
     return om
 
+def peakObjectiveConstraint_to_be_merged(om):
+    """
+    Eventually this constraint would be merged with the peakObjectiveConstraint
+    """
+    peakObjectiveInputFlow1 = [(i, o) for (i, o) in om.flows if "peak65bus" in i.label and "peakObjective" in o.label]
+    flowMatch1 = [(i, o) for (i, o) in om.flows if "heatingLinkBus" in o.label]
+
+    for t in om.TIMESTEPS:
+        lhs_1 = om.flow[peakObjectiveInputFlow1[0][0], peakObjectiveInputFlow1[0][1], t]
+        rhs_1 = om.flow[flowMatch1[0][0], flowMatch1[0][1], t]
+        setattr(
+            om,
+            f"peakflow1_{t}",
+            pyo.Constraint(expr=(lhs_1 == rhs_1)),
+        )
+    return om
+
 
 def multiTemperatureStorageCapacityConstaint(om, storageNodes):
     """Constraint on thermal storage capacity when multiple temperature levels exist"""

@@ -774,7 +774,7 @@ class Building:
     
     def _addPeakObjectiveTransformer(self, data, opt):
         label = data["label"] + '__' + self.__buildingLabel
-        inputBusLabels = [data["from"].split(",")[0] + '__' + self.__buildingLabel, data["from"].split(",")[1] + '__' + self.__buildingLabel]
+        inputBusLabels = [b + '__' + self.__buildingLabel for b in data["from"].split(",")]
         inputBuses = [self.__busDict[i] for i in inputBusLabels]
         outputBus = self.__busDict[data["to"] + '__' + self.__buildingLabel]
         investArgs = {'ep_costs': float(data["invest_cap"]),
