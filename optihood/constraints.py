@@ -77,16 +77,16 @@ def peakObjectiveConstraint_to_be_merged(om):
     """
     Eventually this constraint would be merged with the peakObjectiveConstraint
     """
-    peakObjectiveInputFlow1 = [(i, o) for (i, o) in om.flows if "peak65bus" in i.label and "peakObjective" in o.label]
-    flowMatch1 = [(i, o) for (i, o) in om.flows if "heatingLinkBus" in o.label]
+    peakObjectiveInputFlow = [(i, o) for (i, o) in om.flows if "peak65bus" in i.label and "peakObjective" in o.label]
+    flowMatch = [(i, o) for (i, o) in om.flows if "heatingLinkBus" in o.label]
 
     for t in om.TIMESTEPS:
-        lhs_1 = om.flow[peakObjectiveInputFlow1[0][0], peakObjectiveInputFlow1[0][1], t]
-        rhs_1 = om.flow[flowMatch1[0][0], flowMatch1[0][1], t]
+        lhs = om.flow[peakObjectiveInputFlow[0][0], peakObjectiveInputFlow[0][1], t]
+        rhs = sum(om.flow[f[0], f[1], t] for f in flowMatch)
         setattr(
             om,
-            f"peakflow1_{t}",
-            pyo.Constraint(expr=(lhs_1 == rhs_1)),
+            f"peakflow_{t}",
+            pyo.Constraint(expr=(lhs == rhs)),
         )
     return om
 
