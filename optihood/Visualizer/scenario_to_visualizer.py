@@ -5,6 +5,9 @@ import pathlib as _pl
 import typing as _tp
 
 import pandas as _pd
+import numpy as _np
+import matplotlib as _mpl
+import matplotlib.pyplot as _plt
 
 from optihood.entities import NodeKeys as sheets
 from optihood.entities import TransformerLabels as trafo
@@ -24,6 +27,24 @@ class EnergyTypes(_enum.StrEnum):
     hydrogen = 'H2'
 
 
+class MplColorHelper:
+    """ Taken from https://stackoverflow.com/questions/26108436/how-can-i-get-the-matplotlib-rgb-color-given-the-colormap-name-boundrynorm-an#26109298
+    """
+
+    def __init__(self, cmap_name: str, start_val: _tp.Union[int, float], stop_val: _tp.Union[int, float]):
+        self.cmap_name = cmap_name
+        self.cmap = _plt.get_cmap(cmap_name)
+        self.norm = _mpl.colors.Normalize(vmin=start_val, vmax=stop_val)
+        self.scalarMap = _mpl.cm.ScalarMappable(norm=self.norm, cmap=self.cmap)
+
+    def get_rgb(self, val: _tp.Union[int, float, _np.ndarray]) -> _np.ndarray:
+        return self.scalarMap.to_rgba(val)
+
+    def get_hex(self, val: _tp.Union[int, float, _np.ndarray]) -> str:
+        # return _mpl.colors.to
+        return _mpl.colors.to_hex(self.get_rgb(val))
+
+
 @_dc.dataclass()
 class ScenarioToVisualizerAbstract:
     """ From node and to node could also use enums. """
@@ -34,6 +55,14 @@ class ScenarioToVisualizerAbstract:
     active: bool
     edges_into_node: list[dict[str, dict[str, _tp.Union[str, float, int]]]] = _dc.field(init=False)
     edges_out_of_node: list[dict[str, dict[str, _tp.Union[str, float, int]]]] = _dc.field(init=False)
+    color: str = _dc.field(init=False)
+
+    def __post_init__(self):
+        colorHelper = MplColorHelper('Paired', 0, 12)
+        if hasattr(self, 'building'):
+            self.color = colorHelper.get_hex(self.building)
+        else:
+            self.color = colorHelper.get_hex(0)
 
     @property
     def id(self):
@@ -141,13 +170,14 @@ class CommoditySourcesConverter(ScenarioToVisualizerAbstract):
     CO2_impact: _tp.Union[float, _pl.Path]
 
     def __post_init__(self):
+        super().__post_init__()
         if self.from_node:
             raise Warning(f'Commodity sources do not have a from node. Received {self.from_node}.')
 
     def get_nodal_infos(self) -> _tp.Optional[dict[str, dict[str, _tp.Union[str, int, float, _pl.Path]]]]:
         if self.active:
             return {"data": {'id': self.id, 'label': self.label, "building": self.building,
-                             "variable_costs": self.variable_costs, "CO2_impact": self.CO2_impact},
+                             "variable_costs": self.variable_costs, "CO2_impact": self.CO2_impact, 'color': self.color},
                     'classes': 'source'}
 
     @staticmethod
@@ -183,6 +213,7 @@ class BusesConverter(ScenarioToVisualizerAbstract):
     shortage_costs: _tp.Optional[_tp.Union[float, _pl.Path]] = None
 
     def __post_init__(self):
+        super().__post_init__()
         if self.from_node:
             raise Warning(f'Buses tend not to have a from node assigned in the scenario. Received {self.from_node}.')
         if self.to_node:
@@ -192,7 +223,7 @@ class BusesConverter(ScenarioToVisualizerAbstract):
         if self.active:
             return {"data": {'id': self.id, 'label': self.label, "building": self.building,
                              "excess": self.excess, "excess_costs": self.excess_costs, "shortage": self.shortage,
-                             "shortage_costs": self.shortage_costs},
+                             "shortage_costs": self.shortage_costs, 'color': self.color},
                     'classes': 'bus'}
 
     @staticmethod
@@ -232,13 +263,14 @@ class DemandConverter(ScenarioToVisualizerAbstract):
     building_model_out: _tp.Optional[str] = None
 
     def __post_init__(self):
+        super().__post_init__()
         if self.to_node:
             raise Warning(f'Buses tend not to have a from node assigned in the scenario. Received {self.from_node}.')
 
     def get_nodal_infos(self) -> _tp.Optional[dict[str, dict[str, _tp.Union[str, int, float, _pl.Path]]]]:
         if self.active:
             return {"data": {'id': self.id, 'label': self.label, "building": self.building,
-                             "fixed": self.fixed, "nominal_value": self.nominal_value,
+                             "fixed": self.fixed, "nominal_value": self.nominal_value, 'color': self.color,
                              "building model": self.building_model, "building model out": self.building_model_out},
                     "classes": "demand"}
 
@@ -308,10 +340,13 @@ class GridConnectionConverter(ScenarioToVisualizerAbstract):
     building: int
     efficiency: float
 
+    def __post_init__(self):
+        super().__post_init__()
+
     def get_nodal_infos(self) -> _tp.Optional[dict[str, dict[str, _tp.Union[str, int, float, _pl.Path]]]]:
         if self.active:
             return {"data": {'id': self.id, 'label': self.label, "building": self.building,
-                             "efficiency": self.efficiency, },
+                             "efficiency": self.efficiency, 'color': self.color},
                     "classes": "grid_connection"}
 
     @staticmethod
@@ -373,6 +408,9 @@ class TransformersConverter(ScenarioToVisualizerAbstract):
     impact_cap: float
     capacity_el: _tp.Optional[float] = None
 
+    def __post_init__(self):
+        super().__post_init__()
+
     def get_nodal_infos(self) -> _tp.Optional[dict[str, dict[str, _tp.Union[str, int, float, _pl.Path]]]]:
         if self.active:
             return {"data": {'id': self.id, 'label': self.label, trafo.building.value: self.building,
@@ -390,6 +428,7 @@ class TransformersConverter(ScenarioToVisualizerAbstract):
                              trafo.elec_impact.value: self.elec_impact,
                              trafo.impact_cap.value: self.impact_cap,
                              trafo.capacity_el.value: self.capacity_el,
+                             'color': self.color,
                              },
                     "classes": "transformer"}
 
@@ -456,6 +495,9 @@ class StoragesConverter(ScenarioToVisualizerAbstract):
     elec_impact: float
     impact_cap: float
 
+    def __post_init__(self):
+        super().__post_init__()
+
     def get_nodal_infos(self) -> _tp.Optional[dict[str, dict[str, _tp.Union[str, int, float, _pl.Path]]]]:
         if self.active:
             return {"data": {'id': self.id, 'label': self.label, store.building.value: self.building,
@@ -474,6 +516,7 @@ class StoragesConverter(ScenarioToVisualizerAbstract):
                              store.heat_impact.value: self.heat_impact,
                              store.elec_impact.value: self.elec_impact,
                              store.impact_cap.value: self.impact_cap,
+                             'color': self.color,
                              },
                     "classes": "storage"}
 
@@ -564,7 +607,11 @@ def get_energy_type_based_on_both_labels(label: str, other_label: str) -> Energy
 
 @_dc.dataclass()
 class LinksConverter(ScenarioToVisualizerAbstract):
+    def __post_init__(self):
+        super().__post_init__()
+
     def get_nodal_infos(self):
+        # , 'color': self.color
         raise NotImplementedError
 
     @staticmethod

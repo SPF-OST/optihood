@@ -7,6 +7,8 @@ import plotly.express as px
 from dash import html, dcc, Input, Output, State, callback
 import dash_cytoscape as cyto
 import matplotlib.pyplot as plt
+import matplotlib as _mpl
+import numpy as _np
 
 from optihood.Visualizer import scenario_to_visualizer as stv
 import optihood.Visualizer.convert_scenario as _cv
@@ -21,6 +23,7 @@ import optihood.Visualizer.convert_scenario as _cv
 
 
 # TODO: better to overload input.
+
 
 def setup_cytoscape_app(graphData: _tp.Optional[_cv.EnergyNetworkGraphData] = None,
                         nodes: _tp.Optional[_tp.Dict[str, _tp.Dict[str, _tp.Union[str, float]]]] = None,
@@ -49,36 +52,37 @@ def setup_cytoscape_app(graphData: _tp.Optional[_cv.EnergyNetworkGraphData] = No
         {
             'selector': 'node',
             'style': {
-                'label': 'data(label)'
+                'label': 'data(label)',
+                'background-color': 'data(color)',
             }
         },
 
         # node shapes
-            # ellipse
-            # triangle
-            # round-triangle
-            # rectangle
-            # round-rectangle
-            # bottom-round-rectangle
-            # cut-rectangle
-            # barrel
-            # rhomboid
-            # right-rhomboid
-            # diamond
-            # round-diamond
-            # pentagon
-            # round-pentagon
-            # hexagon
-            # round-hexagon
-            # concave-hexagon
-            # heptagon
-            # round-heptagon
-            # octagon
-            # round-octagon
-            # star
-            # tag
-            # round-tag
-            # vee
+        # ellipse
+        # triangle
+        # round-triangle
+        # rectangle
+        # round-rectangle
+        # bottom-round-rectangle
+        # cut-rectangle
+        # barrel
+        # rhomboid
+        # right-rhomboid
+        # diamond
+        # round-diamond
+        # pentagon
+        # round-pentagon
+        # hexagon
+        # round-hexagon
+        # concave-hexagon
+        # heptagon
+        # round-heptagon
+        # octagon
+        # round-octagon
+        # star
+        # tag
+        # round-tag
+        # vee
         {
             'selector': '.bus',
             'style': {
@@ -116,15 +120,6 @@ def setup_cytoscape_app(graphData: _tp.Optional[_cv.EnergyNetworkGraphData] = No
             }
         },
 
-        # cluster color
-        {
-            'selector': '.building',
-            'style': {
-                # "shape": 'rectangle',
-                'background-color': 'data(building)',
-                # 'label': 'data(label)'
-            }
-        },
 
         # line styles
         {
@@ -160,7 +155,6 @@ def setup_cytoscape_app(graphData: _tp.Optional[_cv.EnergyNetworkGraphData] = No
                 # 'label': 'data(label)'
             }
         },
-
 
     ]
 
