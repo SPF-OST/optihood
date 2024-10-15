@@ -229,6 +229,26 @@ class BusesConverter(ScenarioToVisualizerAbstract):
                              "shortage_costs": self.shortage_costs, 'color': self.color},
                     'classes': 'bus'}
 
+    def get_edge_infos(self) -> list[dict[str, dict[str, _tp.Union[str, float, int]]]]:
+        # TODO: fix building node as dummy and chiller not connecting properly.
+        if not self.active:
+            return []
+
+        all_normal_edges = super().get_edge_infos()
+
+        excess_edges = []
+        if self.excess:
+            excess_node_label = 'excess_' + self.id
+            energy_type = get_energy_type_based_on_both_labels(self.id, excess_node_label)
+            excess_edges.append({'data': {'source': self.id, 'target': excess_node_label},
+                                 "classes": energy_type.value})
+
+        self.edges_out_of_node += excess_edges
+
+        shortage_edges = []
+
+        return all_normal_edges + excess_edges
+
     @staticmethod
     def set_from_dataFrame(df: _pd.DataFrame) -> _abc.Sequence[_tp.Type[ScenarioToVisualizerAbstract]]:
         list_of_buses = []
