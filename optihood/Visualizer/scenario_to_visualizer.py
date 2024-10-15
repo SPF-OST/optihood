@@ -231,7 +231,7 @@ class BusesConverter(ScenarioToVisualizerAbstract):
 
     @staticmethod
     def set_from_dataFrame(df: _pd.DataFrame) -> _abc.Sequence[_tp.Type[ScenarioToVisualizerAbstract]]:
-        list_of_demands = []
+        list_of_buses = []
 
         # TODO: check whether shortage is given without shortage costs.
         if 'shortage' not in df.columns:
@@ -240,13 +240,19 @@ class BusesConverter(ScenarioToVisualizerAbstract):
         if 'shortage costs' not in df.columns:
             df['shortage costs'] = None
 
+        if 'excess' not in df.columns:
+            df['excess'] = None
+
+        if 'excess costs' not in df.columns:
+            df['excess costs'] = None
+
         if 'active' not in df.columns:
             df['active'] = True
 
         for i, line in df.iterrows():
             energyType = EnergyTypes.electricity
 
-            list_of_demands.append(
+            list_of_buses.append(
                 BusesConverter(line['label'], None, None, energyType,
                                active=line['active'], building=line['building'],
                                excess=line['excess'],
@@ -254,7 +260,26 @@ class BusesConverter(ScenarioToVisualizerAbstract):
                                shortage=line['shortage'],
                                shortage_costs=line['shortage costs']
                                ))
-        return list_of_demands
+
+            if line['excess']:
+                list_of_buses.append(
+                    DemandConverter("excess_" + line['label'], None, None, energyType,
+                                    active=line['active'], building=line['building'],
+                                    fixed=line['excess costs'],
+                                    nominal_value=0)
+
+                )
+
+            if line['shortage']:
+                list_of_buses.append(
+                    CommoditySourcesConverter("shortage_" + line['label'], None, None, energyType,
+                                              active=line['active'], building=line['building'],
+                                              variable_costs=line['shortage costs'],
+                                              CO2_impact=0)
+
+                )
+
+        return list_of_buses
 
 
 @_dc.dataclass()
@@ -291,7 +316,7 @@ class DemandConverter(ScenarioToVisualizerAbstract):
             for building_model_out in self.building_model_out:
                 energy_type = get_energy_type_based_on_both_labels(self.id, building_model_out)
                 building_model_edges.append({'data': {'source': self.id, 'target': building_model_out},
-                                               "classes": energy_type.value})
+                                             "classes": energy_type.value})
 
         self.edges_out_of_node += building_model_edges
 
@@ -327,7 +352,8 @@ class DemandConverter(ScenarioToVisualizerAbstract):
                 building_model_out_nodes = line['building model out'].split(sep=',')
 
                 for iNode, building_model_out in enumerate(building_model_out_nodes):
-                    building_model_out_nodes[iNode] = ScenarioToVisualizerAbstract.get_id_with_building(building_model_out, building)
+                    building_model_out_nodes[iNode] = ScenarioToVisualizerAbstract.get_id_with_building(
+                        building_model_out, building)
 
             list_of_demands.append(DemandConverter(line['label'], from_nodes,
                                                    None, energyType,
