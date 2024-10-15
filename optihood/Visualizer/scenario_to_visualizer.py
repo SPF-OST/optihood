@@ -34,15 +34,17 @@ class MplColorHelper:
 
     def __init__(self, cmap_name: str, start_val: _tp.Union[int, float], stop_val: _tp.Union[int, float]):
         self.cmap_name = cmap_name
+        self.stop_val = stop_val
         self.cmap = _plt.get_cmap(cmap_name)
         self.norm = _mpl.colors.Normalize(vmin=start_val, vmax=stop_val)
         self.scalarMap = _mpl.cm.ScalarMappable(norm=self.norm, cmap=self.cmap)
 
     def get_rgb(self, val: _tp.Union[int, float, _np.ndarray]) -> _np.ndarray:
+        val = val % self.stop_val
         return self.scalarMap.to_rgba(val)
 
     def get_hex(self, val: _tp.Union[int, float, _np.ndarray]) -> str:
-        # return _mpl.colors.to
+        # val = val % self.stop_val
         return _mpl.colors.to_hex(self.get_rgb(val))
 
 
