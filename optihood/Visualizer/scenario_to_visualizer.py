@@ -243,11 +243,16 @@ class BusesConverter(ScenarioToVisualizerAbstract):
             excess_edges.append({'data': {'source': self.id, 'target': excess_node_label},
                                  "classes": energy_type.value})
 
-        self.edges_out_of_node += excess_edges
-
         shortage_edges = []
+        if self.shortage:
+            shortage_node_label = 'shortage_' + self.id
+            energy_type = get_energy_type_based_on_both_labels(shortage_node_label, self.id)
+            excess_edges.append({'data': {'source': shortage_node_label, 'target': self.id},
+                                 "classes": energy_type.value})
 
-        return all_normal_edges + excess_edges
+        self.edges_out_of_node += excess_edges + shortage_edges
+
+        return all_normal_edges + excess_edges + shortage_edges
 
     @staticmethod
     def set_from_dataFrame(df: _pd.DataFrame) -> _abc.Sequence[_tp.Type[ScenarioToVisualizerAbstract]]:
