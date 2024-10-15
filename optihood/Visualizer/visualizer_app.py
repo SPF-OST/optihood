@@ -155,6 +155,15 @@ def setup_cytoscape_app(graphData: _tp.Optional[_cv.EnergyNetworkGraphData] = No
                 # 'label': 'data(label)'
             }
         },
+        {
+            'selector': f'.{stv.EnergyTypes.unknown.value}',
+            'style': {
+                # 'curve-style': 'segments',
+                'line-color': 'grey',
+                'width': 10
+                # 'label': 'data(label)'
+            }
+        },
 
     ]
 

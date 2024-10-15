@@ -25,6 +25,7 @@ class EnergyTypes(_enum.StrEnum):
     gas = 'gas'
     oil = 'oil'
     hydrogen = 'H2'
+    unknown = 'unknown'
 
 
 class MplColorHelper:
@@ -591,7 +592,7 @@ def get_energy_type(label: str):
         return EnergyTypes.gas
 
     print(f'Unknown label type found: {label}')
-    return EnergyTypes.electricity
+    return EnergyTypes.unknown
 
 
 def get_energy_type_based_on_both_labels(label: str, other_label: str) -> EnergyTypes:
