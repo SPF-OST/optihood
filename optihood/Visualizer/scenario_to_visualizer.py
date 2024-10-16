@@ -185,7 +185,8 @@ def scenario_data_factory(scenario_data_type: str) -> _tp.Optional[_tp.Type[Scen
                            sheets.demand: DemandConverter,
                            sheets.grid_connection: GridConnectionConverter,
                            sheets.transformers: TransformersConverter,
-                           sheets.storages: StoragesConverter}
+                           sheets.storages: StoragesConverter,
+                           sheets.solar: SolarConverter}
 
     if scenario_data_type not in scenario_data_types:
         # raise NotImplementedError("received unexpected type")
@@ -377,7 +378,6 @@ class DemandConverter(ScenarioToVisualizerAbstract):
                     "classes": "demand"}
 
     def get_edge_infos(self) -> list[dict[str, dict[str, _tp.Union[str, float, int]]]]:
-        # TODO: fix building node as dummy and chiller not connecting properly.
         if not self.active:
             return []
 
@@ -792,8 +792,24 @@ class SolarCollectorConverter(ScenarioToVisualizerAbstract):
                              },
                     "classes": "solar"}
 
-    # def get_edge_infos(self) -> list[dict[str, dict[str, _tp.Union[str, float, int]]]]:
-    #     return super().get_edge_infos()
+    def get_edge_infos(self) -> list[dict[str, dict[str, _tp.Union[str, float, int]]]]:
+        if not self.active:
+            return []
+
+        all_normal_edges = super().get_edge_infos()
+
+        edges_from_connect_column = []
+        if self.connect:
+            if not isinstance(self.connect, list):
+                self.connect = [self.connect]
+
+            for connect_from in self.connect:
+                connect_from = ScenarioToVisualizerAbstract.get_id_with_building(connect_from, self.building)
+                energy_type = get_energy_type_based_on_both_labels(connect_from, self.id)
+                edges_from_connect_column.append({'data': {'source': connect_from, 'target': self.id},
+                                                  "classes": energy_type.value})
+
+        return all_normal_edges + edges_from_connect_column
 
 
 class SolarConverter(ScenarioToVisualizerAbstract):
@@ -814,7 +830,7 @@ class SolarConverter(ScenarioToVisualizerAbstract):
             label = line['label']
             if label == SolarTypes.pv:
                 list_of_solar.append(
-                    SolarConverter.get_PVConverter(line, from_nodes, to_nodes)
+                    SolarConverter.get_PVConverter(line, to_nodes)
                 )
             elif label == SolarTypes.solarCollector:
                 list_of_solar.append(
@@ -826,10 +842,10 @@ class SolarConverter(ScenarioToVisualizerAbstract):
         return list_of_solar
 
     @staticmethod
-    def get_PVConverter(line, from_nodes, to_nodes):
+    def get_PVConverter(line, to_nodes):
         energyType = EnergyTypes.electricity
 
-        return PVConverter(line['label'], from_nodes, to_nodes, energyType,
+        return PVConverter(line['label'], None, to_nodes, energyType,
                            building=line[solar.building.value], active=True,
                            peripheral_losses=line[solar.peripheral_losses.value],
                            latitude=line[solar.latitude.value],
@@ -847,33 +863,43 @@ class SolarConverter(ScenarioToVisualizerAbstract):
                            invest_cap=line[solar.invest_cap.value],
                            heat_impact=line[solar.heat_impact.value],
                            elec_impact=line[solar.elec_impact.value],
-                           impact_cap=line[solar.impact_cap.value]
+                           impact_cap=line[solar.impact_cap.value],
+                           roof_area=line[solar.roof_area.value],
+                           zenith_angle=line[solar.zenith_angle.value]
                            )
 
     @staticmethod
     def get_SolarCollectorConverter(line, from_nodes, to_nodes):
         energyType = EnergyTypes.domestic_hot_water
-        raise NotImplementedError
-        # return SolarCollectorConverter(line['label'], from_nodes, to_nodes, energyType,
-        #                    building=line[solar.building.value], active=True,
-        #                    peripheral_losses=line[solar.peripheral_losses.value],
-        #                    latitude=line[solar.latitude.value],
-        #                    longitude=line[solar.longitude.value],
-        #                    tilt=line[solar.tilt.value],
-        #                    azimuth=line[solar.azimuth.value],
-        #                    delta_temp_n=line[solar.delta_temp_n.value],
-        #                    capacity_max=line[solar.capacity_max.value],
-        #                    capacity_min=line[solar.capacity_min.value],
-        #                    lifetime=line[solar.lifetime.value],
-        #                    maintenance=line[solar.maintenance.value],
-        #                    installation=line[solar.installation.value],
-        #                    planification=line[solar.planification.value],
-        #                    invest_base=line[solar.invest_base.value],
-        #                    invest_cap=line[solar.invest_cap.value],
-        #                    heat_impact=line[solar.heat_impact.value],
-        #                    elec_impact=line[solar.elec_impact.value],
-        #                    impact_cap=line[solar.impact_cap.value]
-        #                    )
+
+        return SolarCollectorConverter(line['label'], from_nodes, to_nodes, energyType,
+                                       building=line[solar.building.value], active=True,
+                                       connect=line[solar.connect.value],
+                                       peripheral_losses=line[solar.peripheral_losses.value],
+                                       latitude=line[solar.latitude.value],
+                                       longitude=line[solar.longitude.value],
+                                       tilt=line[solar.tilt.value],
+                                       azimuth=line[solar.azimuth.value],
+                                       delta_temp_n=line[solar.delta_temp_n.value],
+                                       capacity_max=line[solar.capacity_max.value],
+                                       capacity_min=line[solar.capacity_min.value],
+                                       lifetime=line[solar.lifetime.value],
+                                       maintenance=line[solar.maintenance.value],
+                                       installation=line[solar.installation.value],
+                                       planification=line[solar.planification.value],
+                                       invest_base=line[solar.invest_base.value],
+                                       invest_cap=line[solar.invest_cap.value],
+                                       heat_impact=line[solar.heat_impact.value],
+                                       elec_impact=line[solar.elec_impact.value],
+                                       impact_cap=line[solar.impact_cap.value],
+                                       electrical_consumption=line[solar.electrical_consumption.value],
+                                       eta_0=line[solar.eta_0.value],
+                                       a_1=line[solar.a_1.value],
+                                       a_2=line[solar.a_2.value],
+                                       temp_collector_inlet=line[solar.temp_collector_inlet.value],
+                                       roof_area=line[solar.roof_area.value],
+                                       zenith_angle=line[solar.zenith_angle.value]
+                                       )
 
 
 @_dc.dataclass()
@@ -888,5 +914,3 @@ class LinksConverter(ScenarioToVisualizerAbstract):
     @staticmethod
     def set_from_dataFrame(df: _pd.DataFrame):
         raise NotImplementedError
-
-

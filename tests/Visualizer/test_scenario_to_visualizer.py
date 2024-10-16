@@ -7,12 +7,11 @@ import pytest as _pt
 import optihood.Visualizer.scenario_to_visualizer as stv
 
 
-# TODO: test PVconverter <- no df
-# TODO: test SolarCollectorConverter <- no df
 # TODO: test SolarConverter <- df only
 # TODO: add solar shape
 
 # TODO: solar, links
+# TODO: test edges
 # TODO: include default values from stratified storage ?and profiles?
 # TODO: adjust diagram to have sources on the left and demands on the right.
 
@@ -537,6 +536,139 @@ class TestSolarCollectorConverter(_ut.TestCase):
             'classes': 'solar',
         }
         self.assertDictEqual(result, expected_dict)
+
+
+class TestSolarConverter(_ut.TestCase):
+    def setUp(self):
+        self.maxDiff = None
+
+    def test_set_from_dataFrame(self):
+        data_df = _pd.DataFrame(index=None,
+                                data={
+                                    "label": ['solarCollector', 'solarCollector', 'solarCollector', 'solarCollector',
+                                              'pv', 'pv', 'pv', 'pv'],
+                                    "building": [1, 2, 3, 4, 1, 2, 3, 4],
+                                    "active": [1, 1, 1, 1, 1, 1, 1, 1],
+                                    "from": ['electricityInBus', 'electricityInBus', 'electricityInBus',
+                                             'electricityInBus', 'x', 'x', 'x', 'x'],
+                                    "to": ['dhwStorageBus', 'dhwStorageBus', 'dhwStorageBus', 'dhwStorageBus',
+                                           'electricityProdBus', 'electricityProdBus', 'electricityProdBus',
+                                           'electricityProdBus'],
+                                    "connect": ['solarConnectBus', 'solarConnectBus', 'solarConnectBus',
+                                                'solarConnectBus', 'x', 'x', 'x', 'x'],
+                                    "electrical_consumption": [0.02, 0.02, 0.02, 0.02, 'x', 'x', 'x', 'x'],
+                                    "peripheral_losses": [0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05],
+                                    "latitude": [47.23, 47.23, 47.23, 47.23, 47.23, 47.23, 47.23, 47.23],
+                                    "longitude": [8.34, 8.34, 8.34, 8.34, 8.34, 8.34, 8.34, 8.34],
+                                    "tilt": [45, 45, 45, 45, 45, 45, 45, 45],
+                                    "azimuth": [225, 225, 225, 225, 225, 225, 225, 225],
+                                    "efficiency": [None, None, None, None, 0.2, 0.2, 0.2, 0.2],
+                                    "eta_0": [0.73, 0.73, 0.73, 0.73, 'x', 'x', 'x', 'x'],
+                                    "a_1": [1.7, 1.7, 1.7, 1.7, 'x', 'x', 'x', 'x'],
+                                    "a_2": [0.016, 0.016, 0.016, 0.016, 'x', 'x', 'x', 'x'],
+                                    "temp_collector_inlet": [20, 20, 20, 20, 'x', 'x', 'x', 'x'],
+                                    "delta_temp_n": [40, 40, 40, 40, 40, 40, 40, 40],
+                                    "capacity_max": [100, 100, 100, 100, 100, 100, 100, 100],
+                                    "capacity_min": [0, 0, 0, 0, 0.4, 0.4, 0.4, 0.4],
+                                    "lifetime": [25, 25, 25, 25, 30, 30, 30, 30],
+                                    "maintenance": [0.05, 0.05, 0.05, 0.05, 0, 0, 0, 0],
+                                    "installation": [0.15, 0.15, 0.15, 0.15, 0, 0, 0, 0],
+                                    "planification": [0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05],
+                                    "invest_base": [11034, 11034, 11034, 11034, 17950, 17950, 17950, 17950],
+                                    "invest_cap": [706.36, 706.36, 706.36, 706.36, 1103, 1103, 1103, 1103],
+                                    "heat_impact": [0, 0, 0, 0, 0, 0, 0, 0],
+                                    "elec_impact": [0, 0, 0, 0, 0, 0, 0, 0],
+                                    "impact_cap": [0, 0, 0, 0, 0, 0, 0, 0],
+                                    "roof_area": [400, 400, 400, 400, 400, 400, 400, 400],
+                                    "zenith_angle": [20, 20, 20, 20, 20, 20, 20, 20],
+                                })
+
+        result = stv.SolarConverter.set_from_dataFrame(data_df)
+
+        # SolarCollector part
+        expected_dict = {
+            'data': {'id': 'solarCollector_B001', 'label': 'solarCollector', "building": 1,
+                     'a_1': 1.7,
+                     'a_2': 0.016,
+                     'azimuth': 225,
+                     'capacity_max': 100,
+                     'capacity_min': 0.0,
+                     'color': '#1f78b4',
+                     'delta_temp_n': 40,
+                     'elec_impact': 0,
+                     'electrical_consumption': 0.02,
+                     'eta_0': 0.73,
+                     'heat_impact': 0,
+                     'impact_cap': 0,
+                     'installation': 0.15,
+                     'invest_base': 11034,
+                     'invest_cap': 706.36,
+                     'latitude': 47.23,
+                     'lifetime': 25,
+                     'longitude': 8.34,
+                     'maintenance': 0.05,
+                     'peripheral_losses': 0.05,
+                     'planification': 0.05,
+                     'roof_area': 400,
+                     'temp_collector_inlet': 20,
+                     'tilt': 45,
+                     'zenith_angle': 20,
+                     },
+            'classes': 'solar',
+        }
+
+        # Flesh out test?
+        self.assertDictEqual(result[0].get_nodal_infos(), expected_dict)
+
+        expected_dict_edge = {'data': {'source': 'electricityInBus_B001', 'target': 'solarCollector_B001'},
+                              'classes': 'electricity', }
+
+        self.assertDictEqual(result[0].get_edge_infos()[0], expected_dict_edge)
+
+        expected_dict_edge = {'data': {'source': 'solarCollector_B002', 'target': 'dhwStorageBus_B002'},
+                              'classes': 'DHW', }
+
+        self.assertDictEqual(result[1].get_edge_infos()[1], expected_dict_edge)
+
+        # pv part
+        expected_dict = {
+            'data': {'id': 'pv_B001', 'label': 'pv', "building": 1,
+                     'azimuth': 225,
+                     'capacity_max': 100,
+                     'capacity_min': 0.4,
+                     'color': '#1f78b4',
+                     'delta_temp_n': 40,
+                     'elec_impact': 0,
+                     'heat_impact': 0,
+                     'impact_cap': 0,
+                     'installation': 0.0,
+                     'invest_base': 17950,
+                     'invest_cap': 1103.0,
+                     'latitude': 47.23,
+                     'lifetime': 30,
+                     'longitude': 8.34,
+                     'maintenance': 0.0,
+                     'peripheral_losses': 0.05,
+                     'planification': 0.05,
+                     'roof_area': 400,
+                     'tilt': 45,
+                     'zenith_angle': 20,
+                     },
+            'classes': 'solar',
+        }
+
+        # Flesh out test?
+        self.assertDictEqual(result[4].get_nodal_infos(), expected_dict)
+
+        expected_dict_edge = {'data': {'source': 'pv_B001', 'target': 'electricityProdBus_B001'},
+                              'classes': 'electricity', }
+
+        self.assertDictEqual(result[4].get_edge_infos()[0], expected_dict_edge)
+
+        expected_dict_edge = {'data': {'source': 'pv_B002', 'target': 'electricityProdBus_B002'},
+                              'classes': 'electricity', }
+
+        self.assertDictEqual(result[5].get_edge_infos()[0], expected_dict_edge)
 
 
 @_pt.mark.skip(reason='NotYetImplemented')
