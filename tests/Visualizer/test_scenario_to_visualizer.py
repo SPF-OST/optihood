@@ -7,8 +7,14 @@ import pytest as _pt
 import optihood.Visualizer.scenario_to_visualizer as stv
 
 
+# TODO: test PVconverter <- no df
+# TODO: test SolarCollectorConverter <- no df
+# TODO: test SolarConverter <- df only
+# TODO: add solar shape
+
 # TODO: solar, links
-# TOSKIP: stratified storage, profiles
+# TODO: include default values from stratified storage ?and profiles?
+# TODO: adjust diagram to have sources on the left and demands on the right.
 
 # list of uncertainties
 # - check docs
@@ -20,12 +26,6 @@ import optihood.Visualizer.scenario_to_visualizer as stv
 #   - efficiency
 #
 
-# TODO: adjust id to provided values.
-# TODO: adjust energy types according to actual values.
-# TODO: put splitting of to and from nodes at higher level.
-# TODO: adjust diagram to have sources on the left and demands on the right.
-# TODO: numbering for id needs to propagate to to and from nodes.
-
 
 class TestNodalDataExample(_ut.TestCase):
     """
@@ -35,6 +35,7 @@ class TestNodalDataExample(_ut.TestCase):
     This example comes directly from the Plotly homepage.
     http://dash.plotly.com/cytoscape/events
     """
+
     def setUp(self):
         """ Currently fails, as this is the only case where IDs are given directly. """
         self.maxDiff = None
@@ -84,7 +85,8 @@ class TestCommoditySourcesConverter(_ut.TestCase):
     def test_get_nodal_infos(self):
         result = self.nodalData.get_nodal_infos()
         expected_dict = {
-            'data': {'id': 'electricityResource_B001', 'label': 'electricityResource', "building": 1, "variable_costs": 0.204,
+            'data': {'id': 'electricityResource_B001', 'label': 'electricityResource', "building": 1,
+                     "variable_costs": 0.204,
                      "CO2_impact": self.path, 'color': '#1f78b4'},
             'classes': 'source',
         }
@@ -359,7 +361,8 @@ class TestStorageConverter(_ut.TestCase):
     def test_get_nodal_infos(self):
         result = self.nodalData.get_nodal_infos()
         expected_dict = {
-            'data': {'id': 'HP_B001', 'label': 'HP', "building": 1, "efficiency inflow": 0.9, "efficiency outflow": 0.86,
+            'data': {'id': 'HP_B001', 'label': 'HP', "building": 1, "efficiency inflow": 0.9,
+                     "efficiency outflow": 0.86,
                      'capacity loss': 0, 'capacity max': 1000000, 'capacity min': 0, 'elec_impact': 0, 'heat_impact': 0,
                      'impact_cap': 28.66, 'installation': 0, 'invest_base': 5138, 'invest_cap': 981,
                      'initial capacity': 0, 'lifetime': 15, 'maintenance': 0, 'planification': 0, 'color': '#1f78b4'},
@@ -411,6 +414,59 @@ class TestStorageConverter(_ut.TestCase):
         self.assertDictEqual(result[0].get_edge_infos()[0], expected_dict_edge)
 
 
+class TestPVConverter(_ut.TestCase):
+    def setUp(self):
+        self.maxDiff = None
+        self.path = _pl.Path("..\\excels\\basic_example\\electricity_impact.csv")
+        self.nodalData = stv.PVConverter('pv', None, 'electricityProdBus',
+                                         stv.EnergyTypes.electricity,
+                                         active=True,
+                                         building=1,
+                                         peripheral_losses=0.05,
+                                         latitude=47.49,
+                                         longitude=7.59,
+                                         tilt=30,
+                                         azimuth=180,
+                                         delta_temp_n=40,
+                                         capacity_max=500,
+                                         capacity_min=0.4,
+                                         lifetime=30,
+                                         maintenance=0.02,
+                                         installation=0,
+                                         planification=0,
+                                         invest_base=17950,
+                                         invest_cap=1103,
+                                         heat_impact=0,
+                                         elec_impact=0,
+                                         impact_cap=1131)
+
+    def test_get_nodal_infos(self):
+        result = self.nodalData.get_nodal_infos()
+        expected_dict = {
+            'data': {'id': 'pv_B001', 'label': 'pv', "building": 1,
+                     'peripheral_losses': 0.05,
+                     'latitude': 47.49,
+                     'longitude': 7.59,
+                     'tilt': 30,
+                     'azimuth': 180,
+                     'delta_temp_n': 40,
+                     'capacity_max': 500,
+                     'capacity_min': 0.4,
+                     'lifetime': 30,
+                     'maintenance': 0.02,
+                     'installation': 0,
+                     'planification': 0,
+                     'invest_base': 17950,
+                     'invest_cap': 1103,
+                     'heat_impact': 0,
+                     'elec_impact': 0,
+                     'impact_cap': 1131,
+                     'color': '#1f78b4',},
+            'classes': 'solar',
+        }
+        self.assertDictEqual(result, expected_dict)
+
+
 @_pt.mark.skip(reason='NotYetImplemented')
 class TestLinksConverter(_ut.TestCase):
     def setUp(self):
@@ -418,15 +474,14 @@ class TestLinksConverter(_ut.TestCase):
         energyType = stv.EnergyTypes.electricity
         self.path = _pl.Path("..\\excels\\basic_example\\electricity_impact.csv")
         self.nodalData = stv.LinksConverter('elRes', 'electricityResource', None, 'gridBus', energyType,
-                                                       building=1, variable_costs=0.204, CO2_impact=self.path,
-                                                       active=True)
+                                            building=1, variable_costs=0.204, CO2_impact=self.path,
+                                            active=True)
         # label	electricityLink	shLink	dhwLink
         # active	1	1	1
         # efficiency	0.9999	0.9	0.9
         # invest_base	0	0	0
         # invest_cap	0	0	0
         # investment	1	1	1
-
 
     def test_get_nodal_infos(self):
         # result = self.nodalData.get_nodal_infos()

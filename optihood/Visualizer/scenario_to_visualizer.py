@@ -12,6 +12,8 @@ import matplotlib.pyplot as _plt
 from optihood.entities import NodeKeys as sheets
 from optihood.entities import TransformerLabels as trafo
 from optihood.entities import StorageLabels as store
+from optihood.entities import SolarLabels as solar
+from optihood.entities import SolarTypes
 
 
 class ScenarioDataTypes(_enum.StrEnum):
@@ -26,6 +28,38 @@ class EnergyTypes(_enum.StrEnum):
     oil = 'oil'
     hydrogen = 'H2'
     unknown = 'unknown'
+
+
+def get_energy_type(label: str):
+    electric_parts = ["electric", "Electric", "grid", "pv"]
+    if any(flag in label for flag in electric_parts):
+        return EnergyTypes.electricity
+
+    sh_parts = ["sh", "spaceHeating", "chiller", 'heatSource35']
+    if any(flag in label for flag in sh_parts):
+        return EnergyTypes.space_heating
+
+    dhw_parts = ["dhw", "domesticHotWater", 'heatSource65']
+    if any(flag in label for flag in dhw_parts):
+        return EnergyTypes.domestic_hot_water
+
+    gas_parts = ["gas", "Gas"]
+    if any(flag in label for flag in gas_parts):
+        return EnergyTypes.gas
+
+    print(f'Unknown label type found: {label}')
+    return EnergyTypes.unknown
+
+
+def get_energy_type_based_on_both_labels(label: str, other_label: str) -> EnergyTypes:
+    """ Edges are based on the current node and another (to or from)."""
+
+    transformer_parts = ["HP", "solar", "GasBoiler", "Dummy", "Dummy"]
+
+    if any(flag in label for flag in transformer_parts):
+        return get_energy_type(other_label)
+
+    return get_energy_type(label)
 
 
 class MplColorHelper:
@@ -128,6 +162,20 @@ class ScenarioToVisualizerAbstract:
     def set_from_dataFrame(df: _pd.DataFrame):  # -> _tp.Type[ScenarioToVisualizerAbstract]
         """ Typing does not allow usage of this class's type."""
         raise NotImplementedError('Do not access parent class directly')
+
+    @staticmethod
+    def get_to_and_from_nodes(line):
+        building = line['building']
+        to_nodes = line['to'].split(sep=',')
+        from_nodes = line['from'].split(sep=',')
+
+        for iNode, from_node in enumerate(from_nodes):
+            from_nodes[iNode] = ScenarioToVisualizerAbstract.get_id_with_building(from_node, building)
+
+        for iNode, to_node in enumerate(to_nodes):
+            to_nodes[iNode] = ScenarioToVisualizerAbstract.get_id_with_building(to_node, building)
+
+        return from_nodes, to_nodes
 
 
 def scenario_data_factory(scenario_data_type: str) -> _tp.Optional[_tp.Type[ScenarioToVisualizerAbstract]]:
@@ -628,36 +676,133 @@ class StoragesConverter(ScenarioToVisualizerAbstract):
         return list_of_demands
 
 
-def get_energy_type(label: str):
-    electric_parts = ["electric", "Electric", "grid", "pv"]
-    if any(flag in label for flag in electric_parts):
-        return EnergyTypes.electricity
+@_dc.dataclass()
+class PVConverter(ScenarioToVisualizerAbstract):
+    building: int
+    peripheral_losses: float
+    latitude: float
+    longitude: float
+    tilt: float
+    azimuth: float
+    delta_temp_n: int
+    capacity_max: float
+    capacity_min: float
+    lifetime: float
+    maintenance: float
+    installation: float
+    planification: float
+    invest_base: float
+    invest_cap: float
+    heat_impact: float
+    elec_impact: float
+    impact_cap: float
 
-    sh_parts = ["sh", "spaceHeating", "chiller", 'heatSource35']
-    if any(flag in label for flag in sh_parts):
-        return EnergyTypes.space_heating
+    def __post_init__(self):
+        super().__post_init__()
 
-    dhw_parts = ["dhw", "domesticHotWater", 'heatSource65']
-    if any(flag in label for flag in dhw_parts):
-        return EnergyTypes.domestic_hot_water
+    def get_nodal_infos(self) -> _tp.Optional[dict[str, dict[str, _tp.Union[str, int, float, _pl.Path]]]]:
+        if self.active:
+            return {"data": {'id': self.id, 'label': self.label, solar.building.value: self.building,
+                             solar.peripheral_losses.value: self.peripheral_losses,
+                             solar.latitude.value: self.latitude,
+                             solar.longitude.value: self.longitude,
+                             solar.tilt.value: self.tilt,
+                             solar.azimuth.value: self.azimuth,
+                             solar.delta_temp_n.value: self.delta_temp_n,
+                             solar.capacity_max.value: self.capacity_max,
+                             solar.capacity_min.value: self.capacity_min,
+                             solar.lifetime.value: self.lifetime,
+                             solar.maintenance.value: self.maintenance,
+                             solar.installation.value: self.installation,
+                             solar.planification.value: self.planification,
+                             solar.invest_base.value: self.invest_base,
+                             solar.invest_cap.value: self.invest_cap,
+                             solar.heat_impact.value: self.heat_impact,
+                             solar.elec_impact.value: self.elec_impact,
+                             solar.impact_cap.value: self.impact_cap,
+                             'color': self.color,
+                             },
+                    "classes": "solar"}
 
-    gas_parts = ["gas", "Gas"]
-    if any(flag in label for flag in gas_parts):
-        return EnergyTypes.gas
 
-    print(f'Unknown label type found: {label}')
-    return EnergyTypes.unknown
+class SolarConverter(ScenarioToVisualizerAbstract):
+    def get_nodal_infos(self):
+        # , 'color': self.color
+        raise NotImplementedError
 
+    @staticmethod
+    def set_from_dataFrame(df: _pd.DataFrame):
+        list_of_solar = []
 
-def get_energy_type_based_on_both_labels(label: str, other_label: str) -> EnergyTypes:
-    """ Edges are based on the current node and another (to or from)."""
+        if 'active' not in df.columns:
+            df['active'] = True
 
-    transformer_parts = ["HP", "solar", "GasBoiler", "Dummy", "Dummy"]
+        for i, line in df.iterrows():
+            from_nodes, to_nodes = ScenarioToVisualizerAbstract.get_to_and_from_nodes(line)
 
-    if any(flag in label for flag in transformer_parts):
-        return get_energy_type(other_label)
+            label = line['label']
+            if label == SolarTypes.pv:
+                list_of_solar.append(
+                    SolarConverter.get_PVConverter(line, from_nodes, to_nodes)
+                )
+            elif label == SolarTypes.solarCollector:
+                list_of_solar.append(
+                    SolarConverter.get_SolarCollectorConverter(line, from_nodes, to_nodes)
+                )
+            else:
+                raise ValueError(f'Received unknown solar technology type: {label}')
 
-    return get_energy_type(label)
+        return list_of_solar
+
+    @staticmethod
+    def get_PVConverter(line, from_nodes, to_nodes):
+        energyType = EnergyTypes.electricity
+
+        return PVConverter(line['label'], from_nodes, to_nodes, energyType,
+                           building=line[solar.building.value], active=True,
+                           peripheral_losses=line[solar.peripheral_losses.value],
+                           latitude=line[solar.latitude.value],
+                           longitude=line[solar.longitude.value],
+                           tilt=line[solar.tilt.value],
+                           azimuth=line[solar.azimuth.value],
+                           delta_temp_n=line[solar.delta_temp_n.value],
+                           capacity_max=line[solar.capacity_max.value],
+                           capacity_min=line[solar.capacity_min.value],
+                           lifetime=line[solar.lifetime.value],
+                           maintenance=line[solar.maintenance.value],
+                           installation=line[solar.installation.value],
+                           planification=line[solar.planification.value],
+                           invest_base=line[solar.invest_base.value],
+                           invest_cap=line[solar.invest_cap.value],
+                           heat_impact=line[solar.heat_impact.value],
+                           elec_impact=line[solar.elec_impact.value],
+                           impact_cap=line[solar.impact_cap.value]
+                           )
+
+    @staticmethod
+    def get_SolarCollectorConverter(line, from_nodes, to_nodes):
+        energyType = EnergyTypes.domestic_hot_water
+        raise NotImplementedError
+        # return SolarCollectorConverter(line['label'], from_nodes, to_nodes, energyType,
+        #                    building=line[solar.building.value], active=True,
+        #                    peripheral_losses=line[solar.peripheral_losses.value],
+        #                    latitude=line[solar.latitude.value],
+        #                    longitude=line[solar.longitude.value],
+        #                    tilt=line[solar.tilt.value],
+        #                    azimuth=line[solar.azimuth.value],
+        #                    delta_temp_n=line[solar.delta_temp_n.value],
+        #                    capacity_max=line[solar.capacity_max.value],
+        #                    capacity_min=line[solar.capacity_min.value],
+        #                    lifetime=line[solar.lifetime.value],
+        #                    maintenance=line[solar.maintenance.value],
+        #                    installation=line[solar.installation.value],
+        #                    planification=line[solar.planification.value],
+        #                    invest_base=line[solar.invest_base.value],
+        #                    invest_cap=line[solar.invest_cap.value],
+        #                    heat_impact=line[solar.heat_impact.value],
+        #                    elec_impact=line[solar.elec_impact.value],
+        #                    impact_cap=line[solar.impact_cap.value]
+        #                    )
 
 
 @_dc.dataclass()
