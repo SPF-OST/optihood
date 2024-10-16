@@ -112,7 +112,7 @@ class ScenarioToVisualizerAbstract:
         return self.get_id_with_building(self.label, self.building)
 
     @staticmethod
-    def get_id_with_building(label: str, building: str):
+    def get_id_with_building(label: str, building: str) -> str:
         flags_to_be_ignored = ['link', 'Link']
 
         if any(flag in label for flag in flags_to_be_ignored):
@@ -121,7 +121,7 @@ class ScenarioToVisualizerAbstract:
         zero_padding_level = 3
         return f"{label}_B{str(building).zfill(zero_padding_level)}"
 
-    def get_nodal_infos(self):
+    def get_nodal_infos(self) -> _tp.Optional[dict[str, dict[str, _tp.Union[str, int, float, _pl.Path]]]]:
         raise NotImplementedError('Do not access parent class directly')
 
     def get_edge_infos(self) -> list[dict[str, dict[str, _tp.Union[str, float, int]]]]:
@@ -696,6 +696,8 @@ class PVConverter(ScenarioToVisualizerAbstract):
     heat_impact: float
     elec_impact: float
     impact_cap: float
+    roof_area: float
+    zenith_angle: float
 
     def __post_init__(self):
         super().__post_init__()
@@ -720,9 +722,78 @@ class PVConverter(ScenarioToVisualizerAbstract):
                              solar.heat_impact.value: self.heat_impact,
                              solar.elec_impact.value: self.elec_impact,
                              solar.impact_cap.value: self.impact_cap,
+                             solar.roof_area.value: self.roof_area,
+                             solar.zenith_angle.value: self.zenith_angle,
                              'color': self.color,
                              },
                     "classes": "solar"}
+
+
+@_dc.dataclass()
+class SolarCollectorConverter(ScenarioToVisualizerAbstract):
+    building: int
+    connect: _tp.Union[str, _abc.Sequence[str]]
+    electrical_consumption: float
+    peripheral_losses: float
+    latitude: float
+    longitude: float
+    tilt: float
+    azimuth: float
+    eta_0: float
+    a_1: float
+    a_2: float
+    temp_collector_inlet: float
+    delta_temp_n: float
+    capacity_max: float
+    capacity_min: float
+    lifetime: float
+    maintenance: float
+    installation: float
+    planification: float
+    invest_base: float
+    invest_cap: float
+    heat_impact: float
+    elec_impact: float
+    impact_cap: float
+    roof_area: float
+    zenith_angle: float
+
+    def __post_init__(self):
+        super().__post_init__()
+
+    def get_nodal_infos(self):
+        if self.active:
+            return {"data": {'id': self.id, 'label': self.label, solar.building.value: self.building,
+                             solar.electrical_consumption.value: self.electrical_consumption,
+                             solar.peripheral_losses.value: self.peripheral_losses,
+                             solar.latitude.value: self.latitude,
+                             solar.longitude.value: self.longitude,
+                             solar.tilt.value: self.tilt,
+                             solar.azimuth.value: self.azimuth,
+                             solar.eta_0.value: self.eta_0,
+                             solar.a_1.value: self.a_1,
+                             solar.a_2.value: self.a_2,
+                             solar.temp_collector_inlet.value: self.temp_collector_inlet,
+                             solar.delta_temp_n.value: self.delta_temp_n,
+                             solar.capacity_max.value: self.capacity_max,
+                             solar.capacity_min.value: self.capacity_min,
+                             solar.lifetime.value: self.lifetime,
+                             solar.maintenance.value: self.maintenance,
+                             solar.installation.value: self.installation,
+                             solar.planification.value: self.planification,
+                             solar.invest_base.value: self.invest_base,
+                             solar.invest_cap.value: self.invest_cap,
+                             solar.heat_impact.value: self.heat_impact,
+                             solar.elec_impact.value: self.elec_impact,
+                             solar.impact_cap.value: self.impact_cap,
+                             solar.roof_area.value: self.roof_area,
+                             solar.zenith_angle.value: self.zenith_angle,
+                             'color': self.color,
+                             },
+                    "classes": "solar"}
+
+    # def get_edge_infos(self) -> list[dict[str, dict[str, _tp.Union[str, float, int]]]]:
+    #     return super().get_edge_infos()
 
 
 class SolarConverter(ScenarioToVisualizerAbstract):
@@ -817,3 +888,5 @@ class LinksConverter(ScenarioToVisualizerAbstract):
     @staticmethod
     def set_from_dataFrame(df: _pd.DataFrame):
         raise NotImplementedError
+
+

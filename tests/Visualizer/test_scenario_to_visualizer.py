@@ -438,7 +438,9 @@ class TestPVConverter(_ut.TestCase):
                                          invest_cap=1103,
                                          heat_impact=0,
                                          elec_impact=0,
-                                         impact_cap=1131)
+                                         impact_cap=1131,
+                                         roof_area=400,
+                                         zenith_angle=20)
 
     def test_get_nodal_infos(self):
         result = self.nodalData.get_nodal_infos()
@@ -461,7 +463,77 @@ class TestPVConverter(_ut.TestCase):
                      'heat_impact': 0,
                      'elec_impact': 0,
                      'impact_cap': 1131,
-                     'color': '#1f78b4',},
+                     'roof_area': 400,
+                     'zenith_angle': 20,
+                     'color': '#1f78b4', },
+            'classes': 'solar',
+        }
+        self.assertDictEqual(result, expected_dict)
+
+
+class TestSolarCollectorConverter(_ut.TestCase):
+    def setUp(self):
+        self.maxDiff = None
+        self.nodalData = stv.SolarCollectorConverter('solarCollector', 'electricityInBus', 'dhwStorageBus',
+                                                     stv.EnergyTypes.unknown,  # depends on other connections
+                                                     active=True,
+                                                     building=1,
+                                                     connect='solarConnectBus',
+                                                     electrical_consumption=0.02,
+                                                     peripheral_losses=0.05,
+                                                     latitude=47.23,
+                                                     longitude=8.34,
+                                                     tilt=45,
+                                                     azimuth=225,
+                                                     eta_0=0.73,
+                                                     a_1=1.7,
+                                                     a_2=0.016,
+                                                     temp_collector_inlet=20,
+                                                     delta_temp_n=40,
+                                                     capacity_max=100,
+                                                     capacity_min=0,
+                                                     lifetime=25,
+                                                     maintenance=0.05,
+                                                     installation=0.15,
+                                                     planification=0.05,
+                                                     invest_base=11034,
+                                                     invest_cap=706.36,
+                                                     heat_impact=0,
+                                                     elec_impact=0,
+                                                     impact_cap=0,
+                                                     roof_area=400,
+                                                     zenith_angle=20
+                                                     )
+
+    def test_get_nodal_infos(self):
+        result = self.nodalData.get_nodal_infos()
+        expected_dict = {
+            'data': {'id': 'solarCollector_B001', 'label': 'solarCollector', "building": 1,
+                     'electrical_consumption': 0.02,
+                     'peripheral_losses': 0.05,
+                     'latitude': 47.23,
+                     'longitude': 8.34,
+                     'tilt': 45,
+                     'azimuth': 225,
+                     'eta_0': 0.73,
+                     'a_1': 1.7,
+                     'a_2': 0.016,
+                     'temp_collector_inlet': 20,
+                     'delta_temp_n': 40,
+                     'capacity_max': 100,
+                     'capacity_min': 0,
+                     'lifetime': 25,
+                     'maintenance': 0.05,
+                     'installation': 0.15,
+                     'planification': 0.05,
+                     'invest_base': 11034,
+                     'invest_cap': 706.36,
+                     'heat_impact': 0,
+                     'elec_impact': 0,
+                     'impact_cap': 0,
+                     'roof_area': 400,
+                     'zenith_angle': 20,
+                     'color': '#1f78b4', },
             'classes': 'solar',
         }
         self.assertDictEqual(result, expected_dict)
