@@ -14,6 +14,7 @@ from optihood.entities import TransformerLabels as trafo
 from optihood.entities import StorageLabels as store
 from optihood.entities import SolarLabels as solar
 from optihood.entities import SolarTypes
+from optihood.entities import LinksLabels as link
 
 
 class ScenarioDataTypes(_enum.StrEnum):
@@ -88,7 +89,7 @@ class ScenarioToVisualizerAbstract:
     label: str
     from_node: _tp.Optional[_tp.Union[str, _abc.Sequence[str]]]  # sources do not have this
     to_node: _tp.Optional[_tp.Union[str, _abc.Sequence[str]]]  # sinks do not have this
-    energy_type: EnergyTypes
+    energy_type: _tp.Optional[EnergyTypes]
     active: bool
     edges_into_node: list[dict[str, dict[str, _tp.Union[str, float, int]]]] = _dc.field(init=False)
     edges_out_of_node: list[dict[str, dict[str, _tp.Union[str, float, int]]]] = _dc.field(init=False)
@@ -701,6 +702,8 @@ class PVConverter(ScenarioToVisualizerAbstract):
 
     def __post_init__(self):
         super().__post_init__()
+        if self.from_node:
+            raise Warning(f'PV do not have a "from" node. Received {self.from_node}.')
 
     def get_nodal_infos(self) -> _tp.Optional[dict[str, dict[str, _tp.Union[str, int, float, _pl.Path]]]]:
         if self.active:
@@ -904,12 +907,34 @@ class SolarConverter(ScenarioToVisualizerAbstract):
 
 @_dc.dataclass()
 class LinksConverter(ScenarioToVisualizerAbstract):
+    efficiency: float
+    invest_base: float
+    invest_cap: float
+    investment: float
+
     def __post_init__(self):
         super().__post_init__()
 
+        if self.from_node:
+            raise Warning(f'links do not have a "from" node, nor a "to" node. Anything linking to a link will define '
+                          f'these. Received {self.from_node}.')
+
+        if self.to_node:
+            raise Warning(f'links do not have a "from" node, nor a "to" node. Anything linking to a link will define '
+                          f'these. Received {self.to_node}.')
+
+        if self.energy_type:
+            raise Warning(f'links do not have an energy type. Received {self.energy_type}.')
+
     def get_nodal_infos(self):
-        # , 'color': self.color
-        raise NotImplementedError
+        if self.active:
+            return {'data': {'id': self.id, 'label': self.label,
+                             link.efficiency.value: self.efficiency,
+                             link.invest_base.value: self.invest_base,
+                             link.invest_cap.value: self.invest_cap,
+                             link.investment.value: self.investment,
+                             },
+                    'classes': 'link'}
 
     @staticmethod
     def set_from_dataFrame(df: _pd.DataFrame):

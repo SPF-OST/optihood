@@ -7,11 +7,11 @@ import pytest as _pt
 import optihood.Visualizer.scenario_to_visualizer as stv
 
 
-# TODO: test SolarConverter <- df only
-# TODO: add solar shape
+# TODO: links
+# TODO: add link shape
 
-# TODO: solar, links
-# TODO: test edges
+
+# TODO: test edges individually
 # TODO: include default values from stratified storage ?and profiles?
 # TODO: adjust diagram to have sources on the left and demands on the right.
 
@@ -671,38 +671,20 @@ class TestSolarConverter(_ut.TestCase):
         self.assertDictEqual(result[5].get_edge_infos()[0], expected_dict_edge)
 
 
-@_pt.mark.skip(reason='NotYetImplemented')
 class TestLinksConverter(_ut.TestCase):
     def setUp(self):
         self.maxDiff = None
-        energyType = stv.EnergyTypes.electricity
-        self.path = _pl.Path("..\\excels\\basic_example\\electricity_impact.csv")
-        self.nodalData = stv.LinksConverter('elRes', 'electricityResource', None, 'gridBus', energyType,
-                                            building=1, variable_costs=0.204, CO2_impact=self.path,
-                                            active=True)
-        # label	electricityLink	shLink	dhwLink
-        # active	1	1	1
-        # efficiency	0.9999	0.9	0.9
-        # invest_base	0	0	0
-        # invest_cap	0	0	0
-        # investment	1	1	1
+        self.nodalData = stv.LinksConverter('electricityLink', None, None, None, active=True, efficiency=0.9999, invest_base=0,
+                                            invest_cap=0, investment=1)
 
     def test_get_nodal_infos(self):
-        # result = self.nodalData.get_nodal_infos()
-        # expected_dict = {
-        #     'data': {'id': 'elRes', 'label': 'electricityResource', "building": 1, "variable_costs": 0.204,
-        #              "CO2_impact": self.path},
-        #     'classes': 'source',
-        # }
-        # self.assertDictEqual(result, expected_dict)
-        self.fail()
-
-    def test_get_edge_infos(self):
-        # result = self.nodalData.get_edge_infos()
-        # expected_dict = {'data': {'source': 'elRes', 'target': 'gridBus'},
-        #                  'classes': 'electricity', }
-        # self.assertDictEqual(result[0], expected_dict)
-        self.fail()
+        result = self.nodalData.get_nodal_infos()
+        expected_dict = {
+            'data': {'id': 'electricityLink', 'label': 'electricityLink', 'efficiency': 0.9999, 'invest_base': 0,
+                     'invest_cap': 0, 'investment': 1},
+            'classes': 'link',
+        }
+        self.assertDictEqual(result, expected_dict)
 
     def test_set_from_dataFrame(self):
         # data_df = _pd.DataFrame(index=[0],
@@ -713,6 +695,14 @@ class TestLinksConverter(_ut.TestCase):
         #                               "variable costs": 0.204,
         #                               "CO2 impact": self.path,
         #                               })
+
+        # "label": ['electricityLink', 'shLink', 'dhwLink'],
+        # "active": [True, True, True],
+        # "efficiency": [0.9999,	0.9,	0.9],
+        # "invest_base": [0, 0, 0],
+        # "invest_cap": [0, 0, 0],
+        # "investment": [1, 1, 1],
+
         # result = stv.LinksConverter.set_from_dataFrame(data_df)
         # expected_dict = {
         #     'data': {'id': 'electricityResource', 'label': 'electricityResource', "building": 1,
