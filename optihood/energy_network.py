@@ -133,6 +133,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         self.check_mutually_exclusive_inputs(mergeLinkBuses)
         self._dispatchMode = dispatchMode
         self._optimizationType = opt
+        self._mergeBuses = mergeBuses
         logging.info("Defining the energy network from the excel file: {}".format(filePath))
         data = pd.ExcelFile(filePath)
         initial_nodal_data = self.get_nodal_data_from_Excel(data)
@@ -551,6 +552,9 @@ class EnergyNetworkClass(solph.EnergySystem):
         # constraint on PVT capacity if PVT technology is selected
         if any("pvt" in n.label for n in self.nodes):
             self._optimizationModel = PVTElectricalThermalCapacityConstraint(self._optimizationModel, numberOfBuildings)
+        # constraint on STC capacity if STC technology is selected
+        if any("solarCollector" in n.label for n in self.nodes):
+            self._optimizationModel = STCThermalCapacityConstraint(self._optimizationModel, numberOfBuildings)
         # constraint on storage content for clustering
         """if clusterSize:
             self._optimizationModel = dailySHStorageConstraint(self._optimizationModel)"""
@@ -587,7 +591,7 @@ class EnergyNetworkClass(solph.EnergySystem):
 
     def printbuildingModelTemperatures(self, filename):
         df = pd.DataFrame()
-        df["timestamp"] = self.timeindex
+        df["timestamp"] = self.timeindex[0:-1]
         for i in range(self.__noOfBuildings):
             bNo = i + 1
             tIndoor = [v for k, v in self._optimizationModel.SinkRCModelBlock.tIndoor.get_values().items() if
@@ -618,12 +622,12 @@ class EnergyNetworkClass(solph.EnergySystem):
         with pd.ExcelWriter(resultFile) as writer:
             busLabelList = []
             for i in self.nodes:
-                if str(type(i)).replace("<class 'oemof.solph.", "").replace("'>", "") == "network.bus.Bus":
+                if str(type(i)).replace("<class 'oemof.solph.", "").replace("'>", "") == "buses._bus.Bus":
                     busLabelList.append(i.label)
             for i in busLabelList:
-                result = pd.DataFrame.from_dict(solph.views.node(self._optimizationResults, i)["sequences"])
-                result.to_excel(writer, sheet_name=i)
-            writer.save()
+                if "sequences" in solph.views.node(self._optimizationResults, i):
+                    result = pd.DataFrame.from_dict(solph.views.node(self._optimizationResults, i)["sequences"])
+                    result.to_excel(writer, sheet_name=i)
 
     def _updateCapacityDictInputInvestment(self, transformerFlowCapacityDict):
         components = ["CHP", "GWHP", "HP", "GasBoiler", "ElectricRod", "Chiller"]
@@ -827,7 +831,7 @@ class EnergyNetworkClass(solph.EnergySystem):
             gridBusLabel = "gridBus" + '__' + buildingLabel
             naturalGasSourceLabel = "naturalGasResource" + '__' + buildingLabel
             naturalGasBusLabel = "naturalGasBus" + '__' + buildingLabel
-            if mergeLinkBuses:
+            if mergeLinkBuses and ("electricity" in self._mergeBuses or "electricityBus" in self._mergeBuses):
                 electricityBusLabel = "electricityBus"
                 excessElectricityBusLabel = "excesselectricityBus"
             else:
@@ -889,7 +893,7 @@ class EnergyNetworkClass(solph.EnergySystem):
                                                    ["sequences"][(electricityBusLabel, excessElectricityBusLabel), "flow"]) * self.__costParam[excessElectricityBusLabel]
             else: # in case of merged links feed in for all buildings except Building1 is set to 0 (to avoid repetition)
                 self.__feedIn[buildingLabel] = 0
-            if mergeLinkBuses:
+            if mergeLinkBuses and ("electricity" in self._mergeBuses or "electricityInBus" in self._mergeBuses):
                 elInBusLabel = 'electricityInBus'
             else:
                 elInBusLabel = 'electricityInBus__'+buildingLabel
@@ -1321,6 +1325,7 @@ class EnergyNetworkGroup(EnergyNetworkClass):
         logging.info("Defining the energy network from the excel file: {}".format(filePath))
         self._dispatchMode = dispatchMode
         self._optimizationType = opt
+        self._mergeBuses = mergeBuses
         data = pd.ExcelFile(filePath)
         initial_nodal_data = self.get_nodal_data_from_Excel(data)
         # data.close()
