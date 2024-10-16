@@ -674,7 +674,8 @@ class TestSolarConverter(_ut.TestCase):
 class TestLinksConverter(_ut.TestCase):
     def setUp(self):
         self.maxDiff = None
-        self.nodalData = stv.LinksConverter('electricityLink', None, None, None, active=True, efficiency=0.9999, invest_base=0,
+        self.nodalData = stv.LinksConverter('electricityLink', None, None, None, active=True, efficiency=0.9999,
+                                            invest_base=0,
                                             invest_cap=0, investment=1)
 
     def test_get_nodal_infos(self):
@@ -687,34 +688,24 @@ class TestLinksConverter(_ut.TestCase):
         self.assertDictEqual(result, expected_dict)
 
     def test_set_from_dataFrame(self):
-        # data_df = _pd.DataFrame(index=[0],
-        #                         data={"label": "electricityResource",
-        #                               "building": 1,
-        #                               "active": 1,
-        #                               "to": "gridBus",
-        #                               "variable costs": 0.204,
-        #                               "CO2 impact": self.path,
-        #                               })
+        data_df = _pd.DataFrame(index=None,
+                                data={
+                                    "label": ['electricityLink', 'shLink', 'dhwLink'],
+                                    "active": [True, True, True],
+                                    "efficiency": [0.9999, 0.9, 0.9],
+                                    "invest_base": [0, 0, 0],
+                                    "invest_cap": [0, 0, 0],
+                                    "investment": [1, 1, 1],
+                                })
 
-        # "label": ['electricityLink', 'shLink', 'dhwLink'],
-        # "active": [True, True, True],
-        # "efficiency": [0.9999,	0.9,	0.9],
-        # "invest_base": [0, 0, 0],
-        # "invest_cap": [0, 0, 0],
-        # "investment": [1, 1, 1],
+        result = stv.LinksConverter.set_from_dataFrame(data_df)
+        expected_dict = {
+            'data': {'id': 'electricityLink', 'label': 'electricityLink', 'efficiency': 0.9999, 'invest_base': 0,
+                     'invest_cap': 0, 'investment': 1},
+            'classes': 'link',
+        }
 
-        # result = stv.LinksConverter.set_from_dataFrame(data_df)
-        # expected_dict = {
-        #     'data': {'id': 'electricityResource', 'label': 'electricityResource', "building": 1,
-        #              "variable_costs": 0.204, "CO2_impact": self.path},
-        #     'classes': 'source',
-        # }
-        #
-        # # Flesh out test?
-        # self.assertDictEqual(result[0].get_nodal_infos(), expected_dict)
-        #
-        # expected_dict_edge = {'data': {'source': 'electricityProdBus', 'target': 'electricalStorage'},
-        #                       'classes': 'electricity', }
-        #
-        # self.assertDictEqual(result[0].get_edge_infos()[0], expected_dict_edge)
-        self.fail()
+        # Flesh out test?
+        self.assertDictEqual(result[0].get_nodal_infos(), expected_dict)
+
+        self.assertListEqual(result[0].get_edge_infos(), [])

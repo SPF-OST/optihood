@@ -938,4 +938,21 @@ class LinksConverter(ScenarioToVisualizerAbstract):
 
     @staticmethod
     def set_from_dataFrame(df: _pd.DataFrame):
-        raise NotImplementedError
+        list_of_links = []
+
+        if 'active' not in df.columns:
+            df['active'] = True
+
+        for i, line in df.iterrows():
+            list_of_links.append(
+                LinksConverter(
+                    line['label'], None, None, None,
+                    active=line['active'],
+                    efficiency=line[link.efficiency.value],
+                    invest_base=line[link.invest_base.value],
+                    invest_cap=line[link.invest_cap.value],
+                    investment=line[link.investment.value]
+                )
+            )
+
+        return list_of_links
