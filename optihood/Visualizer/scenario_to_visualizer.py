@@ -9,7 +9,7 @@ import numpy as _np
 import matplotlib as _mpl
 import matplotlib.pyplot as _plt
 
-from optihood.entities import NodeKeys as sheets
+from optihood.entities import NodeKeys as sheets, BusTypes
 from optihood.entities import TransformerLabels as trafo
 from optihood.entities import StorageLabels as store
 from optihood.entities import SolarLabels as solar
@@ -160,7 +160,7 @@ class ScenarioToVisualizerAbstract:
         raise NotImplementedError('Do not access parent class directly')
 
     @staticmethod
-    def set_from_dataFrame(df: _pd.DataFrame):  # -> _tp.Type[ScenarioToVisualizerAbstract]
+    def set_from_dataFrame(df: _pd.DataFrame, nr_of_buildings: int):  # -> _tp.Type[ScenarioToVisualizerAbstract]
         """ Typing does not allow usage of this class's type."""
         raise NotImplementedError('Do not access parent class directly')
 
@@ -187,7 +187,8 @@ def scenario_data_factory(scenario_data_type: str) -> _tp.Optional[_tp.Type[Scen
                            sheets.grid_connection: GridConnectionConverter,
                            sheets.transformers: TransformersConverter,
                            sheets.storages: StoragesConverter,
-                           sheets.solar: SolarConverter}
+                           sheets.solar: SolarConverter,
+                           sheets.links: LinksConverter}
 
     if scenario_data_type not in scenario_data_types:
         # raise NotImplementedError("received unexpected type")
@@ -235,7 +236,7 @@ class CommoditySourcesConverter(ScenarioToVisualizerAbstract):
                     'classes': 'source'}
 
     @staticmethod
-    def set_from_dataFrame(df: _pd.DataFrame) -> _abc.Sequence[_tp.Type[ScenarioToVisualizerAbstract]]:
+    def set_from_dataFrame(df: _pd.DataFrame, nr_of_buildings: int) -> _abc.Sequence[_tp.Type[ScenarioToVisualizerAbstract]]:
         list_of_demands = []
 
         if 'active' not in df.columns:
@@ -306,7 +307,7 @@ class BusesConverter(ScenarioToVisualizerAbstract):
         return all_normal_edges + excess_edges + shortage_edges
 
     @staticmethod
-    def set_from_dataFrame(df: _pd.DataFrame) -> _abc.Sequence[_tp.Type[ScenarioToVisualizerAbstract]]:
+    def set_from_dataFrame(df: _pd.DataFrame, nr_of_buildings: int) -> _abc.Sequence[_tp.Type[ScenarioToVisualizerAbstract]]:
         list_of_buses = []
 
         # TODO: check whether shortage is given without shortage costs.
@@ -398,7 +399,7 @@ class DemandConverter(ScenarioToVisualizerAbstract):
         return all_normal_edges + building_model_edges
 
     @staticmethod
-    def set_from_dataFrame(df: _pd.DataFrame) -> _abc.Sequence[_tp.Type[ScenarioToVisualizerAbstract]]:
+    def set_from_dataFrame(df: _pd.DataFrame, nr_of_buildings: int) -> _abc.Sequence[_tp.Type[ScenarioToVisualizerAbstract]]:
         list_of_demands = []
 
         if 'active' not in df.columns:
@@ -454,7 +455,7 @@ class GridConnectionConverter(ScenarioToVisualizerAbstract):
                     "classes": "grid_connection"}
 
     @staticmethod
-    def set_from_dataFrame(df: _pd.DataFrame) -> _abc.Sequence[_tp.Type[ScenarioToVisualizerAbstract]]:
+    def set_from_dataFrame(df: _pd.DataFrame, nr_of_buildings: int) -> _abc.Sequence[_tp.Type[ScenarioToVisualizerAbstract]]:
         list_of_demands = []
 
         if 'active' not in df.columns:
@@ -537,7 +538,7 @@ class TransformersConverter(ScenarioToVisualizerAbstract):
                     "classes": "transformer"}
 
     @staticmethod
-    def set_from_dataFrame(df: _pd.DataFrame) -> _abc.Sequence[_tp.Type[ScenarioToVisualizerAbstract]]:
+    def set_from_dataFrame(df: _pd.DataFrame, nr_of_buildings: int) -> _abc.Sequence[_tp.Type[ScenarioToVisualizerAbstract]]:
         list_of_demands = []
 
         if 'active' not in df.columns:
@@ -625,7 +626,7 @@ class StoragesConverter(ScenarioToVisualizerAbstract):
                     "classes": "storage"}
 
     @staticmethod
-    def set_from_dataFrame(df: _pd.DataFrame) -> _abc.Sequence[_tp.Type[ScenarioToVisualizerAbstract]]:
+    def set_from_dataFrame(df: _pd.DataFrame, nr_of_buildings: int) -> _abc.Sequence[_tp.Type[ScenarioToVisualizerAbstract]]:
         list_of_demands = []
 
         if 'active' not in df.columns:
@@ -821,7 +822,7 @@ class SolarConverter(ScenarioToVisualizerAbstract):
         raise NotImplementedError
 
     @staticmethod
-    def set_from_dataFrame(df: _pd.DataFrame):
+    def set_from_dataFrame(df: _pd.DataFrame, nr_of_buildings: int):
         list_of_solar = []
 
         if 'active' not in df.columns:
@@ -911,20 +912,10 @@ class LinksConverter(ScenarioToVisualizerAbstract):
     invest_base: float
     invest_cap: float
     investment: float
+    nr_of_buildings: int
 
     def __post_init__(self):
         super().__post_init__()
-
-        if self.from_node:
-            raise Warning(f'links do not have a "from" node, nor a "to" node. Anything linking to a link will define '
-                          f'these. Received {self.from_node}.')
-
-        if self.to_node:
-            raise Warning(f'links do not have a "from" node, nor a "to" node. Anything linking to a link will define '
-                          f'these. Received {self.to_node}.')
-
-        if self.energy_type:
-            raise Warning(f'links do not have an energy type. Received {self.energy_type}.')
 
     def get_nodal_infos(self):
         if self.active:
@@ -937,21 +928,72 @@ class LinksConverter(ScenarioToVisualizerAbstract):
                     'classes': 'link'}
 
     @staticmethod
-    def set_from_dataFrame(df: _pd.DataFrame):
+    def get_to_and_from_nodes_with_energy_types(line, nr_of_buildings: int):
+        label = line['label']
+
+        to_nodes = []
+        from_nodes = []
+        energy_types = []
+
+        for building in range(1, nr_of_buildings + 1):
+            # TODO: use enum for these buses.
+            if "sh" in label:
+                energy_types.append(EnergyTypes.space_heating)
+                from_nodes.append(
+                    ScenarioToVisualizerAbstract.get_id_with_building(BusTypes.spaceHeatingBus, building)
+                )
+                to_nodes.append(
+                    ScenarioToVisualizerAbstract.get_id_with_building(BusTypes.shDemandBus, building)
+                )
+            elif "dhw" in label:
+                energy_types.append(EnergyTypes.domestic_hot_water)
+                from_nodes.append(
+                    ScenarioToVisualizerAbstract.get_id_with_building(BusTypes.domesticHotWaterBus, building)
+                )
+                to_nodes.append(
+                    ScenarioToVisualizerAbstract.get_id_with_building(BusTypes.dhwDemandBus, building)
+                )
+            elif "heat" in label:
+                energy_types.append(EnergyTypes.space_heating)
+                from_nodes.append(
+                    ScenarioToVisualizerAbstract.get_id_with_building(BusTypes.heatBus, building)
+                )
+                to_nodes.append(
+                    ScenarioToVisualizerAbstract.get_id_with_building(BusTypes.heatDemandBus, building)
+                )
+            else:  # electricity
+                energy_types.append(EnergyTypes.electricity)
+                from_nodes.append(
+                    ScenarioToVisualizerAbstract.get_id_with_building(BusTypes.electricityBus, building)
+                )
+                to_nodes.append(
+                    ScenarioToVisualizerAbstract.get_id_with_building(BusTypes.electricityInBus, building)
+                )
+
+        return from_nodes, to_nodes, energy_types
+
+    @staticmethod
+    def set_from_dataFrame(df: _pd.DataFrame, nr_of_buildings: int):
         list_of_links = []
 
         if 'active' not in df.columns:
             df['active'] = True
 
+        if link.efficiency.value not in df.columns:
+            df[link.efficiency.value] = None
+
         for i, line in df.iterrows():
+            to_nodes, from_nodes, energy_types = LinksConverter.get_to_and_from_nodes_with_energy_types(line, nr_of_buildings)
+
             list_of_links.append(
                 LinksConverter(
-                    line['label'], None, None, None,
+                    line['label'], to_nodes, from_nodes, None,
                     active=line['active'],
                     efficiency=line[link.efficiency.value],
                     invest_base=line[link.invest_base.value],
                     invest_cap=line[link.invest_cap.value],
-                    investment=line[link.investment.value]
+                    investment=line[link.investment.value],
+                    nr_of_buildings=nr_of_buildings
                 )
             )
 
