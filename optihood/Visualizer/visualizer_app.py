@@ -24,6 +24,10 @@ import optihood.Visualizer.convert_scenario as _cv
 
 # TODO: better to overload input.
 
+# TODO: extract style sheets and make methods to create them.
+#       nodal_shapes = {'bus': 'rectangle'}
+#       styles = get_styles(nodal_shapes)
+
 
 def setup_cytoscape_app(graphData: _tp.Optional[_cv.EnergyNetworkGraphData] = None,
                         nodes: _tp.Optional[_tp.Dict[str, _tp.Dict[str, _tp.Union[str, float]]]] = None,
@@ -117,6 +121,12 @@ def setup_cytoscape_app(graphData: _tp.Optional[_cv.EnergyNetworkGraphData] = No
             'selector': '.storage',
             'style': {
                 "shape": 'star',
+            }
+        },
+        {
+            'selector': '.solar',
+            'style': {
+                "shape": 'vee',
             }
         },
 
