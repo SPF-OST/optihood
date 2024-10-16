@@ -84,7 +84,8 @@ class ScenarioToVisualizerAbstract:
         if any(flag in label for flag in flags_to_be_ignored):
             return label
 
-        return f"{label}_B{building}"
+        zero_padding_level = 3
+        return f"{label}_B{str(building).zfill(zero_padding_level)}"
 
     def get_nodal_infos(self):
         raise NotImplementedError('Do not access parent class directly')
