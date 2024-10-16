@@ -2,6 +2,7 @@ import enum as _enum
 
 
 class NodeKeys(_enum.StrEnum):
+    links = 'links'
     buses = "buses"
     grid_connection = "grid_connection"
     commodity_sources = "commodity_sources"
@@ -46,6 +47,8 @@ class BusTypes(_enum.StrEnum):
     dhwDemandBus = "dhwDemandBus"
     dhwStorageBus = "dhwStorageBus"
     solarConnectBus = "solarConnectBus"
+    heatBus = "heatBus"
+    heatDemandBus = "heatDemandBus"
 
 
 class CommoditySourcesLabels(_enum.StrEnum):

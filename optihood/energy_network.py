@@ -221,7 +221,8 @@ class EnergyNetworkClass(solph.EnergySystem):
             _ent.NodeKeys.demand.value: func(data, _ent.NodeKeys.demand.value),
             _ent.NodeKeys.storages.value: func(data, _ent.NodeKeys.storages.value),
             _ent.NodeKeys.stratified_storage.value: func(data, _ent.NodeKeys.stratified_storage.value),
-            _ent.NodeKeys.profiles.value: func(data, _ent.NodeKeys.profiles.value)
+            _ent.NodeKeys.profiles.value: func(data, _ent.NodeKeys.profiles.value),
+            _ent.NodeKeys.links.value: func(data, _ent.NodeKeys.links.value)
         }
         return nodes_data
 
