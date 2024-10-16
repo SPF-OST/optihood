@@ -61,7 +61,7 @@ def setup_cytoscape_app(graphData: _tp.Optional[_cv.EnergyNetworkGraphData] = No
             }
         },
 
-        # node shapes
+        ## node shapes ##
         # ellipse
         # triangle
         # round-triangle
@@ -129,7 +129,12 @@ def setup_cytoscape_app(graphData: _tp.Optional[_cv.EnergyNetworkGraphData] = No
                 "shape": 'vee',
             }
         },
-
+        {
+            'selector': '.link',
+            'style': {
+                "shape": 'round-rectangle',
+            }
+        },
 
         # line styles
         {
