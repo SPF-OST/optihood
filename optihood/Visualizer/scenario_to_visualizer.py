@@ -89,7 +89,6 @@ class ScenarioToVisualizerAbstract:
     label: str
     from_node: _tp.Optional[_tp.Union[str, _abc.Sequence[str]]]  # sources do not have this
     to_node: _tp.Optional[_tp.Union[str, _abc.Sequence[str]]]  # sinks do not have this
-    energy_type: _tp.Optional[EnergyTypes]
     active: bool
     edges_into_node: list[dict[str, dict[str, _tp.Union[str, float, int]]]] = _dc.field(init=False)
     edges_out_of_node: list[dict[str, dict[str, _tp.Union[str, float, int]]]] = _dc.field(init=False)
@@ -252,7 +251,7 @@ class CommoditySourcesConverter(ScenarioToVisualizerAbstract):
                 to_nodes[iNode] = ScenarioToVisualizerAbstract.get_id_with_building(to_node, building)
 
             list_of_demands.append(CommoditySourcesConverter(line['label'], None,
-                                                             to_nodes, energyType,
+                                                             to_nodes,
                                                              active=line['active'], building=building,
                                                              variable_costs=line['variable costs'],
                                                              CO2_impact=line['CO2 impact']))
@@ -327,10 +326,8 @@ class BusesConverter(ScenarioToVisualizerAbstract):
             df['active'] = True
 
         for i, line in df.iterrows():
-            energyType = EnergyTypes.electricity
-
             list_of_buses.append(
-                BusesConverter(line['label'], None, None, energyType,
+                BusesConverter(line['label'], None, None,
                                active=line['active'], building=line['building'],
                                excess=line['excess'],
                                excess_costs=line['excess costs'],
@@ -340,7 +337,7 @@ class BusesConverter(ScenarioToVisualizerAbstract):
 
             if line['excess']:
                 list_of_buses.append(
-                    DemandConverter("excess_" + line['label'], None, None, energyType,
+                    DemandConverter("excess_" + line['label'], None, None,
                                     active=line['active'], building=line['building'],
                                     fixed=line['excess costs'],
                                     nominal_value=0)
@@ -349,7 +346,7 @@ class BusesConverter(ScenarioToVisualizerAbstract):
 
             if line['shortage']:
                 list_of_buses.append(
-                    CommoditySourcesConverter("shortage_" + line['label'], None, None, energyType,
+                    CommoditySourcesConverter("shortage_" + line['label'], None, None,
                                               active=line['active'], building=line['building'],
                                               variable_costs=line['shortage costs'],
                                               CO2_impact=0)
@@ -412,8 +409,6 @@ class DemandConverter(ScenarioToVisualizerAbstract):
             df['building model out'] = None
 
         for i, line in df.iterrows():
-            energyType = EnergyTypes.electricity
-
             if not line['building model'] == 'yes' and not line['building model'] == 'Yes':
                 line['building model out'] = None
                 building_model_out_nodes = None
@@ -432,7 +427,7 @@ class DemandConverter(ScenarioToVisualizerAbstract):
                         building_model_out, building)
 
             list_of_demands.append(DemandConverter(line['label'], from_nodes,
-                                                   None, energyType,
+                                                   None,
                                                    active=line['active'], building=line['building'],
                                                    fixed=line['fixed'], nominal_value=line['nominal value'],
                                                    building_model=line['building model'],
@@ -462,8 +457,6 @@ class GridConnectionConverter(ScenarioToVisualizerAbstract):
             df['active'] = True
 
         for i, line in df.iterrows():
-            energyType = EnergyTypes.electricity
-
             if not GridConnectionConverter.has_building_model(line):
                 line['building model out'] = None
 
@@ -479,7 +472,7 @@ class GridConnectionConverter(ScenarioToVisualizerAbstract):
 
             list_of_demands.append(GridConnectionConverter(line['label'], from_nodes,
                                                            to_nodes,
-                                                           energyType, active=line['active'],
+                                                           active=line['active'],
                                                            building=line['building'],
                                                            efficiency=line['efficiency']))
         return list_of_demands
@@ -548,8 +541,6 @@ class TransformersConverter(ScenarioToVisualizerAbstract):
             df['capacity_el'] = None
 
         for i, line in df.iterrows():
-            energyType = EnergyTypes.electricity
-
             building = line['building']
             to_nodes = line['to'].split(sep=',')
             from_nodes = line['from'].split(sep=',')
@@ -562,7 +553,7 @@ class TransformersConverter(ScenarioToVisualizerAbstract):
 
             list_of_demands.append(
                 TransformersConverter(line['label'], from_nodes,
-                                      to_nodes, energyType, active=line['active'],
+                                      to_nodes, active=line['active'],
                                       building=line[trafo.building.value],
                                       efficiency=line[trafo.efficiency.value],
                                       capacity_DHW=line[trafo.capacity_DHW.value],
@@ -642,8 +633,6 @@ class StoragesConverter(ScenarioToVisualizerAbstract):
             df[store.capacity_loss] = None
 
         for i, line in df.iterrows():
-            energyType = EnergyTypes.electricity
-
             building = line['building']
             to_nodes = line['to'].split(sep=',')
             from_nodes = line['from'].split(sep=',')
@@ -657,7 +646,7 @@ class StoragesConverter(ScenarioToVisualizerAbstract):
             list_of_demands.append(
                 StoragesConverter(line['label'], from_nodes,
                                   to_nodes,
-                                  energyType, building=line[store.building.value], active=True,
+                                  building=line[store.building.value], active=True,
                                   efficiency_inflow=line[store.efficiency_inflow.value],
                                   efficiency_outflow=line[store.efficiency_outflow.value],
                                   initial_capacity=line[store.initial_capacity.value],
@@ -847,9 +836,7 @@ class SolarConverter(ScenarioToVisualizerAbstract):
 
     @staticmethod
     def get_PVConverter(line, to_nodes):
-        energyType = EnergyTypes.electricity
-
-        return PVConverter(line['label'], None, to_nodes, energyType,
+        return PVConverter(line['label'], None, to_nodes,
                            building=line[solar.building.value], active=True,
                            peripheral_losses=line[solar.peripheral_losses.value],
                            latitude=line[solar.latitude.value],
@@ -874,9 +861,7 @@ class SolarConverter(ScenarioToVisualizerAbstract):
 
     @staticmethod
     def get_SolarCollectorConverter(line, from_nodes, to_nodes):
-        energyType = EnergyTypes.domestic_hot_water
-
-        return SolarCollectorConverter(line['label'], from_nodes, to_nodes, energyType,
+        return SolarCollectorConverter(line['label'], from_nodes, to_nodes,
                                        building=line[solar.building.value], active=True,
                                        connect=line[solar.connect.value],
                                        peripheral_losses=line[solar.peripheral_losses.value],
@@ -928,17 +913,14 @@ class LinksConverter(ScenarioToVisualizerAbstract):
                     'classes': 'link'}
 
     @staticmethod
-    def get_to_and_from_nodes_with_energy_types(line, nr_of_buildings: int):
+    def get_to_and_from_nodes(line, nr_of_buildings: int):
         label = line['label']
 
         to_nodes = []
         from_nodes = []
-        energy_types = []
 
         for building in range(1, nr_of_buildings + 1):
-            # TODO: use enum for these buses.
             if "sh" in label:
-                energy_types.append(EnergyTypes.space_heating)
                 from_nodes.append(
                     ScenarioToVisualizerAbstract.get_id_with_building(BusTypes.spaceHeatingBus, building)
                 )
@@ -946,7 +928,6 @@ class LinksConverter(ScenarioToVisualizerAbstract):
                     ScenarioToVisualizerAbstract.get_id_with_building(BusTypes.shDemandBus, building)
                 )
             elif "dhw" in label:
-                energy_types.append(EnergyTypes.domestic_hot_water)
                 from_nodes.append(
                     ScenarioToVisualizerAbstract.get_id_with_building(BusTypes.domesticHotWaterBus, building)
                 )
@@ -954,7 +935,6 @@ class LinksConverter(ScenarioToVisualizerAbstract):
                     ScenarioToVisualizerAbstract.get_id_with_building(BusTypes.dhwDemandBus, building)
                 )
             elif "heat" in label:
-                energy_types.append(EnergyTypes.space_heating)
                 from_nodes.append(
                     ScenarioToVisualizerAbstract.get_id_with_building(BusTypes.heatBus, building)
                 )
@@ -962,7 +942,6 @@ class LinksConverter(ScenarioToVisualizerAbstract):
                     ScenarioToVisualizerAbstract.get_id_with_building(BusTypes.heatDemandBus, building)
                 )
             else:  # electricity
-                energy_types.append(EnergyTypes.electricity)
                 from_nodes.append(
                     ScenarioToVisualizerAbstract.get_id_with_building(BusTypes.electricityBus, building)
                 )
@@ -970,7 +949,7 @@ class LinksConverter(ScenarioToVisualizerAbstract):
                     ScenarioToVisualizerAbstract.get_id_with_building(BusTypes.electricityInBus, building)
                 )
 
-        return from_nodes, to_nodes, energy_types
+        return from_nodes, to_nodes
 
     @staticmethod
     def set_from_dataFrame(df: _pd.DataFrame, nr_of_buildings: int):
@@ -983,11 +962,11 @@ class LinksConverter(ScenarioToVisualizerAbstract):
             df[link.efficiency.value] = None
 
         for i, line in df.iterrows():
-            to_nodes, from_nodes, energy_types = LinksConverter.get_to_and_from_nodes_with_energy_types(line, nr_of_buildings)
+            to_nodes, from_nodes = LinksConverter.get_to_and_from_nodes(line, nr_of_buildings)
 
             list_of_links.append(
                 LinksConverter(
-                    line['label'], to_nodes, from_nodes, None,
+                    line['label'], to_nodes, from_nodes,
                     active=line['active'],
                     efficiency=line[link.efficiency.value],
                     invest_base=line[link.invest_base.value],
