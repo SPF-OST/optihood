@@ -226,8 +226,13 @@ class EnergyNetworkClass(solph.EnergySystem):
         try:
             # This sheet is usually not included for single buildings.
             nodes_data[_ent.NodeKeys.links.value] = func(data, _ent.NodeKeys.links.value)
-        except: # multiple exceptions possible, each of which leads to the same conclusion.
+        except:  # multiple exceptions possible, each of which leads to the same conclusion.
             logging.warning("No data found for links. Moving on without including links.")
+        try:
+            if "ice_storage" in data.sheet_names:
+                nodes_data.update({_ent.NodeKeys.ice_storage.value: func(data, _ent.NodeKeys.ice_storage.value)})
+        except:  # multiple exceptions possible, each of which leads to the same conclusion.
+            logging.warning("No data found for an ice storage. Moving on without including one.")
 
         return nodes_data
 
