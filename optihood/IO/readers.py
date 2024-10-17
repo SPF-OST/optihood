@@ -88,7 +88,8 @@ class CsvScenarioReader(CsvReader):
                 data[key] = self.read(rel_path)
                 # df_current = _pd.read_csv(path)
             except FileNotFoundError as e:
-                errors.append(e)
+                if not key == _ent.NodeKeys.links:
+                    errors.append(e)
 
             # validation_error = self.validate(key, df_current)
             # if not validation_error:
