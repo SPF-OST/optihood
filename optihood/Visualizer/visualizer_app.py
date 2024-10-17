@@ -4,7 +4,7 @@ import typing as _tp
 
 import dash
 import plotly.express as px
-from dash import html, dcc, Input, Output, State, callback
+from dash import html, dcc, Input, Output, State, callback, ctx
 import dash_cytoscape as cyto
 import matplotlib.pyplot as plt
 import matplotlib as _mpl
@@ -43,12 +43,17 @@ def setup_cytoscape_app(graphData: _tp.Optional[_cv.EnergyNetworkGraphData] = No
         nodes = graphData.nodes
         edges = graphData.edges
 
+    # enable svg export
+    cyto.load_extra_layouts()
     app = dash.Dash('Optihood input Visualizer')
     styles = {
-        'pre': {
-            'border': 'thin lightgrey solid',
-            'overflowX': 'scroll'
-        }
+        'output': {
+            'overflow-y': 'scroll',
+            'overflow-wrap': 'break-word',
+            'height': 'calc(100% - 25px)',
+            'border': 'thin lightgrey solid'
+        },
+        'tab': {'height': 'calc(98vh - 115px)'}
     }
 
     default_stylesheet = [
@@ -192,7 +197,30 @@ def setup_cytoscape_app(graphData: _tp.Optional[_cv.EnergyNetworkGraphData] = No
         ),
         # html.Button('Add Node', id='btn-add-node-example', n_clicks_timestamp=0),
         # html.Button('Remove Node', id='btn-remove-node-example', n_clicks_timestamp=0),
-        dcc.Markdown(id='cytoscape-selectedNodeData-markdown')
+        dcc.Markdown(id='cytoscape-selectedNodeData-markdown'),
+
+        # # =====================================================================
+        # # The following deals with image export, which does not work as is.
+        # # ---------------------------------------------------------------------
+        # html.Div(className='four columns', children=[
+        #     dcc.Tabs(id='tabs-image-export', children=[
+        #         dcc.Tab(label='generate jpg', value='jpg'),
+        #         dcc.Tab(label='generate png', value='png'),
+        #         dcc.Tab(label='generate svg', value='svg')
+        #     ]),
+        #     html.Div(style=styles['tab'], children=[
+        #         html.Div(
+        #             id='image-text',
+        #             children='image data will appear here',
+        #             style=styles['output']
+        #         )
+        #     ]),
+        #     html.Div('Download graph:'),
+        #     html.Button("as jpg", id="btn-get-jpg"),
+        #     html.Button("as png", id="btn-get-png"),
+        #     html.Button("as svg", id="btn-get-svg")
+        # ])
+        # # =====================================================================
     ])
 
     @callback(Output('cytoscape-selectedNodeData-markdown', 'children'),
@@ -204,6 +232,45 @@ def setup_cytoscape_app(graphData: _tp.Optional[_cv.EnergyNetworkGraphData] = No
         NodalData = stv.scenario_data_factory(stv.ScenarioDataTypes.example)
         selected_nodes_list = [NodalData.read_nodal_infos(data) for data in data_list]
         return "You selected the nodes: " + "\n* ".join(selected_nodes_list)
+
+    # # =====================================================================
+    # # The following deals with image export, which does not work as is.
+    # # ---------------------------------------------------------------------
+    # @callback(
+    #     Output('image-text', 'children'),
+    #     Input('cytoscape-event-callbacks-3', 'imageData'),
+    # )
+    # def put_image_string(data):
+    #     return data
+    #
+    # @callback(
+    #     Output("cytoscape-event-callbacks-3", "generateImage"),
+    #     [
+    #         Input('tabs-image-export', 'value'),
+    #         Input("btn-get-jpg", "n_clicks"),
+    #         Input("btn-get-png", "n_clicks"),
+    #         Input("btn-get-svg", "n_clicks"),
+    #     ])
+    # def get_image(tab, get_jpg_clicks, get_png_clicks, get_svg_clicks):
+    #
+    #     # File type to output of 'svg, 'png', 'jpg', or 'jpeg' (alias of 'jpg')
+    #     ftype = tab
+    #
+    #     # 'store': Stores the image data in 'imageData' !only jpg/png are supported
+    #     # 'download'`: Downloads the image as a file with all data handling
+    #     # 'both'`: Stores image data and downloads image as file.
+    #     action = 'store'
+    #
+    #     if ctx.triggered:
+    #         if ctx.triggered_id != "tabs-image-export":
+    #             action = "download"
+    #             ftype = ctx.triggered_id.split("-")[-1]
+    #
+    #     return {
+    #         'type': ftype,
+    #         'action': action
+    #     }
+    # # =====================================================================
 
     # @callback(Output('cytoscape-event-callbacks-3', 'elements'),
     #           Input('btn-add-node-example', 'n_clicks_timestamp'),

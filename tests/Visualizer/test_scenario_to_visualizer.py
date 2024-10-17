@@ -6,9 +6,7 @@ import pytest as _pt
 
 import optihood.Visualizer.scenario_to_visualizer as stv
 
-
-# TODO: links
-# TODO: add link shape
+# TODO: export image
 
 # TODO: test edges individually
 # TODO: include default values from stratified storage ?and profiles?
