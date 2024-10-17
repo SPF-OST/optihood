@@ -73,6 +73,7 @@ class CsvScenarioReader(CsvReader):
             _ent.NodeKeys.storages: paths.storages,
             _ent.NodeKeys.stratified_storage: paths.stratified_storage,
             _ent.NodeKeys.profiles: paths.profiles,
+            _ent.NodeKeys.links: paths.links,
         }
 
     def read_scenario(self) -> dict[str, _pd.DataFrame]:

@@ -24,6 +24,7 @@ class CsvInputFilePathsRelative(_enum.StrEnum):
     storages = "storages.csv"
     stratified_storage = "stratified_storage.csv"
     profiles = "profiles.csv"
+    links = 'links.csv'
 
 
 class BusesLabels(_enum.StrEnum):
