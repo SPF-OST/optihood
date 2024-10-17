@@ -11,6 +11,7 @@ class NodeKeys(_enum.StrEnum):
     demand = "demand"
     storages = "storages"
     stratified_storage = "stratified_storage"
+    ice_storage = "ice_storage"
     profiles = "profiles"
 
 
@@ -23,6 +24,7 @@ class CsvInputFilePathsRelative(_enum.StrEnum):
     demand = "demand.csv"
     storages = "storages.csv"
     stratified_storage = "stratified_storage.csv"
+    ice_storage = "ice_storage.csv"
     profiles = "profiles.csv"
     links = 'links.csv'
 
@@ -211,6 +213,20 @@ class StratifiedStorageTypes(_enum.StrEnum):
     dhwStorage = "dhwStorage"
     shStorage = "shStorage"
 
+
+class IceStorageLabels(_enum.StrEnum):
+    label = "label"
+    intitial_temp = "intitial_temp"
+    max_ice_fraction = "max_ice_fraction"
+    rho_fluid = "rho_fluid"
+    h_fluid = "h_fluid"
+    cp_fluid = "cp_fluid"
+    UA_tank = "UA_tank"
+    inflow_conversion_factor = "inflow_conversion_factor"
+    outflow_conversion_factor = "outflow_conversion_factor"
+
+class IceStorageTypes(_enum.StrEnum):
+    iceStorage = "iceStorage"
 
 class TransformerLabels(_enum.StrEnum):
     label = "label"

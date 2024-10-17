@@ -154,7 +154,9 @@ class ThermalStorageTemperatureLevels:
         self._numberOfLevels = len(stratifiedStorageParams.at[storageLabel, 'temp_h'].split(","))
         if dispatchMode:
             investArgs={'ep_costs':epc,
-                'custom_attributes': {'env_per_capa': env_capa}}
+                'custom_attributes': {'env_per_capa': env_capa},
+                'minimum': self.__capacityMin / self._numberOfLevels,
+                'maximum': self.__capacityMax}
         else:
             investArgs={'ep_costs':epc,
                 'existing':0,
@@ -433,7 +435,7 @@ class IceStorageBlock(ScalarBlock):
         self.ice_fraction_build = BuildAction(rule=_ice_fraction_rule)
 
         def _storage_balance_rule(block):
-            """rule defining the energy balance of every ice storage in every timestep"""
+            """rule defining the energy balance of an ice storage in every timestep"""
             for g in group:
                 for t in m.TIMESTEPS:
                     expr = 0
