@@ -200,7 +200,7 @@ def roof_area_limit(model, keyword1, keyword2, nb):
             limit_name,
             pyo.Expression(
                 expr=sum(
-                    model.InvestmentFlow.invest[inflow, outflow]
+                    model.InvestmentFlowBlock.invest[inflow, outflow]
                     * getattr(invest_flows[inflow, outflow], keyword1)
                     for (inflow, outflow) in invest_flows
                 )
@@ -307,5 +307,32 @@ def PVTElectricalThermalCapacityConstraint(om, numBuildings):
                     om,
                     "PVTSizeConstrT2Sh_B" + str(b),
                     pyo.Constraint(expr=expr3),
+                )
+    return om
+
+def STCThermalCapacityConstraint(om, numBuildings):
+    stcShOutFlows = [(i, o) for (i, o) in om.flows if ("heatSource_SHsolarCollector" in i.label)]
+    stcDhwOutFlows = [(i, o) for (i, o) in om.flows if ("heatSource_DHWsolarCollector" in i.label)]
+    stcT2OutFlows = [(i, o) for (i, o) in om.flows if ("heatSource_T2solarCollector" in i.label)]
+    for b in range(1, numBuildings + 1):
+        shCapacity = [om.InvestmentFlowBlock.invest[i, o] for (i, o) in stcShOutFlows if ((f'__Building{b}') in o.label)]
+        dhwCapacity = [om.InvestmentFlowBlock.invest[i, o] for (i, o) in stcDhwOutFlows if ((f'__Building{b}') in o.label)]
+        T2Capacity = [om.InvestmentFlowBlock.invest[i, o] for (i, o) in stcT2OutFlows if ((f'__Building{b}') in o.label)]
+        if shCapacity:
+            shCapacity = shCapacity[0]
+            dhwCapacity = dhwCapacity[0]
+            expr1 = (dhwCapacity == shCapacity)
+            setattr(
+                om,
+                "STCSizeConstrDhwSh_B" + str(b),
+                pyo.Constraint(expr=expr1),
+            )
+            if T2Capacity:
+                T2Capacity = T2Capacity[0]
+                expr2 = (T2Capacity == shCapacity)
+                setattr(
+                    om,
+                    "STCSizeConstrT2Sh_B" + str(b),
+                    pyo.Constraint(expr=expr2),
                 )
     return om
