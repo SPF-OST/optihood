@@ -806,9 +806,9 @@ class SolarCollectorConverter(ScenarioToVisualizerAbstract):
 
 
 class SolarConverter(ScenarioToVisualizerAbstract):
-    def get_nodal_infos(self):
-        # , 'color': self.color
-        raise NotImplementedError
+    """ This class is only used to prepare the actual PV and SolarCollector convertors.
+        As such, only set_from_dataFrame should be used.
+    """
 
     @staticmethod
     def set_from_dataFrame(df: _pd.DataFrame, nr_of_buildings: int):

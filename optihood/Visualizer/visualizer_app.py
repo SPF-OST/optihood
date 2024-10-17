@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import matplotlib as _mpl
 import numpy as _np
 
-from optihood.Visualizer import scenario_to_visualizer as stv
+import optihood.Visualizer.scenario_to_visualizer as stv
 import optihood.Visualizer.convert_scenario as _cv
 
 """
