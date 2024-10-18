@@ -72,7 +72,7 @@ def get_data_from_df(df: pd.DataFrame, column_name: str):
 
 
 def get_data_from_excel_file(data: pd.ExcelFile, column_name: str):
-    return data.parse(column_name).replace({np.nan: None})
+    return data.parse(column_name)
 
 
 class EnergyNetworkClass(solph.EnergySystem):

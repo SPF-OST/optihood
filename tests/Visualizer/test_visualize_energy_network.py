@@ -18,7 +18,6 @@ _input_data_dir = packageDir / ".." / "data" / "excels" / "basic_example"
 _examples_dir = packageDir / ".." / "data" / "examples"
 _input_data_path = _input_data_dir / "scenario.xls"
 
-
 manual = True
 
 
@@ -58,7 +57,7 @@ class TestScenarioTillGraphData(_ut.TestCase):
 
         _os.chdir(_examples_dir)
         network = _en.EnergyNetworkClass(time_period)
-        data = _pd.ExcelFile(str(_input_data_path))
+        data = _pd.ExcelFile(str(input_data_path))
         initial_nodal_data = network.get_nodal_data_from_Excel(data)
         data.close()
         _os.chdir(cwd)

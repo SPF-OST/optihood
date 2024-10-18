@@ -177,6 +177,10 @@ class ScenarioToVisualizerAbstract:
 
         return from_nodes, to_nodes
 
+    @staticmethod
+    def replace_nans(df):
+        df.replace({_np.nan: None}, inplace=True)
+
 
 def scenario_data_factory(scenario_data_type: str) -> _tp.Optional[_tp.Type[ScenarioToVisualizerAbstract]]:
     scenario_data_types = {ScenarioDataTypes.example: NodalDataExample,
@@ -237,6 +241,8 @@ class CommoditySourcesConverter(ScenarioToVisualizerAbstract):
     @staticmethod
     def set_from_dataFrame(df: _pd.DataFrame, nr_of_buildings: int) -> _abc.Sequence[_tp.Type[ScenarioToVisualizerAbstract]]:
         list_of_demands = []
+
+        ScenarioToVisualizerAbstract.replace_nans(df)
 
         if 'active' not in df.columns:
             df['active'] = True
@@ -308,6 +314,8 @@ class BusesConverter(ScenarioToVisualizerAbstract):
     @staticmethod
     def set_from_dataFrame(df: _pd.DataFrame, nr_of_buildings: int) -> _abc.Sequence[_tp.Type[ScenarioToVisualizerAbstract]]:
         list_of_buses = []
+
+        ScenarioToVisualizerAbstract.replace_nans(df)
 
         # TODO: check whether shortage is given without shortage costs.
         if 'shortage' not in df.columns:
@@ -399,6 +407,8 @@ class DemandConverter(ScenarioToVisualizerAbstract):
     def set_from_dataFrame(df: _pd.DataFrame, nr_of_buildings: int) -> _abc.Sequence[_tp.Type[ScenarioToVisualizerAbstract]]:
         list_of_demands = []
 
+        ScenarioToVisualizerAbstract.replace_nans(df)
+
         if 'active' not in df.columns:
             df['active'] = True
 
@@ -452,6 +462,8 @@ class GridConnectionConverter(ScenarioToVisualizerAbstract):
     @staticmethod
     def set_from_dataFrame(df: _pd.DataFrame, nr_of_buildings: int) -> _abc.Sequence[_tp.Type[ScenarioToVisualizerAbstract]]:
         list_of_demands = []
+
+        ScenarioToVisualizerAbstract.replace_nans(df)
 
         if 'active' not in df.columns:
             df['active'] = True
@@ -533,6 +545,8 @@ class TransformersConverter(ScenarioToVisualizerAbstract):
     @staticmethod
     def set_from_dataFrame(df: _pd.DataFrame, nr_of_buildings: int) -> _abc.Sequence[_tp.Type[ScenarioToVisualizerAbstract]]:
         list_of_demands = []
+
+        ScenarioToVisualizerAbstract.replace_nans(df)
 
         if 'active' not in df.columns:
             df['active'] = True
@@ -619,6 +633,8 @@ class StoragesConverter(ScenarioToVisualizerAbstract):
     @staticmethod
     def set_from_dataFrame(df: _pd.DataFrame, nr_of_buildings: int) -> _abc.Sequence[_tp.Type[ScenarioToVisualizerAbstract]]:
         list_of_demands = []
+
+        ScenarioToVisualizerAbstract.replace_nans(df)
 
         if 'active' not in df.columns:
             df['active'] = True
@@ -814,6 +830,8 @@ class SolarConverter(ScenarioToVisualizerAbstract):
     def set_from_dataFrame(df: _pd.DataFrame, nr_of_buildings: int):
         list_of_solar = []
 
+        ScenarioToVisualizerAbstract.replace_nans(df)
+
         if 'active' not in df.columns:
             df['active'] = True
 
@@ -954,6 +972,8 @@ class LinksConverter(ScenarioToVisualizerAbstract):
     @staticmethod
     def set_from_dataFrame(df: _pd.DataFrame, nr_of_buildings: int):
         list_of_links = []
+
+        ScenarioToVisualizerAbstract.replace_nans(df)
 
         if 'active' not in df.columns:
             df['active'] = True
