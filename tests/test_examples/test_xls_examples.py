@@ -82,7 +82,8 @@ class TestXlsExamples(_ut.TestCase):
         """ End2End test to ensure user example is reproducible.
             This test will need to be adjusted, as Gurobi doesn't reproduce exact values between computing systems.
         """
-
+        manual = False
+        
         # =============================
         # make into helper
         _os.chdir(scriptDir)
@@ -94,7 +95,8 @@ class TestXlsExamples(_ut.TestCase):
         excel_file_path = str(example_path / "results_basic_example.xlsx")
         expected_data_path = str(expected_data_dir / "test_results_basic_example_after_merge.xls")
 
-        compare_xls_files(self, excel_file_path, expected_data_path, _SHEET_NAMES, abs_tolerance=1e-4)
+        compare_xls_files(self, excel_file_path, expected_data_path, _SHEET_NAMES, abs_tolerance=1e-4,
+                          manual_test=manual)
 
     @_pt.mark.skip(reason='Waiting for evaluation of merge differences.')
     def test_sankey_basic_example(self):
