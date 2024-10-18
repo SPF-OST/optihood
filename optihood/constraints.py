@@ -320,13 +320,15 @@ def STCThermalCapacityConstraint(om, numBuildings):
         T2Capacity = [om.InvestmentFlowBlock.invest[i, o] for (i, o) in stcT2OutFlows if ((f'__Building{b}') in o.label)]
         if shCapacity:
             shCapacity = shCapacity[0]
-            dhwCapacity = dhwCapacity[0]
-            expr1 = (dhwCapacity == shCapacity)
-            setattr(
-                om,
-                "STCSizeConstrDhwSh_B" + str(b),
-                pyo.Constraint(expr=expr1),
-            )
+            if dhwCapacity:
+                dhwCapacity = dhwCapacity[0]
+                expr1 = (dhwCapacity == shCapacity)
+                setattr(
+                    om,
+                    "STCSizeConstrDhwSh_B" + str(b),
+                    pyo.Constraint(expr=expr1),
+                )
+
             if T2Capacity:
                 T2Capacity = T2Capacity[0]
                 expr2 = (T2Capacity == shCapacity)

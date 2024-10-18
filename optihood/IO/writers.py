@@ -63,12 +63,13 @@ class ScenarioFileWriterCSV(ScenarioCreator):
             _ent.NodeKeys.storages: paths.storages,
             _ent.NodeKeys.stratified_storage: paths.stratified_storage,
             _ent.NodeKeys.profiles: paths.profiles,
+            _ent.NodeKeys.links: paths.links,
         }
 
     def _write_scenario_to_file(self, folder_path: _pl.Path) -> None:
-        for key, path in self.relative_file_paths.items():
-            file_path = folder_path / path
-            write_to_csv(file_path, self.data[key])
+        for key, sheet in self.data.items():
+            file_path = folder_path / self.relative_file_paths[key]
+            write_to_csv(file_path, sheet)
 
 
 def write_prepared_data_and_sheets_to_excel(excel_file_path: _pl.Path, excel_data: dict):
