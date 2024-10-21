@@ -1,0 +1,4 @@
+label,active,efficiency,invest_base,invest_cap,investment
+electricityLink,1,0.9999,0,0,1
+shLink,1,0.9,0,0,1
+dhwLink,1,0.9,0,0,1
