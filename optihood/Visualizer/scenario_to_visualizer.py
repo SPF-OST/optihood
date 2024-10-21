@@ -248,7 +248,8 @@ class CommoditySourcesConverter(ScenarioToVisualizerAbstract):
             df['active'] = True
 
         for i, line in df.iterrows():
-            energyType = EnergyTypes.electricity
+            if not line['active']:
+                continue
 
             to_nodes = line['to'].split(sep=',')
             building = line['building']
@@ -334,6 +335,9 @@ class BusesConverter(ScenarioToVisualizerAbstract):
             df['active'] = True
 
         for i, line in df.iterrows():
+            if not line['active']:
+                continue
+
             list_of_buses.append(
                 BusesConverter(line['label'], None, None,
                                active=line['active'], building=line['building'],
@@ -419,6 +423,9 @@ class DemandConverter(ScenarioToVisualizerAbstract):
             df['building model out'] = None
 
         for i, line in df.iterrows():
+            if not line['active']:
+                continue
+
             if not line['building model'] == 'yes' and not line['building model'] == 'Yes':
                 line['building model out'] = None
                 building_model_out_nodes = None
@@ -469,6 +476,9 @@ class GridConnectionConverter(ScenarioToVisualizerAbstract):
             df['active'] = True
 
         for i, line in df.iterrows():
+            if not line['active']:
+                continue
+
             if not GridConnectionConverter.has_building_model(line):
                 line['building model out'] = None
 
@@ -555,6 +565,9 @@ class TransformersConverter(ScenarioToVisualizerAbstract):
             df['capacity_el'] = None
 
         for i, line in df.iterrows():
+            if not line['active']:
+                continue
+
             building = line['building']
             to_nodes = line['to'].split(sep=',')
             from_nodes = line['from'].split(sep=',')
@@ -649,6 +662,9 @@ class StoragesConverter(ScenarioToVisualizerAbstract):
             df[store.capacity_loss] = None
 
         for i, line in df.iterrows():
+            if not line['active']:
+                continue
+
             building = line['building']
             to_nodes = line['to'].split(sep=',')
             from_nodes = line['from'].split(sep=',')
@@ -836,6 +852,9 @@ class SolarConverter(ScenarioToVisualizerAbstract):
             df['active'] = True
 
         for i, line in df.iterrows():
+            if not line['active']:
+                continue
+
             from_nodes, to_nodes = ScenarioToVisualizerAbstract.get_to_and_from_nodes(line)
 
             label = line['label']
@@ -982,6 +1001,9 @@ class LinksConverter(ScenarioToVisualizerAbstract):
             df[link.efficiency.value] = None
 
         for i, line in df.iterrows():
+            if not line['active']:
+                continue
+
             to_nodes, from_nodes = LinksConverter.get_to_and_from_nodes(line, nr_of_buildings)
 
             list_of_links.append(
