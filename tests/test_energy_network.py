@@ -67,7 +67,7 @@ class TestEnergyNetwork(_ut.TestCase):
 
         errors = []
 
-        check_assertion(self, errors, len(initial_nodal_data), 9)
+        check_assertion(self, errors, len(initial_nodal_data), 10)
         check_assertion(
             self,
             errors,
@@ -82,6 +82,7 @@ class TestEnergyNetwork(_ut.TestCase):
                 "storages",
                 "stratified_storage",
                 "profiles",
+                "links"
             ],
         )
 
@@ -94,6 +95,7 @@ class TestEnergyNetwork(_ut.TestCase):
         check_assertion(self, errors, initial_nodal_data["storages"].shape, (12, 20))
         check_assertion(self, errors, initial_nodal_data["stratified_storage"].shape, (2, 11))
         check_assertion(self, errors, initial_nodal_data["profiles"].shape, (2, 3))
+        check_assertion(self, errors, initial_nodal_data["links"].shape, (3, 6))
 
         if errors:
             raise ExceptionGroup(f"found {len(errors)} errors", errors)
