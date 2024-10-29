@@ -375,7 +375,7 @@ class EnergyNetworkClass(solph.EnergySystem):
             internalGains.timestamp = pd.to_datetime(internalGains.timestamp, format='%d.%m.%Y %H:%M')
             internalGains.set_index("timestamp", inplace=True)
             if not clusterSize and not demandAdjust24h:
-                internalGains = internalGains[self.timeindex[0]:self.timeindex[-1]]
+                internalGains = internalGains[self.timeindex[0]:self.timeindex[-2]]
             if not os.path.exists(bmodelparamsPath):
                 logging.error("Error in building model parameters file path.")
             #bmParamers = pd.read_csv(bmodelparamsPath, delimiter=';')                                                          # commented for MPC branch !!!!!!
@@ -556,6 +556,8 @@ class EnergyNetworkClass(solph.EnergySystem):
                     self._optimizationModel = sharedStorageCapacityConstraintBuilding1(self._optimizationModel)
                 if c.lower() == "peakobjective":
                     self._optimizationModel = peakObjectiveConstraint(self._optimizationModel)
+                if c.lower() == "peakobjective_temporary_fix":
+                    self._optimizationModel = peakObjectiveConstraint_to_be_merged(self._optimizationModel)
                 if c.lower() == 'totalpvcapacity':
                     self._optimizationModel = totalPVCapacityConstraint(self._optimizationModel, numberOfBuildings)
                     logging.info(f"Optional constraint {c} successfully added to the optimization model")

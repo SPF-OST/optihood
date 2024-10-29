@@ -314,7 +314,7 @@ class SinkRCModelBlock(ScalarBlock):
 
         for g in self.sinkrc:
             for t in m.TIMESTEPS:
-                variable_costs += self.epsilonIndoor[g,t]*1000
+                variable_costs += self.epsilonIndoor[g,t]*1000000
 
         self.cost = Expression(expr=variable_costs + fixed_costs)
         return self.cost
