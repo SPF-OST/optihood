@@ -106,14 +106,17 @@ class Building:
             self.__busDict[label] = busDictBuilding1[label]
 
     def linkBuses(self, busesToMerge):
-        if "electricity" in busesToMerge:
-            self.__linkBuses.extend(["electricityBus", "electricityInBus"])
-        if "space_heat" in busesToMerge:
-            self.__linkBuses.extend(["spaceHeatingBus", "shDemandBus"])
-        if "domestic_hot_water" in busesToMerge:
-            self.__linkBuses.extend(["domesticHotWaterBus", "dhwDemandBus"])
-        if "heat_buses" in busesToMerge:
-            self.__linkBuses.extend(["heatDemandBus0", "heatDemandBus2"])
+        for b in busesToMerge:
+            if b == "electricity":
+                self.__linkBuses.extend(["electricityBus", "electricityInBus"])
+            elif b == "space_heat":
+                self.__linkBuses.extend(["spaceHeatingBus", "shDemandBus"])
+            elif b == "domestic_hot_water":
+                self.__linkBuses.extend(["domesticHotWaterBus", "dhwDemandBus"])
+            elif b == "heat_buses":
+                self.__linkBuses.extend(["heatDemandBus0", "heatDemandBus2"])
+            else:
+                self.__linkBuses.append(b)
 
     def addPV(self, data, data_timeseries, opt, dispatchMode):
         # Create Source objects from table 'commodity sources'
@@ -877,7 +880,7 @@ class Building:
                                                        tStorInit=float(storageParams["ice_storage"].at[s["label"],"intitial_temp"]),
                                                        fMax=float(storageParams["ice_storage"].at[s["label"],"max_ice_fraction"]),
                                                        rho=float(storageParams["ice_storage"].at[s["label"],"rho_fluid"]),
-                                                       V=float(s["capacity max"]),
+                                                       V=float(s["capacity max"])/1000, # conversion from L to m3
                                                        hfluid=float(storageParams["ice_storage"].at[s["label"],"h_fluid"]),
                                                        cp=float(storageParams["ice_storage"].at[s["label"],"cp_fluid"]),
                                                        Tamb=ambientTemperature,
