@@ -41,40 +41,24 @@ class CombinedTransformerBlock(ScalarBlock):
         m = self.parent_block()
 
         for n in group:
-            n.inflow = [i for i in list(n.inputs) if "electricity" in i.label or "naturalGasBus" in i.label][0]
+            n.inflow = [i for i in list(n.inputs) if "electricity" in i.label or list(n.inputs).__len__()==1][0]
             if len(list(n.inputs)) > 1:
                 n.inflowQevap = [i for i in list(n.inputs) if "electricity" not in i.label][0]
             else:
                 n.inflowQevap = 0
             flows = [k for k, v in n.efficiency.items()]
-            n.flowT0 = flows[0]
-            n.flowT1 = flows[1]
-            n.outputT0 = [o for o in n.outputs if n.flowT0 == o][0]
-            n.outputT1 = [o for o in n.outputs if n.flowT1 == o][0]
-            n.efficiency_sq = (
-                n.efficiency[n.outputT0],
-                n.efficiency[n.outputT1]
-            )
-            if len(flows)==3:
-                n.flowT2 = flows[2]
-                n.outputT2 = [o for o in n.outputs if n.flowT2 == o][0]
-                n.efficiency_sq = (
-                    n.efficiency[n.outputT0],
-                    n.efficiency[n.outputT1],
-                    n.efficiency[n.outputT2])
+            n.outputs_ordered = []
+            n.efficiency_sq = ()
+            for i in range(len(flows)):
+                n.outputs_ordered.append([o for o in n.outputs if flows[i] == o][0])
+                n.efficiency_sq = n.efficiency_sq + (n.efficiency[n.outputs_ordered[i]],)
 
         def _input_output_relation_rule(block):
             """Connection between input and outputs."""
             for t in m.TIMESTEPS:
                 for g in group:
                     lhs = m.flow[g.inflow, g, t]
-                    if len(g.efficiency_sq)==3:
-                        rhs = (m.flow[g, g.outputT0, t] / g.efficiency_sq[0][t]
-                               + m.flow[g, g.outputT1, t] / g.efficiency_sq[1][t]
-                               + m.flow[g, g.outputT2, t] / g.efficiency_sq[2][t])
-                    else:
-                        rhs = (m.flow[g, g.outputT0, t] / g.efficiency_sq[0][t]
-                               + m.flow[g, g.outputT1, t] / g.efficiency_sq[1][t])
+                    rhs = sum(m.flow[g, g.outputs_ordered[i], t] / g.efficiency_sq[i][t] for i in range(len(g.efficiency_sq)))
                     block.input_output_relation.add((g, t), (lhs == rhs))
 
         self.input_output_relation = Constraint(
@@ -90,7 +74,7 @@ class CombinedTransformerBlock(ScalarBlock):
                 for g in group:
                     if len(list(g.inputs)) > 1:
                         lhs = m.flow[g.inflowQevap, g, t]
-                        rhs = (m.flow[g, g.outputT0, t] + m.flow[g, g.outputT1, t] + m.flow[g, g.outputT2, t] - m.flow[g.inflow, g, t])
+                        rhs = (sum(m.flow[g, g.outputs_ordered[i], t] for i in range(len(g.efficiency_sq))) - m.flow[g.inflow, g, t])
                         block.input_relation.add((g, t), (lhs == rhs))
 
         self.input_relation = Constraint(
