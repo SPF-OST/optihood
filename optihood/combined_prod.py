@@ -73,8 +73,8 @@ class CombinedTransformerBlock(ScalarBlock):
             for t in m.TIMESTEPS:
                 for g in group:
                     if len(list(g.inputs)) > 1:
-                        lhs = (len(list(g.inputs)) > 1) * m.flow[g.inflowQevap, g, t]
-                        rhs = (len(list(g.inputs)) > 1) * (sum(m.flow[g, g.outputs_ordered[i], t] for i in range(len(g.efficiency_sq))) - m.flow[g.inflow, g, t])
+                        lhs = m.flow[g.inflowQevap, g, t]
+                        rhs = (sum(m.flow[g, g.outputs_ordered[i], t] for i in range(len(g.efficiency_sq))) - m.flow[g.inflow, g, t])
                         block.input_relation.add((g, t), (lhs == rhs))
 
         self.input_relation = Constraint(
