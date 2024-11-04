@@ -2,6 +2,7 @@ import enum as _enum
 
 
 class NodeKeys(_enum.StrEnum):
+    links = 'links'
     buses = "buses"
     grid_connection = "grid_connection"
     commodity_sources = "commodity_sources"
@@ -25,6 +26,7 @@ class CsvInputFilePathsRelative(_enum.StrEnum):
     stratified_storage = "stratified_storage.csv"
     ice_storage = "ice_storage.csv"
     profiles = "profiles.csv"
+    links = 'links.csv'
 
 
 class BusesLabels(_enum.StrEnum):
@@ -48,6 +50,8 @@ class BusTypes(_enum.StrEnum):
     dhwDemandBus = "dhwDemandBus"
     dhwStorageBus = "dhwStorageBus"
     solarConnectBus = "solarConnectBus"
+    heatBus = "heatBus"
+    heatDemandBus = "heatDemandBus"
 
 
 class CommoditySourcesLabels(_enum.StrEnum):
@@ -168,12 +172,12 @@ class StorageLabels(_enum.StrEnum):
     active = "active"
     from_bus = "from"
     to = "to"
-    efficiency_inflow = "efficiency_inflow"
-    efficiency_outflow = "efficiency_outflow"
-    initial_capacity = "initial_capacity"
-    capacity_min = "capacity_min"
-    capacity_max = "capacity_max"
-    capacity_loss = "capacity_loss"
+    efficiency_inflow = "efficiency inflow"
+    efficiency_outflow = "efficiency outflow"
+    initial_capacity = "initial capacity"
+    capacity_min = "capacity min"
+    capacity_max = "capacity max"
+    capacity_loss = "capacity loss"
     lifetime = "lifetime"
     maintenance = "maintenance"
     installation = "installation"

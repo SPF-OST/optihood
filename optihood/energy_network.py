@@ -133,6 +133,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         self.check_mutually_exclusive_inputs(mergeLinkBuses)
         self._dispatchMode = dispatchMode
         self._optimizationType = opt
+        self._mergeBuses = mergeBuses
         logging.info("Defining the energy network from the excel file: {}".format(filePath))
         data = pd.ExcelFile(filePath)
         initial_nodal_data = self.get_nodal_data_from_Excel(data)
@@ -221,10 +222,20 @@ class EnergyNetworkClass(solph.EnergySystem):
             _ent.NodeKeys.demand.value: func(data, _ent.NodeKeys.demand.value),
             _ent.NodeKeys.storages.value: func(data, _ent.NodeKeys.storages.value),
             _ent.NodeKeys.stratified_storage.value: func(data, _ent.NodeKeys.stratified_storage.value),
-            _ent.NodeKeys.profiles.value: func(data, _ent.NodeKeys.profiles.value)
+            _ent.NodeKeys.profiles.value: func(data, _ent.NodeKeys.profiles.value),
         }
-        if "ice_storage" in data.sheet_names:
-            nodes_data.update({_ent.NodeKeys.ice_storage.value: func(data, _ent.NodeKeys.ice_storage.value)})
+        
+        try:
+            # This sheet is usually not included for single buildings.
+            nodes_data[_ent.NodeKeys.links.value] = func(data, _ent.NodeKeys.links.value)
+        except:  # multiple exceptions possible, each of which leads to the same conclusion.
+            logging.warning("No data found for links. Moving on without including links.")
+        try:
+            if "ice_storage" in data.sheet_names:
+                nodes_data.update({_ent.NodeKeys.ice_storage.value: func(data, _ent.NodeKeys.ice_storage.value)})
+        except:  # multiple exceptions possible, each of which leads to the same conclusion.
+            logging.warning("No data found for an ice storage. Moving on without including one.")
+
         return nodes_data
 
     @staticmethod
@@ -398,7 +409,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         listTemperatures.extend(self.__operationTemperatures)
         gradient = [h - l for l, h in zip(listTemperatures, listTemperatures[1:])]
         return all(x == gradient[0] for x in gradient)
-    
+
     def _convertNodes(self, data, opt, mergeLinkBuses, mergeBuses, mergeHeatSourceSink, includeCarbonBenefits, clusterSize):
         if not data:
             logging.error("Nodes data is missing.")
@@ -477,7 +488,7 @@ class EnergyNetworkClass(solph.EnergySystem):
                 natGasImpact = data["natGas_impact"]
             else:
                 natGasCost = natGasImpact = None
-            b.addSource(data["commodity_sources"][data["commodity_sources"]["building"] == i], data["electricity_impact"], data["electricity_cost"], natGasCost, natGasImpact, opt, mergeHeatSourceSink)
+            b.addSource(data["commodity_sources"][data["commodity_sources"]["building"] == i], data["electricity_impact"], data["electricity_cost"], natGasCost, natGasImpact, opt, mergeHeatSourceSink, mergeLinkBuses)
             if i in data["building_model"]:
                 bmdata = data["building_model"][i]
             else:
@@ -551,6 +562,9 @@ class EnergyNetworkClass(solph.EnergySystem):
         # constraint on PVT capacity if PVT technology is selected
         if any("pvt" in n.label for n in self.nodes):
             self._optimizationModel = PVTElectricalThermalCapacityConstraint(self._optimizationModel, numberOfBuildings)
+        # constraint on STC capacity if STC technology is selected
+        if any("solarCollector" in n.label for n in self.nodes):
+            self._optimizationModel = STCThermalCapacityConstraint(self._optimizationModel, numberOfBuildings)
         # constraint on storage content for clustering
         """if clusterSize:
             self._optimizationModel = dailySHStorageConstraint(self._optimizationModel)"""
@@ -587,7 +601,7 @@ class EnergyNetworkClass(solph.EnergySystem):
 
     def printbuildingModelTemperatures(self, filename):
         df = pd.DataFrame()
-        df["timestamp"] = self.timeindex
+        df["timestamp"] = self.timeindex[0:-1]
         for i in range(self.__noOfBuildings):
             bNo = i + 1
             tIndoor = [v for k, v in self._optimizationModel.SinkRCModelBlock.tIndoor.get_values().items() if
@@ -618,12 +632,12 @@ class EnergyNetworkClass(solph.EnergySystem):
         with pd.ExcelWriter(resultFile) as writer:
             busLabelList = []
             for i in self.nodes:
-                if str(type(i)).replace("<class 'oemof.solph.", "").replace("'>", "") == "network.bus.Bus":
+                if str(type(i)).replace("<class 'oemof.solph.", "").replace("'>", "") == "buses._bus.Bus":
                     busLabelList.append(i.label)
             for i in busLabelList:
-                result = pd.DataFrame.from_dict(solph.views.node(self._optimizationResults, i)["sequences"])
-                result.to_excel(writer, sheet_name=i)
-            writer.save()
+                if "sequences" in solph.views.node(self._optimizationResults, i):
+                    result = pd.DataFrame.from_dict(solph.views.node(self._optimizationResults, i)["sequences"])
+                    result.to_excel(writer, sheet_name=i)
 
     def _updateCapacityDictInputInvestment(self, transformerFlowCapacityDict):
         components = ["CHP", "GWHP", "HP", "GasBoiler", "ElectricRod", "Chiller"]
@@ -827,7 +841,7 @@ class EnergyNetworkClass(solph.EnergySystem):
             gridBusLabel = "gridBus" + '__' + buildingLabel
             naturalGasSourceLabel = "naturalGasResource" + '__' + buildingLabel
             naturalGasBusLabel = "naturalGasBus" + '__' + buildingLabel
-            if mergeLinkBuses:
+            if mergeLinkBuses and ("electricity" in self._mergeBuses or "electricityBus" in self._mergeBuses):
                 electricityBusLabel = "electricityBus"
                 excessElectricityBusLabel = "excesselectricityBus"
             else:
@@ -889,7 +903,7 @@ class EnergyNetworkClass(solph.EnergySystem):
                                                    ["sequences"][(electricityBusLabel, excessElectricityBusLabel), "flow"]) * self.__costParam[excessElectricityBusLabel]
             else: # in case of merged links feed in for all buildings except Building1 is set to 0 (to avoid repetition)
                 self.__feedIn[buildingLabel] = 0
-            if mergeLinkBuses:
+            if mergeLinkBuses and ("electricity" in self._mergeBuses or "electricityInBus" in self._mergeBuses):
                 elInBusLabel = 'electricityInBus'
             else:
                 elInBusLabel = 'electricityInBus__'+buildingLabel
@@ -972,7 +986,7 @@ class EnergyNetworkClass(solph.EnergySystem):
                 envParamNaturalGas.reset_index(inplace=True, drop=True)
             else:
                 envParamNaturalGas = 0
-            
+
             # Environmental impact due to inputs (natural gas, electricity, etc...)
             self.__envImpactInputs[buildingLabel].update({i[0]: sum(solph.views.node(self._optimizationResults, i[1])["sequences"][(i[0], i[1]), "flow"] * self.__envParam[i[0]]) for i in inputs})
             c = envParamGridElectricity * gridElectricityFlow
@@ -1321,6 +1335,7 @@ class EnergyNetworkGroup(EnergyNetworkClass):
         logging.info("Defining the energy network from the excel file: {}".format(filePath))
         self._dispatchMode = dispatchMode
         self._optimizationType = opt
+        self._mergeBuses = mergeBuses
         data = pd.ExcelFile(filePath)
         initial_nodal_data = self.get_nodal_data_from_Excel(data)
         # data.close()

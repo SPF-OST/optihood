@@ -350,13 +350,14 @@ class Building:
                                                               outputs={self.__busDict[outputBusLabel]: solph.Flow()},
                                                       conversion_factors={self.__busDict[outputBusLabel]: float(gs["efficiency"])}))
 
-    def addSource(self, data, data_elimpact, data_elcost, data_natGascost, data_natGasImpact, opt, mergeHeatSourceSink):
+    def addSource(self, data, data_elimpact, data_elcost, data_natGascost, data_natGasImpact, opt, mergeHeatSourceSink, mergeLinkBuses):
         # Create Source objects from table 'commodity sources'
 
         for i, cs in data.iterrows():
             if cs["active"]:
                 sourceLabel = cs["label"]+'__' + self.__buildingLabel
-                if mergeHeatSourceSink and cs["to"] in self.__heatSourceSinkBuses:
+                if (mergeHeatSourceSink and cs["to"] in self.__heatSourceSinkBuses) or \
+                        (mergeLinkBuses and cs["to"] in self.__linkBuses):
                     outputBusLabel = cs["to"]
                 else:
                     outputBusLabel = cs["to"] + '__' + self.__buildingLabel
@@ -418,7 +419,7 @@ class Building:
                     if "spaceHeatingDemand" not in sinkLabel:
                         logging.error("Building model has been selected for one or more demands other than space heating. "
                                       "This is not supported in optihood.")
-                    if temperatureLevels:
+                    if temperatureLevels and "," in de["from"]:
                         inputBusDict = {self.__busDict[k]: solph.Flow() for k in inputBusLabel}
                     else:
                         inputBusDict = {self.__busDict[inputBusLabel]: solph.Flow()}
@@ -536,6 +537,10 @@ class Building:
         gwhpSHLabel = data["label"] + '__' + self.__buildingLabel
         if mergeLinkBuses and data["from"] in self.__linkBuses:
             inputBusLabel = [data["from"]]
+        elif mergeLinkBuses and any([b in self.__linkBuses for b in data["from"].split(',')]):
+            inputBusLabel = [i + '__' + self.__buildingLabel for i in data["from"].split(",") if
+                             i not in self.__linkBuses]
+            inputBusLabel.extend([i for i in data["from"].split(",") if i in self.__linkBuses])
         elif mergeHeatSourceSink and any([b in self.__heatSourceSinkBuses for b in data["from"].split(',')]):
             inputBusLabel = [i + '__' + self.__buildingLabel for i in data["from"].split(",") if i not in self.__heatSourceSinkBuses]
             inputBusLabel.extend([i for i in data["from"].split(",") if i in self.__heatSourceSinkBuses])
