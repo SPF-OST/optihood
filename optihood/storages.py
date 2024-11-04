@@ -154,7 +154,9 @@ class ThermalStorageTemperatureLevels:
         self._numberOfLevels = len(stratifiedStorageParams.at[storageLabel, 'temp_h'].split(","))
         if dispatchMode:
             investArgs={'ep_costs':epc,
-                'custom_attributes': {'env_per_capa': env_capa}}
+                'custom_attributes': {'env_per_capa': env_capa},
+                'minimum': self.__capacityMin / self._numberOfLevels,
+                'maximum': self.__capacityMax}
         else:
             investArgs={'ep_costs':epc,
                 'existing':0,
