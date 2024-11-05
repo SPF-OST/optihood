@@ -66,9 +66,9 @@ def connectInvestmentRule(om):
     dhwLinkOutputFlows = [(i, o) for (i, o) in om.flows if i.label == "dhwLink"]
 
     if elLinkOutputFlows:
-        first = om.InvestmentFlow.invest[next(iter(elLinkOutputFlows))]
+        first = om.InvestmentFlowBlock.invest[next(iter(elLinkOutputFlows))]
         for (i, o) in elLinkOutputFlows:
-            expr = (first == om.InvestmentFlow.invest[i, o])
+            expr = (first == om.InvestmentFlowBlock.invest[i, o])
             setattr(
                 om,
                 "elLinkConstr_" + o.label,
@@ -76,9 +76,9 @@ def connectInvestmentRule(om):
             )
 
     if shLinkOutputFlows:
-        first = om.InvestmentFlow.invest[next(iter(shLinkOutputFlows))]
+        first = om.InvestmentFlowBlock.invest[next(iter(shLinkOutputFlows))]
         for (i, o) in shLinkOutputFlows:
-            expr = (first == om.InvestmentFlow.invest[i, o])
+            expr = (first == om.InvestmentFlowBlock.invest[i, o])
             setattr(
                 om,
                 "shLinkConstr_" + o.label,
@@ -86,9 +86,9 @@ def connectInvestmentRule(om):
             )
 
     if dhwLinkOutputFlows:
-        first = om.InvestmentFlow.invest[next(iter(dhwLinkOutputFlows))]
+        first = om.InvestmentFlowBlock.invest[next(iter(dhwLinkOutputFlows))]
         for (i, o) in dhwLinkOutputFlows:
-            expr = (first == om.InvestmentFlow.invest[i, o])
+            expr = (first == om.InvestmentFlowBlock.invest[i, o])
             setattr(
                 om,
                 "dhwLinkConstr_" + o.label,
@@ -228,12 +228,12 @@ def electricRodCapacityConstaint(om, numBuildings):
     groundHeatPumpCapacityTotal = 0
 
     for b in range(1,numBuildings+1):
-        elRodCapacity = [om.InvestmentFlow.invest[i, o] for (i, o) in electricRodInputFlows if ((f'__Building{b}') in o.label)]
-        airHeatPumpCapacity = [om.InvestmentFlow.invest[i, o] for (i, o) in airHeatPumpInputFlows if ((f'__Building{b}') in o.label)]
+        elRodCapacity = [om.InvestmentFlowBlock.invest[i, o] for (i, o) in electricRodInputFlows if ((f'__Building{b}') in o.label)]
+        airHeatPumpCapacity = [om.InvestmentFlowBlock.invest[i, o] for (i, o) in airHeatPumpInputFlows if ((f'__Building{b}') in o.label)]
         if groundHeatPumpInputFlows:
-            groundHeatPumpCapacity = [om.InvestmentFlow.invest[i, o] for (i, o) in groundHeatPumpInputFlows if ((f'__Building{b}') in o.label)]
+            groundHeatPumpCapacity = [om.InvestmentFlowBlock.invest[i, o] for (i, o) in groundHeatPumpInputFlows if ((f'__Building{b}') in o.label)]
         else:
-            groundHeatPumpCapacity = [om.InvestmentFlow.invest[i, o] for (i, o) in groundHeatPumpOutFlows if ((f'__Building{b}') in i.label)]
+            groundHeatPumpCapacity = [om.InvestmentFlowBlock.invest[i, o] for (i, o) in groundHeatPumpOutFlows if ((f'__Building{b}') in i.label)]
         if elRodCapacity:
             elRodCapacity = elRodCapacity[0]
             airHeatPumpCapacity = airHeatPumpCapacity[0] if airHeatPumpCapacity else 0
@@ -257,7 +257,7 @@ def totalPVCapacityConstraint(om, numBuildings):
     pvOutFlows = [(i, o) for (i, o) in om.flows if ("pv" in i.label)]
     pvCapacityTotal = 0
     for b in range(1,numBuildings+1):
-        pvCapacity = [om.InvestmentFlow.invest[i, o] for (i, o) in pvOutFlows if ((f'__Building{b}') in o.label)]
+        pvCapacity = [om.InvestmentFlowBlock.invest[i, o] for (i, o) in pvOutFlows if ((f'__Building{b}') in o.label)]
         if pvCapacity:
             pvCapacity = pvCapacity[0]
             pvCapacityTotal = pvCapacityTotal + pvCapacity
