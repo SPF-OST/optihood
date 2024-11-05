@@ -107,13 +107,13 @@ class Building:
 
     def linkBuses(self, busesToMerge):
         for b in busesToMerge:
-            if b=="electricity":
+            if b == "electricity":
                 self.__linkBuses.extend(["electricityBus", "electricityInBus"])
-            elif b=="space_heat":
+            elif b == "space_heat":
                 self.__linkBuses.extend(["spaceHeatingBus", "shDemandBus"])
-            elif b=="domestic_hot_water":
+            elif b == "domestic_hot_water":
                 self.__linkBuses.extend(["domesticHotWaterBus", "dhwDemandBus"])
-            elif b=="heat_buses":
+            elif b == "heat_buses":
                 self.__linkBuses.extend(["heatDemandBus0", "heatDemandBus2"])
             else:
                 self.__linkBuses.append(b)
@@ -885,7 +885,7 @@ class Building:
                                                        tStorInit=float(storageParams["ice_storage"].at[s["label"],"intitial_temp"]),
                                                        fMax=float(storageParams["ice_storage"].at[s["label"],"max_ice_fraction"]),
                                                        rho=float(storageParams["ice_storage"].at[s["label"],"rho_fluid"]),
-                                                       V=float(s["capacity max"]),
+                                                       V=float(s["capacity max"])/1000, # conversion from L to m3
                                                        hfluid=float(storageParams["ice_storage"].at[s["label"],"h_fluid"]),
                                                        cp=float(storageParams["ice_storage"].at[s["label"],"cp_fluid"]),
                                                        Tamb=ambientTemperature,

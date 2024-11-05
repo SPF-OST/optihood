@@ -6,14 +6,8 @@ from optihood.IO.writers import ScenarioFileWriterExcel
 from optihood.energy_network import EnergyNetworkGroup as EnergyNetwork
 
 if __name__ == '__main__':
-    """
-    
-    This example is currently under development (use with caution) !
-    
-    """
-
     # set a time period for the optimization problem
-    timePeriod = pd.date_range("2018-01-01 00:00:00", "2018-01-31 23:00:00", freq="60min")
+    timePeriod = pd.date_range("2018-06-01 00:00:00", "2018-12-31 23:00:00", freq="60min")
 
     # define paths for input and result files
     curDir = _pl.Path(__file__).resolve().parent
@@ -29,9 +23,9 @@ if __name__ == '__main__':
     # initialize parameters
     numberOfBuildings = 4
     optimizationType = "costs"  # set as "env" for environmental optimization and "costs" for cost optimization
-    mergeLinkBuses = True
-    mergeBuses = ["electricity", "heat_buses", "heatPumpInputBus"]
-    dispatchMode = False  # Set to True to run the optimization in dispatch mode
+    mergeLinkBuses = False
+    mergeBuses = [] # "electricity", "heatPumpInputBus"
+    dispatchMode = True  # Set to True to run the optimization in dispatch mode
 
     # solver specific command line options
     optimizationOptions = {
