@@ -628,6 +628,32 @@ class EnergyNetworkClass(solph.EnergySystem):
             df[f"epsilonIndoor_B{bNo}"] = epsilonIndoor
         df.to_csv(filename, sep=';', index=False)
 
+    def exportIceStorageModelParams(self, filename):
+        df = pd.DataFrame()
+        df["timestamp"] = self.timeindex[0:-1]
+        for i in range(self.__noOfBuildings):
+            bNo = i + 1
+            tStor = [v for k, v in self._optimizationModel.IceStorageBlock.tStor.get_values().items() if
+                       k[0].label.endswith(f"Building{bNo}")]
+            mIceStor = [v for k, v in self._optimizationModel.IceStorageBlock.mIceStor.get_values().items() if
+                             k[0].label.endswith(f"Building{bNo}")]
+            fIce = [v for k, v in self._optimizationModel.IceStorageBlock.fIce.get_values().items() if
+                     k[0].label.endswith(f"Building{bNo}")]
+            iceStatus = [v for k, v in self._optimizationModel.IceStorageBlock.iceStatus.get_values().items() if
+                             k[0].label.endswith(f"Building{bNo}")]
+            tStor_prev = [v for k, v in self._optimizationModel.IceStorageBlock.tStor_prev.get_values().items() if
+                            k[0].label.endswith(f"Building{bNo}")]
+            mIceStor_prev = [v for k, v in
+                                  self._optimizationModel.IceStorageBlock.mIceStor_prev.get_values().items() if
+                                  k[0].label.endswith(f"Building{bNo}")]
+            df[f"tStor_B{bNo}"] = tStor
+            df[f"mIceStor_B{bNo}"] = mIceStor
+            df[f"fIce_B{bNo}"] = fIce
+            df[f"iceStatus_prev_B{bNo}"] = iceStatus
+            df[f"tStor_prev_B{bNo}"] = tStor_prev
+            df[f"mIceStor_prev_B{bNo}"] = mIceStor_prev
+        df.to_csv(filename, sep=';', index=False)
+
     def saveUnprocessedResults(self, resultFile):
         with pd.ExcelWriter(resultFile) as writer:
             busLabelList = []

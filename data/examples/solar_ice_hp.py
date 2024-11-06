@@ -16,6 +16,7 @@ if __name__ == '__main__':
 
     resultFilePath = curDir / ".." / "results"
     resultFileName = "results_solar_ice_hp.xlsx"
+    iceStoreFileName = "ice_storage_params.csv"
 
     print("Scenario file path: " + os.path.join(inputFilePath, inputfileName))
     print("Result file path: " + os.path.join(resultFilePath, resultFileName))
@@ -69,3 +70,4 @@ if __name__ == '__main__':
     if not os.path.exists(resultFilePath):
         os.makedirs(resultFilePath)
     network.exportToExcel(os.path.join(resultFilePath, resultFileName), mergeLinkBuses=mergeLinkBuses)
+    network.exportIceStorageModelParams(os.path.join(resultFilePath, iceStoreFileName))
