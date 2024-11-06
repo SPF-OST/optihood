@@ -646,12 +646,13 @@ class EnergyNetworkClass(solph.EnergySystem):
             mIceStor_prev = [v for k, v in
                                   self._optimizationModel.IceStorageBlock.mIceStor_prev.get_values().items() if
                                   k[0].label.endswith(f"Building{bNo}")]
-            df[f"tStor_B{bNo}"] = tStor
-            df[f"mIceStor_B{bNo}"] = mIceStor
-            df[f"fIce_B{bNo}"] = fIce
-            df[f"iceStatus_prev_B{bNo}"] = iceStatus
-            df[f"tStor_prev_B{bNo}"] = tStor_prev
-            df[f"mIceStor_prev_B{bNo}"] = mIceStor_prev
+            if tStor:
+                df[f"tStor_B{bNo}"] = tStor
+                df[f"mIceStor_B{bNo}"] = mIceStor
+                df[f"fIce_B{bNo}"] = fIce
+                df[f"iceStatus_prev_B{bNo}"] = iceStatus
+                df[f"tStor_prev_B{bNo}"] = tStor_prev
+                df[f"mIceStor_prev_B{bNo}"] = mIceStor_prev
         df.to_csv(filename, sep=';', index=False)
 
     def saveUnprocessedResults(self, resultFile):
