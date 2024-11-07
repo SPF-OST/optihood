@@ -6,17 +6,22 @@ from optihood.IO.writers import ScenarioFileWriterExcel
 from optihood.energy_network import EnergyNetworkGroup as EnergyNetwork
 
 if __name__ == '__main__':
+    """
+    This example is a modification of the solar_ice_hp example.
+    Instead of a multi-layer thermal storage, this example has separate space heating and DHW storages
+    Therefore, this example has only 2 temperature levels --> SH and DHW temperatures
+    """
     # set a time period for the optimization problem
     timePeriod = pd.date_range("2018-06-01 00:00:00", "2018-12-31 23:00:00", freq="60min")
 
     # define paths for input and result files
     curDir = _pl.Path(__file__).resolve().parent
-    inputFilePath = curDir / ".." / "excels" / "solar_ice_hp"
+    inputFilePath = curDir / ".." / "excels" / "solar_ice_hp_2storages"
     inputfileName = "scenario.xls"
 
     resultFilePath = curDir / ".." / "results"
-    resultFileName = "results_solar_ice_hp.xlsx"
-    iceStoreFileName = "ice_storage_params.csv"
+    resultFileName = "results_solar_ice_hp2.xlsx"
+    iceStoreFileName = "ice_storage_params2.csv"
 
     print("Scenario file path: " + os.path.join(inputFilePath, inputfileName))
     print("Result file path: " + os.path.join(resultFilePath, resultFileName))
@@ -49,7 +54,7 @@ if __name__ == '__main__':
     }
 
     # create an energy network and set the network parameters from an excel file
-    network = EnergyNetwork(timePeriod, temperatureLevels=True)
+    network = EnergyNetwork(timePeriod)
     network.setFromExcel(os.path.join(inputFilePath, inputfileName), numberOfBuildings, opt=optimizationType,
                          mergeLinkBuses=mergeLinkBuses, mergeBuses=mergeBuses, dispatchMode=dispatchMode)
 
