@@ -5,31 +5,33 @@ import pathlib as _pl
 from optihood.IO.writers import ScenarioFileWriterExcel
 from optihood.energy_network import EnergyNetworkGroup as EnergyNetwork
 
-if __name__ == '__main__':    
-
-    optimization_type = "cost"
-    scenario = "HP_GS_PV"
+if __name__ == '__main__':
+    """
+    This example is a modification of the solar_ice_hp example.
+    Instead of a multi-layer thermal storage, this example has separate space heating and DHW storages
+    Therefore, this example has only 2 temperature levels --> SH and DHW temperatures
+    """
     # set a time period for the optimization problem
-    timePeriod = pd.date_range("2018-01-01 00:00:00", "2018-01-31 23:00:00", freq="60min")
+    timePeriod = pd.date_range("2018-06-01 00:00:00", "2018-12-31 23:00:00", freq="60min")
 
     # define paths for input and result files
     curDir = _pl.Path(__file__).resolve().parent
-    inputFilePath = curDir / ".." / "configs" / "basic_example_config"
-    configFileName = f"scenario_{scenario}_group.ini"
-    inputfileName = f"scenario_{scenario}.xls"  # excel file which would be created by createScenarioFile()
+    inputFilePath = curDir / ".." / "excels" / "solar_ice_hp_2storages"
+    inputfileName = "scenario.xls"
 
     resultFilePath = curDir / ".." / "results"
-    resultFileName = "results_example_config.xlsx"
+    resultFileName = "results_solar_ice_hp2.xlsx"
+    iceStoreFileName = "ice_storage_params2.csv"
 
-    print("Scenario config file path: " + os.path.join(inputFilePath, configFileName))
-    print("Scenario excel file path: " + os.path.join(inputFilePath, inputfileName))
+    print("Scenario file path: " + os.path.join(inputFilePath, inputfileName))
     print("Result file path: " + os.path.join(resultFilePath, resultFileName))
 
     # initialize parameters
     numberOfBuildings = 4
     optimizationType = "costs"  # set as "env" for environmental optimization and "costs" for cost optimization
-    mergeLinkBuses = True
-    merge_buses = ["electricity", "space_heat", "domestic_hot_water"]
+    mergeLinkBuses = False
+    mergeBuses = [] # "electricity", "heatPumpInputBus"
+    dispatchMode = True  # Set to True to run the optimization in dispatch mode
 
     # solver specific command line options
     optimizationOptions = {
@@ -51,15 +53,10 @@ if __name__ == '__main__':
         # "cbc": {"tee": False}
     }
 
-    # create scenario file from config file
-    scenarioFileWriter = ScenarioFileWriterExcel(inputFilePath / configFileName, version='grouped',
-                                                 nr_of_buildings=numberOfBuildings)
-    scenarioFileWriter.write(inputFilePath / inputfileName)
-
     # create an energy network and set the network parameters from an excel file
     network = EnergyNetwork(timePeriod)
     network.setFromExcel(os.path.join(inputFilePath, inputfileName), numberOfBuildings, opt=optimizationType,
-                         mergeLinkBuses=mergeLinkBuses, mergeBuses=merge_buses)
+                         mergeLinkBuses=mergeLinkBuses, mergeBuses=mergeBuses, dispatchMode=dispatchMode)
 
     # optimize the energy network
     limit, capacitiesTransformers, capacitiesStorages = network.optimize(solver='gurobi',
@@ -78,3 +75,4 @@ if __name__ == '__main__':
     if not os.path.exists(resultFilePath):
         os.makedirs(resultFilePath)
     network.exportToExcel(os.path.join(resultFilePath, resultFileName), mergeLinkBuses=mergeLinkBuses)
+    network.exportIceStorageModelParams(os.path.join(resultFilePath, iceStoreFileName))

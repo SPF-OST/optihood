@@ -377,8 +377,8 @@ class IceStorageBlock(ScalarBlock):
 
         #  ************* DECISION VARIABLES *****************************
         # temperature of ice storage
-        self.tStor = Var(self.icestorages, m.TIMESTEPS, within=NonNegativeReals, bounds=(0,200))
-        self.tStor_prev = Var(self.icestorages, m.TIMESTEPS, within=NonNegativeReals, bounds=(0,200))
+        self.tStor = Var(self.icestorages, m.TIMESTEPS, within=NonNegativeReals, bounds=(0,65))
+        self.tStor_prev = Var(self.icestorages, m.TIMESTEPS, within=NonNegativeReals, bounds=(0,65))
         # mass of ice in storage
         self.mIceStor = Var(self.icestorages, m.TIMESTEPS, within=NonNegativeReals, bounds=(0,100000))
         self.mIceStor_prev = Var(self.icestorages, m.TIMESTEPS, within=NonNegativeReals, bounds=(0,100000))
@@ -389,6 +389,7 @@ class IceStorageBlock(ScalarBlock):
 
         # for linearization of non-linear constraints with big M method
         M = 2000
+        epsilon = 0.000001
 
         #  ************* CONSTRAINTS *****************************
 
@@ -424,6 +425,17 @@ class IceStorageBlock(ScalarBlock):
 
         self.prev_temperature = Constraint(group, m.TIMESTEPS, noruleinit=True)
         self.prev_temperature_build = BuildAction(rule=_prev_temperature_rule)
+
+        def _prev_mass_ice_rule(block):
+            for g in group:
+                for t in m.TIMESTEPS:
+                    if t != 0:
+                        lhs = self.mIceStor_prev[g, t]
+                        rhs = self.mIceStor[g, t - 1]
+                        block.prev_mass_ice.add((g, t), (lhs == rhs))
+
+        self.prev_mass_ice = Constraint(group, m.TIMESTEPS, noruleinit=True)
+        self.prev_mass_ice_build = BuildAction(rule=_prev_mass_ice_rule)
 
         def _max_ice_fraction_rule(block):
             """set the value of ice fraction"""
@@ -484,8 +496,8 @@ class IceStorageBlock(ScalarBlock):
             """rule for calculating the mass of ice in each timestep"""
             for g in group:
                 for t in m.TIMESTEPS:
-                    lhs = self.iceStatus[g,t]
-                    rhs = self.tStor[g,t]
+                    lhs = self.tStor[g,t]
+                    rhs = M*(1-self.iceStatus[g,t])
                     block.ice_state_1.add((g, t), (lhs <= rhs))
 
         self.ice_state_1 = Constraint(group, m.TIMESTEPS, noruleinit=True)
@@ -495,8 +507,8 @@ class IceStorageBlock(ScalarBlock):
             """rule for calculating the mass of ice in each timestep"""
             for g in group:
                 for t in m.TIMESTEPS:
-                    lhs = self.iceStatus[g,t]
-                    rhs = self.tStor[g,t] - M*(1-self.tStor[g,t])
+                    lhs = self.tStor[g,t]
+                    rhs = epsilon*(1-self.iceStatus[g,t])
                     block.ice_state_2.add((g, t), (lhs >= rhs))
 
         self.ice_state_2 = Constraint(group, m.TIMESTEPS, noruleinit=True)
