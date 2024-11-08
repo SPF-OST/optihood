@@ -1445,7 +1445,7 @@ class EnergyNetworkGroup(EnergyNetworkClass):
                         busesIn.append(self._busDict["electricityInBus" + '__Building' + str(b + 1)])
                     elif "dhLink" in l["label"]:
                         if "districtHeatingInputBus" + '__Building' + str(b + 1) in self._busDict:
-                            busesOut.append(self._busDict["districtHeatingInputBus"  + '__Building' + str(b + 1)])
+                            busesOut.append(self._busDict["districtHeatingInBus" + '__Building' + str(b + 1)])
                         busesIn.append(self._busDict["districtHeatingBus" + '__Building' + str(b + 1)])
 
                 self._nodesList.append(Link(
