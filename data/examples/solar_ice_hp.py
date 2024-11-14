@@ -25,7 +25,7 @@ if __name__ == '__main__':
     numberOfBuildings = 4
     optimizationType = "costs"  # set as "env" for environmental optimization and "costs" for cost optimization
     mergeLinkBuses = False
-    mergeBuses = [] # "electricity", "heatPumpInputBus"
+    mergeBuses = []
     dispatchMode = True  # Set to True to run the optimization in dispatch mode
 
     # solver specific command line options

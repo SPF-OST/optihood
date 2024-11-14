@@ -377,11 +377,11 @@ class IceStorageBlock(ScalarBlock):
 
         #  ************* DECISION VARIABLES *****************************
         # temperature of ice storage
-        self.tStor = Var(self.icestorages, m.TIMESTEPS, within=NonNegativeReals, bounds=(0,65))
-        self.tStor_prev = Var(self.icestorages, m.TIMESTEPS, within=NonNegativeReals, bounds=(0,65))
+        self.tStor = Var(self.icestorages, m.TIMESTEPS, within=NonNegativeReals, bounds=(0,90))
+        self.tStor_prev = Var(self.icestorages, m.TIMESTEPS, within=NonNegativeReals, bounds=(0,90))
         # mass of ice in storage
-        self.mIceStor = Var(self.icestorages, m.TIMESTEPS, within=NonNegativeReals, bounds=(0,100000))
-        self.mIceStor_prev = Var(self.icestorages, m.TIMESTEPS, within=NonNegativeReals, bounds=(0,100000))
+        self.mIceStor = Var(self.icestorages, m.TIMESTEPS, within=NonNegativeReals, bounds=(0,1000000))
+        self.mIceStor_prev = Var(self.icestorages, m.TIMESTEPS, within=NonNegativeReals, bounds=(0,1000000))
         # ice fraction
         self.fIce = Var(self.icestorages, m.TIMESTEPS, within=NonNegativeReals, bounds=(0,1))
         # binary variable defining the status of ice formation in the storage
@@ -513,6 +513,20 @@ class IceStorageBlock(ScalarBlock):
 
         self.ice_state_2 = Constraint(group, m.TIMESTEPS, noruleinit=True)
         self.ice_state_2_build = BuildAction(rule=_ice_state_rule_2)
+
+        # def _max_heating_energy_rule(block):
+        #     """rule for calculating the mass of ice in each timestep"""
+        #     for g in group:
+        #         for t in m.TIMESTEPS:
+        #             lhs1 = m.flow[i[g], g, t]
+        #             lhs2 = m.flow[g, o[g], t]
+        #             rhs = 50
+        #             block.max_heating_energy_in.add((g, t), (lhs1 <= rhs))
+        #             block.max_heating_energy_out.add((g, t), (lhs2 <= rhs))
+        #
+        # self.max_heating_energy_in = Constraint(group, m.TIMESTEPS, noruleinit=True)
+        # self.max_heating_energy_out = Constraint(group, m.TIMESTEPS, noruleinit=True)
+        # self.max_heating_energy_build = BuildAction(rule=_max_heating_energy_rule)
 
     def _objective_expression(self):
         """objective expression for storages with no investment"""
