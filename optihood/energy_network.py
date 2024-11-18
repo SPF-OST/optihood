@@ -362,7 +362,16 @@ class EnergyNetworkClass(solph.EnergySystem):
             nodesData["weather_data"].timestamp = pd.to_datetime(nodesData["weather_data"].timestamp,
                                                                           format='%Y.%m.%d %H:%M:%S')
             nodesData["weather_data"].set_index("timestamp", inplace=True)
-            if (not clusterSize) and nodesData["weather_data"].index.year.unique().__len__() == 1:
+            if (not clusterSize):
+                # for data with typical years; we might have 2 years if summer of 1st yr and winter of 2nd yr is considered
+                # we need to change index if len > 2 years
+                if nodesData["weather_data"].index.year.unique().__len__() > 2:
+                    new_index = pd.to_datetime({
+                        'year': self.timeindex.year[0],
+                        'month': nodesData["weather_data"].index.month,
+                        'day': nodesData["weather_data"].index.day,
+                        'hour': nodesData["weather_data"].index.hour})
+                    nodesData["weather_data"].index = new_index
                 nodesData["weather_data"] = nodesData["weather_data"][self.timeindex[0]:self.timeindex[-1]]
 
         nodesData["building_model"] = {}
@@ -1435,8 +1444,8 @@ class EnergyNetworkGroup(EnergyNetworkClass):
                         busesOut.append(self._busDict["electricityBus" + '__Building' + str(b + 1)])
                         busesIn.append(self._busDict["electricityInBus" + '__Building' + str(b + 1)])
                     elif "dhLink" in l["label"]:
-                        if "districtHeatingInputBus" + '__Building' + str(b + 1) in self._busDict:
-                            busesOut.append(self._busDict["districtHeatingInputBus"  + '__Building' + str(b + 1)])
+                        if "districtHeatingInBus" + '__Building' + str(b + 1) in self._busDict:
+                            busesOut.append(self._busDict["districtHeatingInBus" + '__Building' + str(b + 1)])
                         busesIn.append(self._busDict["districtHeatingBus" + '__Building' + str(b + 1)])
 
                 self._nodesList.append(Link(
