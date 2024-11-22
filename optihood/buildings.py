@@ -880,9 +880,14 @@ class Building:
                         self.__nodesList.append(storage.getStorageLevel(i))
                         self.__nodesList.extend(storage.getDummyComponents(i))
                 elif "iceStorage" in s["label"]:
+                    if not np.isnan(s["initial capacity"]):
+                        initial_ice_frac = float(s["initial capacity"])
+                    else:
+                        initial_ice_frac = 0
                     self.__nodesList.append(IceStorage(label=storageLabel,input=self.__busDict[inputBusLabel],
                                                        output=self.__busDict[outputBusLabel],
                                                        tStorInit=float(storageParams["ice_storage"].at[s["label"],"intitial_temp"]),
+                                                       fIceInit = initial_ice_frac,
                                                        fMax=float(storageParams["ice_storage"].at[s["label"],"max_ice_fraction"]),
                                                        rho=float(storageParams["ice_storage"].at[s["label"],"rho_fluid"]),
                                                        V=float(s["capacity max"])/1000, # conversion from L to m3
