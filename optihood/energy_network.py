@@ -301,6 +301,7 @@ class EnergyNetworkClass(solph.EnergySystem):
             # set datetime index
             nodesData["electricity_impact"].set_index("timestamp", inplace=True)
             nodesData["electricity_impact"].index = pd.to_datetime(nodesData["electricity_impact"].index, format='%d.%m.%Y %H:%M')
+            nodesData["electricity_impact"] = nodesData["electricity_impact"][self.timeindex[0]: self.timeindex[-1]]
 
         if type(electricityCost) == np.float64 or type(electricityCost) == np.int64:
             # for constant cost
@@ -317,6 +318,7 @@ class EnergyNetworkClass(solph.EnergySystem):
             # set datetime index
             nodesData["electricity_cost"].set_index("timestamp", inplace=True)
             nodesData["electricity_cost"].index = pd.to_datetime(nodesData["electricity_cost"].index, format='%d.%m.%Y %H:%M')
+            nodesData["electricity_cost"] = nodesData["electricity_cost"][self.timeindex[0]: self.timeindex[-1]]
 
         if "naturalGasResource" in nodesData["commodity_sources"]["label"].values:
             if isinstance(natGasImpact, (float, np.float64)) or (natGasImpact.split('.')[0].replace('-','').isdigit() and natGasImpact.split('.')[1].replace('-','').isdigit()):
@@ -664,16 +666,19 @@ class EnergyNetworkClass(solph.EnergySystem):
                 df[f"mIceStor_prev_B{bNo}"] = mIceStor_prev
         df.to_csv(filename, sep=';', index=False)
 
-    def saveUnprocessedResults(self, resultFile):
-        with pd.ExcelWriter(resultFile) as writer:
-            busLabelList = []
-            for i in self.nodes:
-                if str(type(i)).replace("<class 'oemof.solph.", "").replace("'>", "") == "buses._bus.Bus":
-                    busLabelList.append(i.label)
-            for i in busLabelList:
-                if "sequences" in solph.views.node(self._optimizationResults, i):
-                    result = pd.DataFrame.from_dict(solph.views.node(self._optimizationResults, i)["sequences"])
-                    result.to_excel(writer, sheet_name=i)
+    def saveUnprocessedResults(self, resultFile=None):
+        busLabelList = []
+        result = {}
+        for i in self.nodes:
+            if str(type(i)).replace("<class 'oemof.solph.", "").replace("'>", "") == "buses._bus.Bus":
+                busLabelList.append(i.label)
+        for i in busLabelList:
+            if "sequences" in solph.views.node(self._optimizationResults, i):
+                result[i] = pd.DataFrame.from_dict(solph.views.node(self._optimizationResults, i)["sequences"])
+                if resultFile is not None:
+                    with pd.ExcelWriter(resultFile) as writer:
+                        result[i].to_excel(writer, sheet_name=i)
+        return result
 
     def _updateCapacityDictInputInvestment(self, transformerFlowCapacityDict):
         components = ["CHP", "GWHP", "HP", "GasBoiler", "ElectricRod", "Chiller"]
