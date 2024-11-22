@@ -304,10 +304,13 @@ class IceStorage(on.Node):
     inflow_conversion_factor: efficiency of heat exchanger at the inlet of the ice storage
     outflow_conversion_factor: efficiency of heat exchanger at the outlet of the ice storage
     """
-    def __init__(self, label, input, output, tStorInit, fMax, rho, V, hfluid, cp, Tamb, UAtank, inflow_conversion_factor, outflow_conversion_factor):
-        if tStorInit <= 0:
-            raise ValueError("The initial temperature of ice storage should be greater than 0°C, i.e. without any ice formation.")
+    def __init__(self, label, input, output, tStorInit, fIceInit, fMax, rho, V, hfluid, cp, Tamb, UAtank, inflow_conversion_factor, outflow_conversion_factor):
+        if tStorInit < 0:
+            raise ValueError("The initial temperature of ice storage should be greater than or equal to 0°C.")
         self.tStorInit = tStorInit
+        if fIceInit < 0 or fIceInit > 1:
+            raise ValueError("The initial ice fraction in ice storage should be in [0,1]")
+        self.fIceInit = fIceInit
         if fMax < 0.5 or fMax > 0.8:
             raise ValueError("Maximum ice fraction should be defined within the range 0.5-0.8")
         self.fMax = fMax
@@ -409,7 +412,7 @@ class IceStorageBlock(ScalarBlock):
             """
             for g in group:
                 lhs = self.mIceStor_prev[g,0]
-                rhs = 0
+                rhs = g.fIceInit*g.rho*g.V
                 block.initial_ice_state.add((g, 0), (lhs == rhs))
 
         self.initial_ice_state = Constraint(group, m.TIMESTEPS, noruleinit= True)
