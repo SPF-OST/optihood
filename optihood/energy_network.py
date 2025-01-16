@@ -76,7 +76,7 @@ def get_data_from_excel_file(data: pd.ExcelFile, column_name: str):
 
 
 class EnergyNetworkClass(solph.EnergySystem):
-    def __init__(self, timestamp, clusters=None, temperatureLevels=False):
+    def __init__(self, timestamp, clusters=None, temperatureLevels=False, heatingCircuits=False, calcResultsBuilding=True):
         self._timeIndexReal = timestamp             # the timeindex passed to the energy network, will be made shorter if clustering is selected
         self._clusterDate = {}
         if clusters:
@@ -120,6 +120,8 @@ class EnergyNetworkClass(solph.EnergySystem):
         self.__elRodEff = np.nan
         self._temperatureLevels = temperatureLevels
         self._dispatchMode = False
+        self._heatingCircuits = heatingCircuits
+        self._calcResultsPerBuilding= calcResultsBuilding
         self._c = 4.186 #default value for water in kJ/(kg K)
         self._rho = 1. #default value for water in kg/L
         if not os.path.exists(".\\log_files"):
@@ -259,19 +261,14 @@ class EnergyNetworkClass(solph.EnergySystem):
         if (not os.listdir(demandProfilesPath)) or (not os.path.exists(demandProfilesPath)):
             logging.error("Error in the demand profiles path: The folder is either empty or does not exist")
         else:
-            #i = 0                                                                                                                 # commented for MPC branch !!!!!!
             for filename in os.listdir(demandProfilesPath): #this path should contain csv file(s) (one for each building's profiles)
-                #i += 1      # Building number                                                                                     # commented for MPC branch !!!!!!
-                """if i > numBuildings:
-                    logging.warning("Demand profiles folder has more files than the number of buildings specified")
-                    break"""                                                                                                       # commented for MPC branch !!!!!!
-                i = int(filename.split('_')[1].split('.')[0])                                                                      # specific to MPC branch !!!!!!
+                i = int(filename.split('_')[1].split('.')[0])
                 demandProfiles.update({i: pd.read_csv(os.path.join(demandProfilesPath, filename), delimiter=";")})
 
             nodesData["demandProfiles"] = demandProfiles
             # set datetime index
             for i in range(numBuildings):
-                if (i + 1) in nodesData["demandProfiles"].keys():                                                                  # specific to MPC branch !!!!!!
+                if (i + 1) in nodesData["demandProfiles"].keys():
                     nodesData["demandProfiles"][i + 1].timestamp = pd.to_datetime(nodesData["demandProfiles"][i + 1].timestamp, format='%Y-%m-%d %H:%M:%S')
                     nodesData["demandProfiles"][i + 1].set_index("timestamp", inplace=True)
                     if not clusterSize and not demandAdjust24h:
@@ -282,7 +279,7 @@ class EnergyNetworkClass(solph.EnergySystem):
                             nodesData["demandProfiles"][i + 1] = nodesData["demandProfiles"][i + 1].shift(-self.timeindex[0].hour)[:-self.timeindex[0].hour]
                             nodesData["demandProfiles"][i + 1] = pd.concat([nodesData["demandProfiles"][i + 1], top_rows], axis=0)
                         nodesData["demandProfiles"][i + 1].index = self.timeindex[0:-1]
-                else:                                                                                                              # specific to MPC branch !!!!!!
+                else:       # a building without a demand
                     nodesData["demandProfiles"][i + 1] = None
 
         if "electricityResource" in nodesData["commodity_sources"]["label"].values:
@@ -378,8 +375,7 @@ class EnergyNetworkClass(solph.EnergySystem):
                 internalGains = internalGains[self.timeindex[0]:self.timeindex[-1]]
             if not os.path.exists(bmodelparamsPath):
                 logging.error("Error in building model parameters file path.")
-            #bmParamers = pd.read_csv(bmodelparamsPath, delimiter=';')                                                          # commented for MPC branch !!!!!!
-            bmParamers = pd.read_csv(bmodelparamsPath, delimiter=',')                                                           # specific to MPC branch !!!!!!
+            bmParamers = pd.read_csv(bmodelparamsPath, delimiter=',')
             for i in range(numBuildings):
                 nodesData["building_model"][i + 1] = {}
                 nodesData["building_model"][i + 1]["timeseries"] = pd.DataFrame()
@@ -399,11 +395,13 @@ class EnergyNetworkClass(solph.EnergySystem):
                              'qDistributionMin', 'qDistributionMax', 'tIndoorMin', 'tIndoorMax', 'tIndoorInit',
                              'tWallInit', 'tDistributionInit']
                 for param in paramList:
-                    # nodesData["building_model"][i + 1][param] = float(bmParamers[bmParamers["Building Number"] == (i+1)][param].iloc[0])      # commented for MPC branch !!!!!!
-                    nodesData["building_model"][i + 1][param] = {}                                                                              # specific to MPC branch !!!!!!
-                    for circuit in bmParamers[bmParamers["Building Number"] == (i + 1)].Circuit.values:                                         # specific to MPC branch !!!!!!
-                        nodesData["building_model"][i + 1][param][circuit] = float(
-                            bmParamers[bmParamers["Building Number"] == (i + 1)][bmParamers["Circuit"] == circuit][param].iloc[0])
+                    if not self._heatingCircuits:
+                        nodesData["building_model"][i + 1][param] = float(bmParamers[bmParamers["Building Number"] == (i+1)][param].iloc[0])
+                    else:
+                        nodesData["building_model"][i + 1][param] = {}
+                        for circuit in bmParamers[bmParamers["Building Number"] == (i + 1)].Circuit.values:
+                            nodesData["building_model"][i + 1][param][circuit] = float(
+                                bmParamers[bmParamers["Building Number"] == (i + 1)][bmParamers["Circuit"] == circuit][param].iloc[0])
         else:
             logging.info("Building model either not selected or invalid string value entered")
         logging.info(f"Data from file {file_or_folder_path} imported.")
@@ -556,6 +554,9 @@ class EnergyNetworkClass(solph.EnergySystem):
                     self._optimizationModel = sharedStorageCapacityConstraintBuilding1(self._optimizationModel)
                 if c.lower() == "peakobjective":
                     self._optimizationModel = peakObjectiveConstraint(self._optimizationModel)
+                if c.lower() == "peakobjective_temporary_fix":
+                    """ This constraint will be eventually merged with the one before """
+                    self._optimizationModel = peakObjectiveConstraint_to_be_merged(self._optimizationModel)
                 if c.lower() == 'totalpvcapacity':
                     self._optimizationModel = totalPVCapacityConstraint(self._optimizationModel, numberOfBuildings)
                     logging.info(f"Optional constraint {c} successfully added to the optimization model")
@@ -595,50 +596,93 @@ class EnergyNetworkClass(solph.EnergySystem):
             self._postprocessingClusters(clusterSize)
 
         # calculate results (CAPEX, OPEX, FeedIn Costs, environmental impacts etc...) for each building
-        #self._calculateResultsPerBuilding(mergeLinkBuses)                                                                  # commented for MPC version !!!!!!!!!!!!!
+        if self._calcResultsPerBuilding:
+            self._calculateResultsPerBuilding(mergeLinkBuses)
 
         return envImpact, capacitiesTransformersNetwork, capacitiesStoragesNetwork
 
-    def printbuildingModelTemperatures(self, filename):
+    def printbuildingModelTemperatures(self, filename=None):
         df = pd.DataFrame()
         df["timestamp"] = self.timeindex[0:-1]
         for i in range(self.__noOfBuildings):
             bNo = i + 1
-            for cNo in range(3):                                                                                            # cNo related stuff is specific to MPC branch !!!!!!!!!!!!!!!!!!!!!!
+            if self._heatingCircuits:
+                for cNo in range(3):
+                    tIndoor = [v for k, v in self._optimizationModel.SinkRCModelBlock.tIndoor.get_values().items() if
+                               k[0].label.endswith(f"Building{bNo}") and f"{cNo}__" in k[0].label]
+                    tDistribution = [v for k, v in self._optimizationModel.SinkRCModelBlock.tDistribution.get_values().items() if
+                                     k[0].label.endswith(f"Building{bNo}") and f"{cNo}__" in k[0].label]
+                    tWall = [v for k, v in self._optimizationModel.SinkRCModelBlock.tWall.get_values().items() if
+                             k[0].label.endswith(f"Building{bNo}") and f"{cNo}__" in k[0].label]
+                    epsilonIndoor = [v for k, v in self._optimizationModel.SinkRCModelBlock.epsilonIndoor.get_values().items() if
+                                     k[0].label.endswith(f"Building{bNo}") and f"{cNo}__" in k[0].label]
+                    tIndoor_prev = [v for k, v in self._optimizationModel.SinkRCModelBlock.tIndoor_prev.get_values().items() if
+                                    k[0].label.endswith(f"Building{bNo}") and f"{cNo}__" in k[0].label]
+                    tDistribution_prev = [v for k, v in
+                                          self._optimizationModel.SinkRCModelBlock.tDistribution_prev.get_values().items() if
+                                          k[0].label.endswith(f"Building{bNo}") and f"{cNo}__" in k[0].label]
+                    tWall_prev = [v for k, v in self._optimizationModel.SinkRCModelBlock.tWall_prev.get_values().items() if
+                                  k[0].label.endswith(f"Building{bNo}") and f"{cNo}__" in k[0].label]
+                    if tIndoor:
+                        df[f"tIndoor_B{bNo}_C{cNo}"] = tIndoor
+                        df[f"tDistribution_B{bNo}_C{cNo}"] = tDistribution
+                        df[f"tWall_B{bNo}_C{cNo}"] = tWall
+                        df[f"tIndoor_prev_B{bNo}_C{cNo}"] = tIndoor_prev
+                        df[f"tDistribution_prev_B{bNo}_C{cNo}"] = tDistribution_prev
+                        df[f"tWall_prev_B{bNo}_C{cNo}"] = tWall_prev
+                        df[f"epsilonIndoor_B{bNo}_C{cNo}"] = epsilonIndoor
+            else:
                 tIndoor = [v for k, v in self._optimizationModel.SinkRCModelBlock.tIndoor.get_values().items() if
-                           k[0].label.endswith(f"Building{bNo}") and f"{cNo}__" in k[0].label]
-                tDistribution = [v for k, v in self._optimizationModel.SinkRCModelBlock.tDistribution.get_values().items() if
-                                 k[0].label.endswith(f"Building{bNo}") and f"{cNo}__" in k[0].label]
+                           k[0].label.endswith(f"Building{bNo}")]
+                tDistribution = [v for k, v in
+                                 self._optimizationModel.SinkRCModelBlock.tDistribution.get_values().items() if
+                                 k[0].label.endswith(f"Building{bNo}")]
                 tWall = [v for k, v in self._optimizationModel.SinkRCModelBlock.tWall.get_values().items() if
-                         k[0].label.endswith(f"Building{bNo}") and f"{cNo}__" in k[0].label]
-                epsilonIndoor = [v for k, v in self._optimizationModel.SinkRCModelBlock.epsilonIndoor.get_values().items() if
-                                 k[0].label.endswith(f"Building{bNo}") and f"{cNo}__" in k[0].label]
-                tIndoor_prev = [v for k, v in self._optimizationModel.SinkRCModelBlock.tIndoor_prev.get_values().items() if
-                                k[0].label.endswith(f"Building{bNo}") and f"{cNo}__" in k[0].label]
+                         k[0].label.endswith(f"Building{bNo}")]
+                epsilonIndoor = [v for k, v in
+                                 self._optimizationModel.SinkRCModelBlock.epsilonIndoor.get_values().items() if
+                                 k[0].label.endswith(f"Building{bNo}")]
+                tIndoor_prev = [v for k, v in self._optimizationModel.SinkRCModelBlock.tIndoor_prev.get_values().items()
+                                if
+                                k[0].label.endswith(f"Building{bNo}")]
                 tDistribution_prev = [v for k, v in
-                                      self._optimizationModel.SinkRCModelBlock.tDistribution_prev.get_values().items() if
-                                      k[0].label.endswith(f"Building{bNo}") and f"{cNo}__" in k[0].label]
+                                      self._optimizationModel.SinkRCModelBlock.tDistribution_prev.get_values().items()
+                                      if
+                                      k[0].label.endswith(f"Building{bNo}")]
                 tWall_prev = [v for k, v in self._optimizationModel.SinkRCModelBlock.tWall_prev.get_values().items() if
-                              k[0].label.endswith(f"Building{bNo}") and f"{cNo}__" in k[0].label]
-                if tIndoor:                                                                                                         # specific to MPC branch !!!!!!!!!!!!!!!!!
-                    df[f"tIndoor_B{bNo}_C{cNo}"] = tIndoor
-                    df[f"tDistribution_B{bNo}_C{cNo}"] = tDistribution
-                    df[f"tWall_B{bNo}_C{cNo}"] = tWall
-                    df[f"tIndoor_prev_B{bNo}_C{cNo}"] = tIndoor_prev
-                    df[f"tDistribution_prev_B{bNo}_C{cNo}"] = tDistribution_prev
-                    df[f"tWall_prev_B{bNo}_C{cNo}"] = tWall_prev
-                    df[f"epsilonIndoor_B{bNo}_C{cNo}"] = epsilonIndoor
-        df.to_csv(filename, sep=';', index=False)
+                              k[0].label.endswith(f"Building{bNo}")]
+                if tIndoor:
+                    df[f"tIndoor_B{bNo}"] = tIndoor
+                    df[f"tDistribution_B{bNo}"] = tDistribution
+                    df[f"tWall_B{bNo}"] = tWall
+                    df[f"tIndoor_prev_B{bNo}"] = tIndoor_prev
+                    df[f"tDistribution_prev_B{bNo}"] = tDistribution_prev
+                    df[f"tWall_prev_B{bNo}"] = tWall_prev
+                    df[f"epsilonIndoor_B{bNo}"] = epsilonIndoor
+        if filename is not None:
+            df.to_csv(filename, sep=';', index=False)
+        return df
 
-    def saveUnprocessedResults(self, resultFile):
-        with pd.ExcelWriter(resultFile) as writer:
-            busLabelList = []
-            for i in self.nodes:
-                if str(type(i)).replace("<class 'oemof.solph.", "").replace("'>", "") == "buses._bus.Bus":
-                    busLabelList.append(i.label)
-            for i in busLabelList:
-                result = pd.DataFrame.from_dict(solph.views.node(self._optimizationResults, i)["sequences"])
-                result.to_excel(writer, sheet_name=i)
+    def saveUnprocessedResults(self, resultFile=None):
+        result_dict = {}
+        busLabelList = []
+        for i in self.nodes:
+            if str(type(i)).replace("<class 'oemof.solph.", "").replace("'>", "") == "buses._bus.Bus":
+                busLabelList.append(i.label)
+        for i in busLabelList:
+            result_dict[i] = pd.DataFrame.from_dict(solph.views.node(self._optimizationResults, i)["sequences"])
+        boiler_content = []
+        for i in range(1, self.__noOfBuildings+1):
+            if i!=1 and i!=6:
+                storageContentDHW = self.calcStateofCharge("dhwStorage", f"Building{i}")
+                storageContentDHW[f"Building{i}"] = storageContentDHW[f"Building{i}"].rename(columns={"storage_content":f"Building{i}"})
+                boiler_content.append(storageContentDHW[f"Building{i}"])
+        result_dict["boiler_content"] = pd.concat(boiler_content, axis=1)
+        if resultFile is not None:
+            with pd.ExcelWriter(resultFile) as writer:
+                for k,v in result_dict.items():
+                    v.to_excel(writer, sheet_name=k)
+        return result_dict
 
     def _updateCapacityDictInputInvestment(self, transformerFlowCapacityDict):
         components = ["CHP", "GWHP", "HP", "GasBoiler", "ElectricRod", "Chiller"]
@@ -694,9 +738,9 @@ class EnergyNetworkClass(solph.EnergySystem):
             index = str(x)
             if x in storageList:  # useful when we want to implement two or more storage units of the same type
                 capacitiesInvestedStorages[index] = capacitiesInvestedStorages[index] + \
-                                                    optimizationModel.GenericInvestmentStorageBlock.invest[x].value
+                                                    optimizationModel.GenericInvestmentStorageBlock.invest[(x,0)].value
             else:
-                capacitiesInvestedStorages[str(x)] = optimizationModel.GenericInvestmentStorageBlock.invest[x].value
+                capacitiesInvestedStorages[str(x)] = optimizationModel.GenericInvestmentStorageBlock.invest[(x,0)].value
 
         # Convert kWh into L
         capacitiesInvestedStorages = self._compensateStorageCapacities(capacitiesInvestedStorages)

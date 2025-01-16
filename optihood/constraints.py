@@ -32,7 +32,7 @@ def sharedStorageCapacityConstraintBuilding1(om):
             elif 'shStorage' in x.label and x.label.endswith("Building1"):
                 conv_factor = 4.186 * (35 - 25) / 3600
             if x.label.endswith("Building1"):
-                storageCapacityDict[x] = om.GenericInvestmentStorageBlock.invest[x] / conv_factor
+                storageCapacityDict[x] = om.GenericInvestmentStorageBlock.invest[(x,0)] / conv_factor
         totalCapacity = sum(storageCapacityDict[x] for x in storageCapacityDict)
         capacity = 6440            # 6440 L
         setattr(
@@ -108,7 +108,7 @@ def multiTemperatureStorageCapacityConstaint(om, storageNodes):
                 storageCapacityDict[x.label.split("__")[1]].append(x)
 
     for building in storageCapacityDict:
-        storageCapacity =sum(om.GenericInvestmentStorageBlock.invest[x] for x in storageCapacityDict[building])
+        storageCapacity =sum(om.GenericInvestmentStorageBlock.invest[(x,0)] for x in storageCapacityDict[building])
         setattr(
             om,
              "ThermalStorage_maxConstraint" + building[8:],
@@ -192,7 +192,7 @@ def environmentalImpactlimit(om, keyword1, keyword2, limit=None):
     if hasattr(om, 'GenericInvestmentStorageBlock'):
         for x in om.GenericInvestmentStorageBlock.INVESTSTORAGES:
             if hasattr(x.investment, keyword2):
-                storageCapacityDict[x] = om.GenericInvestmentStorageBlock.invest[x]
+                storageCapacityDict[x] = om.GenericInvestmentStorageBlock.invest[(x,0)]
 
     envImpact = "totalEnvironmentalImpact"
 
@@ -216,7 +216,7 @@ def environmentalImpactlimit(om, keyword1, keyword2, limit=None):
                 transformerFlowCapacityDictNonConvex[inflow, outflow], keyword2)
                        for (inflow, outflow) in transformerFlowCapacityDictNonConvex)
                  # fix Environmental impact per storage capacity
-                 + sum(om.GenericInvestmentStorageBlock.invest[x] * getattr(x.investment, keyword2) for x in
+                 + sum(om.GenericInvestmentStorageBlock.invest[(x,0)] * getattr(x.investment, keyword2) for x in
                        storageCapacityDict)
         ),
     )

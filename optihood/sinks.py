@@ -3,6 +3,7 @@ under-development component for a linear RC model for heating a Building
 """
 from optihood._helpers import *
 import oemof.solph as solph
+from oemof.network import Node
 from oemof.solph._plumbing import sequence
 from pyomo.core.base.block import ScalarBlock
 from pyomo.environ import BuildAction
@@ -13,7 +14,7 @@ from pyomo.environ import Set
 from pyomo.environ import Var
 import numpy as np
 
-class SinkRCModel(solph.components.Sink):
+class SinkRCModel(Node):
     """
     Building RC Model with a possibility of heat outflow (through chiller) as well
 
@@ -57,10 +58,9 @@ class SinkRCModel(solph.components.Sink):
             tIndoorInit=21,
             tWallInit=21,
             tDistributionInit=21,
-            outputs=None,
             **kwargs,
     ):
-        super().__init__(custom_attributes={"outputs": outputs},**kwargs)
+        super().__init__(**kwargs)
         self.rDistribution = rDistribution
         self.cDistribution = cDistribution
         self.rIndoor = rIndoor
