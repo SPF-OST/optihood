@@ -602,7 +602,9 @@ class CHP:
             return []
 
 class GasBoiler(cp.CombinedTransformer):
-    "Information about the model can be found in combined_pro.py CombinedTransformer"
+    """
+    Sunsetted class, will be removed in the next updates..., use class GenericCombinedTransformer instead
+    """
     def __init__(self, buildingLabel, input, output, efficiency,
                  capacityMin, capacityMax, epc, base, varc, env_flow, env_capa, dispatchMode):
         self.__efficiency = efficiency[0]
@@ -633,7 +635,40 @@ class GasBoiler(cp.CombinedTransformer):
             efficiencies=outputEff
                  )
 
+class GenericCombinedTransformer(cp.CombinedTransformer):
+    def __init__(self, label, input, output, efficiency,
+                 capacityMin, capacityMax, epc, base, varc, env_flow, env_capa, dispatchMode):
+        self.__efficiency = efficiency[0]
+        outputEff = {}
+        for i in range(len(output)):
+            outputEff[output[i]] = efficiency[i]
+        if dispatchMode:
+            investArgs = {'ep_costs': epc * efficiency[0],
+                          'minimum': capacityMin / efficiency[0],
+                          'maximum': capacityMax / efficiency[0],
+                          'custom_attributes': {'env_per_capa': env_capa * efficiency[0]}}
+        else:
+            investArgs={'ep_costs':epc*efficiency[0],
+                        'minimum':capacityMin/efficiency[0],
+                        'maximum':capacityMax/efficiency[0],
+                        'nonconvex':True,
+                        'offset':base,
+                        'custom_attributes': {'env_per_capa': env_capa * efficiency[0]}}
+        outputDict = {k: solph.Flow(variable_costs=varc, custom_attributes={'env_per_flow': env_flow}) for k in output}
+        super(GenericCombinedTransformer, self).__init__(
+            label=label,
+            inputs={
+                input: solph.Flow(investment=solph.Investment(**investArgs) )
+            },
+            outputs=outputDict,
+            efficiencies=outputEff
+                 )
+
+
 class ElectricRod(cp.CombinedTransformer):
+    """
+    To be checked --> This class could be merged with the previous class (Boiler)
+    """
     def __init__(self, buildingLabel, input, output, efficiency,
                  capacityMin, capacityMax, epc, base, varc, env_flow, env_capa, dispatchMode):
         self.__efficiency = efficiency

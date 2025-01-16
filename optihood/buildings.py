@@ -656,41 +656,30 @@ class Building:
 
         self.__envParam[chpSHLabel] = [float(data["heat_impact"]), float(data["elec_impact"]), envImpactPerCapacity]
 
-    def _addGasBoiler(self, data, opt, dispatchMode, temperatureLevels):
-        gasBoilLabel = data["label"] + '__' + self.__buildingLabel
+    def _addBoiler(self, data, opt, dispatchMode):
+        label = data["label"] + '__' + self.__buildingLabel
         inputBusLabel = data["from"] + '__' + self.__buildingLabel
-        outputBuses = []
-        outputSHBusLabel = data["to"].split(",")[0] + '__' + self.__buildingLabel
-        outputDHWBusLabel = data["to"].split(",")[1] + '__' + self.__buildingLabel
-        efficiency1 = float(data["efficiency"].split(",")[0])
-        efficiency2 = float(data["efficiency"].split(",")[1])
-        outputBuses.append(self.__busDict[outputSHBusLabel])
-        outputBuses.append(self.__busDict[outputDHWBusLabel])
-        efficiency = [efficiency1, efficiency2]
-        if temperatureLevels:
-            outputBusLabel3 = data["to"].split(",")[2] + '__' + self.__buildingLabel  # outputSHBusLabel, outputDHWBusLabel, outputBusLabel3 are in the order of increasing temperatures
-            outputBuses.append(self.__busDict[outputBusLabel3])
-            efficiency3 = float(data["efficiency"].split(",")[2])
-            efficiency.append(efficiency3)
+        outputBuses = [self.__busDict[o + '__' + self.__buildingLabel] for o in data["to"].split(",")]
+        efficiency = [float(e) for e in data["efficiency"].split(",")]
         envImpactPerCapacity = float(data["impact_cap"]) / float(data["lifetime"])
         if data["capacity_min"] == 'x':
             capacityMinSH = float(data["capacity_SH"])
         else:
             capacityMinSH = float(data["capacity_min"])
 
-        self.__nodesList.append(GasBoiler(self.__buildingLabel, self.__busDict[inputBusLabel],
+        self.__nodesList.append(GenericCombinedTransformer(label, self.__busDict[inputBusLabel],
                   outputBuses,
                   efficiency, capacityMinSH, float(data["capacity_SH"]),
                   self._calculateInvest(data)[0] * (opt == "costs") + envImpactPerCapacity * (opt == "env"),
                   self._calculateInvest(data)[1] * (opt == "costs"), float(data["heat_impact"]) * (opt == "env"), float(data["heat_impact"]), envImpactPerCapacity, dispatchMode))
 
         # set technologies, environment and cost parameters
-        self.__technologies.append([outputSHBusLabel, gasBoilLabel])
-        self.__technologies.append([outputDHWBusLabel, gasBoilLabel])
+        for i in range(len(outputBuses)):
+            self.__technologies.append([data["to"].split(",")[i] + '__' + self.__buildingLabel, label])
 
-        self.__costParam[gasBoilLabel] = [self._calculateInvest(data)[0], self._calculateInvest(data)[1]]
+        self.__costParam[label] = [self._calculateInvest(data)[0], self._calculateInvest(data)[1]]
 
-        self.__envParam[gasBoilLabel] = [float(data["heat_impact"]), 0, envImpactPerCapacity]
+        self.__envParam[label] = [float(data["heat_impact"]), 0, envImpactPerCapacity]
 
     def _addElectricRod(self, data, opt, mergeLinkBuses, dispatchMode, temperatureLevels):
         elRodLabel = data["label"] + '__' + self.__buildingLabel
@@ -796,8 +785,8 @@ class Building:
                     self._addGeothemalHeatPumpSplit(t, operationTemperatures, temperatureGround, opt, mergeLinkBuses, dispatchMode)
                 elif t["label"] == "CHP":
                     self._addCHP(t, len(temperatureAmb), opt, dispatchMode, temperatureLevels)
-                elif t["label"] == "GasBoiler":
-                    self._addGasBoiler(t, opt, dispatchMode, temperatureLevels)
+                elif "Boiler" in t["label"]:
+                    self._addBoiler(t, opt, dispatchMode)
                 elif t["label"] == "ElectricRod":
                     self._addElectricRod(t, opt, mergeLinkBuses, dispatchMode, temperatureLevels)
                 elif t["label"] == "Chiller":

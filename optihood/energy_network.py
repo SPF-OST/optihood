@@ -372,10 +372,11 @@ class EnergyNetworkClass(solph.EnergySystem):
             internalGains.timestamp = pd.to_datetime(internalGains.timestamp, format='%d.%m.%Y %H:%M')
             internalGains.set_index("timestamp", inplace=True)
             if not clusterSize and not demandAdjust24h:
-                internalGains = internalGains[self.timeindex[0]:self.timeindex[-1]]
+                internalGains = internalGains[self.timeindex[0]:self.timeindex[-2]]
             if not os.path.exists(bmodelparamsPath):
                 logging.error("Error in building model parameters file path.")
-            bmParamers = pd.read_csv(bmodelparamsPath, delimiter=',')
+            #bmParamers = pd.read_csv(bmodelparamsPath, delimiter=';')                                                          # commented for MPC branch !!!!!!
+            bmParamers = pd.read_csv(bmodelparamsPath, delimiter=',')                                                           # specific to MPC branch !!!!!!
             for i in range(numBuildings):
                 nodesData["building_model"][i + 1] = {}
                 nodesData["building_model"][i + 1]["timeseries"] = pd.DataFrame()
