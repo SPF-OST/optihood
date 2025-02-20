@@ -712,12 +712,12 @@ class ChillerBlock(ScalarBlock):
 
 class CHP:
     "Information about the model can be found in combined_pro.py CombinedCHP"
-    def __init__(self, buildingLabel, input, outputEl, outputSH, outputDHW, efficiencyEl, efficiencySH, efficiencyDHW,
+    def __init__(self, buildingLabel, input, output, efficiency,
                  capacityMin, capacitySH, epc, base, varc1, varc2, env_flow1, env_flow2, env_capa, timesteps, dispatchMode):
-        self._efficiencyEl = [efficiencyEl] * timesteps
-        self._efficiencySH = [efficiencySH] * timesteps
-        self._efficiencyDHW = [efficiencyDHW] * timesteps
-        self.avgEff = efficiencySH
+        self.avgEff = efficiency[1]
+        outputEff = {}
+        for i in range(len(output)):
+            outputEff[output[i]] = [efficiency[i]] * timesteps
         if dispatchMode:
             investArgs = {'ep_costs': epc * self.avgEff,
                           'minimum': capacityMin / self.avgEff,
@@ -730,8 +730,9 @@ class CHP:
                         'nonconvex':True,
                         'offset':base,
                         'custom_attributes': {'env_per_capa': env_capa * self.avgEff}}
-        # outputDict = {k: solph.Flow(variable_costs=varc2, env_per_flow=env_flow2) for k in output if k!=output[0]}
-        # outputDict[output[0]] = solph.Flow(variable_costs=varc1, env_per_flow=env_flow1)
+        outputDict = {k: solph.Flow(variable_costs=varc2, custom_attributes={'env_per_flow': env_flow2}) for k in output if "electricity" not in k.label}
+        elOutKey = [k for k in output if "electricity" in k.label][0]
+        outputDict.update({elOutKey: solph.Flow(variable_costs=varc1, custom_attributes={'env_per_flow': env_flow1})})
         self.__CHP = cp.CombinedCHP(
                         label='CHP'+'__'+buildingLabel,
                         inputs={
@@ -739,30 +740,12 @@ class CHP:
                                 investment=solph.Investment(**investArgs),
                             )
                         },
-                        outputs={
-                            outputSH: solph.Flow(
-                                variable_costs=varc2,
-                                custom_attributes={'env_per_flow': env_flow2},
-                            ),
-                            outputDHW: solph.Flow(
-                                variable_costs=varc2,
-                                custom_attributes={'env_per_flow': env_flow2},
-                            ),
-                            outputEl: solph.Flow(
-                                variable_costs=varc1,
-                                custom_attributes={'env_per_flow': env_flow1},
-                            ),
-                        },
-                        efficiencies={outputSH: self._efficiencySH, outputDHW: self._efficiencyDHW,
-                                      outputEl: self._efficiencyEl}
+                        outputs=outputDict,
+                        efficiencies=outputEff
                     )
 
-    def getCHP(self, type):
-        if type == 'sh':
-            return self.__CHP
-        else:
-            print("Transformer label not identified...")
-            return []
+    def getCHP(self):
+        return self.__CHP
 
 class GasBoiler(cp.CombinedTransformer):
     """
