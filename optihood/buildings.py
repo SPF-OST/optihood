@@ -694,22 +694,15 @@ class Building:
             inputBusLabel = data["from"]
         else:
             inputBusLabel = data["from"] + '__' + self.__buildingLabel
-        outputBuses = []
-        outputSHBusLabel = data["to"].split(",")[0] + '__' + self.__buildingLabel
-        outputDHWBusLabel = data["to"].split(",")[1] + '__' + self.__buildingLabel
-        efficiency = float(data["efficiency"])
-        outputBuses.append(self.__busDict[outputSHBusLabel])
-        outputBuses.append(self.__busDict[outputDHWBusLabel])
-        if temperatureLevels:
-            outputBusLabel3 = data["to"].split(",")[2] + '__' + self.__buildingLabel  # outputSHBusLabel, outputDHWBusLabel, outputBusLabel3 are in the order of increasing temperatures
-            outputBuses.append(self.__busDict[outputBusLabel3])
+        outputBuses = [self.__busDict[o + '__' + self.__buildingLabel] for o in data["to"].split(",")]
+        efficiency = [float(e) for e in data["efficiency"].split(",")]
         envImpactPerCapacity = float(data["impact_cap"]) / float(data["lifetime"])
         if data["capacity_min"] == 'x':
             capacityMinSH = float(data["capacity_SH"])
         else:
             capacityMinSH = float(data["capacity_min"])
 
-        self.__nodesList.append(ElectricRod(self.__buildingLabel, self.__busDict[inputBusLabel],
+        self.__nodesList.append(GenericCombinedTransformer(elRodLabel, self.__busDict[inputBusLabel],
                                           outputBuses,
                                           efficiency, capacityMinSH, float(data["capacity_SH"]),
                                           self._calculateInvest(data)[0] * (opt == "costs") + envImpactPerCapacity * (
@@ -719,11 +712,10 @@ class Building:
                                           envImpactPerCapacity, dispatchMode))
 
         # set technologies, environment and cost parameters
-        self.__technologies.append([outputSHBusLabel, elRodLabel])
-        self.__technologies.append([outputDHWBusLabel, elRodLabel])
+        for i in range(len(outputBuses)):
+            self.__technologies.append([data["to"].split(",")[i] + '__' + self.__buildingLabel, elRodLabel])
 
         self.__costParam[elRodLabel] = [self._calculateInvest(data)[0], self._calculateInvest(data)[1]]
-
         self.__envParam[elRodLabel] = [float(data["heat_impact"]), 0, envImpactPerCapacity]
     
     def _addChiller(self, data, temperatureSH, temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode):
