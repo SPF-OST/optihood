@@ -634,51 +634,34 @@ class Building:
         self.__envParam[gwhpDHWLabel] = [float(data["heat_impact"]), 0, envImpactPerCapacity]
 
     def _addCHP(self, data, timesteps, opt, dispatchMode, temperatureLevels):
-        chpSHLabel = data["label"] + '__' + self.__buildingLabel
+        chpLabel = data["label"] + '__' + self.__buildingLabel
         inputBusLabel = data["from"] + '__' + self.__buildingLabel
-        outputBuses = []
-        outputElBusLabel = data["to"].split(",")[0] + '__' + self.__buildingLabel
-        outputSHBusLabel = data["to"].split(",")[1] + '__' + self.__buildingLabel
-        outputDHWBusLabel = data["to"].split(",")[2] + '__' + self.__buildingLabel
-        elEfficiency = float(data["efficiency"].split(",")[0])
-        shEfficiency = float(data["efficiency"].split(",")[1]) # space heating bus label if temperatureLevels is False
-        dhwEfficiency = float(data["efficiency"].split(",")[2]) # domestic hot water bus label if temperatureLevels is False
-        outputBuses.append(self.__busDict[outputElBusLabel])
-        outputBuses.append(self.__busDict[outputSHBusLabel])
-        outputBuses.append(self.__busDict[outputDHWBusLabel])
-        efficiency = [elEfficiency, shEfficiency, dhwEfficiency]
-        if temperatureLevels:
-            outputBusLabel3 = data["to"].split(",")[3] + '__' + self.__buildingLabel  # outputSHBusLabel, outputDHWBusLabel, outputBusLabel3 are in the order of increasing temperatures
-            outputBuses.append(self.__busDict[outputBusLabel3])
-            T2Efficiency = float(data["efficiency"].split(",")[3])
-            efficiency.append(T2Efficiency)
+        outputBuses = [self.__busDict[o + '__' + self.__buildingLabel] for o in data["to"].split(",")]
+        efficiency = [float(e) for e in data["efficiency"].split(",")]
         envImpactPerCapacity = float(data["impact_cap"]) / float(data["lifetime"])
         if data["capacity_min"] == 'x':
             capacityMinSH = float(data["capacity_SH"])
         else:
             capacityMinSH = float(data["capacity_min"])
         chp = CHP(self.__buildingLabel, self.__busDict[inputBusLabel],
-                  self.__busDict[outputElBusLabel],
-                  self.__busDict[outputSHBusLabel],
-                  self.__busDict[outputDHWBusLabel],
-                  elEfficiency, shEfficiency,
-                  dhwEfficiency, capacityMinSH,
+                  outputBuses,
+                  efficiency,
+                  capacityMinSH,
                   float(data["capacity_SH"]),
                   self._calculateInvest(data)[0] * (opt == "costs") + envImpactPerCapacity * (opt == "env"),
                   self._calculateInvest(data)[1] * (opt == "costs"), float(data["elec_impact"]) * (opt == "env"),
                   float(data["heat_impact"]) * (opt == "env"),
                   float(data["elec_impact"]), float(data["heat_impact"]), envImpactPerCapacity, timesteps, dispatchMode)
 
-        self.__nodesList.append(chp.getCHP("sh"))
+        self.__nodesList.append(chp.getCHP())
 
         # set technologies, environment and cost parameters
-        self.__technologies.append([outputElBusLabel, chpSHLabel])
-        self.__technologies.append([outputSHBusLabel, chpSHLabel])
-        self.__technologies.append([outputDHWBusLabel, chpSHLabel])
+        for i in range(len(outputBuses)):
+            self.__technologies.append([data["to"].split(",")[i] + '__' + self.__buildingLabel, chpLabel])
 
-        self.__costParam[chpSHLabel] = [self._calculateInvest(data)[0], self._calculateInvest(data)[1]]
+        self.__costParam[chpLabel] = [self._calculateInvest(data)[0], self._calculateInvest(data)[1]]
 
-        self.__envParam[chpSHLabel] = [float(data["heat_impact"]), float(data["elec_impact"]), envImpactPerCapacity]
+        self.__envParam[chpLabel] = [float(data["heat_impact"]), float(data["elec_impact"]), envImpactPerCapacity]
 
     def _addBoiler(self, data, opt, dispatchMode):
         label = data["label"] + '__' + self.__buildingLabel
