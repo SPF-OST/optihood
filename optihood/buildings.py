@@ -389,13 +389,13 @@ class Building:
                     costParameter = float(cs["variable costs"])
                     # add the inputs (natural gas, wood, etc...) to self.__inputs
                     self.__inputs.append([sourceLabel, outputBusLabel])
-
+                flowargs = {'variable_costs':varCosts,
+                            'custom_attributes': {'env_per_flow': envImpactPerFlow},}
+                if "potential" in cs["label"].lower():
+                    flowargs.update({'full_load_time_max': cs["full_load_time_max"], "nominal_value": cs["nominal_value"]})
                 self.__nodesList.append(solph.components.Source(
                     label=sourceLabel,
-                    outputs={self.__busDict[outputBusLabel]: solph.Flow(
-                            variable_costs=varCosts,
-                            custom_attributes={'env_per_flow': envImpactPerFlow},
-                        )}))
+                    outputs={self.__busDict[outputBusLabel]: solph.Flow(**flowargs)}))
 
                 # set environment and cost parameters
                 self.__envParam[sourceLabel] = envParameter
