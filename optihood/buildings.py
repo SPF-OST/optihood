@@ -633,7 +633,7 @@ class Building:
         self.__envParam[gwhpSHLabel] = [float(data["heat_impact"]), 0, envImpactPerCapacity]
         self.__envParam[gwhpDHWLabel] = [float(data["heat_impact"]), 0, envImpactPerCapacity]
 
-    def _addCHP(self, data, timesteps, opt, dispatchMode, temperatureLevels):
+    def _addCHP(self, data, timesteps, opt, dispatchMode):
         chpLabel = data["label"] + '__' + self.__buildingLabel
         inputBusLabel = data["from"] + '__' + self.__buildingLabel
         outputBuses = [self.__busDict[o + '__' + self.__buildingLabel] for o in data["to"].split(",")]
@@ -777,8 +777,8 @@ class Building:
                     self._addGeothemalHeatPump(t, operationTemperatures, temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode, temperatureLevels)
                 elif t["label"] == "GWHP split":
                     self._addGeothemalHeatPumpSplit(t, operationTemperatures, temperatureGround, opt, mergeLinkBuses, dispatchMode)
-                elif t["label"] == "CHP":
-                    self._addCHP(t, len(temperatureAmb), opt, dispatchMode, temperatureLevels)
+                elif "CHP" in t["label"]:
+                    self._addCHP(t, len(temperatureAmb), opt, dispatchMode)
                 elif "Boiler" in t["label"]:
                     self._addBoiler(t, opt, dispatchMode)
                 elif t["label"] == "ElectricRod":
