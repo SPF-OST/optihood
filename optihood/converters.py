@@ -813,7 +813,7 @@ class GenericCombinedTransformer(cp.CombinedTransformer):
 
 class ElectricRod(cp.CombinedTransformer):
     """
-    To be checked --> This class could be merged with the previous class (Boiler)
+    To be sunsetted in the next versions --> Use class GenericCombinedTransformer instead
     """
     def __init__(self, buildingLabel, input, output, efficiency,
                  capacityMin, capacityMax, epc, base, varc, env_flow, env_capa, dispatchMode):
