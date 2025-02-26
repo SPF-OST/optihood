@@ -30,7 +30,7 @@ def get_building_no(node):
 
 def is_link(node):
     """Check if the node ends with 'link' (case-insensitive)."""
-    return node.lower().endswith("link")
+    return "link" in node.lower()
 
 
 @_pt.mark.skipif(manual, reason="Manual test of visualizer")

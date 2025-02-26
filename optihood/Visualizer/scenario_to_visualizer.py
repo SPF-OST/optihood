@@ -973,10 +973,10 @@ class LinksConverter(ScenarioToVisualizerAbstract):
                 )
             elif "heat" in label:
                 from_nodes.append(
-                    ScenarioToVisualizerAbstract.get_id_with_building(BusTypes.heatBus, building)
+                    ScenarioToVisualizerAbstract.get_id_with_building(BusTypes.heatBus+label[-1], building)
                 )
                 to_nodes.append(
-                    ScenarioToVisualizerAbstract.get_id_with_building(BusTypes.heatDemandBus, building)
+                    ScenarioToVisualizerAbstract.get_id_with_building(BusTypes.heatDemandBus+label[-1], building)
                 )
             else:  # electricity
                 from_nodes.append(
