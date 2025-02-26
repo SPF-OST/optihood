@@ -75,7 +75,7 @@ class TestVisualizeEnergyNetwork_from_csv(_ut.TestCase):
 
     def test_visualize_from_energy_network(self):
         # Given
-        input_data_dir = _pl.Path("C:\Daten\OngoingProjects\gisoptites\GISoptiTES\data\optihood_scenarios\scenario_3")
+
 
         _os.chdir(_examples_dir)
         csvReader = _re.CsvScenarioReader(input_data_dir)
