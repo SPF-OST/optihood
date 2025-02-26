@@ -862,7 +862,7 @@ class Building:
                                                        inflow_conversion_factor=float(storageParams["ice_storage"].at[s["label"],"inflow_conversion_factor"]),
                                                        outflow_conversion_factor=float(storageParams["ice_storage"].at[s["label"],"outflow_conversion_factor"])))
 
-                elif s["label"] != "dhwStorage" and s["label"] != "shStorage" and s["label"] != "thermalStorage":  #"Storage" in s["label"]
+                elif s["label"] not in ["dhwStorage", "shStorage", "thermalStorage"] and "Storage" in s["label"]:
                     is_tank = False
                     self.__nodesList.append(ThermalStorage(storageLabel,
                            storageParams["stratified_storage"], self.__busDict[inputBusLabel],
@@ -875,10 +875,10 @@ class Building:
                            self._calculateInvest(s)[1] * (opt == "costs"),
                            float(s["heat_impact"]) * (opt == "env"),
                            float(s["heat_impact"]), envImpactPerCapacity, dispatchMode, is_tank))
-                    is_tank = True
                 else:
                     logging.error("One of the following issues were encountered: (i) Storage label not identified. Storage label"
-                                  "should match one of the following: electricalStorage, dhwStorage, shStorage or thermalStorage."
+                                  "should either match one of the following: electricalStorage, dhwStorage, shStorage or thermalStorage,"
+                                  "or contain the substring \'Storage\'"
                                   "(ii) Separate dhwStorage and/or shStorage selected when temperatureLevels is set as True."
                                   "Either set temperatureLevels to False or rename the storage label to thermalStorage.")
         return sList

@@ -127,6 +127,10 @@ class ThermalStorage(solph.components.GenericStorage):
                 fixed_losses_relative = 3 * u_value * (temp_c - temp_env) / (height * c * rho * (temp_h - temp_c)) * time_increment *3600
                 loss_rate = 0#0.4 * fixed_losses_relative#2 * u_value / (s_base * c * rho * math.sin(angle * np.pi / 180)) * time_increment
                 fixed_losses_absolute = 0
+            elif 'GenericThermalStorage' in label:
+                loss_rate = 0       # relative loss between timesteps could be defined using this parameter
+                fixed_losses_relative = 0
+                fixed_losses_absolute = 0
             else:
                 loss_rate = 0
                 fixed_losses_relative = 0
