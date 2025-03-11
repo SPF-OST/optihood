@@ -971,6 +971,14 @@ class LinksConverter(ScenarioToVisualizerAbstract):
                 to_nodes.append(
                     ScenarioToVisualizerAbstract.get_id_with_building(BusTypes.dhwDemandBus, building)
                 )
+            elif "lowTempHeat" in label:
+                from_nodes.append(
+                    ScenarioToVisualizerAbstract.get_id_with_building(BusTypes.lowTSourceBus, building)
+                )
+                to_nodes.append(
+                    ScenarioToVisualizerAbstract.get_id_with_building(BusTypes.lowTSinkBus, building)
+                )
+
             elif "heat" in label:
                 from_nodes.append(
                     ScenarioToVisualizerAbstract.get_id_with_building(BusTypes.heatBus+label[-1], building)

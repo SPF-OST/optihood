@@ -52,6 +52,8 @@ class BusTypes(_enum.StrEnum):
     solarConnectBus = "solarConnectBus"
     heatBus = "heatBus"
     heatDemandBus = "heatDemandBus"
+    lowTSourceBus = "lowTSourceBus"
+    lowTSinkBus = "lowTSinkBus"
 
 
 class CommoditySourcesLabels(_enum.StrEnum):
@@ -114,6 +116,9 @@ class LinksTypes(_enum.StrEnum):
     electricityLink = "electricityLink"
     shLink = "shLink"
     dhwLink = "dhwLink"
+    heatLink0= "heatLink0"
+    heatLink2 = "heatLink2"
+    lowTempHeatLink = "lowTempHeatLink"
 
 
 class ProfileLabels(_enum.StrEnum):
