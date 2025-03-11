@@ -826,7 +826,7 @@ class SolarCollectorConverter(ScenarioToVisualizerAbstract):
         edges_from_connect_column = []
         if self.connect:
             if not isinstance(self.connect, list):
-                self.connect = [self.connect]
+                self.connect = [c for c in self.connect.split(",")]
 
             for connect_from in self.connect:
                 connect_from = ScenarioToVisualizerAbstract.get_id_with_building(connect_from, self.building)
