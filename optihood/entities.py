@@ -127,7 +127,7 @@ class LinksTypes(_enum.StrEnum):
     electricityLink = "electricityLink"
     shLink = "shLink"
     dhwLink = "dhwLink"
-    heatLink0= "heatLink0"
+    heatLink0 = "heatLink0"
     heatLink2 = "heatLink2"
     lowTempHeatLink = "lowTempHeatLink"
 
@@ -241,8 +241,10 @@ class IceStorageLabels(_enum.StrEnum):
     inflow_conversion_factor = "inflow_conversion_factor"
     outflow_conversion_factor = "outflow_conversion_factor"
 
+
 class IceStorageTypes(_enum.StrEnum):
     iceStorage = "iceStorage"
+
 
 class TransformerLabels(_enum.StrEnum):
     label = CommonLabels.label.value

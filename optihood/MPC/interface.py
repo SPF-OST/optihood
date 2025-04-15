@@ -4,10 +4,7 @@ import pandas as _pd
 
 import optihood.entities as _ent
 
-
-# most use: 'initial capacity'
-# 'initial capacity' := fIceInit as well
-# 'initial_temp' := tStorInit
+# TODO: add initial values for building(s)
 
 
 class MpcComponentBasic:
@@ -88,10 +85,6 @@ MPC_COMPONENTS: list[type[MpcComponentBasic]] = [
 
 def prep_mpc_inputs(nodal_data: dict[str, _pd.DataFrame]) -> dict:
     initial_state_with_all_configurable_options = {}
-    # get final labels
-    # get values for each case
-    #   - from file
-    #   - use defaults
     for i, component in enumerate(MPC_COMPONENTS):
         initial_states_for_component = component().maybe_get_entries_or_defaults(nodal_data)
         initial_state_with_all_configurable_options.update(initial_states_for_component)
