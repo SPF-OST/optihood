@@ -232,7 +232,7 @@ class StratifiedStorageTypes(_enum.StrEnum):
 
 class IceStorageLabels(_enum.StrEnum):
     label = CommonLabels.label.value
-    intitial_temp = "intitial_temp"
+    initial_temp = "intitial_temp"
     max_ice_fraction = "max_ice_fraction"
     rho_fluid = "rho_fluid"
     h_fluid = "h_fluid"

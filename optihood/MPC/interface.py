@@ -60,9 +60,29 @@ class StoragesMPC(MpcComponentBasic):
         return initial_state
 
 
+class IceStorageMPC(MpcComponentBasic):
+    sheet_name = _ent.NodeKeys.storages
+    main_labels = [_ent.IceStorageTypes.iceStorage]
+    # TODO: check whether these initial values make sense.
+    default_values = {_ent.StorageLabels.initial_capacity.value: 0.0, _ent.IceStorageLabels.initial_temp.value: 2.0}
+
+    @staticmethod
+    def required_entries_not_in_data(df) -> bool:
+        # TODO: What if one is found, and the other is not.
+        return _ent.StorageLabels.initial_capacity not in df.columns and _ent.IceStorageLabels.initial_temp not in df.columns
+
+    @staticmethod
+    def get_entries(initial_state: dict, row) -> dict:
+        initial_state[row[_ent.CommonLabels.label_unique]] = {
+            _ent.StorageLabels.initial_capacity.value: row[_ent.StorageLabels.initial_capacity],
+            _ent.IceStorageLabels.initial_temp.value: row[_ent.IceStorageLabels.initial_temp],
+        }
+        return initial_state
+
+
 MPC_COMPONENTS: list[type[MpcComponentBasic]] = [
     StoragesMPC,
-
+    IceStorageMPC,
 ]
 
 
