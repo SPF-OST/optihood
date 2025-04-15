@@ -1,6 +1,17 @@
 import enum as _enum
 
 
+class CommonLabels(_enum.StrEnum):
+    label = "label"
+    label_unique = "label_unique"
+    from_bus = "from"
+    from_unique = "from_unique"
+    to = "to"
+    to_unique = "to_unique"
+    connect = "connect"
+    connect_unique = "connect_unique"
+
+
 class NodeKeys(_enum.StrEnum):
     links = 'links'
     buses = "buses"
@@ -30,7 +41,7 @@ class CsvInputFilePathsRelative(_enum.StrEnum):
 
 
 class BusesLabels(_enum.StrEnum):
-    label = "label"
+    label = CommonLabels.label.value
     building = "building"
     excess = "excess"
     excess_costs = "excess costs"
@@ -57,9 +68,9 @@ class BusTypes(_enum.StrEnum):
 
 
 class CommoditySourcesLabels(_enum.StrEnum):
-    label = "label"
+    label = CommonLabels.label.value
     building = "building"
-    to = "to"
+    to = CommonLabels.to.value
     variable_costs = "variable costs"
     CO2_impact = "CO2 impact"
     active = "active"
@@ -71,10 +82,10 @@ class CommoditySourceTypes(_enum.StrEnum):
 
 
 class DemandLabels(_enum.StrEnum):
-    label = "label"
+    label = CommonLabels.label.value
     building = "building"
     active = "active"
-    from_bus = "from"  # 'from' cannot be used as an attribute: 'from package import stuff'
+    from_bus = CommonLabels.from_bus.value
     fixed = "fixed"
     nominal_value = "nominal value"
     building_model = "building model"
@@ -87,10 +98,10 @@ class DemandTypes(_enum.StrEnum):
 
 
 class GridConnectionLabels(_enum.StrEnum):
-    label = "label"
+    label = CommonLabels.label.value
     building = "building"
-    from_bus = "from"
-    to = "to"
+    from_bus = CommonLabels.from_bus.value
+    to = CommonLabels.to.value
     efficiency = "efficiency"
 
 
@@ -104,7 +115,7 @@ class GridConnectionTypes(_enum.StrEnum):
 
 
 class LinksLabels(_enum.StrEnum):
-    label = "label"
+    label = CommonLabels.label.value
     active = "active"
     efficiency = "efficiency"
     invest_base = "invest_base"
@@ -133,11 +144,11 @@ class ProfileTypes(_enum.StrEnum):
 
 
 class SolarLabels(_enum.StrEnum):
-    label = "label"
+    label = CommonLabels.label.value
     building = "building"
     active = "active"
-    from_bus = "from"
-    to = "to"
+    from_bus = CommonLabels.from_bus.value
+    to = CommonLabels.to.value
     connect = "connect"
     electrical_consumption = "electrical_consumption"
     peripheral_losses = "peripheral_losses"
@@ -172,11 +183,11 @@ class SolarTypes(_enum.StrEnum):
 
 
 class StorageLabels(_enum.StrEnum):
-    label = "label"
+    label = CommonLabels.label.value
     building = "building"
     active = "active"
-    from_bus = "from"
-    to = "to"
+    from_bus = CommonLabels.from_bus.value
+    to = CommonLabels.to.value
     efficiency_inflow = "efficiency inflow"
     efficiency_outflow = "efficiency outflow"
     initial_capacity = "initial capacity"
@@ -201,7 +212,7 @@ class StorageTypes(_enum.StrEnum):
 
 
 class StratifiedStorageLabels(_enum.StrEnum):
-    label = "label"
+    label = CommonLabels.label.value
     diameter = "diameter"
     temp_h = "temp_h"
     temp_c = "temp_c"
@@ -220,7 +231,7 @@ class StratifiedStorageTypes(_enum.StrEnum):
 
 
 class IceStorageLabels(_enum.StrEnum):
-    label = "label"
+    label = CommonLabels.label.value
     intitial_temp = "intitial_temp"
     max_ice_fraction = "max_ice_fraction"
     rho_fluid = "rho_fluid"
@@ -234,11 +245,11 @@ class IceStorageTypes(_enum.StrEnum):
     iceStorage = "iceStorage"
 
 class TransformerLabels(_enum.StrEnum):
-    label = "label"
+    label = CommonLabels.label.value
     building = "building"
     active = "active"
-    from_bus = "from"
-    to = "to"
+    from_bus = CommonLabels.from_bus.value
+    to = CommonLabels.to.value
     efficiency = "efficiency"
     capacity_DHW = "capacity_DHW"
     capacity_SH = "capacity_SH"
