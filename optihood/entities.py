@@ -273,3 +273,23 @@ class TransformerTypes(_enum.StrEnum):
     HP = "HP"
     GWHP = "GWHP"
     GasBoiler = "GasBoiler"
+
+
+class BuildingModelParameters(_enum.StrEnum):
+    building_unique = "building_unique"
+    Building_Number = "Building Number"
+    Circuit = "Circuit"
+    gAreaWindows = "gAreaWindows"
+    rDistribution = "rDistribution"
+    cDistribution = "cDistribution"
+    rIndoor = "rIndoor"
+    cIndoor = "cIndoor"
+    rWall = "rWall"
+    cWall = "cWall"
+    qDistributionMin = "qDistributionMin"
+    qDistributionMax = "qDistributionMax"
+    tIndoorMin = "tIndoorMin"
+    tIndoorMax = "tIndoorMax"
+    tIndoorInit = "tIndoorInit"
+    tDistributionInit = "tDistributionInit"
+    tWallInit = "tWallInit"
