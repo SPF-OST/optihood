@@ -25,7 +25,7 @@ class TestCsvScenarioReader(_ut.TestCase):
 
     def test_read(self):
         """Test to ensure new reader produces 'identical' inputs to optihood."""
-        csvReader = _ior.CsvScenarioReader(_CSV_DIR_PATH)
+        csvReader = _ior.CsvScenarioReader(_CSV_DIR_PATH, "current")
         nodal_data = csvReader.read_scenario()
 
         errors = []
@@ -41,7 +41,7 @@ class TestCsvScenarioReader(_ut.TestCase):
 
     def test_read_without_future_warning(self):
         """Test to ensure new reader produces 'identical' inputs to optihood."""
-        csvReader = _ior.CsvScenarioReader(_CSV_DIR_PATH, use_function='future')
+        csvReader = _ior.CsvScenarioReader(_CSV_DIR_PATH)
         nodal_data = csvReader.read_scenario()
 
         errors = []

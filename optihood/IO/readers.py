@@ -15,7 +15,7 @@ class CsvReader:
     """
 
     dir_path: _pl.Path
-    use_function: str = 'current'  # or 'future'
+    use_function: str = 'future'  # or 'current'
 
     def __post_init__(self):
         if self.use_function == 'current':
@@ -28,8 +28,7 @@ class CsvReader:
         # One issue the following addresses, is the "nr as string" outputs.
 
         df = _pd.read_csv(self.dir_path / file_name)
-        for column in df.columns:
-            self.make_nrs_numeric(df, column)
+        [self.make_nrs_numeric(df, column) for column in df.columns]
 
         return df
 
@@ -41,14 +40,15 @@ class CsvReader:
     def make_nrs_numeric_without_future_warning(df: _pd.DataFrame, column_name: str) -> None:
         # Fix using "coerce" and re-filling NaN values.
         # Unfortunately, this applies to full text columns as well.
+        def parse_numbers(x):
+            # Suggested by pandas developers
+            # https://github.com/pandas-dev/pandas/issues/59221#issuecomment-2755021659
+            try:
+                return _pd.to_numeric(x)
+            except Exception:
+                return x
 
-        if df[column_name].dtype == object:
-            series_old = df[column_name].copy(deep=True)
-            df[column_name] = df[column_name].apply(_pd.to_numeric, errors="coerce")
-            nan_map = df[column_name].isna()
-            if len(nan_map) > 0:
-                df[column_name] = df[column_name].astype(object)
-                df.loc[nan_map, column_name] = series_old[nan_map]
+        df[column_name] = df[column_name].apply(parse_numbers)
 
 
 @_dc.dataclass
