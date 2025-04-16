@@ -191,6 +191,7 @@ class StorageLabels(_enum.StrEnum):
     efficiency_inflow = "efficiency inflow"
     efficiency_outflow = "efficiency outflow"
     initial_capacity = "initial capacity"
+    initial_temp = "initial_temp"
     capacity_min = "capacity min"
     capacity_max = "capacity max"
     capacity_loss = "capacity loss"
@@ -232,7 +233,6 @@ class StratifiedStorageTypes(_enum.StrEnum):
 
 class IceStorageLabels(_enum.StrEnum):
     label = CommonLabels.label.value
-    initial_temp = "intitial_temp"
     max_ice_fraction = "max_ice_fraction"
     rho_fluid = "rho_fluid"
     h_fluid = "h_fluid"

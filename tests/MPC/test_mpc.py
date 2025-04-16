@@ -67,7 +67,7 @@ class TestPrepMpcInputs(_ut.TestCase):
         )}
         result = mpci.IceStorageMPC().maybe_get_entries_or_defaults(nodal_data)
         self.assertDictEqual(result, {"iceStorage__B001": {_ent.StorageLabels.initial_capacity.value: 0.0,
-                                                           _ent.IceStorageLabels.initial_temp.value: 2.0}})
+                                                           _ent.StorageLabels.initial_temp.value: 2.0}})
 
     def test_maybe_get_entries_or_defaults_ice_storage_with_init(self):
         """Checks whether the initial values are used correctly."""
@@ -76,12 +76,12 @@ class TestPrepMpcInputs(_ut.TestCase):
              _ent.CommonLabels.label_unique.value: ["iceStorage__B001", 0, 0],
              _ent.StorageLabels.initial_capacity.value: [0.5, 0, 0],
              # TODO: this currently does not live here. It really should.
-             _ent.IceStorageLabels.initial_temp.value: [0.5, 0, 0],
+             _ent.StorageLabels.initial_temp.value: [0.5, 0, 0],
              }
         )}
         result = mpci.IceStorageMPC().maybe_get_entries_or_defaults(nodal_data)
         self.assertDictEqual(result, {"iceStorage__B001": {_ent.StorageLabels.initial_capacity.value: 0.5,
-                                                           _ent.IceStorageLabels.initial_temp.value: 0.5}})
+                                                           _ent.StorageLabels.initial_temp.value: 0.5}})
 
     def test_prep_mpc_inputs(self):
         # TODO: should thermal storages have an initial temp as well?
@@ -90,14 +90,14 @@ class TestPrepMpcInputs(_ut.TestCase):
                                              _ent.StorageTypes.electricalStorage, 0, 0],
              _ent.CommonLabels.label_unique.value: ["iceStorage__B001", "shStorage__B001", "dhwStorage__B003", "electricalStorage", 0, 0],
              _ent.StorageLabels.initial_capacity.value: [0.25, 0.5, 0.3, 0.75, 0, 0],
-             _ent.IceStorageLabels.initial_temp.value: [1.5, "x", "x", "x", "x", "x"],
+             _ent.StorageLabels.initial_temp.value: [1.5, "x", "x", "x", "x", "x"],
              }
         )}
         result = mpci.prep_mpc_inputs(nodal_data)
         self.assertDictEqual(result, {'dhwStorage__B003': {'initial capacity': 0.3},
                                       'electricalStorage': {'initial capacity': 0.75},
                                       'shStorage__B001': {'initial capacity': 0.5},
-                                      'iceStorage__B001': {'initial capacity': 0.25, 'intitial_temp': 1.5},
+                                      'iceStorage__B001': {'initial capacity': 0.25, 'initial_temp': 1.5},
                                       }
                              )
 

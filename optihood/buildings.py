@@ -10,6 +10,7 @@ from optihood.storages import *
 from optihood.sinks import SinkRCModel
 from optihood.links import LinkTemperatureDemand
 from optihood._helpers import *
+import optihood.entities as _ent
 
 intRate = 0.05
 
@@ -848,19 +849,24 @@ class Building:
                         initial_ice_frac = float(s["initial capacity"])
                     else:
                         initial_ice_frac = 0
-                    self.__nodesList.append(IceStorage(label=storageLabel,input=self.__busDict[inputBusLabel],
-                                                       output=self.__busDict[outputBusLabel],
-                                                       tStorInit=float(storageParams["ice_storage"].at[s["label"],"intitial_temp"]),
-                                                       fIceInit = initial_ice_frac,
-                                                       fMax=float(storageParams["ice_storage"].at[s["label"],"max_ice_fraction"]),
-                                                       rho=float(storageParams["ice_storage"].at[s["label"],"rho_fluid"]),
-                                                       V=float(s["capacity max"])/1000, # conversion from L to m3
-                                                       hfluid=float(storageParams["ice_storage"].at[s["label"],"h_fluid"]),
-                                                       cp=float(storageParams["ice_storage"].at[s["label"],"cp_fluid"]),
-                                                       Tamb=ambientTemperature,
-                                                       UAtank=float(storageParams["ice_storage"].at[s["label"],"UA_tank"]),
-                                                       inflow_conversion_factor=float(storageParams["ice_storage"].at[s["label"],"inflow_conversion_factor"]),
-                                                       outflow_conversion_factor=float(storageParams["ice_storage"].at[s["label"],"outflow_conversion_factor"])))
+
+                    self.__nodesList.append(
+                        IceStorage(label=storageLabel,
+                                   input=self.__busDict[inputBusLabel],
+                                   output=self.__busDict[outputBusLabel],
+                                   tStorInit=float(s[_ent.StorageLabels.initial_temp]),
+                                   fIceInit=initial_ice_frac,
+                                   fMax=float(storageParams["ice_storage"].at[s["label"], "max_ice_fraction"]),
+                                   rho=float(storageParams["ice_storage"].at[s["label"], "rho_fluid"]),
+                                   V=float(s["capacity max"])/1000,  # conversion from L to m3
+                                   hfluid=float(storageParams["ice_storage"].at[s["label"], "h_fluid"]),
+                                   cp=float(storageParams["ice_storage"].at[s["label"], "cp_fluid"]),
+                                   Tamb=ambientTemperature,
+                                   UAtank=float(storageParams["ice_storage"].at[s["label"], "UA_tank"]),
+                                   inflow_conversion_factor=float(storageParams["ice_storage"].at[s["label"], "inflow_conversion_factor"]),
+                                   outflow_conversion_factor=float(storageParams["ice_storage"].at[s["label"], "outflow_conversion_factor"])
+                                   )
+                    )
 
                 elif s["label"] not in ["dhwStorage", "shStorage", "thermalStorage"] and "Storage" in s["label"]:
                     is_tank = False
