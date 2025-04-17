@@ -1,0 +1,3 @@
+name,path,INFO
+demand_profiles,..\excels\basic_example\demand_profiles,path to the folder containing demand profiles
+weather_data,..\excels\basic_example\weather.csv,path to weather data file
