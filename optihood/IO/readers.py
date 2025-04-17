@@ -4,7 +4,7 @@ import pathlib as _pl
 
 import pandas as _pd
 
-import optihood.entities as _ent
+import optihood.entities as ent
 
 
 @_dc.dataclass
@@ -62,18 +62,18 @@ class CsvScenarioReader(CsvReader):
 
     def __post_init__(self):
         super().__post_init__()
-        paths = _ent.CsvInputFilePathsRelative
+        paths = ent.CsvInputFilePathsRelative
         self.relative_file_paths = {
-            _ent.NodeKeys.buses: paths.buses,
-            _ent.NodeKeys.grid_connection: paths.grid_connection,
-            _ent.NodeKeys.commodity_sources: paths.commodity_sources,
-            _ent.NodeKeys.solar: paths.solar,
-            _ent.NodeKeys.transformers: paths.transformers,
-            _ent.NodeKeys.demand: paths.demand,
-            _ent.NodeKeys.storages: paths.storages,
-            _ent.NodeKeys.stratified_storage: paths.stratified_storage,
-            _ent.NodeKeys.profiles: paths.profiles,
-            _ent.NodeKeys.links: paths.links,
+            ent.NodeKeys.buses: paths.buses,
+            ent.NodeKeys.grid_connection: paths.grid_connection,
+            ent.NodeKeys.commodity_sources: paths.commodity_sources,
+            ent.NodeKeys.solar: paths.solar,
+            ent.NodeKeys.transformers: paths.transformers,
+            ent.NodeKeys.demand: paths.demand,
+            ent.NodeKeys.storages: paths.storages,
+            ent.NodeKeys.stratified_storage: paths.stratified_storage,
+            ent.NodeKeys.profiles: paths.profiles,
+            ent.NodeKeys.links: paths.links,
         }
 
     def read_scenario(self) -> dict[str, _pd.DataFrame]:
@@ -88,7 +88,7 @@ class CsvScenarioReader(CsvReader):
                 data[key] = self.read(rel_path)
                 # df_current = _pd.read_csv(path)
             except FileNotFoundError as e:
-                if not key == _ent.NodeKeys.links:
+                if not key == ent.NodeKeys.links:
                     errors.append(e)
 
             # validation_error = self.validate(key, df_current)
@@ -119,54 +119,62 @@ def parse_config(configFilePath: str):
 def add_unique_label_columns(nodal_data: dict[str, _pd.DataFrame]) -> dict[str, _pd.DataFrame]:
     """Provides new columns with unique labels for "label", "to", "from", "connect"
     This function also adds a unique label for the buildings in "building_model_parameters".
+
+    The DataFrames in the sheets are updated automatically as each df is a pointer to that sheet.
     """
     sheets = list(nodal_data.keys())
 
-    if _ent.NodeKeys.building_model_parameters in sheets:
-        sheets.remove(_ent.NodeKeys.building_model_parameters.value)
-        raise NotImplementedError
+    if ent.NodeKeys.building_model_parameters in sheets:
+        sheets.remove(ent.NodeKeys.building_model_parameters)
+        df = nodal_data[ent.NodeKeys.building_model_parameters]
+        df[ent.BuildingModelParameters.building_unique] = get_unique_buildings(df)
 
-    sheets_with_no_need_for_unique_labels = [_ent.NodeKeys.ice_storage, _ent.NodeKeys.stratified_storage,
-                                             _ent.NodeKeys.profiles, _ent.NodeKeys.links]
+    sheets_with_no_need_for_unique_labels = [ent.NodeKeys.ice_storage, ent.NodeKeys.stratified_storage,
+                                             ent.NodeKeys.profiles, ent.NodeKeys.links]
     # TODO: maybe remove time_step_data from sheets as well.
 
     [sheets.remove(x) for x in sheets_with_no_need_for_unique_labels if x in sheets]
     for sheet in sheets:
         df = nodal_data[sheet]
-        df[_ent.CommonLabels.label_unique] = get_unique_labels(
-            df[[_ent.CommonLabels.label, _ent.CommonLabels.building]])
+        df[ent.CommonLabels.label_unique] = get_unique_labels(
+            df[[ent.CommonLabels.label, ent.CommonLabels.building]])
 
-        if _ent.CommonLabels.from_bus in df.columns:
-            df[_ent.CommonLabels.from_unique] = get_unique_buses(
-                df[[_ent.CommonLabels.from_bus, _ent.CommonLabels.building]], _ent.CommonLabels.from_bus)
+        if ent.CommonLabels.from_bus in df.columns:
+            df[ent.CommonLabels.from_unique] = get_unique_buses(
+                df[[ent.CommonLabels.from_bus, ent.CommonLabels.building]], ent.CommonLabels.from_bus)
 
-        if _ent.CommonLabels.to in df.columns:
-            df[_ent.CommonLabels.to_unique] = get_unique_buses(df[[_ent.CommonLabels.to, _ent.CommonLabels.building]],
-                                                               _ent.CommonLabels.to)
+        if ent.CommonLabels.to in df.columns:
+            df[ent.CommonLabels.to_unique] = get_unique_buses(df[[ent.CommonLabels.to, ent.CommonLabels.building]],
+                                                              ent.CommonLabels.to)
 
-        if _ent.CommonLabels.connect in df.columns:
-            df[_ent.CommonLabels.connect_unique] = get_unique_buses(
-                df[[_ent.CommonLabels.connect, _ent.CommonLabels.building]], _ent.CommonLabels.connect)
+        if ent.CommonLabels.connect in df.columns:
+            df[ent.CommonLabels.connect_unique] = get_unique_buses(
+                df[[ent.CommonLabels.connect, ent.CommonLabels.building]], ent.CommonLabels.connect)
 
     return nodal_data
 
 
 def get_unique_labels(df: _pd.DataFrame) -> list[str]:
-    return [f"{row[_ent.CommonLabels.label.value]}__B{str(row[_ent.CommonLabels.building.value]).zfill(3)}" for _, row
+    return [f"{row[ent.CommonLabels.label.value]}__B{str(row[ent.CommonLabels.building.value]).zfill(3)}" for _, row
             in df.iterrows()]
 
 
 def get_unique_buses(df: _pd.DataFrame, buses_column: str) -> list[list[str]]:
+    """Returns lists of strings for all cases, to simplify usage later."""
     buses = []
     for _, row in df.iterrows():
         row_buses = []
         for bus in row[buses_column].split(","):
-            row_buses.append(f"{bus}__B{str(row[_ent.CommonLabels.building.value]).zfill(3)}")
+            row_buses.append(f"{bus}__B{str(row[ent.CommonLabels.building.value]).zfill(3)}")
         buses.append(row_buses)
     return buses
 
 
-def get_unique_buildings():
-    raise NotImplementedError
+def get_unique_buildings(df: _pd.DataFrame) -> list[str]:
+    """Returns strings for both cases, to simplify usage later."""
+    if ent.BuildingModelParameters.Circuit in df.columns:
+        return [
+            f"{row[ent.BuildingModelParameters.Building_Number]}__C{str(row[ent.BuildingModelParameters.Circuit]).zfill(3)}"
+            for _, row in df.iterrows()]
 
-# nodal_data_with_unique_labels = get_unique_labels(nodal_data)
+    return [f"{row[ent.BuildingModelParameters.Building_Number]}" for _, row in df.iterrows()]

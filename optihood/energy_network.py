@@ -389,6 +389,8 @@ class EnergyNetworkClass(solph.EnergySystem):
 
         nodesData["building_model"] = {}
         if (nodesData['demand']['building model'].notna().any()) and (nodesData['demand']['building model'] == 'Yes').any():
+            # TODO: extract reading of internal gains and building model.
+            # TODO: pass data_frames to be used here.
             internalGainsPath = nodesData["profiles"].loc[nodesData["profiles"]["name"] == "internal_gains", "path"].iloc[0]
             bmodelparamsPath = nodesData["profiles"].loc[nodesData["profiles"]["name"] == "building_model_params", "path"].iloc[0]
             if not os.path.exists(internalGainsPath):

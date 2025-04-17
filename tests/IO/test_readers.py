@@ -7,13 +7,23 @@ import optihood as oh
 import optihood.IO.readers as ior
 import optihood.energy_network as en
 import optihood.entities as ent
-import optihood.IO.writers as wr
 from tests.xls_helpers import check_assertion, check_dataframe_assertion
 
 package_dir = _pl.Path(oh.__file__).resolve().parent
 _CSV_DIR_PATH = package_dir / ".." / "data" / "CSVs" / "basic_example_CSVs"
 _input_data_dir = package_dir / ".." / "data" / "excels" / "basic_example"
 _input_data_path = str(_input_data_dir / "scenario.xls")
+
+
+def join_if_multiple(x):
+    """Needed to overcome changes when using subsequent IO for tests."""
+    if isinstance(x, str):
+        x = eval(x)
+
+    if len(x) > 1:
+        return ', '.join(x)
+
+    return x[0]
 
 
 class TestCsvScenarioReader(_ut.TestCase):
@@ -75,12 +85,18 @@ class TestCsvScenarioReader(_ut.TestCase):
                                        ['c__B001']])
 
     def test_add_unique_label_columns(self):
+        """Unfortunately, the reader adds quotes to the entries.
+        This leads to very strange behavior in assert_frame_equal:
+        At positional index 0, first diff: ['electricityProdBus__B001'] != ['electricityProdBus__B001']
+        Thus, this test undoes the work of putting strings in lists, to put them back to a single string again.
+        """
         csvReader = ior.CsvScenarioReader(_CSV_DIR_PATH)
         nodal_data = csvReader.read_scenario()
 
         nodal_data_with_unique_labels = ior.add_unique_label_columns(nodal_data)
 
         expected_files_path = _pl.Path(__file__).parent / "expected_files" / "without_building_csvs"
+        # import optihood.IO.writers as wr
         # writer = wr.ScenarioFileWriterCSV("irrelevant", "individual")
         # writer.data = nodal_data_with_unique_labels
         # writer._write_scenario_to_file(expected_files_path)
@@ -88,7 +104,68 @@ class TestCsvScenarioReader(_ut.TestCase):
         csvReader = ior.CsvScenarioReader(expected_files_path)
         expected_data = csvReader.read_scenario()
 
+        errors = []
 
+        check_assertion(self, errors, nodal_data_with_unique_labels.keys(), expected_data.keys())
+
+        for key, df_current in nodal_data_with_unique_labels.items():
+            # check_dtype=False to simplify comparison between Excel and CSV files.
+            df_expected = expected_data[key]
+            from_unique = ent.CommonLabels.from_unique
+            if from_unique in df_current.columns:
+                df_expected[from_unique] = df_expected[from_unique].apply(join_if_multiple)
+                df_current[from_unique] = df_current[from_unique].apply(join_if_multiple)
+
+            to_unique = ent.CommonLabels.to_unique
+            if to_unique in df_current.columns:
+                df_expected[to_unique] = df_expected[to_unique].apply(join_if_multiple)
+                df_current[to_unique] = df_current[to_unique].apply(join_if_multiple)
+
+            connect_unique = ent.CommonLabels.connect_unique
+            if connect_unique in df_current.columns:
+                df_expected[connect_unique] = df_expected[connect_unique].apply(join_if_multiple)
+                df_current[connect_unique] = df_current[connect_unique].apply(join_if_multiple)
+
+            check_dataframe_assertion(errors, df_current, df_expected, check_dtype=False)
+
+        if errors:
+            raise ExceptionGroup(f"found {len(errors)} errors", errors)
+
+    def test_get_unique_buildings_with_circuits(self):
+        df = _pd.DataFrame({ent.BuildingModelParameters.Building_Number: [1, 1, 2, 3],
+                            ent.BuildingModelParameters.Circuit: [1, 2, 1, 1],
+                            })
+        results = ior.get_unique_buildings(df)
+        self.assertListEqual(results, ['1__C001', '1__C002', '2__C001', '3__C001'])
+
+    def test_get_unique_buildings_without_circuits(self):
+        df = _pd.DataFrame({ent.BuildingModelParameters.Building_Number: [1, 1, 2, 3],
+                            })
+        results = ior.get_unique_buildings(df)
+        self.assertListEqual(results, ['1', '1', '2', '3'])
+
+    def test_add_unique_label_columns_including_buildings(self):
+        csvReader = ior.CsvScenarioReader(_CSV_DIR_PATH)
+        nodal_data = csvReader.read_scenario()
+        building_df = _pd.DataFrame({ent.BuildingModelParameters.Building_Number: [1, 1, 2, 3],
+                                     ent.BuildingModelParameters.Circuit: [1, 2, 1, 1],
+                                     })
+        nodal_data[ent.NodeKeys.building_model_parameters] = building_df
+
+        nodal_data_with_unique_labels = ior.add_unique_label_columns(nodal_data)
+
+        expected_files_path = _pl.Path(__file__).parent / "expected_files" / "without_building_csvs"
+        # import optihood.IO.writers as wr
+        # writer = wr.ScenarioFileWriterCSV("irrelevant", "individual")
+        # writer.data = nodal_data_with_unique_labels
+        # writer._write_scenario_to_file(expected_files_path)
+
+        csvReader = ior.CsvScenarioReader(expected_files_path)
+        expected_data = csvReader.read_scenario()
+
+        building_df_expected = building_df.copy()
+        building_df_expected[ent.BuildingModelParameters.building_unique] = ['1__C001', '1__C002', '2__C001', '3__C001']
+        expected_data[ent.NodeKeys.building_model_parameters] = building_df_expected
 
         errors = []
 
@@ -96,13 +173,23 @@ class TestCsvScenarioReader(_ut.TestCase):
 
         for key, df_current in nodal_data_with_unique_labels.items():
             # check_dtype=False to simplify comparison between Excel and CSV files.
-            df_current.equals(expected_data[key])
+            df_expected = expected_data[key]
+            from_unique = ent.CommonLabels.from_unique
+            if from_unique in df_current.columns:
+                df_expected[from_unique] = df_expected[from_unique].apply(join_if_multiple)
+                df_current[from_unique] = df_current[from_unique].apply(join_if_multiple)
+
+            to_unique = ent.CommonLabels.to_unique
+            if to_unique in df_current.columns:
+                df_expected[to_unique] = df_expected[to_unique].apply(join_if_multiple)
+                df_current[to_unique] = df_current[to_unique].apply(join_if_multiple)
+
+            connect_unique = ent.CommonLabels.connect_unique
+            if connect_unique in df_current.columns:
+                df_expected[connect_unique] = df_expected[connect_unique].apply(join_if_multiple)
+                df_current[connect_unique] = df_current[connect_unique].apply(join_if_multiple)
+
+            check_dataframe_assertion(errors, df_current, df_expected, check_dtype=False)
 
         if errors:
             raise ExceptionGroup(f"found {len(errors)} errors", errors)
-
-        # TODO: check against CSVs.
-
-
-        # TODO: deal with reading building_model_parameters
-        # TODO: deal with unique labels and unique buildings in tests.
