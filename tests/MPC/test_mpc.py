@@ -76,7 +76,6 @@ class TestPrepMpcInputs(_ut.TestCase):
             {_ent.CommonLabels.label.value: [_ent.IceStorageTypes.iceStorage, 0, 0],
              _ent.CommonLabels.label_unique.value: ["iceStorage__B001", 0, 0],
              _ent.StorageLabels.initial_capacity.value: [0.5, 0, 0],
-             # TODO: this currently does not live here. It really should.
              _ent.StorageLabels.initial_temp.value: [0.5, 0, 0],
              }
         )}

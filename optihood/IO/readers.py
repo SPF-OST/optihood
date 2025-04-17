@@ -33,7 +33,7 @@ class CsvReader:
         return df
 
     @staticmethod
-    def make_nrs_numeric_current(df: _pd.DataFrame, column_name: str):
+    def make_nrs_numeric_current(df: _pd.DataFrame, column_name: str) -> None:
         df[column_name] = df[column_name].apply(_pd.to_numeric, errors="ignore")
 
     @staticmethod
@@ -114,3 +114,59 @@ def parse_config(configFilePath: str):
     configData = {k.lower(): v for k, v in configData.items()}
 
     return configData
+
+
+def add_unique_label_columns(nodal_data: dict[str, _pd.DataFrame]) -> dict[str, _pd.DataFrame]:
+    """Provides new columns with unique labels for "label", "to", "from", "connect"
+    This function also adds a unique label for the buildings in "building_model_parameters".
+    """
+    sheets = list(nodal_data.keys())
+
+    if _ent.NodeKeys.building_model_parameters in sheets:
+        sheets.remove(_ent.NodeKeys.building_model_parameters.value)
+        raise NotImplementedError
+
+    sheets_with_no_need_for_unique_labels = [_ent.NodeKeys.ice_storage, _ent.NodeKeys.stratified_storage,
+                                             _ent.NodeKeys.profiles, _ent.NodeKeys.links]
+    # TODO: maybe remove time_step_data from sheets as well.
+
+    [sheets.remove(x) for x in sheets_with_no_need_for_unique_labels if x in sheets]
+    for sheet in sheets:
+        df = nodal_data[sheet]
+        df[_ent.CommonLabels.label_unique] = get_unique_labels(
+            df[[_ent.CommonLabels.label, _ent.CommonLabels.building]])
+
+        if _ent.CommonLabels.from_bus in df.columns:
+            df[_ent.CommonLabels.from_unique] = get_unique_buses(
+                df[[_ent.CommonLabels.from_bus, _ent.CommonLabels.building]], _ent.CommonLabels.from_bus)
+
+        if _ent.CommonLabels.to in df.columns:
+            df[_ent.CommonLabels.to_unique] = get_unique_buses(df[[_ent.CommonLabels.to, _ent.CommonLabels.building]],
+                                                               _ent.CommonLabels.to)
+
+        if _ent.CommonLabels.connect in df.columns:
+            df[_ent.CommonLabels.connect_unique] = get_unique_buses(
+                df[[_ent.CommonLabels.connect, _ent.CommonLabels.building]], _ent.CommonLabels.connect)
+
+    return nodal_data
+
+
+def get_unique_labels(df: _pd.DataFrame) -> list[str]:
+    return [f"{row[_ent.CommonLabels.label.value]}__B{str(row[_ent.CommonLabels.building.value]).zfill(3)}" for _, row
+            in df.iterrows()]
+
+
+def get_unique_buses(df: _pd.DataFrame, buses_column: str) -> list[list[str]]:
+    buses = []
+    for _, row in df.iterrows():
+        row_buses = []
+        for bus in row[buses_column].split(","):
+            row_buses.append(f"{bus}__B{str(row[_ent.CommonLabels.building.value]).zfill(3)}")
+        buses.append(row_buses)
+    return buses
+
+
+def get_unique_buildings():
+    raise NotImplementedError
+
+# nodal_data_with_unique_labels = get_unique_labels(nodal_data)

@@ -10,6 +10,7 @@ class CommonLabels(_enum.StrEnum):
     to_unique = "to_unique"
     connect = "connect"
     connect_unique = "connect_unique"
+    building = "building"
 
 
 class NodeKeys(_enum.StrEnum):
@@ -24,6 +25,7 @@ class NodeKeys(_enum.StrEnum):
     stratified_storage = "stratified_storage"
     ice_storage = "ice_storage"
     profiles = "profiles"
+    building_model_parameters = "building_model_parameters"
 
 
 class CsvInputFilePathsRelative(_enum.StrEnum):
@@ -141,6 +143,7 @@ class ProfileLabels(_enum.StrEnum):
 class ProfileTypes(_enum.StrEnum):
     demand = "demand_profiles"
     weather = "weather_data"
+    # TODO: add missing profile types
 
 
 class SolarLabels(_enum.StrEnum):
