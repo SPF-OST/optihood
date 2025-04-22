@@ -23,6 +23,10 @@ from optihood.constraints import *
 from optihood._helpers import *
 from optihood.links import Link
 import optihood.IO.readers as _re
+from optihood.IO.map_interface import energy_network_to_nx_graph
+from oemof.solph import Bus
+from dhnx.optimization.oemof_heatpipe import HeatPipeline
+import networkx as nx
 
 
 class OptimizationProperties:
@@ -270,30 +274,29 @@ class EnergyNetworkClass(solph.EnergySystem):
         if (not os.listdir(demandProfilesPath)) or (not os.path.exists(demandProfilesPath)):
             logging.error("Error in the demand profiles path: The folder is either empty or does not exist")
         else:
-            i = 0
-            for filename in os.listdir(demandProfilesPath): #this path should contain csv file(s) (one for each building's profiles)
-                i += 1      # Building number
-                if i > numBuildings:
-                    logging.warning("Demand profiles folder has more files than the number of buildings specified")
-                    break
+            for filename in os.listdir(demandProfilesPath):  # this path should contain csv file(s) (one for each building's profiles)
+                i = int(filename.split('_')[1].split('.')[0])
                 demandProfiles.update({i: pd.read_csv(os.path.join(demandProfilesPath, filename), delimiter=";")})
-
             nodesData["demandProfiles"] = demandProfiles
             # set datetime index
             for i in range(numBuildings):
-                nodesData["demandProfiles"][i + 1].timestamp = pd.to_datetime(nodesData["demandProfiles"][i + 1].timestamp, format='%Y-%m-%d %H:%M:%S')
-                nodesData["demandProfiles"][i + 1].set_index("timestamp", inplace=True)
-                if not clusterSize:
-                    nodesData["demandProfiles"][i + 1] = nodesData["demandProfiles"][i + 1][self.timeindex[0]:self.timeindex[-1]]
+                if (i + 1) in nodesData["demandProfiles"].keys():
+                    nodesData["demandProfiles"][i + 1].timestamp = pd.to_datetime(nodesData["demandProfiles"][i + 1].timestamp, format='%Y-%m-%d %H:%M:%S')
+                    nodesData["demandProfiles"][i + 1].set_index("timestamp", inplace=True)
+                    if not clusterSize:
+                        nodesData["demandProfiles"][i + 1] = nodesData["demandProfiles"][i + 1][self.timeindex[0]:self.timeindex[-1]]
+                    else:  # a building without a demand
+                        nodesData["demandProfiles"][i + 1] = None
 
-        if type(electricityImpact) == np.float64 or type(electricityImpact) == np.int64:
+        if isinstance(electricityImpact, (int, float)):
             # for constant impact
             electricityImpactValue = electricityImpact
             logging.info("Constant value for electricity impact")
             nodesData["electricity_impact"] = pd.DataFrame()
-            nodesData["electricity_impact"]["impact"] = (nodesData["demandProfiles"][1].shape[0]) * [
+            index = next(iter(nodesData["demandProfiles"]))
+            nodesData["electricity_impact"]["impact"] = (nodesData["demandProfiles"][index].shape[0]) * [
                 electricityImpactValue]
-            nodesData["electricity_impact"].index = nodesData["demandProfiles"][1].index
+            nodesData["electricity_impact"].index = nodesData["demandProfiles"][index].index
         elif not os.path.exists(electricityImpact):
             logging.error("Error in electricity impact file path")
         else:
@@ -303,14 +306,15 @@ class EnergyNetworkClass(solph.EnergySystem):
             nodesData["electricity_impact"].index = pd.to_datetime(nodesData["electricity_impact"].index, format='%d.%m.%Y %H:%M')
             nodesData["electricity_impact"] = nodesData["electricity_impact"][self.timeindex[0]: self.timeindex[-1]]
 
-        if type(electricityCost) == np.float64 or type(electricityCost) == np.int64:
+        if isinstance(electricityCost, (int, float)):
             # for constant cost
             electricityCostValue = electricityCost
             logging.info("Constant value for electricity cost")
             nodesData["electricity_cost"] = pd.DataFrame()
-            nodesData["electricity_cost"]["cost"] = (nodesData["demandProfiles"][1].shape[0]) * [
+            index = next(iter(nodesData["demandProfiles"]))
+            nodesData["electricity_cost"]["cost"] = (nodesData["demandProfiles"][index].shape[0]) * [
                 electricityCostValue]
-            nodesData["electricity_cost"].index = nodesData["demandProfiles"][1].index
+            nodesData["electricity_cost"].index = nodesData["demandProfiles"][index].index
         elif not os.path.exists(electricityCost):
             logging.error("Error in electricity cost file path")
         else:
@@ -321,14 +325,15 @@ class EnergyNetworkClass(solph.EnergySystem):
             nodesData["electricity_cost"] = nodesData["electricity_cost"][self.timeindex[0]: self.timeindex[-1]]
 
         if "naturalGasResource" in nodesData["commodity_sources"]["label"].values:
-            if isinstance(natGasImpact, (float, np.float64)) or (natGasImpact.split('.')[0].replace('-','').isdigit() and natGasImpact.split('.')[1].replace('-','').isdigit()):
+            if isinstance(natGasImpact, (float, int)) or (natGasImpact.split('.')[0].replace('-','').isdigit() and natGasImpact.split('.')[1].replace('-','').isdigit()):
                 # for constant impact
                 natGasImpactValue = float(natGasImpact)
                 logging.info("Constant value for natural gas impact")
                 nodesData["natGas_impact"] = pd.DataFrame()
-                nodesData["natGas_impact"]["impact"] = (nodesData["demandProfiles"][1].shape[0]) * [
+                index = next(iter(nodesData["demandProfiles"]))
+                nodesData["natGas_impact"]["impact"] = (nodesData["demandProfiles"][index].shape[0]) * [
                     natGasImpactValue]
-                nodesData["natGas_impact"].index = nodesData["demandProfiles"][1].index
+                nodesData["natGas_impact"].index = nodesData["demandProfiles"][index].index
             elif not os.path.exists(natGasImpact):
                 logging.error("Error in natural gas impact file path")
             else:
@@ -337,13 +342,14 @@ class EnergyNetworkClass(solph.EnergySystem):
                 nodesData["natGas_impact"].set_index("timestamp", inplace=True)
                 nodesData["natGas_impact"].index = pd.to_datetime(nodesData["natGas_impact"].index, format='%d.%m.%Y %H:%M')
 
-            if type(natGasCost) == np.float64:
+            if isinstance(natGasCost, (float, int)):
                 # for constant cost
-                natGasCostValue = natGasCost
+                natGasCostValue = float(natGasCost)
                 logging.info("Constant value for natural gas cost")
                 nodesData["natGas_cost"] = pd.DataFrame()
-                nodesData["natGas_cost"]["cost"] = (nodesData["demandProfiles"][1].shape[0]) * [natGasCostValue]
-                nodesData["natGas_cost"].index = nodesData["demandProfiles"][1].index
+                index = next(iter(nodesData["demandProfiles"]))
+                nodesData["natGas_cost"]["cost"] = (nodesData["demandProfiles"][index].shape[0]) * [natGasCostValue]
+                nodesData["natGas_cost"].index = nodesData["demandProfiles"][index].index
             elif not os.path.exists(natGasCost):
                 logging.error("Error in natural gas cost file path")
             else:
@@ -475,7 +481,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         self._addBuildings(data, opt, mergeLinkBuses, mergeBuses, mergeHeatSourceSink, includeCarbonBenefits, clusterSize)
 
     def _addBuildings(self, data, opt, mergeLinkBuses, mergeBuses, mergeHeatSourceSink, includeCarbonBenefits, clusterSize):
-        numberOfBuildings = max(data["buses"]["building"])
+        numberOfBuildings = int(data["buses"]["building"].max(skipna=True))
         self.__buildings = [Building('Building' + str(i + 1)) for i in range(numberOfBuildings)]
         storageParams = {}
         for s in [_ent.NodeKeys.stratified_storage.value, _ent.NodeKeys.ice_storage.value]:
@@ -504,7 +510,8 @@ class EnergyNetworkClass(solph.EnergySystem):
                 bmdata = data["building_model"][i]
             else:
                 bmdata = {}
-            b.addSink(data["demand"][data["demand"]["building"] == i], data["demandProfiles"][i], bmdata, mergeLinkBuses, mergeHeatSourceSink, self._temperatureLevels)
+            if any(data["demand"]["building"] == i):
+                b.addSink(data["demand"][data["demand"]["building"] == i], data["demandProfiles"][i], bmdata, mergeLinkBuses, mergeHeatSourceSink, self._temperatureLevels)
             b.addTransformer(data["transformers"][data["transformers"]["building"] == i], self.__operationTemperatures, self.__temperatureAmb, self.__temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, self._dispatchMode, self._temperatureLevels)
             storageList = b.addStorage(data["storages"][data["storages"]["building"] == i], storageParams, self.__temperatureAmb, opt, mergeLinkBuses, self._dispatchMode, self._temperatureLevels)
             b.addSolar(data["solar"][(data["solar"]["building"] == i) & (data["solar"]["label"] == "solarCollector")], data["weather_data"], opt, mergeLinkBuses, self._dispatchMode, self._temperatureLevels)
@@ -1411,8 +1418,14 @@ class EnergyNetworkGroup(EnergyNetworkClass):
             nodesData["weather_data"] = weatherData
 
         nodesData["links"]= data.parse("links")
+        nodesData["forks"] = data.parse("forks")
+        nodesData["pipes"] = data.parse("pipes")
+        nodesData["pipe_params"] = data.parse("pipe_params")
+        self.graph_data = {}
         self._convertNodes(nodesData, opt, mergeLinkBuses, mergeBuses, mergeHeatSourceSink, includeCarbonBenefits, clusterSize)
         self._addLinks(nodesData["links"], numberOfBuildings, mergeLinkBuses)
+        self.add_forks(nodesData["forks"])
+        self.add_dhn_pipe(nodesData["pipes"], nodesData["pipe_params"])
         logging.info(f"Nodes from file {filePath} successfully converted")
         self.add(*self._nodesList)
         logging.info("Nodes successfully added to the energy network")
@@ -1459,3 +1472,99 @@ class EnergyNetworkGroup(EnergyNetworkClass):
                     outputs={busB: solph.Flow(investment=investment) for busB in busesIn},
                     conversion_factors={busB: l["efficiency"] for busB in busesIn}
                 ))
+
+
+    def add_forks(self, data):
+        # TODO: add forks --> each fork is an oemof Bus
+        # implement input similar to forks.csv from twn_data of DHNx package
+        # we can ignore lat, lon in the first try
+        data["label"] = 0
+        for i, r in data.iterrows():
+            if r["active"]:
+                bus = Bus(label=f'fork{r["id"]}')
+                self._nodesList.append(bus)
+                self._busDict[f'fork{r["id"]}'] = bus
+                data.loc[i,"label"] = f'fork{r["id"]}'
+
+        data = data[data['active'] != 0]
+        data.drop(columns="id", inplace=True)
+        data.set_index("label", inplace=True)
+        self.graph_data.update({"forks": data})
+
+        # no cost or impact from adding a fork in the DHN
+
+
+
+    def add_dhn_pipe(self, data, pipe_params):
+        # TODO: add logic for reading in the data for pipes
+        # Move to EnergyNetworkGroup??? then we don't need building info
+        # we will need to and from buses and data from pipe hydraulic calculation csv
+        # definition similar to pipes.csv from twn_data of DHNx package
+        # from and to should be buses
+        data["label"] = 0
+        prod_list = []
+        cons_list = []
+        for i, r in data.iterrows():
+            if r["active"]:
+                length = r['length']
+                t = pipe_params[pipe_params["label"]==r["type"]]
+                t = t.iloc[0]
+                epc_p = t['invest_cap'] * length
+                epc_fix = t['invest_base'] * length
+
+                nc = bool(t['nonconvex'])
+
+                flow_bi_args = {}
+                self._nodesList.append(HeatPipeline(
+                                        label=f"pipe{int(r['id'])}",
+                                        inputs={self._busDict[r['from']]: solph.Flow(
+                                            investment=solph.Investment(),
+                                            **flow_bi_args,
+                                        )},
+                                        outputs={self._busDict[r['to']]: solph.Flow(
+                                            nominal_value=None,
+                                            **flow_bi_args,
+                                            investment=solph.Investment(
+                                                ep_costs=epc_p, maximum=t['capacity_max'],
+                                                minimum=t['capacity_min'], nonconvex=nc, offset=epc_fix,
+                                            ))},
+                                        heat_loss_factor=t['l_factor_cap'] * length,
+                                        heat_loss_factor_fix=t['l_factor_fix'] * length,
+                                    ))
+                data.loc[i, "label"] = f"pipe{int(r['id'])}"
+                if "Building" in r['from']:
+                    # this is a producer
+                    new_row = pd.DataFrame([{"label": r['from'].split("__")[-1],
+                                             'latitude': r['latitude'],
+                                             'longitude': r['longitude']}])
+                    data.loc[i,'from'] = r['from'].split("__")[-1]
+                    prod_list.append(new_row)
+                elif "Building" in r["to"]:
+                    # this is a consumer
+                    new_row = pd.DataFrame([{"label": r['to'].split("__")[-1],
+                                             'latitude': r['latitude'],
+                                             'longitude': r['longitude']}])
+                    data.loc[i, 'to'] = r['to'].split("__")[-1]
+                    cons_list.append(new_row)
+
+        data = data[data['active'] != 0]
+        data.drop(columns=["id", "latitude", "longitude"], inplace=True)
+        data.set_index("label", inplace=True)
+
+        data_prod = pd.concat(prod_list, ignore_index=True)
+        data_cons = pd.concat(cons_list, ignore_index=True)
+        data_prod.set_index("label", inplace=True)
+        data_cons.set_index("label", inplace=True)
+        self.graph_data.update({"pipes": data})
+        self.graph_data.update({"producers": data_prod})
+        self.graph_data.update({"consumers": data_cons})
+
+        # costs associated with DH pipes should be taken into account in the final calculation on optihood side
+        # check how this is done for links and do the same!
+
+    def to_network_graph(self):
+        network_graph = energy_network_to_nx_graph(
+            self.graph_data, type_of_graph=nx.DiGraph(),
+        )
+
+        return network_graph
