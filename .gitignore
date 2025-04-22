@@ -8,7 +8,6 @@
 **/.spyproject/
 **/__pycache__/*
 **/*.pyc
-**/*.xls
 **/src/
 **.egg-info/*
 
