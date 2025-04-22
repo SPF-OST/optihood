@@ -41,22 +41,22 @@ class DistrictHeatingPipeHydraulics:
         self.constants_costs = np.polyfit(self.pipe_df['P_max [kW]'], self.pipe_df['Cost [EUR/m]'], 1)
         self.constants_loss = np.polyfit(self.pipe_df['P_max [kW]'], self.pipe_df['Loss [kW/m]'], 1)
 
-    def calculate_optihood_params(self,v_max_calc_method="bisection"):
+    def calculate_optihood_params(self,pipe_label, v_max_calc_method="bisection"):
         self.calculate_max_velocity(method=v_max_calc_method)
         self.calculate_mass_flow()
         self.calculate_max_power()
         self.linear_approximation()
         self.df_pipes = pd.DataFrame(
             {
-                "label_3": "your-pipe-type-label",
+                "label": pipe_label,
                 "active": 1,
                 "nonconvex": 1,
-                "l_factor": self.constants_loss[0],
+                "l_factor_cap": self.constants_loss[0],
                 "l_factor_fix": self.constants_loss[1],
-                "cap_max": self.pipe_df['P_max [kW]'].max(),
-                "cap_min": self.pipe_df['P_max [kW]'].min(),
-                "capex_pipes": self.constants_costs[0],
-                "fix_costs": self.constants_costs[1],
+                "capacity_max": self.pipe_df['P_max [kW]'].max(),
+                "capacity_min": self.pipe_df['P_max [kW]'].min(),
+                "invest_cap": self.constants_costs[0],
+                "invest_base": self.constants_costs[1],
             }, index=[0],
         )
 
