@@ -682,9 +682,10 @@ class EnergyNetworkClass(solph.EnergySystem):
         for i in busLabelList:
             if "sequences" in solph.views.node(self._optimizationResults, i):
                 result[i] = pd.DataFrame.from_dict(solph.views.node(self._optimizationResults, i)["sequences"])
-                if resultFile is not None:
-                    with pd.ExcelWriter(resultFile) as writer:
-                        result[i].to_excel(writer, sheet_name=i)
+        if resultFile is not None:
+            with pd.ExcelWriter(resultFile) as writer:
+                for i in result:
+                    result[i].to_excel(writer, sheet_name=i)
         return result
 
     def _updateCapacityDictInputInvestment(self, transformerFlowCapacityDict):
