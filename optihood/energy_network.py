@@ -1476,9 +1476,7 @@ class EnergyNetworkGroup(EnergyNetworkClass):
 
 
     def add_forks(self, data):
-        # TODO: add forks --> each fork is an oemof Bus
-        # implement input similar to forks.csv from twn_data of DHNx package
-        # we can ignore lat, lon in the first try
+        # each fork is an oemof Bus
         data["label"] = ""
         for i, r in data.iterrows():
             if r["active"]:
@@ -1497,11 +1495,6 @@ class EnergyNetworkGroup(EnergyNetworkClass):
 
 
     def add_dhn_pipe(self, data, pipe_params):
-        # TODO: add logic for reading in the data for pipes
-        # Move to EnergyNetworkGroup??? then we don't need building info
-        # we will need to and from buses and data from pipe hydraulic calculation csv
-        # definition similar to pipes.csv from twn_data of DHNx package
-        # from and to should be buses
         data["label"] = ""
         prod_list = []
         cons_list = []
