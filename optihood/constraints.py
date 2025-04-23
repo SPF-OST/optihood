@@ -2,6 +2,7 @@ from pyomo import environ as pyo
 from optihood._helpers import *
 from oemof.solph._plumbing import sequence
 from math import pi
+import pandas as pd
 from oemof.solph.constraints.flow_count_limit import limit_active_flow_count
 
 def dailySHStorageConstraint(om):
@@ -136,7 +137,9 @@ def environmentalImpactlimit(om, keyword1, keyword2, limit=None):
                 # Environmental inpact of input flows
                 om.flow[inflow, outflow, t]
                 * om.timeincrement[t]
-                * sequence(getattr(flows[inflow, outflow], keyword1))[t]
+                * (sequence(getattr(flows[inflow, outflow], keyword1)).iloc[t]
+                   if isinstance(sequence(getattr(flows[inflow, outflow], keyword1)), pd.Series)
+                   else sequence(getattr(flows[inflow, outflow], keyword1))[t])
                 for (inflow, outflow) in flows
                 for t in om.TIMESTEPS
             )
