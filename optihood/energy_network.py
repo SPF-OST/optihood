@@ -1549,7 +1549,7 @@ class EnergyNetworkGroup(EnergyNetworkClass):
                     cons_list.append(new_row)
 
         data = data[data['active'] != 0]
-        data.drop(columns=["id", "latitude", "longitude"], inplace=True)
+        data = data.drop(columns=["id", "latitude", "longitude"])
         data.set_index("label", inplace=True)
 
         data_prod = pd.concat(prod_list, ignore_index=True)
