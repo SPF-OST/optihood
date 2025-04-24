@@ -620,8 +620,8 @@ class EnergyNetworkClass(solph.EnergySystem):
         # calculate results (CAPEX, OPEX, FeedIn Costs, environmental impacts etc...) for each building
         self._calculateResultsPerBuilding(mergeLinkBuses)
 
-        # TODO: call the next function only for DH optimization option with pipes
-        self._update_graph_data_pipes(pipeCapacityDictNetwork)
+        if pipeCapacityDictNetwork:
+            self._update_graph_data_pipes(pipeCapacityDictNetwork)
 
         return envImpact, capacitiesTransformersNetwork, capacitiesStoragesNetwork, pipeCapacityDictNetwork
 
@@ -1484,17 +1484,26 @@ class EnergyNetworkGroup(EnergyNetworkClass):
                 nodesData["natGas_cost"] = natGasCost
             nodesData["weather_data"] = weatherData
 
-        # TODO: Make it optional to have links, forks and pipes
-        # But at least one of them should be defined in the scenario excel!
-        nodesData["links"]= data.parse("links")
-        nodesData["forks"] = data.parse("forks")
-        nodesData["pipes"] = data.parse("pipes")
-        nodesData["pipe_params"] = data.parse("pipe_params")
+        self._convertNodes(nodesData, opt, mergeLinkBuses, mergeBuses, mergeHeatSourceSink, includeCarbonBenefits,
+                           clusterSize)
+
+        group_component_added_in_scenario = False
         self.graph_data = {}
-        self._convertNodes(nodesData, opt, mergeLinkBuses, mergeBuses, mergeHeatSourceSink, includeCarbonBenefits, clusterSize)
-        self._addLinks(nodesData["links"], numberOfBuildings, mergeLinkBuses)
-        self.add_forks(nodesData["forks"])
-        self.add_dhn_pipe(nodesData["pipes"], nodesData["pipe_params"])
+        if "links" in data.sheet_names:
+            group_component_added_in_scenario = True
+            nodesData["links"]= data.parse("links")
+            self._addLinks(nodesData["links"], numberOfBuildings, mergeLinkBuses)
+        if "forks" in data.sheet_names:
+            nodesData["forks"] = data.parse("forks")
+            self.add_forks(nodesData["forks"])
+        if "pipes" in data.sheet_names:
+            group_component_added_in_scenario = True
+            nodesData["pipes"] = data.parse("pipes")
+            nodesData["pipe_params"] = data.parse("pipe_params")
+            self.add_dhn_pipe(nodesData["pipes"], nodesData["pipe_params"])
+        if not group_component_added_in_scenario:
+            raise TypeError("EnergyNetworkGroup class requires either links or pipes to be modelled."
+                            "Either one of these should be defined in the scenario file or use EnergyNetworkIndiv Class instead")
         logging.info(f"Nodes from file {filePath} successfully converted")
         self.add(*self._nodesList)
         logging.info("Nodes successfully added to the energy network")
@@ -1545,6 +1554,7 @@ class EnergyNetworkGroup(EnergyNetworkClass):
 
     def add_forks(self, data):
         # each fork is an oemof Bus
+        # no cost or impact from adding a fork in the DHN
         data["label"] = ""
         for i, r in data.iterrows():
             if r["active"]:
@@ -1557,8 +1567,6 @@ class EnergyNetworkGroup(EnergyNetworkClass):
         data.drop(columns="id", inplace=True)
         data.set_index("label", inplace=True)
         self.graph_data.update({"forks": data})
-
-        # no cost or impact from adding a fork in the DHN
 
 
 
@@ -1621,12 +1629,9 @@ class EnergyNetworkGroup(EnergyNetworkClass):
         self.graph_data.update({"producers": data_prod})
         self.graph_data.update({"consumers": data_cons})
 
-        # costs associated with DH pipes should be taken into account in the final calculation on optihood side
-        # check how this is done for links and do the same!
 
     def to_network_graph(self):
         network_graph = energy_network_to_nx_graph(
             self.graph_data, type_of_graph=nx.DiGraph(),
         )
-
         return network_graph
