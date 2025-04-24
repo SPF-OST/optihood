@@ -1584,7 +1584,10 @@ class EnergyNetworkGroup(EnergyNetworkClass):
 
                 nc = bool(t['nonconvex'])
 
-                flow_bi_args = {}
+                flow_bi_args = {
+                    'bidirectional': True, 'min': -1} \
+                    if t['bidirectional'] else {}
+
                 self._nodesList.append(HeatPipeline(
                                         label=f"pipe{int(r['id'])}",
                                         inputs={self._busDict[r['from']]: solph.Flow(
