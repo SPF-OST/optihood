@@ -46,14 +46,12 @@ if __name__ == '__main__':
     network = EnergyNetwork(timePeriod)
     network.setFromExcel(os.path.join(inputFilePath, inputfileName), numberOfBuildings, opt=optimizationType)
 
-    plot_network(network=network, title="District Heating Network")
+    plot_network(network=network, title="District Heating Network (Given)")
 
     # optimize the energy network
     limit, capacitiesTransformers, capacitiesStorages, capacitiesPipes = network.optimize(solver='gurobi', numberOfBuildings=numberOfBuildings)
 
     network.printInvestedCapacities(capacitiesTransformers, capacitiesStorages, capacitiesPipes)
-    # TODO: update pipe related cost calculations in the optimization results
-    # Complete it for cost calculations as well
     network.printCosts()
     network.printEnvImpacts()
     network.printMetaresults()

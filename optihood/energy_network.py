@@ -25,6 +25,7 @@ from optihood.links import Link
 import optihood.IO.readers as _re
 from optihood.IO.map_interface import energy_network_to_nx_graph
 from optihood.model_processing import *
+from optihood.cost_calculation_helpers import *
 from oemof.solph import Bus
 from dhnx.optimization.oemof_heatpipe import HeatPipeline
 import networkx as nx
@@ -109,6 +110,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         self.__capex = {}
         self.__opex = {}
         self.__feedIn = {}
+        self.total_pipe_cost = 0
         self.__envImpactInputs = {}                 # dictionary of dictionary of environmental impact of different inputs indexed by the building label
         self.__envImpactTechnologies = {}           # dictionary of dictionary of environmental impact of different technologies indexed by the building label
         self._busDict = {}
@@ -621,13 +623,12 @@ class EnergyNetworkClass(solph.EnergySystem):
         self._calculateResultsPerBuilding(mergeLinkBuses)
 
         if pipeCapacityDictNetwork:
-            self._update_graph_data_pipes(pipeCapacityDictNetwork)
+            self.total_pipe_cost = self.calculate_pipe_costs(pipeCapacityDictNetwork)
+            self.update_graph_data_pipes(pipeCapacityDictNetwork)
 
         return envImpact, capacitiesTransformersNetwork, capacitiesStoragesNetwork, pipeCapacityDictNetwork
 
-    def _update_graph_data_pipes(self, pipeCapacityDictNetwork):
-        self.graph_data["pipes"] = self.graph_data["pipes"][self.graph_data["pipes"].index.isin(
-            [pipe for pipe, o in pipeCapacityDictNetwork.keys() if pipeCapacityDictNetwork[(pipe, o)] > 0.001])]
+
 
     def printbuildingModelTemperatures(self, filename):
         df = pd.DataFrame()
@@ -1282,17 +1283,19 @@ class EnergyNetworkClass(solph.EnergySystem):
         capexNetwork = sum(self.__capex["Building" + str(b + 1)] for b in range(len(self.__buildings)))
         opexNetwork = sum(sum(self.__opex["Building" + str(b + 1)].values()) for b in range(len(self.__buildings)))
         feedinNetwork = sum(self.__feedIn["Building" + str(b + 1)] for b in range(len(self.__buildings)))
-        print("Investment Costs for the system: {} CHF".format(capexNetwork))
-        print("Operation Costs for the system: {} CHF".format(opexNetwork))
-        print("Feed In Costs for the system: {} CHF".format(feedinNetwork))
-        print("Total Costs for the system: {} CHF".format(capexNetwork + opexNetwork + feedinNetwork))
+        print("Investment Costs for the system (excl. network): {} CHF/y".format(capexNetwork))
+        if self.total_pipe_cost:
+            print("Investment Costs for DH pipes : {} CHF/y".format(self.total_pipe_cost))
+        print("Operation Costs for the system: {} CHF/y".format(opexNetwork))
+        print("Feed In Costs for the system: {} CHF/y".format(feedinNetwork))
+        print("Total Costs for the system: {} CHF/y".format(capexNetwork + opexNetwork + feedinNetwork + self.total_pipe_cost))
 
     def printEnvImpacts(self):
         envImpactInputsNetwork = sum(sum(self.__envImpactInputs["Building" + str(b + 1)].values()) for b in range(len(self.__buildings)))
         envImpactTechnologiesNetwork = sum(sum(self.__envImpactTechnologies["Building" + str(b + 1)].values()) for b in range(len(self.__buildings)))
-        print("Environmental impact from input resources for the system: {} kg CO2 eq".format(envImpactInputsNetwork))
-        print("Environmental impact from energy conversion and storage technologies for the system: {} kg CO2 eq".format(envImpactTechnologiesNetwork))
-        print("Total: {} kg CO2 eq".format(envImpactInputsNetwork + envImpactTechnologiesNetwork))
+        print("Environmental impact from input resources for the system: {} kg CO2 eq / y".format(envImpactInputsNetwork))
+        print("Environmental impact from energy conversion and storage technologies for the system: {} kg CO2 eq / y".format(envImpactTechnologiesNetwork))
+        print("Total: {} kg CO2 eq / y".format(envImpactInputsNetwork + envImpactTechnologiesNetwork))
 
     def getTotalCosts(self):
         capexNetwork = sum(self.__capex["Building" + str(b + 1)] for b in range(len(self.__buildings)))
@@ -1501,6 +1504,7 @@ class EnergyNetworkGroup(EnergyNetworkClass):
             nodesData["pipes"] = data.parse("pipes")
             nodesData["pipe_params"] = data.parse("pipe_params")
             self.add_dhn_pipe(nodesData["pipes"], nodesData["pipe_params"])
+            self.cost_per_capacity_pipes = get_cost_per_capacity_data(nodesData["pipe_params"])
         if not group_component_added_in_scenario:
             raise TypeError("EnergyNetworkGroup class requires either links or pipes to be modelled."
                             "Either one of these should be defined in the scenario file or use EnergyNetworkIndiv Class instead")
@@ -1579,8 +1583,8 @@ class EnergyNetworkGroup(EnergyNetworkClass):
                 length = r['length']
                 t = pipe_params[pipe_params["label"]==r["type"]]
                 t = t.iloc[0]
-                epc_p = t['invest_cap'] * length
-                epc_fix = t['invest_base'] * length
+                epc_p = calculate_annualized_cost(t['invest_cap'] * length, t['lifetime'])
+                epc_fix = calculate_annualized_cost(t['invest_base'] * length, t['lifetime'])
 
                 nc = bool(t['nonconvex'])
 
@@ -1605,6 +1609,8 @@ class EnergyNetworkGroup(EnergyNetworkClass):
                                         heat_loss_factor_fix=t['l_factor_fix'] * length,
                                     ))
                 data.loc[i, "label"] = f"pipe{int(r['id'])}"
+                data.loc[i, "invest_cap"] = epc_p
+                data.loc[i, "invest_base"] = epc_fix
                 if "Building" in r['from']:
                     # this is a producer
                     new_row = pd.DataFrame([{"label": r['from'].split("__")[-1],
@@ -1638,3 +1644,18 @@ class EnergyNetworkGroup(EnergyNetworkClass):
             self.graph_data, type_of_graph=nx.DiGraph(),
         )
         return network_graph
+
+    def update_graph_data_pipes(self, pipe_capacity_dict_network):
+        self.graph_data["pipes"] = self.graph_data["pipes"][self.graph_data["pipes"].index.isin(
+            [pipe for pipe, o in pipe_capacity_dict_network.keys() if pipe_capacity_dict_network[(pipe, o)] > 0.001])]
+
+    def calculate_pipe_costs(self, pipe_capacity_dict_network):
+        total_pipe_cost = 0
+
+        for pipe, o in pipe_capacity_dict_network.keys():
+            capacity = pipe_capacity_dict_network[(pipe, o)]
+            cost_per_capacity_base = self.graph_data["pipes"].loc[pipe, 'invest_base']
+            cost_per_capacity = self.graph_data["pipes"].loc[pipe, 'invest_cap']
+            total_pipe_cost += cost_per_capacity_base + capacity * cost_per_capacity
+
+        return total_pipe_cost
