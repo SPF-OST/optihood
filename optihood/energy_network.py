@@ -24,6 +24,7 @@ from optihood._helpers import *
 from optihood.links import Link
 import optihood.IO.readers as _re
 from optihood.IO.map_interface import energy_network_to_nx_graph
+from optihood.model_processing import *
 from oemof.solph import Bus
 from dhnx.optimization.oemof_heatpipe import HeatPipeline
 import networkx as nx
@@ -553,6 +554,8 @@ class EnergyNetworkClass(solph.EnergySystem):
         self._optimizationModel, flows, transformerFlowCapacityDict, storageCapacityDict = environmentalImpactlimit(
             self._optimizationModel, keyword1="env_per_flow", keyword2="env_per_capa", limit=envImpactlimit)
 
+        pipeCapacityDict = get_dhn_pipe_investment_objects(self._optimizationModel)
+
         if self._temperatureLevels:
             # add constraint on storage volume capacity
             self._optimizationModel = multiTemperatureStorageCapacityConstaint(self._optimizationModel, self._thermalStorageList, self._optimizationType)
@@ -607,7 +610,9 @@ class EnergyNetworkClass(solph.EnergySystem):
         logging.info("Optimization successful and results collected")
 
         # calculate capacities invested for transformers and storages (for the entire energy network and per building)
-        capacitiesTransformersNetwork, capacitiesStoragesNetwork = self._calculateInvestedCapacities(self._optimizationModel, transformerFlowCapacityDict, storageCapacityDict)
+        capacitiesTransformersNetwork, capacitiesStoragesNetwork, pipeCapacityDictNetwork = self._calculateInvestedCapacities(transformerFlowCapacityDict,
+                                                                                                     storageCapacityDict,
+                                                                                                     pipeCapacityDict)
 
         if clusterSize:
             self._postprocessingClusters(clusterSize)
@@ -615,7 +620,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         # calculate results (CAPEX, OPEX, FeedIn Costs, environmental impacts etc...) for each building
         self._calculateResultsPerBuilding(mergeLinkBuses)
 
-        return envImpact, capacitiesTransformersNetwork, capacitiesStoragesNetwork
+        return envImpact, capacitiesTransformersNetwork, capacitiesStoragesNetwork, pipeCapacityDictNetwork
 
     def printbuildingModelTemperatures(self, filename):
         df = pd.DataFrame()
@@ -709,21 +714,11 @@ class EnergyNetworkClass(solph.EnergySystem):
                 transformerFlowCapacityDict.pop(index)
         return transformerFlowCapacityDict
 
-    def _calculateInvestedCapacities(self, optimizationModel, transformerFlowCapacityDict, storageCapacityDict):
-        capacitiesInvestedTransformers = {}
-        capacitiesInvestedStorages = {}
-        storageList = []
-
+    def _calculateInvestedCapacities(self, transformerFlowCapacityDict, storageCapacityDict,
+                                     pipeCapacityDict):
         # Transformers capacities
-
-        for inflow, outflow in transformerFlowCapacityDict:
-            index = (str(inflow), str(outflow))
-            if (inflow, outflow) in optimizationModel.InvestmentFlowBlock.invest:
-                capacitiesInvestedTransformers[index] = optimizationModel.InvestmentFlowBlock.invest[
-                    inflow, outflow].value
-            else:
-                capacitiesInvestedTransformers[index] = optimizationModel.InvestNonConvexFlowBlock.invest[
-                    inflow, outflow].value
+        capacitiesInvestedTransformers = calculate_transformer_capacities(om=self._optimizationModel,
+                                                                          investment_objects_dict=transformerFlowCapacityDict)
 
         # Conversion into output capacity
         capacitiesInvestedTransformers = self._compensateInputCapacities(capacitiesInvestedTransformers)
@@ -738,32 +733,20 @@ class EnergyNetworkClass(solph.EnergySystem):
             self.__capacitiesTransformersBuilding[buildingLabel].update({index: capacitiesInvestedTransformers[index]})
 
         # Storages capacities
-        for x in storageCapacityDict:
-            index = str(x)
-            if x in storageList:  # useful when we want to implement two or more storage units of the same type
-                capacitiesInvestedStorages[index] = capacitiesInvestedStorages[index] + \
-                                                    optimizationModel.GenericInvestmentStorageBlock.invest[x].value
-            else:
-                capacitiesInvestedStorages[str(x)] = optimizationModel.GenericInvestmentStorageBlock.invest[x].value
+        capacitiesInvestedStorages = calculate_storage_capacities(om=self._optimizationModel,
+                                                                  investment_objects_dict=storageCapacityDict)
 
         # Convert kWh into L
         capacitiesInvestedStorages = self._compensateStorageCapacities(capacitiesInvestedStorages)
 
+        storageList = []
         removeKeysList = []
+
         if self._temperatureLevels:
-            if any("thermalStorage" in key for key in capacitiesInvestedStorages):
-                for b in range(len(self.__buildings)):
-                    buildingLabel = "Building" + str(b + 1)
-                    invest = 0
-                    for layer in self.__operationTemperatures:
-                        if f"thermalStorage{int(layer)}__" + buildingLabel in capacitiesInvestedStorages:
-                            invest += capacitiesInvestedStorages[f"thermalStorage{int(layer)}__" + buildingLabel]
-                            removeKeysList.append(f"thermalStorage{int(layer)}__" + buildingLabel)
-                    if invest > 0:
-                        capacitiesInvestedStorages["thermalStorage__" + buildingLabel] = invest
-                        storageCapacityDict["thermalStorage__" + buildingLabel] = invest
-                        for k in removeKeysList:
-                            capacitiesInvestedStorages.pop(k, None)
+            capacitiesInvestedStorages, storageCapacityDict, removeKeysList = update_for_multi_temp_storage(capacities_invested_storages=capacitiesInvestedStorages,
+                                                                       investment_object_dict=storageCapacityDict,
+                                                                       op_temps=self.__operationTemperatures,
+                                                                       no_buildings=len(self.__buildings))
 
         # Update capacities
         for x in storageCapacityDict:
@@ -778,7 +761,10 @@ class EnergyNetworkClass(solph.EnergySystem):
                 self.__capacitiesStoragesBuilding[buildingLabel].update({index: capacitiesInvestedStorages[index]})
             storageList.append(x)
 
-        return capacitiesInvestedTransformers, capacitiesInvestedStorages
+        capacitiesInvestedPipes = calculate_transformer_capacities(om=self._optimizationModel,
+                                                                   investment_objects_dict=pipeCapacityDict)
+
+        return capacitiesInvestedTransformers, capacitiesInvestedStorages, capacitiesInvestedPipes
 
     def _compensateInputCapacities(self, capacitiesTransformers):
         # Input capacity -> output capacity
@@ -1110,107 +1096,181 @@ class EnergyNetworkClass(solph.EnergySystem):
             self._storageContent[building] = self._optimizationResults[(storage, None)]["sequences"]
         return self._storageContent
 
-    def printInvestedCapacities(self, capacitiesInvestedTransformers, capacitiesInvestedStorages):
+    def printInvestedCapacities(self, capacitiesInvestedTransformers, capacitiesInvestedStorages,
+                                capacities_invested_pipes):
         if self._temperatureLevels:
             shOutputLabel = "heatStorageBus0__"
         else:
             shOutputLabel = "shSourceBus__"
+
+        # Network level technologies --> Currently includes only DHN pipes
+        if capacities_invested_pipes:
+            print("************** Optimized Capacities the Network **************")
+            for k,v in capacities_invested_pipes.items():
+                invest = v
+                if invest > 0.001:
+                    print("{:.1f} kW DH Pipe \033[3m {} \033[0m".format(invest, k[0]))
+            print("")
+
+        # Building level technologies
         for b in range(len(self.__buildings)):
             buildingLabel = "Building" + str(b + 1)
-            print("************** Optimized Capacities for {} **************".format(buildingLabel))
+            should_print_header = False  # Flag to track if any condition is met
+            output_lines = []  # List to store output lines
+
+            # Check conditions and set the flag if any condition is true
             if ("HP__" + buildingLabel, shOutputLabel + buildingLabel) in capacitiesInvestedTransformers:
                 investSH = capacitiesInvestedTransformers[("HP__" + buildingLabel, shOutputLabel + buildingLabel)]
                 if investSH > 0.05:
-                    print("Invested in {:.1f} kW HP.".format(investSH))
-                    print("     Annual COP = {:.1f}".format(self.__annualCopHP[buildingLabel]))
+                    should_print_header = True
+                    output_lines.append("{:.1f} kW HP.".format(investSH))
+                    output_lines.append("     Annual COP = {:.1f}".format(self.__annualCopHP[buildingLabel]))
+
             if ("GWHP__" + buildingLabel, shOutputLabel + buildingLabel) in capacitiesInvestedTransformers:
                 investSH = capacitiesInvestedTransformers[("GWHP__" + buildingLabel, shOutputLabel + buildingLabel)]
                 if investSH > 0.05:
-                    print("Invested in {:.1f} kW GWHP.".format(investSH))
-                    print("     Annual COP = {:.1f}".format(self.__annualCopGWHP[buildingLabel]))
-            if (f"GWHP{str(self.__temperatureSH)}__" + buildingLabel, shOutputLabel + buildingLabel) in capacitiesInvestedTransformers:
-                investSH = capacitiesInvestedTransformers[(f"GWHP{str(self.__temperatureSH)}__" + buildingLabel, shOutputLabel + buildingLabel)]
+                    should_print_header = True
+                    output_lines.append("{:.1f} kW GWHP.".format(investSH))
+                    output_lines.append("     Annual COP = {:.1f}".format(self.__annualCopGWHP[buildingLabel]))
+
+            if (f"GWHP{str(self.__temperatureSH)}__" + buildingLabel,
+                shOutputLabel + buildingLabel) in capacitiesInvestedTransformers:
+                investSH = capacitiesInvestedTransformers[
+                    (f"GWHP{str(self.__temperatureSH)}__" + buildingLabel, shOutputLabel + buildingLabel)]
                 if investSH > 0.05:
-                    print("Invested in {:.1f} kW GWHP{}.".format(investSH, str(self.__temperatureSH)))
-                    print("     Annual COP = {:.1f}".format(self.__annualCopGWHP[buildingLabel][0]))
-            if (f"GWHP{str(self.__temperatureDHW)}__" + buildingLabel, "dhwStorageBus__" + buildingLabel) in capacitiesInvestedTransformers:
-                investSH = capacitiesInvestedTransformers[(f"GWHP{str(self.__temperatureDHW)}__" + buildingLabel, "dhwStorageBus__" + buildingLabel)]
+                    should_print_header = True
+                    output_lines.append("{:.1f} kW GWHP{}.".format(investSH, str(self.__temperatureSH)))
+                    output_lines.append("     Annual COP = {:.1f}".format(self.__annualCopGWHP[buildingLabel][0]))
+
+            if (f"GWHP{str(self.__temperatureDHW)}__" + buildingLabel,
+                "dhwStorageBus__" + buildingLabel) in capacitiesInvestedTransformers:
+                investSH = capacitiesInvestedTransformers[
+                    (f"GWHP{str(self.__temperatureDHW)}__" + buildingLabel, "dhwStorageBus__" + buildingLabel)]
                 if investSH > 0.05:
-                    print("Invested in {:.1f} kW GWHP{}.".format(investSH, str(self.__temperatureDHW)))
-                    print("     Annual COP = {:.1f}".format(self.__annualCopGWHP[buildingLabel][1]))
+                    should_print_header = True
+                    output_lines.append("{:.1f} kW GWHP{}.".format(investSH, str(self.__temperatureDHW)))
+                    output_lines.append("     Annual COP = {:.1f}".format(self.__annualCopGWHP[buildingLabel][1]))
+
             if ("ElectricRod__" + buildingLabel, shOutputLabel + buildingLabel) in capacitiesInvestedTransformers:
-                investSH = capacitiesInvestedTransformers[("ElectricRod__" + buildingLabel, shOutputLabel + buildingLabel)]
+                investSH = capacitiesInvestedTransformers[
+                    ("ElectricRod__" + buildingLabel, shOutputLabel + buildingLabel)]
                 if investSH > 0.05:
-                    print("Invested in {:.1f} kW Electric Rod.".format(investSH))
+                    should_print_header = True
+                    output_lines.append("{:.1f} kW Electric Rod.".format(investSH))
+
             if ("CHP__" + buildingLabel, shOutputLabel + buildingLabel) in capacitiesInvestedTransformers:
                 investSH = capacitiesInvestedTransformers["CHP__" + buildingLabel, shOutputLabel + buildingLabel]
                 if investSH > 0.05:
-                    print("Invested in {:.1f} kW CHP.".format(investSH))  # + investEL))
+                    should_print_header = True
+                    output_lines.append("{:.1f} kW CHP.".format(investSH))
+
             if ("GasBoiler__" + buildingLabel, shOutputLabel + buildingLabel) in capacitiesInvestedTransformers:
                 investSH = capacitiesInvestedTransformers["GasBoiler__" + buildingLabel, shOutputLabel + buildingLabel]
                 if investSH > 0.05:
-                    print("Invested in {:.1f} kW GasBoiler.".format(investSH))
-            if ("heatSource_SHsolarCollector__" + buildingLabel, "solarConnectBusSH__" + buildingLabel) in capacitiesInvestedTransformers:
-                invest = capacitiesInvestedTransformers[("heatSource_SHsolarCollector__" + buildingLabel, "solarConnectBusSH__" + buildingLabel)]
+                    should_print_header = True
+                    output_lines.append("{:.1f} kW GasBoiler.".format(investSH))
+
+            if ("heatSource_SHsolarCollector__" + buildingLabel,
+                "solarConnectBusSH__" + buildingLabel) in capacitiesInvestedTransformers:
+                invest = capacitiesInvestedTransformers[
+                    ("heatSource_SHsolarCollector__" + buildingLabel, "solarConnectBusSH__" + buildingLabel)]
                 if invest > 0.05:
-                    print("Invested in {:.1f} m² SolarCollector.".format(invest))
+                    should_print_header = True
+                    output_lines.append("{:.1f} m² SolarCollector.".format(invest))
+
             if ("pv__" + buildingLabel, "electricityProdBus__" + buildingLabel) in capacitiesInvestedTransformers:
-                invest = capacitiesInvestedTransformers[("pv__" + buildingLabel, "electricityProdBus__" + buildingLabel)]
+                invest = capacitiesInvestedTransformers[
+                    ("pv__" + buildingLabel, "electricityProdBus__" + buildingLabel)]
                 if invest > 0.05:
-                    print("Invested in {:.1f} kWp  PV.".format(invest))
-            if ("heatSource_SHpvt__" + buildingLabel, "pvtConnectBusSH__" + buildingLabel) in capacitiesInvestedTransformers:
-                invest = capacitiesInvestedTransformers[("heatSource_SHpvt__" + buildingLabel, "pvtConnectBusSH__" + buildingLabel)]
+                    should_print_header = True
+                    output_lines.append("{:.1f} kWp  PV.".format(invest))
+
+            if ("heatSource_SHpvt__" + buildingLabel,
+                "pvtConnectBusSH__" + buildingLabel) in capacitiesInvestedTransformers:
+                invest = capacitiesInvestedTransformers[
+                    ("heatSource_SHpvt__" + buildingLabel, "pvtConnectBusSH__" + buildingLabel)]
                 if invest > 0.05:
-                    print("Invested in {:.1f} m² PVT collector.".format(invest))
+                    should_print_header = True
+                    output_lines.append("{:.1f} m² PVT collector.".format(invest))
+
             if "electricalStorage__" + buildingLabel in capacitiesInvestedStorages:
                 invest = capacitiesInvestedStorages["electricalStorage__" + buildingLabel]
                 if invest > 0.05:
-                    print("Invested in {:.1f} kWh Electrical Storage.".format(invest))
+                    should_print_header = True
+                    output_lines.append("{:.1f} kWh Electrical Storage.".format(invest))
+
             if "dhwStorage__" + buildingLabel in capacitiesInvestedStorages:
                 invest = capacitiesInvestedStorages["dhwStorage__" + buildingLabel]
                 if invest > 0.05:
-                    print("Invested in {:.1f} L DHW Storage Tank.".format(invest))
+                    should_print_header = True
+                    output_lines.append("{:.1f} L DHW Storage Tank.".format(invest))
+
             if "dhwStorage1__" + buildingLabel in capacitiesInvestedStorages:
                 invest = capacitiesInvestedStorages["dhwStorage1__" + buildingLabel]
                 if invest > 0.05:
-                    print("Invested in {:.1f} L DHW Storage1 Tank.".format(invest))
+                    should_print_header = True
+                    output_lines.append("{:.1f} L DHW Storage1 Tank.".format(invest))
+
             if "shStorage__" + buildingLabel in capacitiesInvestedStorages:
                 invest = capacitiesInvestedStorages["shStorage__" + buildingLabel]
                 if invest > 0.05:
-                    print("Invested in {:.1f} L SH Storage Tank.".format(invest))
+                    should_print_header = True
+                    output_lines.append("{:.1f} L SH Storage Tank.".format(invest))
+
             if "thermalStorage__" + buildingLabel in capacitiesInvestedStorages:
                 invest = capacitiesInvestedStorages["thermalStorage__" + buildingLabel]
                 if invest > 0.05:
-                    print("Invested in {:.1f} L Multilayer Thermal Storage Tank.".format(invest))
+                    should_print_header = True
+                    output_lines.append("{:.1f} L Multilayer Thermal Storage Tank.".format(invest))
+
             if "tankStorage__" + buildingLabel in capacitiesInvestedStorages:
                 invest = capacitiesInvestedStorages["tankStorage__" + buildingLabel]
                 if invest > 0.05:
-                    print("Invested in {:.1f} L Generic Storage.".format(invest))
+                    should_print_header = True
+                    output_lines.append("{:.1f} L Generic Storage.".format(invest))
+
             if "pitStorage__" + buildingLabel in capacitiesInvestedStorages:
                 invest = capacitiesInvestedStorages["pitStorage__" + buildingLabel]
                 if invest > 0.05:
-                    print("Invested in {:.1f} L Pit Storage.".format(invest))
+                    should_print_header = True
+                    output_lines.append("{:.1f} L Pit Storage.".format(invest))
+
             if "pitStorage0__" + buildingLabel in capacitiesInvestedStorages:
                 invest = capacitiesInvestedStorages["pitStorage0__" + buildingLabel]
                 if invest > 0.05:
-                    print("Invested in {:.1f} L Pit Storage 0.".format(invest))
+                    should_print_header = True
+                    output_lines.append("{:.1f} L Pit Storage 0.".format(invest))
+
             if "pitStorage1__" + buildingLabel in capacitiesInvestedStorages:
                 invest = capacitiesInvestedStorages["pitStorage1__" + buildingLabel]
                 if invest > 0.05:
-                    print("Invested in {:.1f} L Pit Storage 1.".format(invest))
+                    should_print_header = True
+                    output_lines.append("{:.1f} L Pit Storage 1.".format(invest))
+
             if "pitStorage2__" + buildingLabel in capacitiesInvestedStorages:
                 invest = capacitiesInvestedStorages["pitStorage2__" + buildingLabel]
                 if invest > 0.05:
-                    print("Invested in {:.1f} L Pit Storage 2.".format(invest))
+                    should_print_header = True
+                    output_lines.append("{:.1f} L Pit Storage 2.".format(invest))
+
             if "boreholeStorage__" + buildingLabel in capacitiesInvestedStorages:
                 invest = capacitiesInvestedStorages["boreholeStorage__" + buildingLabel]
                 if invest > 0.05:
-                    print("Invested in {:.1f} L Borehole Storage.".format(invest))
+                    should_print_header = True
+                    output_lines.append("{:.1f} L Borehole Storage.".format(invest))
+
             if "aquifierStorage__" + buildingLabel in capacitiesInvestedStorages:
                 invest = capacitiesInvestedStorages["aquifierStorage__" + buildingLabel]
                 if invest > 0.05:
-                    print("Invested in {:.1f} L Aquifier Storage.".format(invest))
-            print("")
+                    should_print_header = True
+                    output_lines.append("{:.1f} L Aquifier Storage.".format(invest))
+
+            # Print the header and the output lines if any condition was met
+            if should_print_header:
+                print("************** Optimized Capacities for {} **************".format(buildingLabel))
+                for line in output_lines:
+                    print(line)
+                print("")
 
     def printCosts(self):
         capexNetwork = sum(self.__capex["Building" + str(b + 1)] for b in range(len(self.__buildings)))
@@ -1418,6 +1478,8 @@ class EnergyNetworkGroup(EnergyNetworkClass):
                 nodesData["natGas_cost"] = natGasCost
             nodesData["weather_data"] = weatherData
 
+        # TODO: Make it optional to have links, forks and pipes
+        # But at least one of them should be defined in the scenario excel!
         nodesData["links"]= data.parse("links")
         nodesData["forks"] = data.parse("forks")
         nodesData["pipes"] = data.parse("pipes")

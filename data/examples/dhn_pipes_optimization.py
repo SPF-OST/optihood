@@ -1,8 +1,3 @@
-# TODO: extend the example from DHNx optimization introduction
-# Step 1: setup scenario file for optihood
-
-import sys
-
 import pandas as pd
 import pathlib as _pl
 import os
@@ -52,10 +47,11 @@ if __name__ == '__main__':
     plt.show()
 
     # optimize the energy network
-    limit, capacitiesTransformers, capacitiesStorages = network.optimize(solver='gurobi', numberOfBuildings=numberOfBuildings)
+    limit, capacitiesTransformers, capacitiesStorages, capacitiesPipes = network.optimize(solver='gurobi', numberOfBuildings=numberOfBuildings)
 
-    # print optimization outputs i.e. costs, environmental impact and capacities selected for different components (with investment optimization)
-    network.printInvestedCapacities(capacitiesTransformers, capacitiesStorages)
+    network.printInvestedCapacities(capacitiesTransformers, capacitiesStorages, capacitiesPipes)
+    # TODO: update pipe related cost calculations in the optimization results
+    # Complete it for cost calculations as well
     network.printCosts()
     network.printEnvImpacts()
     network.printMetaresults()
@@ -64,3 +60,9 @@ if __name__ == '__main__':
     if not os.path.exists(resultFilePath):
         os.makedirs(resultFilePath)
     network.saveUnprocessedResults(os.path.join(resultFilePath, resultFileName))
+
+    # TODO: Print the graph of results (pipes, forks, producers and consumers)
+    # Similar to the initial plot of Given DH Network (lines 40-52)
+    # Final plot will have all the nodes
+    # The edges (pipes) need to be deactivated if there is no invested capacity!
+    # Check from the introduction example
