@@ -620,7 +620,14 @@ class EnergyNetworkClass(solph.EnergySystem):
         # calculate results (CAPEX, OPEX, FeedIn Costs, environmental impacts etc...) for each building
         self._calculateResultsPerBuilding(mergeLinkBuses)
 
+        # TODO: call the next function only for DH optimization option with pipes
+        self._update_graph_data_pipes(pipeCapacityDictNetwork)
+
         return envImpact, capacitiesTransformersNetwork, capacitiesStoragesNetwork, pipeCapacityDictNetwork
+
+    def _update_graph_data_pipes(self, pipeCapacityDictNetwork):
+        self.graph_data["pipes"] = self.graph_data["pipes"][self.graph_data["pipes"].index.isin(
+            [pipe for pipe, o in pipeCapacityDictNetwork.keys() if pipeCapacityDictNetwork[(pipe, o)] > 0.001])]
 
     def printbuildingModelTemperatures(self, filename):
         df = pd.DataFrame()
@@ -1107,9 +1114,8 @@ class EnergyNetworkClass(solph.EnergySystem):
         if capacities_invested_pipes:
             print("************** Optimized Capacities the Network **************")
             for k,v in capacities_invested_pipes.items():
-                invest = v
-                if invest > 0.001:
-                    print("{:.1f} kW DH Pipe \033[3m {} \033[0m".format(invest, k[0]))
+                if v > 0.001:
+                    print("{:.1f} kW DH Pipe \033[3m {} \033[0m".format(v, k[0]))
             print("")
 
         # Building level technologies

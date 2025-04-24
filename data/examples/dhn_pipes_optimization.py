@@ -10,6 +10,21 @@ except ImportError:
 from optihood.energy_network import EnergyNetworkGroup as EnergyNetwork
 from optihood.IO.map_interface import StaticMapOptihoodNetwork
 
+def plot_network(network, title):
+    static_map = StaticMapOptihoodNetwork(network)
+    static_map.draw()
+    plt.title(title)
+    plt.scatter(network.graph_data["consumers"]['longitude'], network.graph_data["consumers"]['latitude'],
+                color='tab:green', label='consumers', zorder=2.5, s=50)
+    plt.scatter(network.graph_data["producers"]['longitude'], network.graph_data["producers"]['latitude'],
+                color='tab:red', label='producers', zorder=2.5, s=50)
+    plt.scatter(network.graph_data["forks"]['longitude'], network.graph_data["forks"]['latitude'],
+                color='tab:grey', label='forks', zorder=2.5, s=50)
+    plt.text(-2, 32, 'P0', fontsize=14)
+    plt.text(82, 0, 'P1', fontsize=14)
+    plt.legend()
+    plt.show()
+
 
 if __name__ == '__main__':
     # set a time period for the optimization problem
@@ -31,20 +46,7 @@ if __name__ == '__main__':
     network = EnergyNetwork(timePeriod)
     network.setFromExcel(os.path.join(inputFilePath, inputfileName), numberOfBuildings, opt=optimizationType)
 
-    # plot network
-    static_map = StaticMapOptihoodNetwork(network)
-    static_map.draw()
-    plt.title('District Heating Network')
-    plt.scatter(network.graph_data["consumers"]['longitude'], network.graph_data["consumers"]['latitude'],
-                color='tab:green', label='consumers', zorder=2.5, s=50)
-    plt.scatter(network.graph_data["producers"]['longitude'], network.graph_data["producers"]['latitude'],
-                color='tab:red', label='producers', zorder=2.5, s=50)
-    plt.scatter(network.graph_data["forks"]['longitude'], network.graph_data["forks"]['latitude'],
-                color='tab:grey', label='forks', zorder=2.5, s=50)
-    plt.text(-2, 32, 'P0', fontsize=14)
-    plt.text(82, 0, 'P1', fontsize=14)
-    plt.legend()
-    plt.show()
+    plot_network(network=network, title="District Heating Network")
 
     # optimize the energy network
     limit, capacitiesTransformers, capacitiesStorages, capacitiesPipes = network.optimize(solver='gurobi', numberOfBuildings=numberOfBuildings)
@@ -61,8 +63,5 @@ if __name__ == '__main__':
         os.makedirs(resultFilePath)
     network.saveUnprocessedResults(os.path.join(resultFilePath, resultFileName))
 
-    # TODO: Print the graph of results (pipes, forks, producers and consumers)
-    # Similar to the initial plot of Given DH Network (lines 40-52)
-    # Final plot will have all the nodes
-    # The edges (pipes) need to be deactivated if there is no invested capacity!
-    # Check from the introduction example
+    # Print the graph of results (pipes, forks, producers and consumers)
+    plot_network(network=network, title="Optimized District Heating Network")
