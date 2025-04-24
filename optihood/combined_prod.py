@@ -133,7 +133,7 @@ class CombinedCHPBlock(ScalarBlock):
                 if "electricity" in flows[i].label: # add electricity output flow and efficiency as the last element
                     n.outputs_ordered.append([o for o in n.outputs if flows[i] == o][0])
                     n.efficiency_sq = n.efficiency_sq + (n.efficiency[n.outputs_ordered[-1]],)
-            print("")
+
         def _input_heat_relation_rule(block):
             """Connection between input and heat outputs."""
             for t in m.TIMESTEPS:
