@@ -27,44 +27,35 @@ import optihood.IO.readers as _re
 
 class OptimizationProperties:
     """
-    class under construction ...
+    Configurable attributes of energy networks.
     """
-    def __init__(self, optType, mergeLinkBuses, mergeHeatSourceSink, temperatureLevels, clusters, dispatchMode, includeCarbonBenefits):
-        self._optType = optType
-        self._mergeLinkBuses = mergeLinkBuses
-        self._mergeHeatSourceSink = mergeHeatSourceSink
-        self._temperatureLevels = temperatureLevels
-        self._clusters = clusters
-        self._dispatchMode = dispatchMode
-        self._includeCarbonBenefits = includeCarbonBenefits
+    def __init__(self,
+                 opt_type: object,
+                 merge_link_buses: object,
+                 merge_heat_source_sink: object,
+                 temperature_levels: object,
+                 clusters: object,
+                 dispatch_mode: object,
+                 include_carbon_benefits: object
+                 ) -> None:
+        """
 
-    @property
-    def optType(self):
-        return self._optType
-
-    @property
-    def mergeLinkBuses(self):
-        return self._mergeLinkBuses
-
-    @property
-    def mergeHeatSourceSink(self):
-        return self._mergeHeatSourceSink
-
-    @property
-    def temperatureLevels(self):
-        return self._temperatureLevels
-
-    @property
-    def clusters(self):
-        return self._clusters
-
-    @property
-    def dispatchMode(self):
-        return self._dispatchMode
-
-    @property
-    def includeCarbonBenefits(self):
-        return self._includeCarbonBenefits
+        Parameters
+        ----------
+        opt_type
+        merge_link_buses
+        merge_heat_source_sink
+        temperature_levels
+        dispatch_mode
+        include_carbon_benefits
+        """
+        self.opt_type = opt_type
+        self.merge_link_buses = merge_link_buses
+        self.merge_heat_source_sink = merge_heat_source_sink
+        self.temperature_levels = temperature_levels
+        self.clusters = clusters
+        self.dispatch_mode = dispatch_mode
+        self.include_carbon_benefits = include_carbon_benefits
 
 
 def get_data_from_df(df: pd.DataFrame, column_name: str):
