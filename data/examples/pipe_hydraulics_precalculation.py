@@ -9,7 +9,7 @@ pd.set_option('display.width', 1000)
 
 if __name__=="__main__":
     pipe_data_file_path = os.path.join(os.path.dirname(__file__),"..", "CSVs", "pipe_hydraulics_precalculation", 'pipe_data.csv')
-    pipe_data = DistrictHeatingPipeHydraulics(pipe_data_file_path, 150)
+    pipe_data = DistrictHeatingPipeHydraulics(pipe_data_file_path, 300)
     pipe_data.calculate_optihood_params(pipe_label="default", v_max_calc_method="bisection")  # alternative method is "secant"
     print("==========================================================================================================================")
     print("DH Pipe parameters for optimization runs with optihood")

@@ -38,7 +38,7 @@ class DistrictHeatingPipeHydraulics:
 
     def linear_approximation(self):
         # linear approximation for costs and thermal losses
-        self.constants_costs = np.polyfit(self.pipe_df['P_max [kW]'], self.pipe_df['Cost [EUR/m]'], 1)
+        self.constants_costs = np.polyfit(self.pipe_df['P_max [kW]'], self.pipe_df['Cost [CHF/m]'], 1)
         self.constants_loss = np.polyfit(self.pipe_df['P_max [kW]'], self.pipe_df['Loss [kW/m]'], 1)
 
     def calculate_optihood_params(self,pipe_label, v_max_calc_method="bisection"):
@@ -66,7 +66,7 @@ class DistrictHeatingPipeHydraulics:
         if type == "cost":
             y_min = self.constants_costs[0] * x_min + self.constants_costs[1]
             y_max = self.constants_costs[0] * x_max + self.constants_costs[1]
-            df_col = 'Cost [EUR/m]'
+            df_col = 'Cost [CHF/m]'
             y_text = 250
         elif type == "thermal loss":
             y_min = self.constants_loss[0] * x_min + self.constants_loss[1]
