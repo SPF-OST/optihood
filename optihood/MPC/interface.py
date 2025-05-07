@@ -1,8 +1,16 @@
 import abc as _abc
+import pathlib as _pl
 
 import pandas as _pd
 
 import optihood.entities as _ent
+from optihood.IO import readers as _re
+from optihood.Visualizer import convert_scenario as _cs, visualizer_app as _va
+from optihood.energy_network import OptimizationProperties, EnergyNetworkIndiv as EnergyNetwork
+import optihood.energy_network as en
+
+# TODO: Figure out if the visualizer should stay here, or be called from the Network class
+#       The User would not have access to the nodal_data at this time.
 
 
 class MpcComponentBasic:
@@ -150,3 +158,108 @@ def prep_mpc_inputs(nodal_data: dict[str, _pd.DataFrame],
         initial_state_with_all_configurable_options.update(initial_states_for_component)
 
     return initial_state_with_all_configurable_options
+
+
+class MpcHandler:
+    """
+    Class to simplify interaction with MPC functionality.
+    It has the following responsibilities:
+    - preparing the scenario from file.
+    - providing the scenario's initial system state for the User to adjust.
+    - updating the network with the current system state.
+    - adjusting the prediction period to the current time-step.
+    """
+    time_period_full: _pd.DatetimeIndex
+    nodal_data: dict  # change to class with dfs.
+    optimization_settings: OptimizationProperties  # provide string literals?
+
+    def __init__(self, prediction_window_in_hours: int, time_step_in_minutes: int, nr_of_buildings: int) -> None:
+        self.nr_of_buildings = nr_of_buildings
+        self.time_step_in_minutes = time_step_in_minutes
+        self.prediction_window_in_hours = prediction_window_in_hours
+
+    def visualize_example(self):
+        converters = _cs.get_converters(self.nodal_data, nr_of_buildings=self.nr_of_buildings)
+        graphData = _cs.get_graph_data(converters)
+        _va.run_cytoscape_visualizer(graphData=graphData)
+
+    def update_network(self, current_time_step, current_state):
+        return self._get_network(current_time_step, current_state)
+
+    def _get_network(self, current_time_step, current_state):
+        """Temporary function, which slowly recreates the same network over and over.
+        This will need to be replaced after rapid refactoring.
+        Then, the minor changes required will be applied into the relevant network components directly.
+        """
+        current_nodal_data = self.update_nodal_data(current_state)
+        current_time_period = self.get_current_time_period(current_time_step)
+        # TODO: allow user to adjust this, or ensure only one exists.
+        network = EnergyNetwork(current_time_period)
+
+        network.check_mutually_exclusive_inputs(self.optimization_settings.merge_link_buses)
+        dispatch_mode = self.optimization_settings.dispatch_mode
+        if not dispatch_mode:
+            raise ValueError("dispatch_mode has to be true for MPC.")
+
+        network._dispatchMode = dispatch_mode
+        network._optimizationType = self.optimization_settings.optimization_type
+        network._mergeBuses = self.optimization_settings.merge_buses
+
+        return network.set_using_nodal_data(
+            initial_nodal_data=current_nodal_data,
+            clusterSize=self.optimization_settings.clusters,
+            filePath="",  # This is only used in a logging message after processing the data.
+            includeCarbonBenefits=self.optimization_settings.include_carbon_benefits,
+            mergeBuses=self.optimization_settings.merge_buses,
+            mergeHeatSourceSink=self.optimization_settings.merge_heat_source_sink,
+            mergeLinkBuses=self.optimization_settings.merge_link_buses,
+            numberOfBuildings=self.nr_of_buildings,
+            opt=self.optimization_settings.optimization_type,
+        )
+
+    def get_mpc_scenario_from_csv(self, input_folder_path: _pl.Path) -> dict[str, float]:
+        csvReader = _re.CsvScenarioReader(input_folder_path)
+        nodal_data = csvReader.read_scenario()
+        self.nodal_data = _re.add_unique_label_columns(nodal_data)
+        system_state = prep_mpc_inputs(self.nodal_data)
+
+        return system_state
+
+    def update_nodal_data(self, current_state, nodal_data=None):
+        """Requires self.nodal_data"""
+        raise NotImplementedError
+
+    def get_desired_control_signals(self, results):
+        raise NotImplementedError
+
+    def get_desired_energy_flows(self, results):
+        raise NotImplementedError
+
+    def set_network_parameters(self, param1, param2):
+        # More difficult than using network interface directly...
+        # Much cleaner api, however...
+        self.optimization_settings: OptimizationProperties = ...
+        raise NotImplementedError
+
+    def set_full_time_period(self, start_year, start_month, start_day, end_year, end_month, end_day,
+                             time_step_in_minutes):
+        """Prepares date time indices starting at 00:00:00 on the start day and ending at 23:00:00 on the end day."""
+        self.time_period_full = _pd.date_range(f"{start_year}-{start_month}-{start_day} 00:00:00",
+                                               f"{end_year}-{end_month}-{end_day} 23:00:00",
+                                               freq=f"{str(time_step_in_minutes)}min")
+
+    def get_current_time_period(self, current_time_period_start: _pd.DatetimeIndex) -> _pd.DatetimeIndex:
+        current_time_period_end = _pd.Timedelta(hours=self.prediction_window_in_hours)
+        current_time_period = _pd.date_range(current_time_period_start, current_time_period_end,
+                                             freq=f"{str(self.time_step_in_minutes)}min")
+        return current_time_period
+
+    @staticmethod
+    def log_processing(network: en.EnergyNetworkClass, costs: bool = False, env_impacts: bool = False,
+                       meta: bool = False) -> None:
+        if costs:
+            network.log_costs()
+        if env_impacts:
+            network.log_environmental_impacts()
+        if meta:
+            network.log_meta_results()

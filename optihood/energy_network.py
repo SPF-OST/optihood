@@ -30,32 +30,43 @@ class OptimizationProperties:
     Configurable attributes of energy networks.
     """
     def __init__(self,
-                 opt_type: object,
-                 merge_link_buses: object,
-                 merge_heat_source_sink: object,
-                 temperature_levels: object,
-                 clusters: object,
-                 dispatch_mode: object,
-                 include_carbon_benefits: object
+                 # TODO: fix argument types
+                 optimization_type: object = None,
+                 merge_link_buses: bool = False,
+                 merge_buses: _tp.Sequence[str] = None,
+                 merge_heat_source_sink: object = None,
+                 temperature_levels: bool = False,
+                 clusters: object = None,
+                 dispatch_mode: bool = False,
+                 include_carbon_benefits: object = None
                  ) -> None:
         """
-
+        # TODO: explain inputs
         Parameters
         ----------
-        opt_type
+        clusters  # how does this differ from cluster_size?
+        optimization_type: "cost", or "env"
         merge_link_buses
         merge_heat_source_sink
         temperature_levels
         dispatch_mode
         include_carbon_benefits
         """
-        self.opt_type = opt_type
+
+        self.optimization_type = optimization_type
         self.merge_link_buses = merge_link_buses
+        self.merge_buses = merge_buses
         self.merge_heat_source_sink = merge_heat_source_sink
         self.temperature_levels = temperature_levels
         self.clusters = clusters
         self.dispatch_mode = dispatch_mode
         self.include_carbon_benefits = include_carbon_benefits
+
+    def check_mutually_exclusive_inputs(self):
+        if self.merge_link_buses and self.temperature_levels:
+            logging.error("The options merge_link_buses and temperature_levels should not be set True at the same time. "
+                          "This use case is not supported in the present version of optihood. Only one of "
+                          "mergeLinkBuses and temperatureLevels should be set to True.")
 
 
 def get_data_from_df(df: pd.DataFrame, column_name: str):
@@ -134,7 +145,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         self.set_using_nodal_data(clusterSize, filePath, includeCarbonBenefits, initial_nodal_data, mergeBuses,
                                   mergeHeatSourceSink, mergeLinkBuses, numberOfBuildings, opt)
 
-    def set_using_nodal_data(self, clusterSize, filePath, includeCarbonBenefits, initial_nodal_data, mergeBuses,
+    def set_using_nodal_data(self, clusterSize, filePath, includeCarbonBenefits, initial_nodal_data: dict[str, pd.DataFrame], mergeBuses,
                              mergeHeatSourceSink, mergeLinkBuses, numberOfBuildings, opt):
         nodesData = self.createNodesData(initial_nodal_data, filePath, numberOfBuildings, clusterSize)
         # nodesData["buses"]["excess costs"] = nodesData["buses"]["excess costs indiv"]
@@ -1084,10 +1095,17 @@ class EnergyNetworkClass(solph.EnergySystem):
                         self.__envImpactTechnologies[buildingLabel].update({x: impactThermalStorage})
 
     def printMetaresults(self):
-        print("")
-        print("Meta Results:")
-        pp.pprint(self._metaResults)
+        self._communicate_meta_results(self._metaResults, pp.pprint)
         return self._metaResults
+
+    def log_meta_results(self) -> None:
+        self._communicate_meta_results(self._metaResults, logging.info)
+
+    @staticmethod
+    def _communicate_meta_results(meta_results, communication_method: callable) -> None:
+        communication_method("")
+        communication_method("Meta Results:")
+        communication_method(meta_results)
 
     def calcStateofCharge(self, type, building):
         if "thermalStorage" in type:
@@ -1208,35 +1226,63 @@ class EnergyNetworkClass(solph.EnergySystem):
                     print("Invested in {:.1f} L Aquifier Storage.".format(invest))
             print("")
 
-    def printCosts(self):
-        capexNetwork = sum(self.__capex["Building" + str(b + 1)] for b in range(len(self.__buildings)))
-        opexNetwork = sum(sum(self.__opex["Building" + str(b + 1)].values()) for b in range(len(self.__buildings)))
-        feedinNetwork = sum(self.__feedIn["Building" + str(b + 1)] for b in range(len(self.__buildings)))
-        print("Investment Costs for the system: {} CHF".format(capexNetwork))
-        print("Operation Costs for the system: {} CHF".format(opexNetwork))
-        print("Feed In Costs for the system: {} CHF".format(feedinNetwork))
-        print("Total Costs for the system: {} CHF".format(capexNetwork + opexNetwork + feedinNetwork))
+    def calculate_costs(self) -> tuple[float, float, float]:
+        # TODO: reduce to functional programming style by passing required arguments.
+        capex_network = sum(self.__capex["Building" + str(b + 1)] for b in range(len(self.__buildings)))
+        feed_in_network = sum(self.__feedIn["Building" + str(b + 1)] for b in range(len(self.__buildings)))
+        opex_network = sum(sum(self.__opex["Building" + str(b + 1)].values()) for b in range(len(self.__buildings)))
+        return capex_network, feed_in_network, opex_network
 
-    def printEnvImpacts(self):
-        envImpactInputsNetwork = sum(sum(self.__envImpactInputs["Building" + str(b + 1)].values()) for b in range(len(self.__buildings)))
-        envImpactTechnologiesNetwork = sum(sum(self.__envImpactTechnologies["Building" + str(b + 1)].values()) for b in range(len(self.__buildings)))
-        print("Environmental impact from input resources for the system: {} kg CO2 eq".format(envImpactInputsNetwork))
-        print("Environmental impact from energy conversion and storage technologies for the system: {} kg CO2 eq".format(envImpactTechnologiesNetwork))
-        print("Total: {} kg CO2 eq".format(envImpactInputsNetwork + envImpactTechnologiesNetwork))
+    def printCosts(self) -> None:
+        capex_network, feed_in_network, opex_network = self.calculate_costs()
+        self._communicate_costs(capex_network, feed_in_network, opex_network, print)
+
+    def log_costs(self) -> None:
+        capex_network, feed_in_network, opex_network = self.calculate_costs()
+        self._communicate_costs(capex_network, feed_in_network, opex_network, logging.info)
+
+    @staticmethod
+    def _communicate_costs(capex_network: float, feed_in_network: float, opex_network: float,
+                           communication_method: callable) -> None:
+        communication_method(f"Investment Costs for the system: {capex_network} CHF")
+        communication_method(f"Feed In Costs for the system: {feed_in_network} CHF")
+        communication_method(f"Operation Costs for the system: {opex_network} CHF")
+        communication_method(f"Total Costs for the system: {capex_network + feed_in_network + opex_network} CHF")
 
     def getTotalCosts(self):
-        capexNetwork = sum(self.__capex["Building" + str(b + 1)] for b in range(len(self.__buildings)))
-        opexNetwork = sum(
-            sum(self.__opex["Building" + str(b + 1)].values()) for b in range(len(self.__buildings)))
-        feedinNetwork = sum(self.__feedIn["Building" + str(b + 1)] for b in range(len(self.__buildings)))
+        # TODO: check whether this can be removed.
+        capexNetwork, feedinNetwork, opexNetwork = self.calculate_costs()
         return capexNetwork + opexNetwork + feedinNetwork
 
-    def getTotalEnvImpacts(self):
-        envImpactInputsNetwork = sum(
+    def printEnvImpacts(self) -> None:
+        env_impact_inputs_network, env_impact_technologies_network = self.calculate_environmental_impacts()
+        self._communicate_environmental_impacts(env_impact_inputs_network, env_impact_technologies_network, print)
+
+    def calculate_environmental_impacts(self):
+        # TODO: reduce to functional programming style by passing required arguments.
+        env_impact_inputs_network = sum(
             sum(self.__envImpactInputs["Building" + str(b + 1)].values()) for b in range(len(self.__buildings)))
-        envImpactTechnologiesNetwork = sum(
+        env_impact_technologies_network = sum(
             sum(self.__envImpactTechnologies["Building" + str(b + 1)].values()) for b in range(len(self.__buildings)))
-        return envImpactTechnologiesNetwork + envImpactInputsNetwork
+        return env_impact_inputs_network, env_impact_technologies_network
+
+    def log_environmental_impacts(self) -> None:
+        env_impact_inputs, env_impact_technologies = self.calculate_environmental_impacts()
+        self._communicate_environmental_impacts(env_impact_inputs, env_impact_technologies, logging.info)
+
+    @staticmethod
+    def _communicate_environmental_impacts(env_impact_inputs_network, env_impact_technologies_network,
+                                           communication_method: callable) -> None:
+        communication_method(f"Environmental impact from input resources for the system: "
+                             f"{env_impact_inputs_network} kg CO2 eq")
+        communication_method(f"Environmental impact from energy conversion and storage technologies for the system: "
+                             f"{env_impact_technologies_network} kg CO2 eq")
+        communication_method(f"Total: {env_impact_inputs_network + env_impact_technologies_network} kg CO2 eq")
+
+    def getTotalEnvImpacts(self):
+        # TODO: check whether this can be removed.
+        env_impact_inputs_network, env_impact_technologies_network = self.calculate_environmental_impacts()
+        return env_impact_technologies_network + env_impact_inputs_network
 
     def exportToExcel(self, file_name, mergeLinkBuses=False):
         hSB_sheet = [] #Special sheet for the merged heatStorageBus
@@ -1330,6 +1376,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         self.check_mutually_exclusive_inputs(mergeLinkBuses)
         self._dispatchMode = dispatchMode
         self._optimizationType = opt
+        # TODO: self._mergeBuses missing?
         logging.info(f"Defining the energy network from the input files: {input_data_dir}")
 
         csvReader = _re.CsvScenarioReader(input_data_dir)
