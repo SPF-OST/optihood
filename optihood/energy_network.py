@@ -458,7 +458,10 @@ class EnergyNetworkClass(solph.EnergySystem):
         if any(data["transformers"]["label"] == "GWHP"):
             self.__gwhpEff = float(data["transformers"][data["transformers"]["label"] == "GWHP"]["efficiency"].iloc[0])
         if any(data["transformers"]["label"] == "GasBoiler"):
-            self.__gbEff = float(data["transformers"][data["transformers"]["label"] == "GasBoiler"]["efficiency"].iloc[0].split(",")[0])
+            if isinstance(data["transformers"][data["transformers"]["label"] == "GasBoiler"]["efficiency"].iloc[0], (int,float)):
+                self.__gbEff = data["transformers"][data["transformers"]["label"] == "GasBoiler"]["efficiency"].iloc[0]
+            else:
+                self.__gbEff = float(data["transformers"][data["transformers"]["label"] == "GasBoiler"]["efficiency"].iloc[0].split(",")[0])
         if any(data["transformers"][data["transformers"]["label"]=="ElectricRod"]["active"] == 1):
             self.__elRodEff = float(data["transformers"][data["transformers"]["label"] == "ElectricRod"]["efficiency"].iloc[0])
         if any(data["transformers"]["label"] == "Chiller"):
@@ -1285,17 +1288,17 @@ class EnergyNetworkClass(solph.EnergySystem):
         feedinNetwork = sum(self.__feedIn["Building" + str(b + 1)] for b in range(len(self.__buildings)))
         print("Investment Costs for the system (excl. network): {} CHF/y".format(capexNetwork))
         if self.total_pipe_cost:
-            print("Investment Costs for DH pipes : {} CHF/y".format(self.total_pipe_cost))
-        print("Operation Costs for the system: {} CHF/y".format(opexNetwork))
-        print("Feed In Costs for the system: {} CHF/y".format(feedinNetwork))
-        print("Total Costs for the system: {} CHF/y".format(capexNetwork + opexNetwork + feedinNetwork + self.total_pipe_cost))
+            print("Investment Costs for DH pipes : {:.1f} CHF/y".format(self.total_pipe_cost))
+        print("Operation Costs for the system: {:.1f} CHF/y".format(opexNetwork))
+        print("Feed In Costs for the system: {:.1f} CHF/y".format(feedinNetwork))
+        print("Total Costs for the system: {:.1f} CHF/y".format(capexNetwork + opexNetwork + feedinNetwork + self.total_pipe_cost))
 
     def printEnvImpacts(self):
         envImpactInputsNetwork = sum(sum(self.__envImpactInputs["Building" + str(b + 1)].values()) for b in range(len(self.__buildings)))
         envImpactTechnologiesNetwork = sum(sum(self.__envImpactTechnologies["Building" + str(b + 1)].values()) for b in range(len(self.__buildings)))
-        print("Environmental impact from input resources for the system: {} kg CO2 eq / y".format(envImpactInputsNetwork))
-        print("Environmental impact from energy conversion and storage technologies for the system: {} kg CO2 eq / y".format(envImpactTechnologiesNetwork))
-        print("Total: {} kg CO2 eq / y".format(envImpactInputsNetwork + envImpactTechnologiesNetwork))
+        print("Environmental impact from input resources for the system: {:.1f} kg CO2 eq / y".format(envImpactInputsNetwork))
+        print("Environmental impact from energy conversion and storage technologies for the system: {:.1f} kg CO2 eq / y".format(envImpactTechnologiesNetwork))
+        print("Total: {:.1f} kg CO2 eq / y".format(envImpactInputsNetwork + envImpactTechnologiesNetwork))
 
     def getTotalCosts(self):
         capexNetwork = sum(self.__capex["Building" + str(b + 1)] for b in range(len(self.__buildings)))
