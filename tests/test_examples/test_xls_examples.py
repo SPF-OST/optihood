@@ -1,20 +1,15 @@
-import importlib as _ilib
-import os as _os
 import re as _re
-import subprocess as _sp
 import typing as _tp
 import unittest as _ut
-import sys as _sys
 
 import pytest as _pt
 
 import tests.xls_helpers as xlsh
+from tests.xls_helpers import import_example_script
+bex = import_example_script(xlsh.EXAMPLE_SCRIPT_DIR, "basic_example")
 
-_sys.path.append(str(xlsh.EXAMPLE_SCRIPT_DIR))
-bex = _ilib.import_module("basic_example")
-
-cwd = _os.getcwd()
 scriptDir = xlsh.EXAMPLE_SCRIPT_DIR
+script_path = scriptDir / "basic_example.py"
 example_path = xlsh.EXAMPLE_RESULTS_DIR
 current_file_dir = xlsh.get_current_file_dir(__file__)
 expected_data_dir = current_file_dir / "expected_files"
@@ -62,14 +57,7 @@ class TestXlsExamples(_ut.TestCase):
 
     @_pt.mark.skipif(True, reason='waiting for evaluation. needs to be skipped for CI for now.')
     def test_basic_before_merge(self):
-
-        # =============================
-        # make into helper
-        _os.chdir(scriptDir)
-        _sp.run([xlsh.ROOT_DIR / 'venv' / 'Scripts' / 'python.exe', scriptDir / "basic_example.py", '/H'],
-                shell=True, check=True)
-        _os.chdir(cwd)
-        # =============================
+        xlsh.run_python_script(script_path)
 
         excel_file_path = str(example_path / "results_basic_example.xls")
         expected_data_path = str(expected_data_dir / "test_run_basic_example.xls")
@@ -81,14 +69,8 @@ class TestXlsExamples(_ut.TestCase):
             This test will need to be adjusted, as Gurobi doesn't reproduce exact values between computing systems.
         """
         manual = False
-        
-        # =============================
-        # make into helper
-        _os.chdir(scriptDir)
-        _sp.run([xlsh.ROOT_DIR / 'venv' / 'Scripts' / 'python.exe', scriptDir / "basic_example.py", '/H'],
-                shell=True, check=True)
-        _os.chdir(cwd)
-        # =============================
+
+        xlsh.run_python_script(script_path)
 
         excel_file_path = str(example_path / "results_basic_example.xlsx")
         expected_data_path = str(expected_data_dir / "test_results_basic_example_after_merge.xls")
@@ -103,7 +85,8 @@ class TestXlsExamples(_ut.TestCase):
         """
         optimizationType = "costs"
         resultFileName = "test_run_basic_example.xls"
-        bex.plot_sankey_diagram(xlsh.TEST_RESULTS_DIR, 4, optimizationType, resultFileName, expected_data_dir, show_figs=False)
+        bex.plot_sankey_diagram(xlsh.TEST_RESULTS_DIR, 4, optimizationType, resultFileName, expected_data_dir,
+                                show_figs=False)
         uuid_expected = "0fbea2e5-8f67-4d21-8fe7-897e199ac035"
         compare_html_files(self, xlsh.TEST_RESULTS_DIR / "Sankey_4_costs.html",
                            expected_data_dir / "test_Sankey_basic_example.html", uuid_expected)
@@ -116,7 +99,8 @@ class TestXlsExamples(_ut.TestCase):
         """
         optimizationType = "costs"
         resultFileName = "test_run_basic_example.xls"
-        bex.plot_sankey_diagram(xlsh.TEST_RESULTS_DIR, 4, optimizationType, resultFileName, expected_data_dir, show_figs=False)
+        bex.plot_sankey_diagram(xlsh.TEST_RESULTS_DIR, 4, optimizationType, resultFileName, expected_data_dir,
+                                show_figs=False)
         compare_html_files(self, xlsh.TEST_RESULTS_DIR / "Sankey_4_costs.html",
                            expected_data_dir / "test_Sankey_basic_example_after_merge.html")
 

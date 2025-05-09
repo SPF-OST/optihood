@@ -1,4 +1,8 @@
+import importlib as _ilib
+import os as _os
 import pathlib as _pl
+import subprocess as _sp
+import sys as _sys
 import typing as _tp
 import unittest as _ut
 
@@ -123,3 +127,19 @@ def check_dataframe_assertion(
             _pd.testing.assert_frame_equal(actual, expected, atol=absolute_tolerance, check_dtype=check_dtype)
     except AssertionError as current_error:
         errors.append(current_error)
+
+
+def run_python_script(script_path: _pl.Path):
+    cwd = _os.getcwd()
+    _os.chdir(script_path.parent)
+    _sp.run([ROOT_DIR / 'venv' / 'Scripts' / 'python.exe', script_path, '/H'],
+            shell=True, check=True)
+    _os.chdir(cwd)
+
+
+def import_example_script(dir_path: _pl.Path, file_name: str):
+    """
+    TODO: Typing of module???
+    """
+    _sys.path.append(str(dir_path))
+    return _ilib.import_module(file_name)
