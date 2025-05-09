@@ -123,10 +123,11 @@ def add_unique_label_columns(nodal_data: dict[str, _pd.DataFrame]) -> dict[str, 
     The DataFrames in the sheets are updated automatically as each df is a pointer to that sheet.
     """
     sheets = list(nodal_data.keys())
+    building_sheet_name = ent.NodeKeysOptional.building_model_parameters
 
-    if ent.NodeKeys.building_model_parameters in sheets:
-        sheets.remove(ent.NodeKeys.building_model_parameters)
-        df = nodal_data[ent.NodeKeys.building_model_parameters]
+    if building_sheet_name in sheets:
+        sheets.remove(building_sheet_name)
+        df = nodal_data[building_sheet_name]
         df[ent.BuildingModelParameters.building_unique] = get_unique_buildings(df)
 
     sheets_with_no_need_for_unique_labels = [ent.NodeKeys.ice_storage, ent.NodeKeys.stratified_storage,

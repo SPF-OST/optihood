@@ -3,16 +3,14 @@ import unittest as _ut
 
 import pandas as _pd
 
-import optihood as oh
 import optihood.IO.readers as ior
 import optihood.energy_network as en
 import optihood.entities as ent
-from tests.xls_helpers import check_assertion, check_dataframe_assertion
+import tests.xls_helpers as xlsh
 
-package_dir = _pl.Path(oh.__file__).resolve().parent
-_CSV_DIR_PATH = package_dir / ".." / "data" / "CSVs" / "basic_example_CSVs"
-_input_data_dir = package_dir / ".." / "data" / "excels" / "basic_example"
-_input_data_path = str(_input_data_dir / "scenario.xls")
+_CSV_DIR_PATH = xlsh.ROOT_DATA_DIR / "CSVs" / "basic_example_CSVs"
+_input_data_dir = xlsh.ROOT_DATA_DIR / "excels" / "basic_example"
+_input_data_path = _input_data_dir / "scenario.xls"
 
 
 def join_if_multiple(x):
@@ -31,7 +29,7 @@ class TestCsvScenarioReader(_ut.TestCase):
         self.maxDiff = None
 
         network = en.EnergyNetworkClass(None)
-        data = _pd.ExcelFile(_input_data_path)
+        data = _pd.ExcelFile(str(_input_data_path))
         self.expected_nodal_data = network.get_nodal_data_from_Excel(data)
         data.close()
 
@@ -42,11 +40,11 @@ class TestCsvScenarioReader(_ut.TestCase):
 
         errors = []
 
-        check_assertion(self, errors, nodal_data.keys(), self.expected_nodal_data.keys())
+        xlsh.check_assertion(self, errors, nodal_data.keys(), self.expected_nodal_data.keys())
 
         for key, df_current in nodal_data.items():
             # check_dtype=False to simplify comparison between Excel and CSV files.
-            check_dataframe_assertion(errors, df_current, self.expected_nodal_data[key], check_dtype=False)
+            xlsh.check_dataframe_assertion(errors, df_current, self.expected_nodal_data[key], check_dtype=False)
 
         if errors:
             raise ExceptionGroup(f"found {len(errors)} errors", errors)
@@ -58,11 +56,11 @@ class TestCsvScenarioReader(_ut.TestCase):
 
         errors = []
 
-        check_assertion(self, errors, nodal_data.keys(), self.expected_nodal_data.keys())
+        xlsh.check_assertion(self, errors, nodal_data.keys(), self.expected_nodal_data.keys())
 
         for key, df_current in nodal_data.items():
             # check_dtype=False to simplify comparison between Excel and CSV files.
-            check_dataframe_assertion(errors, df_current, self.expected_nodal_data[key], check_dtype=False)
+            xlsh.check_dataframe_assertion(errors, df_current, self.expected_nodal_data[key], check_dtype=False)
 
         if errors:
             raise ExceptionGroup(f"found {len(errors)} errors", errors)
@@ -106,7 +104,7 @@ class TestCsvScenarioReader(_ut.TestCase):
 
         errors = []
 
-        check_assertion(self, errors, nodal_data_with_unique_labels.keys(), expected_data.keys())
+        xlsh.check_assertion(self, errors, nodal_data_with_unique_labels.keys(), expected_data.keys())
 
         for key, df_current in nodal_data_with_unique_labels.items():
             # check_dtype=False to simplify comparison between Excel and CSV files.
@@ -126,7 +124,7 @@ class TestCsvScenarioReader(_ut.TestCase):
                 df_expected[connect_unique] = df_expected[connect_unique].apply(join_if_multiple)
                 df_current[connect_unique] = df_current[connect_unique].apply(join_if_multiple)
 
-            check_dataframe_assertion(errors, df_current, df_expected, check_dtype=False)
+            xlsh.check_dataframe_assertion(errors, df_current, df_expected, check_dtype=False)
 
         if errors:
             raise ExceptionGroup(f"found {len(errors)} errors", errors)
@@ -150,7 +148,7 @@ class TestCsvScenarioReader(_ut.TestCase):
         building_df = _pd.DataFrame({ent.BuildingModelParameters.Building_Number: [1, 1, 2, 3],
                                      ent.BuildingModelParameters.Circuit: [1, 2, 1, 1],
                                      })
-        nodal_data[ent.NodeKeys.building_model_parameters] = building_df
+        nodal_data[ent.NodeKeysOptional.building_model_parameters] = building_df
 
         nodal_data_with_unique_labels = ior.add_unique_label_columns(nodal_data)
 
@@ -165,11 +163,11 @@ class TestCsvScenarioReader(_ut.TestCase):
 
         building_df_expected = building_df.copy()
         building_df_expected[ent.BuildingModelParameters.building_unique] = ['1__C001', '1__C002', '2__C001', '3__C001']
-        expected_data[ent.NodeKeys.building_model_parameters] = building_df_expected
+        expected_data[ent.NodeKeysOptional.building_model_parameters] = building_df_expected
 
         errors = []
 
-        check_assertion(self, errors, nodal_data_with_unique_labels.keys(), expected_data.keys())
+        xlsh.check_assertion(self, errors, nodal_data_with_unique_labels.keys(), expected_data.keys())
 
         for key, df_current in nodal_data_with_unique_labels.items():
             # check_dtype=False to simplify comparison between Excel and CSV files.
@@ -189,7 +187,7 @@ class TestCsvScenarioReader(_ut.TestCase):
                 df_expected[connect_unique] = df_expected[connect_unique].apply(join_if_multiple)
                 df_current[connect_unique] = df_current[connect_unique].apply(join_if_multiple)
 
-            check_dataframe_assertion(errors, df_current, df_expected, check_dtype=False)
+            xlsh.check_dataframe_assertion(errors, df_current, df_expected, check_dtype=False)
 
         if errors:
             raise ExceptionGroup(f"found {len(errors)} errors", errors)

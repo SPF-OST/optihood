@@ -25,6 +25,10 @@ class NodeKeys(_enum.StrEnum):
     stratified_storage = "stratified_storage"
     ice_storage = "ice_storage"
     profiles = "profiles"
+
+
+class NodeKeysOptional:
+    # TODO: move other optional ones here and fix any arising issues.
     building_model_parameters = "building_model_parameters"
 
 
@@ -141,8 +145,8 @@ class ProfileLabels(_enum.StrEnum):
 
 
 class ProfileTypes(_enum.StrEnum):
-    demand = "demand_profiles"
-    weather = "weather_data"
+    demand = "demand_profiles"  # mandatory
+    weather = "weather_data"  # mandatory
     # TODO: add missing profile types
 
 
