@@ -33,7 +33,7 @@ def control_system(control_signals):
 if __name__ == '__main__':
     # TODO: produce a test for this example.
     # Would you like to visualize the energy network?
-    visualize = True
+    visualize = False
     # This will abort the MPC simulation after visualizing.
 
     # set a time period for the optimization problem
@@ -44,7 +44,7 @@ if __name__ == '__main__':
     current_dir = _pl.Path(__file__).resolve().parent
     input_folder_path = current_dir / ".." / "CSVs" / "MPC_example_CSVs"
 
-    result_dir_path = current_dir / ".." / "results"
+    result_dir_path = current_dir / ".." / "results" / "MPC_example"
     result_file_name = "results_MPC_example"
 
     # initialize parameters

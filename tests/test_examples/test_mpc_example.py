@@ -4,14 +4,16 @@ import unittest as _ut
 
 import numpy as _np
 
-import optihood as oh
+import tests.xls_helpers as xlsh
+mpc_example = xlsh.import_example_script(xlsh.EXAMPLE_SCRIPT_DIR, "MPC_example")
 
-_sys.path.append(str(_pl.Path(oh.__file__).resolve().parent / ".." / "data" / "examples"))
-from MPC_example import get_current_system_state
+script_path = xlsh.EXAMPLE_SCRIPT_DIR / "MPC_example.py"
 
 
 class TestMpcExample(_ut.TestCase):
     def test_get_current_system_state(self):
+        """Unit test to check reproducibility of state inputs."""
+
         system_state = {'electricalStorage__B001': {'initial capacity': 0},
                         'shStorage__B001': {'initial capacity': 0}
                         }
@@ -32,13 +34,17 @@ class TestMpcExample(_ut.TestCase):
 
         for expected_state in expected_states:
             try:
-                system_state = get_current_system_state(system_state)
+                system_state = mpc_example.get_current_system_state(system_state)
                 self.assertDictEqual(system_state, expected_state)
             except AssertionError as e:
                 errors.append(e)
 
         if errors:
             raise ExceptionGroup(f"found {len(errors)} issues:", errors)
+
+    def test_mpc_example(self):
+        """End2end test for the User example."""
+        xlsh.run_python_script(script_path)
 
 
 if __name__ == '__main__':

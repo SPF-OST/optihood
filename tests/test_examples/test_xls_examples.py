@@ -5,8 +5,7 @@ import unittest as _ut
 import pytest as _pt
 
 import tests.xls_helpers as xlsh
-from tests.xls_helpers import import_example_script
-bex = import_example_script(xlsh.EXAMPLE_SCRIPT_DIR, "basic_example")
+bex = xlsh.import_example_script(xlsh.EXAMPLE_SCRIPT_DIR, "basic_example")
 
 scriptDir = xlsh.EXAMPLE_SCRIPT_DIR
 script_path = scriptDir / "basic_example.py"
