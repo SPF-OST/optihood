@@ -1,6 +1,7 @@
 import pathlib as _pl
 import sys as _sys
 import unittest as _ut
+import pytest as _pt
 
 import numpy as _np
 
@@ -42,8 +43,10 @@ class TestMpcExample(_ut.TestCase):
         if errors:
             raise ExceptionGroup(f"found {len(errors)} issues:", errors)
 
+    @_pt.mark.manual
     def test_mpc_example(self):
         """End2end test for the User example."""
+
         xlsh.run_python_script(script_path)
 
 

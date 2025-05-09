@@ -94,6 +94,7 @@ class BuildingMPC(MpcComponentBasic):
     This file is declared in the profiles sheet
     As part of MPC, this file should already have been read in before running this.
     """
+    sheet_name = _ent.NodeKeysOptional.building_model_parameters
     main_labels = [_ent.IceStorageTypes.iceStorage]
     default_values = {_ent.BuildingModelParameters.tIndoorInit.value: 20.0,
                       _ent.BuildingModelParameters.tDistributionInit.value: 15.0,
@@ -146,18 +147,31 @@ MPC_COMPONENTS: list[type[MpcComponentBasic]] = [
 
 
 def prep_mpc_inputs(nodal_data: dict[str, _pd.DataFrame],
-                    building_model_parameters: _pd.DataFrame | None = None) -> dict:
+                    building_model_parameters: _pd.DataFrame | None = None) -> tuple[dict, dict]:
+
     initial_state_with_all_configurable_options = {}
+    label_to_sheet = {}
 
     for i, component in enumerate(MPC_COMPONENTS):
         initial_states_for_component = component().maybe_get_entries_or_defaults(nodal_data)
         initial_state_with_all_configurable_options.update(initial_states_for_component)
+        label_to_sheet_for_component = build_label_to_sheet(initial_states_for_component, component.sheet_name)
+        label_to_sheet.update(label_to_sheet_for_component)
 
     if building_model_parameters is not None:
+        """Duplication..."""
         initial_states_for_component = BuildingMPC().maybe_get_entries_or_defaults(building_model_parameters)
         initial_state_with_all_configurable_options.update(initial_states_for_component)
+        label_to_sheet_for_component = build_label_to_sheet(initial_states_for_component, BuildingMPC.sheet_name)
+        label_to_sheet.update(label_to_sheet_for_component)
 
-    return initial_state_with_all_configurable_options
+    return initial_state_with_all_configurable_options, label_to_sheet
+
+
+def build_label_to_sheet(initial_states_for_component: dict[str: float], sheet_name: str):
+    label_to_sheet_for_component = {}
+    [label_to_sheet_for_component.update({label: sheet_name}) for label in initial_states_for_component.keys()]
+    return label_to_sheet_for_component
 
 
 class MpcHandler:
@@ -172,6 +186,7 @@ class MpcHandler:
     time_period_full: _pd.DatetimeIndex
     nodal_data: dict  # change to class with dfs.
     optimization_settings: OptimizationProperties  # provide string literals?
+    label_to_sheet: dict[str, str]
 
     def __init__(self, prediction_window_in_hours: int, time_step_in_minutes: int, nr_of_buildings: int) -> None:
         self.nr_of_buildings = nr_of_buildings
@@ -221,13 +236,22 @@ class MpcHandler:
         csvReader = _re.CsvScenarioReader(input_folder_path)
         nodal_data = csvReader.read_scenario()
         self.nodal_data = _re.add_unique_label_columns(nodal_data)
-        system_state = prep_mpc_inputs(self.nodal_data)
+        system_state, label_to_sheet = prep_mpc_inputs(self.nodal_data)
+        self.label_to_sheet = label_to_sheet
 
         return system_state
 
-    def update_nodal_data(self, current_state, nodal_data=None):
+    def update_nodal_data(self, current_state: dict[str, dict[str, float]]) -> dict:
         """Requires self.nodal_data"""
-        raise NotImplementedError
+        nodal_data = self.nodal_data.copy()
+        for label, inputs in current_state.items():
+            sheet_name = self.label_to_sheet[label]
+            sheet = nodal_data[sheet_name]
+            row_index = sheet[_ent.CommonLabels.label_unique] == label
+            for column_name, value in inputs.items():
+                sheet.loc[row_index, column_name] = value
+
+        return nodal_data
 
     def get_desired_control_signals(self, results):
         raise NotImplementedError

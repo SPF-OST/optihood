@@ -126,13 +126,31 @@ class TestPrepMpcInputs(_ut.TestCase):
              ent.StorageLabels.initial_temp.value: [1.5, "x", "x", "x", "x", "x"],
              }
         )}
-        result = mpci.prep_mpc_inputs(nodal_data)
-        self.assertDictEqual(result, {'dhwStorage__B003': {'initial capacity': 0.3},
-                                      'electricalStorage': {'initial capacity': 0.75},
-                                      'shStorage__B001': {'initial capacity': 0.5},
-                                      'iceStorage__B001': {'initial capacity': 0.25, 'initial_temp': 1.5},
-                                      }
-                             )
+        result, label_to_sheet = mpci.prep_mpc_inputs(nodal_data)
+
+        errors = []
+        try:
+            self.assertDictEqual(result, {'dhwStorage__B003': {'initial capacity': 0.3},
+                                          'electricalStorage': {'initial capacity': 0.75},
+                                          'shStorage__B001': {'initial capacity': 0.5},
+                                          'iceStorage__B001': {'initial capacity': 0.25, 'initial_temp': 1.5},
+                                          }
+                                 )
+        except AssertionError as e:
+            errors.append(e)
+
+        try:
+            self.assertDictEqual(label_to_sheet,
+                                 {'dhwStorage__B003': ent.NodeKeys.storages,
+                                  'electricalStorage': ent.NodeKeys.storages,
+                                  'iceStorage__B001': ent.NodeKeys.storages,
+                                  'shStorage__B001': ent.NodeKeys.storages
+                                  })
+        except AssertionError as e:
+            errors.append(e)
+
+        if errors:
+            raise ExceptionGroup(f"Found {len(errors)} issues", errors)
 
     def test_prep_mpc_inputs_with_building(self):
         nodal_data = {ent.NodeKeys.storages: _pd.DataFrame(
@@ -152,15 +170,38 @@ class TestPrepMpcInputs(_ut.TestCase):
              ent.BuildingModelParameters.tDistributionInit: [30., 29.],
              }
         )
-        result = mpci.prep_mpc_inputs(nodal_data, building_model_params)
-        self.assertDictEqual(result, {'dhwStorage__B003': {'initial capacity': 0.3},
-                                      'electricalStorage': {'initial capacity': 0.75},
-                                      'shStorage__B001': {'initial capacity': 0.5},
-                                      'iceStorage__B001': {'initial capacity': 0.25, 'initial_temp': 1.5},
-                                      '1': {'tDistributionInit': 30.0, 'tIndoorInit': 22.0, 'tWallInit': 10.0},
-                                      '2': {'tDistributionInit': 29.0, 'tIndoorInit': 20.3, 'tWallInit': 13.0}
-                                      }
-                             )
+        result, label_to_sheet = mpci.prep_mpc_inputs(nodal_data, building_model_params)
+
+        errors = []
+        try:
+            self.assertDictEqual(result, {'dhwStorage__B003': {'initial capacity': 0.3},
+                                          'electricalStorage': {'initial capacity': 0.75},
+                                          'shStorage__B001': {'initial capacity': 0.5},
+                                          'iceStorage__B001': {'initial capacity': 0.25, 'initial_temp': 1.5},
+                                          '1': {'tDistributionInit': 30.0, 'tIndoorInit': 22.0, 'tWallInit': 10.0},
+                                          '2': {'tDistributionInit': 29.0, 'tIndoorInit': 20.3, 'tWallInit': 13.0}
+                                          }
+                                 )
+        except AssertionError as e:
+            errors.append(e)
+
+        try:
+            self.assertDictEqual(label_to_sheet,
+                                 {'1': ent.NodeKeysOptional.building_model_parameters,
+                                  '2': ent.NodeKeysOptional.building_model_parameters,
+                                  'dhwStorage__B003': ent.NodeKeys.storages,
+                                  'electricalStorage': ent.NodeKeys.storages,
+                                  'iceStorage__B001': ent.NodeKeys.storages,
+                                  'shStorage__B001': ent.NodeKeys.storages
+                                  })
+        except AssertionError as e:
+            errors.append(e)
+
+        if errors:
+            raise ExceptionGroup(f"Found {len(errors)} issues", errors)
+
+
+STORAGES_SHEET_NAME = ent.NodeKeys.storages
 
 
 class TestMpcHandler(_ut.TestCase):
@@ -206,7 +247,6 @@ class TestMpcHandler(_ut.TestCase):
         if errors:
             raise ExceptionGroup(f"Found {len(errors)} issues", errors)
 
-    @_pt.mark.manual
     def test_get_current_time_period(self):
         """Unit test"""
         current_time_period_start = _pd.DatetimeIndex(["2018-01-01"])[0]
@@ -214,14 +254,32 @@ class TestMpcHandler(_ut.TestCase):
                               nr_of_buildings=1)
         current_time_period = mpc.get_current_time_period(current_time_period_start)
         expected = _pd.DatetimeIndex(["2018-01-01 00:00:00", "2018-01-01 01:00:00", "2018-01-01 02:00:00"])
-        diff = current_time_period.difference(expected)
-        diff_2 = expected.difference(current_time_period)
-        if not diff.empty or not diff_2.empty:
-            raise AssertionError(f"\n {diff} \ninstead of\n {diff_2}")
+        _pd.testing.assert_index_equal(current_time_period, expected)
 
-    @_pt.mark.manual
     def test_update_nodal_data(self):
         """Unit test"""
+        current_system_state = {'electricalStorage__B001': {'initial capacity': 0.42},
+                                'shStorage__B001': {'initial capacity': 0.66}}
+        mpc = mpci.MpcHandler(prediction_window_in_hours=2, time_step_in_minutes=60,
+                              nr_of_buildings=1)
+        mpc.nodal_data = {STORAGES_SHEET_NAME: _pd.DataFrame([
+                 {ent.CommonLabels.label_unique: 'electricalStorage__B001', 'initial capacity': 0.},
+                 {ent.CommonLabels.label_unique: 'shStorage__B001', 'initial capacity': 0.},
+                 ])
+        }
+        mpc.label_to_sheet = {'electricalStorage__B001': STORAGES_SHEET_NAME,
+                              'shStorage__B001': STORAGES_SHEET_NAME}
+
+        current_nodal_data = mpc.update_nodal_data(current_system_state)
+
+        df_expected = _pd.DataFrame(
+            [{ent.CommonLabels.label_unique: 'electricalStorage__B001', 'initial capacity': 0.42},
+             {ent.CommonLabels.label_unique: 'shStorage__B001', 'initial capacity': 0.66},
+             ])
+        _pd.testing.assert_frame_equal(current_nodal_data[STORAGES_SHEET_NAME], df_expected)
+
+    @_pt.mark.manual
+    def test_update_nodal_data_with_building(self):
         raise NotImplementedError
 
     @_pt.mark.manual
