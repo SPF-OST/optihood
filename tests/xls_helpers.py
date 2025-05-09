@@ -6,6 +6,18 @@ import matplotlib as _mpl
 import pandas as _pd
 from matplotlib import pyplot as _plt
 
+import optihood as oh
+
+ROOT_DIR = _pl.Path(oh.__file__).resolve().parents[1]
+TEST_RESULTS_DIR = ROOT_DIR / "results"
+ROOT_DATA_DIR = ROOT_DIR / "data"
+EXAMPLE_SCRIPT_DIR = ROOT_DATA_DIR / "examples"
+EXAMPLE_RESULTS_DIR = ROOT_DATA_DIR / "results"
+
+
+def get_current_file_dir(file) -> _pl.Path:
+    return _pl.Path(file).resolve().parent
+
 
 def compare_txt_files(testCase: _ut.TestCase, file_path1: _pl.Path, file_path2: _pl.Path):
     with open(file_path1) as f1, open(file_path2) as f2:

@@ -1,25 +1,23 @@
+import importlib as _ilib
 import os as _os
-import pathlib as _pl
 import re as _re
 import subprocess as _sp
-import sys
 import typing as _tp
 import unittest as _ut
+import sys as _sys
 
 import pytest as _pt
 
-import optihood as oh
-from tests.xls_helpers import compare_xls_files
+import tests.xls_helpers as xlsh
 
-sys.path.append(str(_pl.Path(oh.__file__).resolve().parent / ".." / "data" / "examples"))
-from basic_example import plot_sankey_diagram
+_sys.path.append(str(xlsh.EXAMPLE_SCRIPT_DIR))
+bex = _ilib.import_module("basic_example")
 
 cwd = _os.getcwd()
-packageDir = _pl.Path(oh.__file__).resolve().parent
-scriptDir = packageDir / ".." / "data" / "examples"
-example_path = packageDir / ".." / "data" / "results"
-expected_data_dir = _pl.Path(__file__).resolve().parent / "expected_files"
-test_results_dir = packageDir / ".." / "results"
+scriptDir = xlsh.EXAMPLE_SCRIPT_DIR
+example_path = xlsh.EXAMPLE_RESULTS_DIR
+current_file_dir = xlsh.get_current_file_dir(__file__)
+expected_data_dir = current_file_dir / "expected_files"
 
 _SHEET_NAMES = ['naturalGasBus__Building1', 'gridBus__Building1', 'electricityBus__Building1',
                 'electricityProdBus__Building1', 'electricityInBus__Building1', 'shSourceBus__Building1',
@@ -68,7 +66,7 @@ class TestXlsExamples(_ut.TestCase):
         # =============================
         # make into helper
         _os.chdir(scriptDir)
-        _sp.run([packageDir / '..' / 'venv' / 'Scripts' / 'python.exe', scriptDir / "basic_example.py", '/H'],
+        _sp.run([xlsh.ROOT_DIR / 'venv' / 'Scripts' / 'python.exe', scriptDir / "basic_example.py", '/H'],
                 shell=True, check=True)
         _os.chdir(cwd)
         # =============================
@@ -76,7 +74,7 @@ class TestXlsExamples(_ut.TestCase):
         excel_file_path = str(example_path / "results_basic_example.xls")
         expected_data_path = str(expected_data_dir / "test_run_basic_example.xls")
 
-        compare_xls_files(self, excel_file_path, expected_data_path, _SHEET_NAMES, abs_tolerance=1e-4)
+        xlsh.compare_xls_files(self, excel_file_path, expected_data_path, _SHEET_NAMES, abs_tolerance=1e-4)
 
     def test_basic_after_merge(self):
         """ End2End test to ensure user example is reproducible.
@@ -87,7 +85,7 @@ class TestXlsExamples(_ut.TestCase):
         # =============================
         # make into helper
         _os.chdir(scriptDir)
-        _sp.run([packageDir / '..' / 'venv' / 'Scripts' / 'python.exe', scriptDir / "basic_example.py", '/H'],
+        _sp.run([xlsh.ROOT_DIR / 'venv' / 'Scripts' / 'python.exe', scriptDir / "basic_example.py", '/H'],
                 shell=True, check=True)
         _os.chdir(cwd)
         # =============================
@@ -95,8 +93,8 @@ class TestXlsExamples(_ut.TestCase):
         excel_file_path = str(example_path / "results_basic_example.xlsx")
         expected_data_path = str(expected_data_dir / "test_results_basic_example_after_merge.xls")
 
-        compare_xls_files(self, excel_file_path, expected_data_path, _SHEET_NAMES, abs_tolerance=1e-4,
-                          manual_test=manual)
+        xlsh.compare_xls_files(self, excel_file_path, expected_data_path, _SHEET_NAMES, abs_tolerance=1e-4,
+                               manual_test=manual)
 
     @_pt.mark.skip(reason='Waiting for evaluation of merge differences.')
     def test_sankey_basic_example(self):
@@ -105,9 +103,9 @@ class TestXlsExamples(_ut.TestCase):
         """
         optimizationType = "costs"
         resultFileName = "test_run_basic_example.xls"
-        plot_sankey_diagram(test_results_dir, 4, optimizationType, resultFileName, expected_data_dir, show_figs=False)
+        bex.plot_sankey_diagram(xlsh.TEST_RESULTS_DIR, 4, optimizationType, resultFileName, expected_data_dir, show_figs=False)
         uuid_expected = "0fbea2e5-8f67-4d21-8fe7-897e199ac035"
-        compare_html_files(self, test_results_dir / "Sankey_4_costs.html",
+        compare_html_files(self, xlsh.TEST_RESULTS_DIR / "Sankey_4_costs.html",
                            expected_data_dir / "test_Sankey_basic_example.html", uuid_expected)
 
     def test_sankey_basic_example_after_merge(self):
@@ -118,8 +116,8 @@ class TestXlsExamples(_ut.TestCase):
         """
         optimizationType = "costs"
         resultFileName = "test_run_basic_example.xls"
-        plot_sankey_diagram(test_results_dir, 4, optimizationType, resultFileName, expected_data_dir, show_figs=False)
-        compare_html_files(self, test_results_dir / "Sankey_4_costs.html",
+        bex.plot_sankey_diagram(xlsh.TEST_RESULTS_DIR, 4, optimizationType, resultFileName, expected_data_dir, show_figs=False)
+        compare_html_files(self, xlsh.TEST_RESULTS_DIR / "Sankey_4_costs.html",
                            expected_data_dir / "test_Sankey_basic_example_after_merge.html")
 
     @_pt.mark.skip()
@@ -140,7 +138,7 @@ class TestXlsExamples(_ut.TestCase):
         """
         old_data_path = str(expected_data_dir / "test_run_basic_example.xls")
         new_data_path = str(expected_data_dir / "test_results_basic_example_after_merge.xls")
-        compare_xls_files(self, new_data_path, old_data_path, _SHEET_NAMES, abs_tolerance=1e-4, manual_test=True)
+        xlsh.compare_xls_files(self, new_data_path, old_data_path, _SHEET_NAMES, abs_tolerance=1e-4, manual_test=True)
 
 
 if __name__ == '__main__':
