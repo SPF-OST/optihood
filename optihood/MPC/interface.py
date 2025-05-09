@@ -249,7 +249,7 @@ class MpcHandler:
                                                freq=f"{str(time_step_in_minutes)}min")
 
     def get_current_time_period(self, current_time_period_start: _pd.DatetimeIndex) -> _pd.DatetimeIndex:
-        current_time_period_end = _pd.Timedelta(hours=self.prediction_window_in_hours)
+        current_time_period_end = current_time_period_start + _pd.Timedelta(hours=self.prediction_window_in_hours)
         current_time_period = _pd.date_range(current_time_period_start, current_time_period_end,
                                              freq=f"{str(self.time_step_in_minutes)}min")
         return current_time_period

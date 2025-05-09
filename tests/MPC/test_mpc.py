@@ -209,7 +209,15 @@ class TestMpcHandler(_ut.TestCase):
     @_pt.mark.manual
     def test_get_current_time_period(self):
         """Unit test"""
-        raise NotImplementedError
+        current_time_period_start = _pd.DatetimeIndex(["2018-01-01"])[0]
+        mpc = mpci.MpcHandler(prediction_window_in_hours=2, time_step_in_minutes=60,
+                              nr_of_buildings=1)
+        current_time_period = mpc.get_current_time_period(current_time_period_start)
+        expected = _pd.DatetimeIndex(["2018-01-01 00:00:00", "2018-01-01 01:00:00", "2018-01-01 02:00:00"])
+        diff = current_time_period.difference(expected)
+        diff_2 = expected.difference(current_time_period)
+        if not diff.empty or not diff_2.empty:
+            raise AssertionError(f"\n {diff} \ninstead of\n {diff_2}")
 
     @_pt.mark.manual
     def test_update_nodal_data(self):
