@@ -257,6 +257,7 @@ class MpcHandler:
     @staticmethod
     def log_processing(network: en.EnergyNetworkClass, costs: bool = False, env_impacts: bool = False,
                        meta: bool = False) -> None:
+        # TODO: redo when new results output is ready.
         if costs:
             network.log_costs()
         if env_impacts:

@@ -168,9 +168,56 @@ class TestMpcHandler(_ut.TestCase):
         self.maxDiff = None
 
     def test_get_mpc_scenario_from_csv(self):
+        """End2end test for this method.
+        Includes assert of part of nodal_data state relevant for MPC.
+        """
         input_folder_path = xlsh.ROOT_DATA_DIR / "CSVs" / "MPC_example_CSVs"
         mpc = mpci.MpcHandler(prediction_window_in_hours=24, time_step_in_minutes=60,
                               nr_of_buildings=1)
         system_state = mpc.get_mpc_scenario_from_csv(input_folder_path)
-        self.assertDictEqual(system_state, {'electricalStorage__B001': {'initial capacity': 0},
-                                            'shStorage__B001': {'initial capacity': 0}})
+
+        errors = []
+        try:
+            self.assertDictEqual(system_state, {'electricalStorage__B001': {'initial capacity': 0},
+                                                'shStorage__B001': {'initial capacity': 0}})
+        except AssertionError as e:
+            errors.append(e)
+
+        try:
+            assert mpc.nr_of_buildings == 1
+        except AssertionError as e:
+            errors.append(e)
+
+        try:
+            assert mpc.prediction_window_in_hours == 24
+        except AssertionError as e:
+            errors.append(e)
+
+        try:
+            assert mpc.time_step_in_minutes == 60
+        except AssertionError as e:
+            errors.append(e)
+
+        try:
+            assert all(mpc.nodal_data[ent.NodeKeys.storages][ent.StorageLabels.initial_capacity]) == 0
+        except AssertionError as e:
+            errors.append(e)
+
+        if errors:
+            raise ExceptionGroup(f"Found {len(errors)} issues", errors)
+
+    @_pt.mark.manual
+    def test_get_current_time_period(self):
+        """Unit test"""
+        raise NotImplementedError
+
+    @_pt.mark.manual
+    def test_update_nodal_data(self):
+        """Unit test"""
+        raise NotImplementedError
+
+    @_pt.mark.manual
+    def test_get_network(self):
+        """Unit test"""
+        # patch network and only check if correct things are passed.
+        raise NotImplementedError

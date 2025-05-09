@@ -96,6 +96,7 @@ if __name__ == '__main__':
         current_state = get_current_system_state(system_state)
         # ===============
 
+        # TODO: update nodal_data
         network = mpc.update_network(current_time_step, current_state)
 
         _, _, _ = network.optimize(solver='gurobi', numberOfBuildings=numberOfBuildings)
