@@ -101,8 +101,8 @@ class BuildingMPC(MpcComponentBasic):
                       _ent.BuildingModelParameters.tWallInit.value: 25.0,
                       }
 
-    def maybe_get_entries_or_defaults(self, building_model_params: _pd.DataFrame) -> dict:
-        df = building_model_params
+    def maybe_get_entries_or_defaults(self, nodal_data: dict[str, _pd.DataFrame]) -> dict:
+        df = nodal_data[self.sheet_name]
         if df.empty:
             raise ValueError("Building model parameters should not be empty. Either add buildings, or do not include "
                              "the parameters to get_mpc_iputs")
@@ -151,18 +151,14 @@ def prep_mpc_inputs(nodal_data: dict[str, _pd.DataFrame],
 
     initial_state_with_all_configurable_options = {}
     label_to_sheet = {}
+    if building_model_parameters is not None:
+        MPC_COMPONENTS.append(BuildingMPC)
+        nodal_data[_ent.NodeKeysOptional.building_model_parameters] = building_model_parameters
 
     for i, component in enumerate(MPC_COMPONENTS):
         initial_states_for_component = component().maybe_get_entries_or_defaults(nodal_data)
         initial_state_with_all_configurable_options.update(initial_states_for_component)
         label_to_sheet_for_component = build_label_to_sheet(initial_states_for_component, component.sheet_name)
-        label_to_sheet.update(label_to_sheet_for_component)
-
-    if building_model_parameters is not None:
-        """Duplication..."""
-        initial_states_for_component = BuildingMPC().maybe_get_entries_or_defaults(building_model_parameters)
-        initial_state_with_all_configurable_options.update(initial_states_for_component)
-        label_to_sheet_for_component = build_label_to_sheet(initial_states_for_component, BuildingMPC.sheet_name)
         label_to_sheet.update(label_to_sheet_for_component)
 
     return initial_state_with_all_configurable_options, label_to_sheet

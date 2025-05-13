@@ -87,8 +87,9 @@ class TestPrepMpcInputs(_ut.TestCase):
     def test_maybe_get_entries_or_defaults_building_nothing(self):
         """Users should get proper feedback when no data is in the csv."""
         building_model_params = _pd.DataFrame(columns=[ent.BuildingModelParameters.tWallInit])
+        nodal_data = {ent.NodeKeysOptional.building_model_parameters: building_model_params}
         with _pt.raises(ValueError) as e:
-            mpci.BuildingMPC().maybe_get_entries_or_defaults(building_model_params)
+            mpci.BuildingMPC().maybe_get_entries_or_defaults(nodal_data)
 
     def test_maybe_get_entries_or_defaults_building_no_init(self):
         """Checks whether the default is used correctly."""
@@ -96,7 +97,8 @@ class TestPrepMpcInputs(_ut.TestCase):
             {ent.BuildingModelParameters.building_unique.value: ["1_0", "1_1", "2_0"],
              }
         )
-        result = mpci.BuildingMPC().maybe_get_entries_or_defaults(building_model_params)
+        nodal_data = {ent.NodeKeysOptional.building_model_parameters: building_model_params}
+        result = mpci.BuildingMPC().maybe_get_entries_or_defaults(nodal_data)
         self.assertDictEqual(result, {'1_0': {'tDistributionInit': 15.0, 'tIndoorInit': 20.0, 'tWallInit': 25.0},
                                       '1_1': {'tDistributionInit': 15.0, 'tIndoorInit': 20.0, 'tWallInit': 25.0},
                                       '2_0': {'tDistributionInit': 15.0, 'tIndoorInit': 20.0, 'tWallInit': 25.0}})
@@ -110,7 +112,8 @@ class TestPrepMpcInputs(_ut.TestCase):
              ent.BuildingModelParameters.tDistributionInit: [30., 26., 29.],
              }
         )
-        result = mpci.BuildingMPC().maybe_get_entries_or_defaults(building_model_params)
+        nodal_data = {ent.NodeKeysOptional.building_model_parameters: building_model_params}
+        result = mpci.BuildingMPC().maybe_get_entries_or_defaults(nodal_data)
         self.assertDictEqual(result, {'1_0': {'tDistributionInit': 30.0, 'tIndoorInit': 22.0, 'tWallInit': 10.0},
                                       '1_1': {'tDistributionInit': 26.0, 'tIndoorInit': 21.0, 'tWallInit': 12.0},
                                       '2_0': {'tDistributionInit': 29.0, 'tIndoorInit': 20.3, 'tWallInit': 13.0}})
@@ -285,5 +288,6 @@ class TestMpcHandler(_ut.TestCase):
     @_pt.mark.manual
     def test_get_network(self):
         """Unit test"""
-        # patch network and only check if correct things are passed.
+        # TODO: mpc.optimization_settings
+        # TODO: patch network and only check if correct things are passed.
         raise NotImplementedError
