@@ -134,13 +134,15 @@ class TestCsvScenarioReader(_ut.TestCase):
                             ent.BuildingModelParameters.Circuit: [1, 2, 1, 1],
                             })
         results = ior.get_unique_buildings(df)
-        self.assertListEqual(results, ['1__C001', '1__C002', '2__C001', '3__C001'])
+        self.assertListEqual(results, ['Building_model__B001_C001', 'Building_model__B001_C002',
+                                       'Building_model__B002_C001', 'Building_model__B003_C001'])
 
     def test_get_unique_buildings_without_circuits(self):
         df = _pd.DataFrame({ent.BuildingModelParameters.Building_Number: [1, 1, 2, 3],
                             })
         results = ior.get_unique_buildings(df)
-        self.assertListEqual(results, ['1', '1', '2', '3'])
+        self.assertListEqual(results, ['Building_model__B001', 'Building_model__B001', 'Building_model__B002',
+                                       'Building_model__B003'])
 
     def test_add_unique_label_columns_including_buildings(self):
         csvReader = ior.CsvScenarioReader(_CSV_DIR_PATH)
@@ -162,7 +164,11 @@ class TestCsvScenarioReader(_ut.TestCase):
         expected_data = csvReader.read_scenario()
 
         building_df_expected = building_df.copy()
-        building_df_expected[ent.BuildingModelParameters.building_unique] = ['1__C001', '1__C002', '2__C001', '3__C001']
+        building_df_expected[ent.BuildingModelParameters.building_unique] = ['Building_model__B001_C001',
+                                                                             'Building_model__B001_C002',
+                                                                             'Building_model__B002_C001',
+                                                                             'Building_model__B003_C001',
+                                                                             ]
         expected_data[ent.NodeKeysOptional.building_model_parameters] = building_df_expected
 
         errors = []

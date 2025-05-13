@@ -175,7 +175,8 @@ def get_unique_buildings(df: _pd.DataFrame) -> list[str]:
     """Returns strings for both cases, to simplify usage later."""
     if ent.BuildingModelParameters.Circuit in df.columns:
         return [
-            f"{row[ent.BuildingModelParameters.Building_Number]}__C{str(row[ent.BuildingModelParameters.Circuit]).zfill(3)}"
+            (f"Building_model__B{str(row[ent.BuildingModelParameters.Building_Number]).zfill(3)}"
+             f"_C{str(row[ent.BuildingModelParameters.Circuit]).zfill(3)}")
             for _, row in df.iterrows()]
 
-    return [f"{row[ent.BuildingModelParameters.Building_Number]}" for _, row in df.iterrows()]
+    return [f"Building_model__B{str(row[ent.BuildingModelParameters.Building_Number]).zfill(3)}" for _, row in df.iterrows()]

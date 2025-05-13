@@ -243,7 +243,10 @@ class MpcHandler:
         for label, inputs in current_state.items():
             sheet_name = self.label_to_sheet[label]
             sheet = nodal_data[sheet_name]
-            row_index = sheet[_ent.CommonLabels.label_unique] == label
+            label_column = _ent.CommonLabels.label_unique
+            if sheet_name == _ent.NodeKeysOptional.building_model_parameters:
+                label_column = _ent.BuildingModelParameters.building_unique
+            row_index = sheet[label_column] == label
             for column_name, value in inputs.items():
                 sheet.loc[row_index, column_name] = value
 
