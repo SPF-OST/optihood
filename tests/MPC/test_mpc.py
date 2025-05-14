@@ -215,10 +215,14 @@ class TestMpcHandler(_ut.TestCase):
     def test_get_mpc_scenario_from_csv(self):
         """End2end test for this method.
         Includes assert of part of nodal_data state relevant for MPC.
+
+        Maybe Flaky
+        Seems to introduce the "building_model_parameter when run in the terminal
         """
         input_folder_path = xlsh.ROOT_DATA_DIR / "CSVs" / "MPC_example_CSVs"
         mpc = mpci.MpcHandler(prediction_window_in_hours=24, time_step_in_minutes=60,
                               nr_of_buildings=1)
+
         system_state = mpc.get_mpc_scenario_from_csv(input_folder_path)
 
         errors = []
@@ -331,10 +335,3 @@ class TestMpcHandler(_ut.TestCase):
 
         if errors:
             raise ExceptionGroup(f"Found {len(errors)} issues", errors)
-
-    @_pt.mark.manual
-    def test_get_network(self):
-        """Unit test"""
-        # TODO: mpc.optimization_settings
-        # TODO: patch network and only check if correct things are passed.
-        raise NotImplementedError
