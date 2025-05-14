@@ -36,11 +36,11 @@ class OptimizationProperties:
                  optimization_type: _tp.Literal["costs", "env"],  # Pycharm highlights the input if anything else.
                  merge_link_buses: bool = False,
                  merge_buses: _tp.Optional[_tp.Sequence[str]] = None,
-                 merge_heat_source_sink: object = None,
+                 merge_heat_source_sink: bool = False,
                  temperature_levels: bool = False,
-                 cluster_size: object = None,
+                 cluster_size: _tp.Optional[dict[str, int]] = None,
                  dispatch_mode: bool = False,
-                 include_carbon_benefits: object = None
+                 include_carbon_benefits: bool = False
                  ) -> None:
         """
         # TODO: explain inputs
@@ -1017,11 +1017,20 @@ class EnergyNetworkClass(solph.EnergySystem):
                         self.__intermediateOpTempsHP[buildingLabel] = sum(
                             solph.views.node(self._optimizationResults, 'HP__' + buildingLabel)["sequences"][
                                 ('HP__' + buildingLabel, f"heatStorageBus{i+1}__{buildingLabel}"), 'flow'])
-                    self.__dhwHP[buildingLabel] = sum(
-                        solph.views.node(self._optimizationResults, 'HP__' + buildingLabel)["sequences"][
-                            ('HP__' + buildingLabel, dhwOutputLabel + buildingLabel), 'flow'])
-                    self.__annualCopHP[buildingLabel] = (self.__shHP[buildingLabel] + self.__dhwHP[buildingLabel]) / (
-                        self.__elHP[buildingLabel] + 1e-6)
+                    try:
+                        self.__dhwHP[buildingLabel] = sum(
+                            solph.views.node(self._optimizationResults, 'HP__' + buildingLabel)["sequences"][
+                                ('HP__' + buildingLabel, dhwOutputLabel + buildingLabel), 'flow'])
+                    except KeyError as e:
+                        """If the dhwStorage is never used, then this will not be available."""
+                        pass
+
+                    if buildingLabel in self.__dhwHP.keys():
+                        self.__annualCopHP[buildingLabel] = (self.__shHP[buildingLabel] + self.__dhwHP[buildingLabel]) / (
+                            self.__elHP[buildingLabel] + 1e-6)
+                    else:
+                        self.__annualCopHP[buildingLabel] = self.__shHP[buildingLabel] / (
+                            self.__elHP[buildingLabel] + 1e-6)
                 else:
                     self.__annualCopHP[buildingLabel] = 0
 

@@ -32,6 +32,14 @@ def control_system(control_signals):
     pass
 
 
+# define paths for input and result files
+current_dir = _pl.Path(__file__).resolve().parent
+input_folder_path = current_dir / ".." / "CSVs" / "MPC_example_CSVs"
+
+result_dir_path = current_dir / ".." / "results" / "MPC_example"
+result_file_name = "results_MPC_example"
+
+
 if __name__ == '__main__':
     # TODO: produce a test for this example.
     # Would you like to visualize the energy network?
@@ -42,18 +50,11 @@ if __name__ == '__main__':
     time_step_in_minutes = 60
     prediction_window_in_hours = 24
 
-    # define paths for input and result files
-    current_dir = _pl.Path(__file__).resolve().parent
-    input_folder_path = current_dir / ".." / "CSVs" / "MPC_example_CSVs"
-
-    result_dir_path = current_dir / ".." / "results" / "MPC_example"
-    result_file_name = "results_MPC_example"
-
     # initialize parameters
     number_of_buildings = 1
 
     # We will use 4 time steps of 1 hour
-    example_time_steps = _pd.date_range("2018-01-01 00:00:00", "2018-01-01 04:00:00",
+    example_time_steps = _pd.date_range("2018-01-01 00:00:00", "2018-01-01 02:00:00",
                                         freq=f"{str(time_step_in_minutes)}min")
 
     # The MpcHandler will take care of many things for us.
@@ -66,11 +67,11 @@ if __name__ == '__main__':
         optimization_type="costs",  # set as "env" for environmental optimization,
         merge_link_buses=False,
         merge_buses=None,
-        merge_heat_source_sink=None,
+        merge_heat_source_sink=False,
         temperature_levels=False,
         cluster_size=None,
         dispatch_mode=True,
-        include_carbon_benefits=None,
+        include_carbon_benefits=False,
     )
 
     # We prepare the scenario in the MpcHandler and get the initial state from the scenario file.
@@ -87,8 +88,8 @@ if __name__ == '__main__':
         mpc.visualize_example()
         exit()
 
-    if not _os.path.exists(result_dir_path):
-        _os.makedirs(result_dir_path)
+    if not result_dir_path.exists():
+        result_dir_path.mkdir(parents=True, exist_ok=True)
 
     _np.random.seed(0)  # ensure reproducibility of results
 
@@ -107,16 +108,24 @@ if __name__ == '__main__':
 
         # ========================================================================
         # logged automatically?
-        mpc.log_processing(results, costs=True, env_impacts=True, meta=True)
+        # mpc.log_processing(results, costs=True, env_impacts=True, meta=True)
         # ========================
 
         result_file_path = result_dir_path / f"{result_file_name}_{current_time_step.strftime("%Y_%m_%d__%H_%M_%S")}.xlsx"
         network.exportToExcel(result_file_path)
 
-        energy_flows = mpc.get_desired_energy_flows(results)
+        # energy_flows = mpc.get_desired_energy_flows(results)
 
         # ===============
         # responsibility of the User.
-        control_signals = translate_flows_to_control_signals(energy_flows)
-        control_system(control_signals)
+        # control_signals = translate_flows_to_control_signals(energy_flows)
+        # control_system(control_signals)
         # ===============
+
+# get_unique_flow_labels()
+# "HP__B001__To__dhwSource__B001"
+# "HP__To__dhwSource__B001"
+#
+# get_desired_flows(rename={"HP__To__dhwSource__B001": "Qpump1"})
+
+
