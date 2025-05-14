@@ -12,6 +12,8 @@ import optihood.energy_network as en
 # TODO: Figure out if the visualizer should stay here, or be called from the Network class
 #       The User would not have access to the nodal_data at this time.
 
+# TODO: EnergyNetworkIndiv vs EnergyNetworkGroup
+
 
 class MpcComponentBasic:
     sheet_name: str
@@ -218,7 +220,7 @@ class MpcHandler:
 
         return network.set_using_nodal_data(
             initial_nodal_data=current_nodal_data,
-            clusterSize=self.optimization_settings.clusters,
+            clusterSize=self.optimization_settings.cluster_size,
             filePath="",  # This is only used in a logging message after processing the data.
             includeCarbonBenefits=self.optimization_settings.include_carbon_benefits,
             mergeBuses=self.optimization_settings.merge_buses,
@@ -228,7 +230,7 @@ class MpcHandler:
             opt=self.optimization_settings.optimization_type,
         )
 
-    def get_mpc_scenario_from_csv(self, input_folder_path: _pl.Path) -> dict[str, float]:
+    def get_mpc_scenario_from_csv(self, input_folder_path: _pl.Path) -> dict[str, dict[str, float]]:
         csvReader = _re.CsvScenarioReader(input_folder_path)
         nodal_data = csvReader.read_scenario()
         self.nodal_data = _re.add_unique_label_columns(nodal_data)
@@ -251,9 +253,6 @@ class MpcHandler:
                 sheet.loc[row_index, column_name] = value
 
         return nodal_data
-
-    def get_desired_control_signals(self, results):
-        raise NotImplementedError
 
     def get_desired_energy_flows(self, results):
         raise NotImplementedError

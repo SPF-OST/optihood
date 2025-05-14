@@ -7,8 +7,10 @@ import numpy as _np
 from optihood.MPC.interface import MpcHandler
 from optihood.energy_network import OptimizationProperties
 
+# TODO: add building files to example.
 
-def get_current_system_state(system_state: dict[str, float]) -> dict[str, float]:
+
+def get_current_system_state(system_state: dict[str, dict[str, float]]) -> dict[str, dict[str, float]]:
     """Required function to interface with real/virtual system.
     As such a system is not the focus of this example, we will update the system using random numbers.
     In a real case, the User will need to connect the real/virtual system here.
@@ -48,7 +50,7 @@ if __name__ == '__main__':
     result_file_name = "results_MPC_example"
 
     # initialize parameters
-    numberOfBuildings = 1
+    number_of_buildings = 1
 
     # We will use 4 time steps of 1 hour
     example_time_steps = _pd.date_range("2018-01-01 00:00:00", "2018-01-01 04:00:00",
@@ -56,7 +58,7 @@ if __name__ == '__main__':
 
     # The MpcHandler will take care of many things for us.
     mpc = MpcHandler(prediction_window_in_hours=prediction_window_in_hours, time_step_in_minutes=time_step_in_minutes,
-                     nr_of_buildings=1)
+                     nr_of_buildings=number_of_buildings)
 
     # We set the optimization properties, that would normally be given to the Network directly.
     # TODO: figure out the rest of the inputs for this example.
@@ -66,7 +68,7 @@ if __name__ == '__main__':
         merge_buses=None,
         merge_heat_source_sink=None,
         temperature_levels=False,
-        clusters=None,
+        cluster_size=None,
         dispatch_mode=True,
         include_carbon_benefits=None,
     )
@@ -96,10 +98,9 @@ if __name__ == '__main__':
         current_state = get_current_system_state(system_state)
         # ===============
 
-        # TODO: update nodal_data
         network = mpc.update_network(current_time_step, current_state)
 
-        _, _, _ = network.optimize(solver='gurobi', numberOfBuildings=numberOfBuildings)
+        _, _, _ = network.optimize(solver='gurobi', numberOfBuildings=number_of_buildings)
         # results, optimization_meta_data = network.optimize(solver='gurobi', numberOfBuildings=numberOfBuildings)
         # return dataclass
         results = network.saveUnprocessedResults()
@@ -112,14 +113,6 @@ if __name__ == '__main__':
         result_file_path = result_dir_path / f"{result_file_name}_{current_time_step.strftime("%Y_%m_%d__%H_%M_%S")}.xlsx"
         network.exportToExcel(result_file_path)
 
-        control_signals = mpc.get_desired_control_signals(results)
-
-        # ===============
-        # responsibility of the User.
-        control_system(control_signals)
-        # ===============
-
-        # or
         energy_flows = mpc.get_desired_energy_flows(results)
 
         # ===============

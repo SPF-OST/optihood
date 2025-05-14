@@ -24,6 +24,8 @@ from optihood._helpers import *
 from optihood.links import Link
 import optihood.IO.readers as _re
 
+# TODO: define nr_of_buildings once
+
 
 class OptimizationProperties:
     """
@@ -31,12 +33,12 @@ class OptimizationProperties:
     """
     def __init__(self,
                  # TODO: fix argument types
-                 optimization_type: object = None,
+                 optimization_type: _tp.Literal["costs", "env"],  # Pycharm highlights the input if anything else.
                  merge_link_buses: bool = False,
-                 merge_buses: _tp.Sequence[str] = None,
+                 merge_buses: _tp.Optional[_tp.Sequence[str]] = None,
                  merge_heat_source_sink: object = None,
                  temperature_levels: bool = False,
-                 clusters: object = None,
+                 cluster_size: object = None,
                  dispatch_mode: bool = False,
                  include_carbon_benefits: object = None
                  ) -> None:
@@ -44,13 +46,30 @@ class OptimizationProperties:
         # TODO: explain inputs
         Parameters
         ----------
-        clusters  # how does this differ from cluster_size?
-        optimization_type: "cost", or "env"
-        merge_link_buses
-        merge_heat_source_sink
-        temperature_levels
-        dispatch_mode
-        include_carbon_benefits
+
+        cluster_size:
+            Used to provide a selected number of days which could be assumed representative of the entire time range.
+
+        optimization_type:
+            "cost", or "env" depending on which criteria should be optimized.
+
+        merge_link_buses:
+            False: one bus of provided type per building.
+            True: all buildings use the same bus for each type.
+
+        merge_buses:
+            Specify which buses to merge when merge_link_buses set to True
+
+        merge_heat_source_sink:
+
+        temperature_levels:
+
+        dispatch_mode:
+            True: activate dispatch optimization
+            False: do investment + dispatch optimization
+
+        include_carbon_benefits:
+
         """
 
         self.optimization_type = optimization_type
@@ -58,7 +77,7 @@ class OptimizationProperties:
         self.merge_buses = merge_buses
         self.merge_heat_source_sink = merge_heat_source_sink
         self.temperature_levels = temperature_levels
-        self.clusters = clusters
+        self.cluster_size = cluster_size
         self.dispatch_mode = dispatch_mode
         self.include_carbon_benefits = include_carbon_benefits
 
@@ -623,7 +642,22 @@ class EnergyNetworkClass(solph.EnergySystem):
         # calculate results (CAPEX, OPEX, FeedIn Costs, environmental impacts etc...) for each building
         self._calculateResultsPerBuilding(mergeLinkBuses)
 
+        # todo: return data class
+        #       - unprocessed results sheets
+        #       - processed results
+        #           - total
+        #           - per building
+        #           - envImpact, capacitiesTransformersNetwork, capacitiesStoragesNetwork
+        #           - costs, en
+        #       - optimization metadata
+        #       -
+        # def optimize(self, return_data_class=True):
+        # if return_data_class:
+        #     return a
+
+        # warning("sunsetting old")
         return envImpact, capacitiesTransformersNetwork, capacitiesStoragesNetwork
+
 
     def printbuildingModelTemperatures(self, filename):
         df = pd.DataFrame()
@@ -1260,7 +1294,7 @@ class EnergyNetworkClass(solph.EnergySystem):
 
     def calculate_environmental_impacts(self):
         # TODO: reduce to functional programming style by passing required arguments.
-        env_impact_inputs_network = sum(
+        env_impact_inputs_network = sum(  # operation related impacts, as in "input resources"
             sum(self.__envImpactInputs["Building" + str(b + 1)].values()) for b in range(len(self.__buildings)))
         env_impact_technologies_network = sum(
             sum(self.__envImpactTechnologies["Building" + str(b + 1)].values()) for b in range(len(self.__buildings)))

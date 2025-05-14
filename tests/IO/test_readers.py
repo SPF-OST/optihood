@@ -66,6 +66,7 @@ class TestCsvScenarioReader(_ut.TestCase):
             raise ExceptionGroup(f"found {len(errors)} errors", errors)
 
     def test_get_unique_labels(self):
+        """unit test"""
         df = _pd.DataFrame({ent.CommonLabels.label: ["a", "a", "b", "c"],
                             ent.CommonLabels.building: ["1", "2", "1", "1"],
                             })
@@ -73,6 +74,7 @@ class TestCsvScenarioReader(_ut.TestCase):
         self.assertListEqual(results, ['a__B001', 'a__B002', 'b__B001', 'c__B001'])
 
     def test_get_unique_buses(self):
+        """unit test"""
         df = _pd.DataFrame({ent.CommonLabels.to: ["a", "a,b", "b,d,e", "c"],
                             ent.CommonLabels.building: ["1", "2", "1", "1"],
                             })
@@ -83,7 +85,8 @@ class TestCsvScenarioReader(_ut.TestCase):
                                        ['c__B001']])
 
     def test_add_unique_label_columns(self):
-        """Unfortunately, the reader adds quotes to the entries.
+        """end2end test
+        Unfortunately, the reader adds quotes to the entries.
         This leads to very strange behavior in assert_frame_equal:
         At positional index 0, first diff: ['electricityProdBus__B001'] != ['electricityProdBus__B001']
         Thus, this test undoes the work of putting strings in lists, to put them back to a single string again.
@@ -130,6 +133,7 @@ class TestCsvScenarioReader(_ut.TestCase):
             raise ExceptionGroup(f"found {len(errors)} errors", errors)
 
     def test_get_unique_buildings_with_circuits(self):
+        """unit test"""
         df = _pd.DataFrame({ent.BuildingModelParameters.Building_Number: [1, 1, 2, 3],
                             ent.BuildingModelParameters.Circuit: [1, 2, 1, 1],
                             })
@@ -138,6 +142,7 @@ class TestCsvScenarioReader(_ut.TestCase):
                                        'Building_model__B002_C001', 'Building_model__B003_C001'])
 
     def test_get_unique_buildings_without_circuits(self):
+        """unit test"""
         df = _pd.DataFrame({ent.BuildingModelParameters.Building_Number: [1, 1, 2, 3],
                             })
         results = ior.get_unique_buildings(df)
@@ -145,6 +150,7 @@ class TestCsvScenarioReader(_ut.TestCase):
                                        'Building_model__B003'])
 
     def test_add_unique_label_columns_including_buildings(self):
+        """End2end test"""
         csvReader = ior.CsvScenarioReader(_CSV_DIR_PATH)
         nodal_data = csvReader.read_scenario()
         building_df = _pd.DataFrame({ent.BuildingModelParameters.Building_Number: [1, 1, 2, 3],

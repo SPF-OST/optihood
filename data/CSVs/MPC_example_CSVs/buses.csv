@@ -4,5 +4,6 @@ electricityBus,1,1,-0.09,1
 electricityProdBus,1,0,,1
 electricityInBus,1,0,,1
 shSourceBus,1,0,,1
+dhwSourceBus,1,0,,1
 spaceHeatingBus,1,0,,1
 shDemandBus,1,0,,1
