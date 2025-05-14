@@ -1,13 +1,15 @@
 import abc as _abc
+import copy as _cp
 import pathlib as _pl
 
 import pandas as _pd
 
+import optihood.energy_network as en
 import optihood.entities as _ent
 from optihood.IO import readers as _re
 from optihood.Visualizer import convert_scenario as _cs, visualizer_app as _va
 from optihood.energy_network import OptimizationProperties, EnergyNetworkIndiv as EnergyNetwork
-import optihood.energy_network as en
+
 
 # TODO: Figure out if the visualizer should stay here, or be called from the Network class
 #       The User would not have access to the nodal_data at this time.
@@ -218,7 +220,7 @@ class MpcHandler:
         network._optimizationType = self.optimization_settings.optimization_type
         network._mergeBuses = self.optimization_settings.merge_buses
 
-        return network.set_using_nodal_data(
+        network.set_using_nodal_data(
             initial_nodal_data=current_nodal_data,
             clusterSize=self.optimization_settings.cluster_size,
             filePath="",  # This is only used in a logging message after processing the data.
@@ -229,6 +231,7 @@ class MpcHandler:
             numberOfBuildings=self.nr_of_buildings,
             opt=self.optimization_settings.optimization_type,
         )
+        return network
 
     def get_mpc_scenario_from_csv(self, input_folder_path: _pl.Path) -> dict[str, dict[str, float]]:
         csvReader = _re.CsvScenarioReader(input_folder_path)
@@ -241,7 +244,7 @@ class MpcHandler:
 
     def update_nodal_data(self, current_state: dict[str, dict[str, float]]) -> dict:
         """Requires self.nodal_data"""
-        nodal_data = self.nodal_data.copy()
+        nodal_data = _cp.deepcopy(self.nodal_data)
         for label, inputs in current_state.items():
             sheet_name = self.label_to_sheet[label]
             sheet = nodal_data[sheet_name]

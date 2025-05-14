@@ -1,11 +1,12 @@
 import pathlib as _pl
-import sys as _sys
 import unittest as _ut
 import pytest as _pt
+import shutil as _sh
 
 import numpy as _np
 
 import tests.xls_helpers as xlsh
+
 mpc_example = xlsh.import_example_script(xlsh.EXAMPLE_SCRIPT_DIR, "MPC_example")
 
 script_path = xlsh.EXAMPLE_SCRIPT_DIR / "MPC_example.py"
@@ -43,11 +44,57 @@ class TestMpcExample(_ut.TestCase):
         if errors:
             raise ExceptionGroup(f"found {len(errors)} issues:", errors)
 
-    @_pt.mark.manual
     def test_mpc_example(self):
-        """End2end test for the User example."""
+        """End2end test for the User example.
+        This may have flaky behavior, as the optimizer might make different choices on different systems.
+        """
+        show_differences = False  # Turn true to plot differences.
+
+        expected_sheet_names = ['gridBus__Building1',
+                                'electricityBus__Building1',
+                                'electricityProdBus__Building1',
+                                'electricityInBus__Building1',
+                                'shSourceBus__Building1',
+                                'dhwSourceBus__Building1',
+                                'spaceHeatingBus__Building1',
+                                'shDemandBus__Building1',
+                                'costs__Building1',
+                                'env_impacts__Building1',
+                                'capStorages__Building1',
+                                'capTransformers__Building1'
+                                ]
+        expected_files_dir = _pl.Path(__file__).parent / "expected_files"
+
+        results_path = mpc_example.result_dir_path
+        if results_path.exists():
+            _sh.rmtree(results_path)
 
         xlsh.run_python_script(script_path)
+
+        errors = []
+
+        list_of_result_files = list(mpc_example.result_dir_path.glob("*.xlsx"))
+        names_of_result_files = [f.name for f in list_of_result_files]
+
+        try:
+            self.assertListEqual(names_of_result_files, ["results_MPC_example_2018_01_01__00_00_00.xlsx",
+                                                         "results_MPC_example_2018_01_01__01_00_00.xlsx",
+                                                         "results_MPC_example_2018_01_01__02_00_00.xlsx",
+                                                         ]
+                                 )
+        except Exception as e:
+            errors.append(e)
+
+        for results_file_path in list_of_result_files:
+            expected_file_path = expected_files_dir / results_file_path.name
+            try:
+                xlsh.compare_xls_files(self, results_file_path, expected_file_path, expected_sheet_names,
+                                       manual_test=show_differences, abs_tolerance=1e-4)
+            except ExceptionGroup as e:
+                errors.append(e)
+
+        if errors:
+            raise ExceptionGroup(f"found {len(errors)} errors", errors)
 
 
 if __name__ == '__main__':

@@ -103,7 +103,7 @@ def compare_xls_files(
     if errors:
         if manual_test:
             _plt.show(block=True)
-        raise Exception(errors)
+        raise ExceptionGroup(f"found {len(errors)} errors in {file_path}", errors)
 
 
 def check_assertion(testCase: _ut.TestCase, errors: list, actual, expected):
