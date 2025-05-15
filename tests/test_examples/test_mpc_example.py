@@ -93,7 +93,7 @@ class TestMpcExample(_ut.TestCase):
                 errors.append(e)
 
         if errors:
-            raise ExceptionGroup(f"found {len(errors)} errors", errors)
+            raise ExceptionGroup(f"Found {len(errors)} mismatched prediction windows", errors)
 
 
 if __name__ == '__main__':
