@@ -157,6 +157,14 @@ def prep_mpc_inputs(nodal_data: dict[str, _pd.DataFrame],
     initial_state_with_all_configurable_options = {}
     label_to_sheet = {}
     if building_model_parameters is not None:
+        print("")
+        print("")
+        print("")
+        print(building_model_parameters)
+        print("")
+        print("")
+        print("")
+        print("")
         MPC_COMPONENTS.append(BuildingMPC)
         nodal_data[_ent.NodeKeysOptional.building_model_parameters] = building_model_parameters
 
