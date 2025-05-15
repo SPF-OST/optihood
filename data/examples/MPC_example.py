@@ -1,13 +1,10 @@
 import pathlib as _pl
-import os as _os
 
 import pandas as _pd
 import numpy as _np
 
 from optihood.MPC.interface import MpcHandler
 from optihood.energy_network import OptimizationProperties
-
-# TODO: add building files to example.
 
 
 def get_current_system_state(system_state: dict[str, dict[str, float]]) -> dict[str, dict[str, float]]:
@@ -21,7 +18,13 @@ def get_current_system_state(system_state: dict[str, dict[str, float]]) -> dict[
 
 
 def translate_flows_to_control_signals(energy_flows):
-    raise NotImplementedError
+    """Required function to interface with real/virtual system.
+    The MPC returns energy flows between components.
+    These need to be translated to e.g. pumping rates, valve positions, etc.
+    For this example, we will ignore this step.
+    """
+    control_signals = {}
+    return control_signals
 
 
 def control_system(control_signals):
@@ -41,7 +44,6 @@ result_file_name = "results_MPC_example"
 
 
 if __name__ == '__main__':
-    # TODO: produce a test for this example.
     # Would you like to visualize the energy network?
     visualize = False
     # This will abort the MPC simulation after visualizing.
@@ -62,7 +64,6 @@ if __name__ == '__main__':
                      nr_of_buildings=number_of_buildings)
 
     # We set the optimization properties, that would normally be given to the Network directly.
-    # TODO: figure out the rest of the inputs for this example.
     mpc.optimization_settings = OptimizationProperties(
         optimization_type="costs",  # set as "env" for environmental optimization,
         merge_link_buses=False,
@@ -102,30 +103,24 @@ if __name__ == '__main__':
         network = mpc.update_network(current_time_step, current_state)
 
         _, _, _ = network.optimize(solver='gurobi', numberOfBuildings=number_of_buildings)
-        # results, optimization_meta_data = network.optimize(solver='gurobi', numberOfBuildings=numberOfBuildings)
-        # return dataclass
         results = network.saveUnprocessedResults()
 
         # ========================================================================
         # logged automatically?
-        # mpc.log_processing(results, costs=True, env_impacts=True, meta=True)
+        mpc.log_processing(network, costs=True, env_impacts=True, meta=True)
         # ========================
 
         result_file_path = result_dir_path / f"{result_file_name}_{current_time_step.strftime("%Y_%m_%d__%H_%M_%S")}.xlsx"
         network.exportToExcel(result_file_path)
 
         # energy_flows = mpc.get_desired_energy_flows(results)
+        energy_flows = _pd.DataFrame()
 
         # ===============
         # responsibility of the User.
-        # control_signals = translate_flows_to_control_signals(energy_flows)
-        # control_system(control_signals)
+        control_signals = translate_flows_to_control_signals(energy_flows)
+        control_system(control_signals)
         # ===============
 
-# get_unique_flow_labels()
-# "HP__B001__To__dhwSource__B001"
-# "HP__To__dhwSource__B001"
-#
-# get_desired_flows(rename={"HP__To__dhwSource__B001": "Qpump1"})
 
 

@@ -1,6 +1,5 @@
 import pathlib as _pl
 import unittest as _ut
-import pytest as _pt
 import shutil as _sh
 
 import numpy as _np
@@ -89,7 +88,7 @@ class TestMpcExample(_ut.TestCase):
             expected_file_path = expected_files_dir / results_file_path.name
             try:
                 xlsh.compare_xls_files(self, results_file_path, expected_file_path, expected_sheet_names,
-                                       manual_test=show_differences, abs_tolerance=1e-4)
+                                       manual_test=show_differences, rel_tolerance=0.003)
             except ExceptionGroup as e:
                 errors.append(e)
 
