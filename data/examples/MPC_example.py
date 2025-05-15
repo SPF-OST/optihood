@@ -140,7 +140,7 @@ result_file_name = "results_MPC_example"
 # Usage of the MPC interface, which uses the above.
 if __name__ == '__main__':
     # Would you like to visualize the energy network?
-    visualize = True
+    visualize = False
     # This will abort the MPC simulation after visualizing.
 
     # set a time period for the optimization problem
@@ -212,7 +212,6 @@ if __name__ == '__main__':
         network.exportToExcel(result_file_path)
 
         # energy_flows = mpc.get_desired_energy_flows(results, desired_flows_with_new_names)
-        # energy_flows = _pd.DataFrame()
 
         # ===============
         # responsibility of the User.
