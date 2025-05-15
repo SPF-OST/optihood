@@ -1,6 +1,7 @@
 import abc as _abc
 import copy as _cp
 import pathlib as _pl
+import typing as _tp
 
 import pandas as _pd
 
@@ -151,7 +152,7 @@ MPC_COMPONENTS: list[type[MpcComponentBasic]] = [
 
 
 def prep_mpc_inputs(nodal_data: dict[str, _pd.DataFrame],
-                    building_model_parameters: _pd.DataFrame | None = None) -> tuple[dict, dict]:
+                    building_model_parameters: _tp.Optional[_pd.DataFrame] = None) -> tuple[dict, dict]:
 
     initial_state_with_all_configurable_options = {}
     label_to_sheet = {}
@@ -237,7 +238,7 @@ class MpcHandler:
         csvReader = _re.CsvScenarioReader(input_folder_path)
         nodal_data = csvReader.read_scenario()
         self.nodal_data = _re.add_unique_label_columns(nodal_data)
-        system_state, label_to_sheet = prep_mpc_inputs(self.nodal_data)
+        system_state, label_to_sheet = prep_mpc_inputs(self.nodal_data, building_model_parameters=None)
         self.label_to_sheet = label_to_sheet
 
         return system_state
@@ -257,7 +258,7 @@ class MpcHandler:
 
         return nodal_data
 
-    def get_desired_energy_flows(self, results):
+    def get_desired_energy_flows(self, results, desired_flows_with_new_names):
         raise NotImplementedError
 
     def set_network_parameters(self, param1, param2):

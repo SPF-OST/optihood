@@ -34,7 +34,7 @@ def get_current_system_state(system_state: dict[str, dict[str, float]]) -> dict[
     return system_state
 
 
-def define_desired_flows_and_their_new_names():
+def define_desired_flows_and_their_new_names() -> dict[str, str]:
     """The MPC will predict flows for every time step in the predicted window.
     Only a subset of those flows will be needed to control the system.
 
@@ -70,8 +70,6 @@ def define_desired_flows_and_their_new_names():
 
         # electricity flowing into the heat pump
         "electricityInBus__B001__To__HP__B001": "HP_el_in",
-        # ------------------------------------
-        # electrical part till heat pump (HP)
         # ====================================
 
         # ===================================
@@ -91,8 +89,6 @@ def define_desired_flows_and_their_new_names():
 
         # space heating delivered
         "spaceHeatingBus__B001__To__spaceHeating__B001": "sh_delivered",
-        # -----------------------------------
-        # heat part starting at the heat pump
         # ===================================
     }
 
@@ -218,3 +214,4 @@ if __name__ == '__main__':
         # control_signals = translate_flows_to_control_signals(energy_flows)
         # control_system(control_signals)
         # ===============
+

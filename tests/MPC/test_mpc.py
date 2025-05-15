@@ -94,19 +94,22 @@ class TestPrepMpcInputs(_ut.TestCase):
     def test_maybe_get_entries_or_defaults_building_no_init(self):
         """Checks whether the default is used correctly."""
         building_model_params = _pd.DataFrame(
-            {ent.BuildingModelParameters.building_unique.value: ["Building_model__B001_0", "Building_model__B001_1", "Building_model__B002_0"],
+            {ent.BuildingModelParameters.building_unique.value: ["Building_model__B001_0", "Building_model__B001_1",
+                                                                 "Building_model__B002_0"],
              }
         )
         nodal_data = {ent.NodeKeysOptional.building_model_parameters: building_model_params}
         result = mpci.BuildingMPC().maybe_get_entries_or_defaults(nodal_data)
-        self.assertDictEqual(result, {'Building_model__B001_0': {'tDistributionInit': 15.0, 'tIndoorInit': 20.0, 'tWallInit': 25.0},
-                                      'Building_model__B001_1': {'tDistributionInit': 15.0, 'tIndoorInit': 20.0, 'tWallInit': 25.0},
-                                      'Building_model__B002_0': {'tDistributionInit': 15.0, 'tIndoorInit': 20.0, 'tWallInit': 25.0}})
+        self.assertDictEqual(result, {
+            'Building_model__B001_0': {'tDistributionInit': 15.0, 'tIndoorInit': 20.0, 'tWallInit': 25.0},
+            'Building_model__B001_1': {'tDistributionInit': 15.0, 'tIndoorInit': 20.0, 'tWallInit': 25.0},
+            'Building_model__B002_0': {'tDistributionInit': 15.0, 'tIndoorInit': 20.0, 'tWallInit': 25.0}})
 
     def test_maybe_get_entries_or_defaults_building_with_init(self):
         """Checks whether the default is used correctly."""
         building_model_params = _pd.DataFrame(
-            {ent.BuildingModelParameters.building_unique.value: ["Building_model__B001_0", "Building_model__B001_1", "Building_model__B002_0"],
+            {ent.BuildingModelParameters.building_unique.value: ["Building_model__B001_0", "Building_model__B001_1",
+                                                                 "Building_model__B002_0"],
              ent.BuildingModelParameters.tWallInit: [10., 12., 13.],
              ent.BuildingModelParameters.tIndoorInit: [22., 21., 20.3],
              ent.BuildingModelParameters.tDistributionInit: [30., 26., 29.],
@@ -114,9 +117,10 @@ class TestPrepMpcInputs(_ut.TestCase):
         )
         nodal_data = {ent.NodeKeysOptional.building_model_parameters: building_model_params}
         result = mpci.BuildingMPC().maybe_get_entries_or_defaults(nodal_data)
-        self.assertDictEqual(result, {'Building_model__B001_0': {'tDistributionInit': 30.0, 'tIndoorInit': 22.0, 'tWallInit': 10.0},
-                                      'Building_model__B001_1': {'tDistributionInit': 26.0, 'tIndoorInit': 21.0, 'tWallInit': 12.0},
-                                      'Building_model__B002_0': {'tDistributionInit': 29.0, 'tIndoorInit': 20.3, 'tWallInit': 13.0}})
+        self.assertDictEqual(result, {
+            'Building_model__B001_0': {'tDistributionInit': 30.0, 'tIndoorInit': 22.0, 'tWallInit': 10.0},
+            'Building_model__B001_1': {'tDistributionInit': 26.0, 'tIndoorInit': 21.0, 'tWallInit': 12.0},
+            'Building_model__B002_0': {'tDistributionInit': 29.0, 'tIndoorInit': 20.3, 'tWallInit': 13.0}})
 
     def test_prep_mpc_inputs(self):
         nodal_data = {ent.NodeKeys.storages: _pd.DataFrame(
@@ -181,8 +185,10 @@ class TestPrepMpcInputs(_ut.TestCase):
                                           'electricalStorage': {'initial capacity': 0.75},
                                           'shStorage__B001': {'initial capacity': 0.5},
                                           'iceStorage__B001': {'initial capacity': 0.25, 'initial_temp': 1.5},
-                                          'Building_model__B001': {'tDistributionInit': 30.0, 'tIndoorInit': 22.0, 'tWallInit': 10.0},
-                                          'Building_model__B002': {'tDistributionInit': 29.0, 'tIndoorInit': 20.3, 'tWallInit': 13.0},
+                                          'Building_model__B001': {'tDistributionInit': 30.0, 'tIndoorInit': 22.0,
+                                                                   'tWallInit': 10.0},
+                                          'Building_model__B002': {'tDistributionInit': 29.0, 'tIndoorInit': 20.3,
+                                                                   'tWallInit': 13.0},
                                           }
                                  )
         except AssertionError as e:
@@ -289,8 +295,10 @@ class TestMpcHandler(_ut.TestCase):
     def test_update_nodal_data_with_building(self):
         current_system_state = {'electricalStorage__B001': {'initial capacity': 0.42},
                                 'shStorage__B001': {'initial capacity': 0.66},
-                                'Building_model__B001': {'tDistributionInit': 25.1, 'tIndoorInit': 23.9, 'tWallInit': 11.3},
-                                'Building_model__B002': {'tDistributionInit': 27.3, 'tIndoorInit': 21.5, 'tWallInit': 17.8}
+                                'Building_model__B001': {'tDistributionInit': 25.1, 'tIndoorInit': 23.9,
+                                                         'tWallInit': 11.3},
+                                'Building_model__B002': {'tDistributionInit': 27.3, 'tIndoorInit': 21.5,
+                                                         'tWallInit': 17.8}
                                 }
         mpc = mpci.MpcHandler(prediction_window_in_hours=2, time_step_in_minutes=60,
                               nr_of_buildings=1)
@@ -300,8 +308,10 @@ class TestMpcHandler(_ut.TestCase):
                 {ent.CommonLabels.label_unique: 'shStorage__B001', 'initial capacity': 0.},
             ]),
             ent.NodeKeysOptional.building_model_parameters: _pd.DataFrame([
-                {ent.BuildingModelParameters.building_unique: 'Building_model__B001', 'tDistributionInit': 30.0, 'tIndoorInit': 22.0, 'tWallInit': 10.0},
-                {ent.BuildingModelParameters.building_unique: 'Building_model__B002', 'tDistributionInit': 29.0, 'tIndoorInit': 20.3, 'tWallInit': 13.0},
+                {ent.BuildingModelParameters.building_unique: 'Building_model__B001', 'tDistributionInit': 30.0,
+                 'tIndoorInit': 22.0, 'tWallInit': 10.0},
+                {ent.BuildingModelParameters.building_unique: 'Building_model__B002', 'tDistributionInit': 29.0,
+                 'tIndoorInit': 20.3, 'tWallInit': 13.0},
             ])
         }
         mpc.label_to_sheet = {'electricalStorage__B001': STORAGES_SHEET_NAME,
@@ -324,8 +334,10 @@ class TestMpcHandler(_ut.TestCase):
             errors.append(e)
 
         df_expected = _pd.DataFrame([
-             {ent.BuildingModelParameters.building_unique: 'Building_model__B001', 'tDistributionInit': 25.1, 'tIndoorInit': 23.9, 'tWallInit': 11.3},
-             {ent.BuildingModelParameters.building_unique: 'Building_model__B002', 'tDistributionInit': 27.3, 'tIndoorInit': 21.5, 'tWallInit': 17.8},
+            {ent.BuildingModelParameters.building_unique: 'Building_model__B001', 'tDistributionInit': 25.1,
+             'tIndoorInit': 23.9, 'tWallInit': 11.3},
+            {ent.BuildingModelParameters.building_unique: 'Building_model__B002', 'tDistributionInit': 27.3,
+             'tIndoorInit': 21.5, 'tWallInit': 17.8},
         ])
 
         try:
@@ -335,3 +347,20 @@ class TestMpcHandler(_ut.TestCase):
 
         if errors:
             raise ExceptionGroup(f"Found {len(errors)} issues", errors)
+
+    def test_get_desired_energy_flows(self):
+        desired_flows_with_new_names = {
+            "pv__B001__To__electricityProdBus__B001": "el_pv_produced",
+            "electricityBus__B001__To__excess_electricityBus": "el_to_grid",
+            "electricityProdBus__B001__To__electricalStorage__B001": "el_pv_to_battery",
+            "electricalStorage__B001__To__electricityBus__B001": "el_battery_discharge",
+            "electricityBus__B001__To__producedElectricity__B001": "el_produced",
+            "electricity_resource__B001__To__gridBus__B001": "el_from_grid",
+            "electricityInBus__B001__To__HP__B001": "HP_el_in",
+            "HP__B001__To__shSourceBus__B001": "HP_heat_out",
+            "shSourceBus__B001__To__shStorage__B001": "HP_to_TES",
+            "shSourceBus__B001__To__spaceHeatingBus__B001": "HP_to_demand",
+            "shStorage__B001__To__spaceHeatingBus__B001": "TES_to_demand",
+            "spaceHeatingBus__B001__To__spaceHeating__B001": "sh_delivered",
+        }
+        expected_energy_flows = _pd.DataFrame()
