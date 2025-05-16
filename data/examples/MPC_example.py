@@ -82,7 +82,7 @@ def define_desired_flows_and_their_new_names() -> dict[str, str]:
         "shSourceBus__B001__To__shStorage__B001": "HP_to_TES",
 
         # part of "HP_out" providing heat directly
-        "shSourceBus__B001__To__spaceHeatingBus__B001": "HP_to_demand",
+        "shSourceBus__B001__To__shSource__B001": "HP_to_demand",
 
         # heat demand supplied by the storage
         "shStorage__B001__To__spaceHeatingBus__B001": "TES_to_demand",

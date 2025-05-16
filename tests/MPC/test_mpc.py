@@ -354,7 +354,7 @@ class TestMpcHandler(_ut.TestCase):
             "a": _pd.DataFrame(columns=["1", "2", "3"]),
             "b": _pd.DataFrame(columns=["4", "5", "6"]),
             "c": _pd.DataFrame(columns=["7", "8", "9"]),
-                   }
+        }
         expected_label_to_sheet = {
             "1": "a",
             "2": "a",
@@ -372,6 +372,30 @@ class TestMpcHandler(_ut.TestCase):
 
         self.assertDictEqual(flow_label_to_sheet, expected_label_to_sheet)
 
+    def test_rename_oemof_labels(self):
+        # TODO: docstring
+        # TODO: refactor
+        input_and_expected_names = {
+            "(('pv__Building1', 'electricityProdBus__Building1'), 'flow')": "pv__B001__To__electricityProdBus__B001",
+            "(('pv__Building567', 'electricityProdBus__Building567'), 'flow')": "pv__B567__To__electricityProdBus__B567",
+            "(('electricityBus__Building1', 'excesselectricityBus__Building1'), 'flow')": "electricityBus__B001__To__excesselectricityBus__B001",
+            "(('electricityProdBus__Building1', 'electricalStorage__Building1'), 'flow')": "electricityProdBus__B001__To__electricalStorage__B001",
+            "(('electricalStorage__Building1', 'electricityBus__Building1'), 'flow')": "electricalStorage__B001__To__electricityBus__B001",
+            "(('electricityBus__Building1', 'producedElectricity__Building1'), 'flow')": "electricityBus__B001__To__producedElectricity__B001",
+            "(('electricityResource__Building1', 'gridBus__Building1'), 'flow')": "electricityResource__B001__To__gridBus__B001",
+            "(('electricityInBus__Building1', 'HP__Building1'), 'flow')": "electricityInBus__B001__To__HP__B001",
+            "(('HP__Building1', 'shSourceBus__Building1'), 'flow')": "HP__B001__To__shSourceBus__B001",
+            "(('shSourceBus__Building1', 'shStorage__Building1'), 'flow')": "shSourceBus__B001__To__shStorage__B001",
+            "(('shSourceBus__Building1', 'shSource__Building1'), 'flow')": "shSourceBus__B001__To__shSource__B001",
+            "(('shStorage__Building1', 'spaceHeatingBus__Building1'), 'flow')": "shStorage__B001__To__spaceHeatingBus__B001",
+            "(('spaceHeatingBus__Building1', 'spaceHeating__Building1'), 'flow')": "spaceHeatingBus__B001__To__spaceHeating__B001",
+        }
+        input_names = list(input_and_expected_names.keys())
+        input_names += ["storage_content",  # TODO: check whether this should become "sh_storage_content"
+                        "some_flow_to_be_ignored"]
+        rename_dict = mpci.MpcHandler.rename_oemof_labels(input_names)
+
+        self.assertDictEqual(rename_dict, input_and_expected_names)
 
     @_pt.mark.manual
     def test_get_desired_energy_flows(self):
@@ -380,15 +404,15 @@ class TestMpcHandler(_ut.TestCase):
         """
         desired_flows_with_new_names = {
             "pv__B001__To__electricityProdBus__B001": "el_pv_produced",
-            "electricityBus__B001__To__excess_electricityBus": "el_to_grid",
+            "electricityBus__B001__To__excesselectricityBus__B001": "el_to_grid",
             "electricityProdBus__B001__To__electricalStorage__B001": "el_pv_to_battery",
             "electricalStorage__B001__To__electricityBus__B001": "el_battery_discharge",
             "electricityBus__B001__To__producedElectricity__B001": "el_produced",
-            "electricity_resource__B001__To__gridBus__B001": "el_from_grid",
+            "electricityResource__B001__To__gridBus__B001": "el_from_grid",
             "electricityInBus__B001__To__HP__B001": "HP_el_in",
             "HP__B001__To__shSourceBus__B001": "HP_heat_out",
             "shSourceBus__B001__To__shStorage__B001": "HP_to_TES",
-            "shSourceBus__B001__To__spaceHeatingBus__B001": "HP_to_demand",
+            "shSourceBus__B001__To__shSource__B001": "HP_to_demand",
             "shStorage__B001__To__spaceHeatingBus__B001": "TES_to_demand",
             "spaceHeatingBus__B001__To__spaceHeating__B001": "sh_delivered",
         }
@@ -410,7 +434,8 @@ class TestMpcHandler(_ut.TestCase):
             index=_pd.date_range("2018-01-01 00:00:00", "2018-01-02 00:00:00", freq="60min"),
         )
 
-        _input_data_path = _pl.Path(__file__).parent / "expected_files" / "results_MPC_example_2018_01_01__00_00_00.xlsx"
+        _input_data_path = _pl.Path(
+            __file__).parent / "expected_files" / "results_MPC_example_2018_01_01__00_00_00.xlsx"
         data = _pd.ExcelFile(str(_input_data_path))
         results = {}
         for sheet in data.sheet_names:
@@ -422,5 +447,3 @@ class TestMpcHandler(_ut.TestCase):
         energy_flows = mpc.get_desired_energy_flows(results, desired_flows_with_new_names)
 
         _pd.testing.assert_frame_equal(energy_flows, expected_energy_flows)
-
-

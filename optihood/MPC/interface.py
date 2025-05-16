@@ -1,6 +1,7 @@
 import abc as _abc
 import copy as _cp
 import pathlib as _pl
+import re
 
 import pandas as _pd
 
@@ -267,13 +268,63 @@ class MpcHandler:
         # TODO: label to results sheet.
         # TODO: get optihood name into new df
         # TODO: rename optihood name to desired name
-        energy_flows = _pd.DataFrame()
+        results = self.rename_oemof_labels(results)
         flow_label_to_sheet = self.get_flow_label_to_sheet(results)
+        energy_flows = _pd.DataFrame()
         for flow_label, new_label in desired_flows_with_new_names:
             sheet = flow_label_to_sheet[flow_label]
             energy_flows[new_label] = results[sheet][flow_label]
 
         return energy_flows
+
+    def rename_result_labels(self, results: dict[str: _pd.DataFrame]) -> dict[str: _pd.DataFrame]:
+        """
+        Renames: (('electricityInBus__Building1', 'HP__Building1'), 'flow')
+        To: electricityInBus__B001__To__HP__B001
+        """
+        for sheet, df in results.items():
+            rename_dict = self.rename_oemof_labels(df.columns)
+            df.rename(columns=rename_dict)
+
+        return results
+
+    @staticmethod
+    def rename_oemof_labels(columns) -> dict[str, str]:
+        """
+        Renames: (('electricityInBus__Building1', 'HP__Building1'), 'flow')
+        To: electricityInBus__B001__To__HP__B001
+        """
+        # TODO: find a better place for this, as it should be used in the new results data class.
+        rename_dict = {}
+        for column in columns:
+            if "'flow'" not in column:
+                """Leave the column out, and it will stay the same."""
+                continue
+            parts = column.split(',')
+            from_node = (
+                parts[0].replace("((", "")
+                        .replace("'", "")
+            )
+            match = re.search(r"Building(\d+)", from_node)
+            if match:
+                building_nr = match.group(1)
+                from_node = from_node.replace(f"uilding{building_nr}", f'{str(building_nr).zfill(3)}')
+
+            to_node = (
+                parts[1].replace(')', "")
+                        .replace("'", "")
+                        .replace(" ", "")
+            )
+            match = re.search(r"Building(\d+)", to_node)
+            if match:
+                building_nr = match.group(1)
+                to_node = to_node.replace(f"uilding{building_nr}", f'{str(building_nr).zfill(3)}')
+
+            new_name = f"{from_node}__To__{to_node}"
+            rename_dict[column] = new_name
+
+        return rename_dict
+
 
     @staticmethod
     def get_flow_label_to_sheet(results):
