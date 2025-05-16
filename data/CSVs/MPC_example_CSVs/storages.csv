@@ -1,3 +1,3 @@
 label,building,active,from,to,efficiency inflow,efficiency outflow,initial capacity,capacity min,capacity max,capacity loss,lifetime,maintenance,installation,planification,invest_base,invest_cap,heat_impact,elec_impact,impact_cap
-electricalStorage,1,1,electricityProdBus,electricityBus,0.9,0.86,0,0,200,0,15,0.05,0.15,0.05,229.55,568.18,0,0,206.78
-shStorage,1,1,shSourceBus,spaceHeatingBus, , ,0,0,4500, ,20,0.05,0.15,0.05,1208,1.36,0,0,0.09945
+electricalStorage,1,1,electricityProdBus,electricityBus,0.9,0.86,0,200,200,0,15,0.05,0.15,0.05,229.55,568.18,0,0,206.78
+shStorage,1,1,shSourceBus,spaceHeatingBus, , ,0,4500,4500, ,20,0.05,0.15,0.05,1208,1.36,0,0,0.09945
