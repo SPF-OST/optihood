@@ -33,8 +33,17 @@ class CsvReader:
         return df
 
     @staticmethod
+    def safe_to_numeric(value):
+        # TODO: cleanup differing versions.
+        try:
+            return _pd.to_numeric(value)
+        except (ValueError, TypeError):
+            return value
+          
+    @staticmethod
     def make_nrs_numeric_current(df: _pd.DataFrame, column_name: str) -> None:
         df[column_name] = df[column_name].apply(_pd.to_numeric, errors="ignore")
+        # df[column_name] = df[column_name].apply(CsvReader.safe_to_numeric)
 
     @staticmethod
     def make_nrs_numeric_without_future_warning(df: _pd.DataFrame, column_name: str) -> None:
