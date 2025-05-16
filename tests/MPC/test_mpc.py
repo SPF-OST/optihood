@@ -366,17 +366,27 @@ class TestMpcHandler(_ut.TestCase):
         }
         expected_energy_flows = _pd.DataFrame(
             {
-            "el_pv_produced": [],
-            "el_to_grid": [],
-            "el_pv_to_battery": [],
-            "el_battery_discharge": [],
-            "el_produced": [],
-            "el_from_grid": [],
-            "HP_el_in": [],
-            "HP_heat_out": [],
-            "HP_to_TES": [],
-            "HP_to_demand": [],
-            "TES_to_demand": [],
-            "sh_delivered": [],
-        }
+                "el_pv_produced": [],
+                "el_to_grid": [],
+                "el_pv_to_battery": [],
+                "el_battery_discharge": [],
+                "el_produced": [],
+                "el_from_grid": [],
+                "HP_el_in": [],
+                "HP_heat_out": [],
+                "HP_to_TES": [],
+                "HP_to_demand": [],
+                "TES_to_demand": [],
+                "sh_delivered": [],
+            }
         )
+
+        # TODO: read results from expected file
+
+        # TODO: initialize mpc handler
+
+        # energy_flows = mpc.get_desired_energy_flows(results, desired_flows_with_new_names)
+
+        # TODO: assert things.
+
+
