@@ -262,8 +262,26 @@ class MpcHandler:
 
         return nodal_data
 
-    def get_desired_energy_flows(self, results, desired_flows_with_new_names):
-        raise NotImplementedError
+    def get_desired_energy_flows(self, results: dict[str: _pd.DataFrame], desired_flows_with_new_names: dict[str, str]) -> _pd.DataFrame:
+        # TODO: rename oemof to optihood
+        # TODO: label to results sheet.
+        # TODO: get optihood name into new df
+        # TODO: rename optihood name to desired name
+        energy_flows = _pd.DataFrame()
+        flow_label_to_sheet = self.get_flow_label_to_sheet(results)
+        for flow_label, new_label in desired_flows_with_new_names:
+            sheet = flow_label_to_sheet[flow_label]
+            energy_flows[new_label] = results[sheet][flow_label]
+
+        return energy_flows
+
+    @staticmethod
+    def get_flow_label_to_sheet(results):
+        flow_label_to_sheet = {}
+        for sheet, df in results.items():
+            current_labels = df.columns
+            [flow_label_to_sheet.update({label: sheet}) for label in current_labels]
+        return flow_label_to_sheet
 
     def set_network_parameters(self, param1, param2):
         # More difficult than using network interface directly...

@@ -1,7 +1,8 @@
+import pathlib as _pl
 import unittest as _ut
-import pytest as _pt
 
 import pandas as _pd
+import pytest as _pt
 
 import optihood.MPC.interface as mpci
 import optihood.entities as ent
@@ -348,8 +349,35 @@ class TestMpcHandler(_ut.TestCase):
         if errors:
             raise ExceptionGroup(f"Found {len(errors)} issues", errors)
 
+    def test_get_flow_label_to_sheet(self):
+        results = {
+            "a": _pd.DataFrame(columns=["1", "2", "3"]),
+            "b": _pd.DataFrame(columns=["4", "5", "6"]),
+            "c": _pd.DataFrame(columns=["7", "8", "9"]),
+                   }
+        expected_label_to_sheet = {
+            "1": "a",
+            "2": "a",
+            "3": "a",
+            "4": "b",
+            "5": "b",
+            "6": "b",
+            "7": "c",
+            "8": "c",
+            "9": "c",
+        }
+        mpc = mpci.MpcHandler(prediction_window_in_hours=2, time_step_in_minutes=60,
+                              nr_of_buildings=1)
+        flow_label_to_sheet = mpc.get_flow_label_to_sheet(results)
+
+        self.assertDictEqual(flow_label_to_sheet, expected_label_to_sheet)
+
+
     @_pt.mark.manual
     def test_get_desired_energy_flows(self):
+        """Unit test.
+        This method should both rename the columns and collect the desired ones into a single data structure.
+        """
         desired_flows_with_new_names = {
             "pv__B001__To__electricityProdBus__B001": "el_pv_produced",
             "electricityBus__B001__To__excess_electricityBus": "el_to_grid",
@@ -378,15 +406,21 @@ class TestMpcHandler(_ut.TestCase):
                 "HP_to_demand": [],
                 "TES_to_demand": [],
                 "sh_delivered": [],
-            }
+            },
+            index=_pd.date_range("2018-01-01 00:00:00", "2018-01-02 00:00:00", freq="60min"),
         )
 
-        # TODO: read results from expected file
+        _input_data_path = _pl.Path(__file__).parent / "expected_files" / "results_MPC_example_2018_01_01__00_00_00.xlsx"
+        data = _pd.ExcelFile(str(_input_data_path))
+        results = {}
+        for sheet in data.sheet_names:
+            results[sheet] = data.sheet_names(sheet)
+        data.close()
 
-        # TODO: initialize mpc handler
+        mpc = mpci.MpcHandler(prediction_window_in_hours=2, time_step_in_minutes=60,
+                              nr_of_buildings=1)
+        energy_flows = mpc.get_desired_energy_flows(results, desired_flows_with_new_names)
 
-        # energy_flows = mpc.get_desired_energy_flows(results, desired_flows_with_new_names)
-
-        # TODO: assert things.
+        _pd.testing.assert_frame_equal(energy_flows, expected_energy_flows)
 
 
