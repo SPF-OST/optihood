@@ -1,7 +1,6 @@
 import abc as _abc
 import copy as _cp
 import pathlib as _pl
-import typing as _tp
 
 import pandas as _pd
 
@@ -145,26 +144,22 @@ class BuildingMPC(MpcComponentBasic):
         return initial_state
 
 
-MPC_COMPONENTS: list[type[MpcComponentBasic]] = [
-    StoragesMPC,
-    IceStorageMPC,
-]
+def get_MPC_components_minimal():
+    MPC_COMPONENTS: list[type[MpcComponentBasic]] = [
+        StoragesMPC,
+        IceStorageMPC,
+    ]
+    return MPC_COMPONENTS
 
 
 def prep_mpc_inputs(nodal_data: dict[str, _pd.DataFrame],
-                    building_model_parameters: _tp.Optional[_pd.DataFrame] = None) -> tuple[dict, dict]:
-
+                    building_model_parameters: _pd.DataFrame | None = None,
+                    get_mpc_components=get_MPC_components_minimal
+                    ) -> tuple[dict, dict]:
+    MPC_COMPONENTS = get_mpc_components()
     initial_state_with_all_configurable_options = {}
     label_to_sheet = {}
     if building_model_parameters is not None:
-        print("")
-        print("")
-        print("")
-        print(building_model_parameters)
-        print("")
-        print("")
-        print("")
-        print("")
         MPC_COMPONENTS.append(BuildingMPC)
         nodal_data[_ent.NodeKeysOptional.building_model_parameters] = building_model_parameters
 
@@ -245,8 +240,9 @@ class MpcHandler:
     def get_mpc_scenario_from_csv(self, input_folder_path: _pl.Path) -> dict[str, dict[str, float]]:
         csvReader = _re.CsvScenarioReader(input_folder_path)
         nodal_data = csvReader.read_scenario()
-        self.nodal_data = _re.add_unique_label_columns(nodal_data)
-        system_state, label_to_sheet = prep_mpc_inputs(self.nodal_data, building_model_parameters=None)
+        nodal_data = _re.add_unique_label_columns(nodal_data)
+        system_state, label_to_sheet = prep_mpc_inputs(nodal_data, building_model_parameters=None)
+        self.nodal_data = nodal_data
         self.label_to_sheet = label_to_sheet
 
         return system_state
