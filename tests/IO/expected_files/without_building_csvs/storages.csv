@@ -1,0 +1,13 @@
+label,building,active,from,to,efficiency inflow,efficiency outflow,initial capacity,capacity min,capacity max,capacity loss,lifetime,maintenance,installation,planification,invest_base,invest_cap,heat_impact,elec_impact,impact_cap,label_unique,from_unique,to_unique
+electricalStorage,1,1,electricityProdBus,electricityBus,0.9,0.86,0,0,200,0,15,0.05,0.15,0.05,229.55,568.18,0,0,206.78,electricalStorage__B001,['electricityProdBus__B001'],['electricityBus__B001']
+shStorage,1,1,shSourceBus,spaceHeatingBus, , ,0,0,4500, ,20,0.05,0.15,0.05,1208.0,1.36,0,0,0.09945,shStorage__B001,['shSourceBus__B001'],['spaceHeatingBus__B001']
+dhwStorage,1,1,dhwStorageBus,domesticHotWaterBus, , ,0,0,4500, ,20,0.05,0.15,0.05,1777.0,5.74,0,0,0.0442,dhwStorage__B001,['dhwStorageBus__B001'],['domesticHotWaterBus__B001']
+electricalStorage,2,1,electricityProdBus,electricityBus,0.9,0.86,0,0,200,0,15,0.05,0.15,0.05,229.55,568.18,0,0,206.78,electricalStorage__B002,['electricityProdBus__B002'],['electricityBus__B002']
+shStorage,2,1,shSourceBus,spaceHeatingBus, , ,0,0,4500, ,20,0.05,0.15,0.05,1208.0,1.36,0,0,0.09945,shStorage__B002,['shSourceBus__B002'],['spaceHeatingBus__B002']
+dhwStorage,2,1,dhwStorageBus,domesticHotWaterBus, , ,0,0,4500, ,20,0.05,0.15,0.05,1777.0,5.74,0,0,0.0442,dhwStorage__B002,['dhwStorageBus__B002'],['domesticHotWaterBus__B002']
+electricalStorage,3,1,electricityProdBus,electricityBus,0.9,0.86,0,0,200,0,15,0.05,0.15,0.05,229.55,568.18,0,0,206.78,electricalStorage__B003,['electricityProdBus__B003'],['electricityBus__B003']
+shStorage,3,1,shSourceBus,spaceHeatingBus, , ,0,0,4500, ,20,0.05,0.15,0.05,1208.0,1.36,0,0,0.09945,shStorage__B003,['shSourceBus__B003'],['spaceHeatingBus__B003']
+dhwStorage,3,1,dhwStorageBus,domesticHotWaterBus, , ,0,0,4500, ,20,0.05,0.15,0.05,1777.0,5.74,0,0,0.0442,dhwStorage__B003,['dhwStorageBus__B003'],['domesticHotWaterBus__B003']
+electricalStorage,4,1,electricityProdBus,electricityBus,0.9,0.86,0,0,200,0,15,0.05,0.15,0.05,229.55,568.18,0,0,206.78,electricalStorage__B004,['electricityProdBus__B004'],['electricityBus__B004']
+shStorage,4,1,shSourceBus,spaceHeatingBus, , ,0,0,4500, ,20,0.05,0.15,0.05,1208.0,1.36,0,0,0.09945,shStorage__B004,['shSourceBus__B004'],['spaceHeatingBus__B004']
+dhwStorage,4,1,dhwStorageBus,domesticHotWaterBus, , ,0,0,4500, ,20,0.05,0.15,0.05,1777.0,5.74,0,0,0.0442,dhwStorage__B004,['dhwStorageBus__B004'],['domesticHotWaterBus__B004']

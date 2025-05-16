@@ -1,0 +1,9 @@
+label,building,to,variable costs,CO2 impact,active,label_unique,to_unique
+naturalGasResource,1,naturalGasBus,0.087,0.228,1,naturalGasResource__B001,['naturalGasBus__B001']
+electricityResource,1,gridBus,0.204,..\excels\basic_example\electricity_impact.csv,1,electricityResource__B001,['gridBus__B001']
+naturalGasResource,2,naturalGasBus,0.087,0.228,1,naturalGasResource__B002,['naturalGasBus__B002']
+electricityResource,2,gridBus,0.204,..\excels\basic_example\electricity_impact.csv,1,electricityResource__B002,['gridBus__B002']
+naturalGasResource,3,naturalGasBus,0.087,0.228,1,naturalGasResource__B003,['naturalGasBus__B003']
+electricityResource,3,gridBus,0.204,..\excels\basic_example\electricity_impact.csv,1,electricityResource__B003,['gridBus__B003']
+naturalGasResource,4,naturalGasBus,0.087,0.228,1,naturalGasResource__B004,['naturalGasBus__B004']
+electricityResource,4,gridBus,0.204,..\excels\basic_example\electricity_impact.csv,1,electricityResource__B004,['gridBus__B004']
