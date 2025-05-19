@@ -1,13 +1,13 @@
 import abc as _abc
 import copy as _cp
 import pathlib as _pl
-import re
+import re as _re
 
 import pandas as _pd
 
 import optihood.energy_network as en
 import optihood.entities as _ent
-from optihood.IO import readers as _re
+from optihood.IO import readers as re
 from optihood.Visualizer import convert_scenario as _cs, visualizer_app as _va
 from optihood.energy_network import OptimizationProperties, EnergyNetworkIndiv as EnergyNetwork
 
@@ -239,9 +239,9 @@ class MpcHandler:
         return network
 
     def get_mpc_scenario_from_csv(self, input_folder_path: _pl.Path) -> dict[str, dict[str, float]]:
-        csvReader = _re.CsvScenarioReader(input_folder_path)
+        csvReader = re.CsvScenarioReader(input_folder_path)
         nodal_data = csvReader.read_scenario()
-        nodal_data = _re.add_unique_label_columns(nodal_data)
+        nodal_data = re.add_unique_label_columns(nodal_data)
         system_state, label_to_sheet = prep_mpc_inputs(nodal_data, building_model_parameters=None)
         self.nodal_data = nodal_data
         self.label_to_sheet = label_to_sheet
@@ -264,13 +264,10 @@ class MpcHandler:
         return nodal_data
 
     def get_desired_energy_flows(self, results: dict[str: _pd.DataFrame], desired_flows_with_new_names: dict[str, str]) -> _pd.DataFrame:
-        # TODO: rename oemof to optihood
-        # TODO: label to results sheet.
-        # TODO: get optihood name into new df
-        # TODO: rename optihood name to desired name
         results = self.rename_result_labels(results)
         flow_label_to_sheet = self.get_flow_label_to_sheet(results)
-        energy_flows = _pd.DataFrame()
+        index = self.get_date_time_index(results)
+        energy_flows = _pd.DataFrame(index=index)
         for flow_label, new_label in desired_flows_with_new_names.items():
             sheet = flow_label_to_sheet[flow_label]
             energy_flows[new_label] = results[sheet][flow_label]
@@ -322,7 +319,7 @@ class MpcHandler:
             .replace("'", "")
             .replace(" ", "")
         )
-        match = re.search(r"Building(\d+)", node_name)
+        match = _re.search(r"Building(\d+)", node_name)
         if match:
             building_nr = match.group(1)
             node_name = node_name.replace(f"uilding{building_nr}", f'{str(building_nr).zfill(3)}')
@@ -335,6 +332,20 @@ class MpcHandler:
             current_labels = df.columns
             [flow_label_to_sheet.update({label: sheet}) for label in current_labels]
         return flow_label_to_sheet
+
+    @staticmethod
+    def get_date_time_index(results: dict[str: _pd.DataFrame]) -> _pd.DatetimeIndex:
+        index = None
+        for sheet, df in results.items():
+            match = _re.search("Bus__", sheet)
+            if match:
+                index = df.index
+                break
+
+        if isinstance(index, _pd.DatetimeIndex):
+            return index
+
+        raise ValueError("No DateTimeIndex found in results.")
 
     def set_network_parameters(self, param1, param2):
         # More difficult than using network interface directly...
