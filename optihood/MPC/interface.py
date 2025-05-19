@@ -293,6 +293,11 @@ class MpcHandler:
         """
         Renames: (('electricityInBus__Building1', 'HP__Building1'), 'flow')
         To: electricityInBus__B001__To__HP__B001
+
+        Ignores anything without 'flow', e.g.
+        - "storage_content"
+        - "some_flow_to_be_ignored"
+
         """
         # TODO: find a better place for this, as it should be used in the new results data class.
         rename_dict = {}
@@ -301,30 +306,27 @@ class MpcHandler:
                 """Leave the column out, and it will stay the same."""
                 continue
             parts = column.split(',')
-            from_node = (
-                parts[0].replace("((", "")
-                        .replace("'", "")
-            )
-            match = re.search(r"Building(\d+)", from_node)
-            if match:
-                building_nr = match.group(1)
-                from_node = from_node.replace(f"uilding{building_nr}", f'{str(building_nr).zfill(3)}')
-
-            to_node = (
-                parts[1].replace(')', "")
-                        .replace("'", "")
-                        .replace(" ", "")
-            )
-            match = re.search(r"Building(\d+)", to_node)
-            if match:
-                building_nr = match.group(1)
-                to_node = to_node.replace(f"uilding{building_nr}", f'{str(building_nr).zfill(3)}')
+            from_node = MpcHandler.rename_node(parts[0])
+            to_node = MpcHandler.rename_node(parts[1])
 
             new_name = f"{from_node}__To__{to_node}"
             rename_dict[column] = new_name
 
         return rename_dict
 
+    @staticmethod
+    def rename_node(part: str) -> str:
+        node_name = (
+            part.replace("((", "")
+            .replace(")", "")
+            .replace("'", "")
+            .replace(" ", "")
+        )
+        match = re.search(r"Building(\d+)", node_name)
+        if match:
+            building_nr = match.group(1)
+            node_name = node_name.replace(f"uilding{building_nr}", f'{str(building_nr).zfill(3)}')
+        return node_name
 
     @staticmethod
     def get_flow_label_to_sheet(results):

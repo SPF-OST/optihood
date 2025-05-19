@@ -373,8 +373,13 @@ class TestMpcHandler(_ut.TestCase):
         self.assertDictEqual(flow_label_to_sheet, expected_label_to_sheet)
 
     def test_rename_oemof_labels(self):
-        # TODO: docstring
-        # TODO: refactor
+        """Unit test
+        Describes the expected labels from oemof and the expected behavior for the renaming.
+
+        The dictionary includes the names that should be renamed.
+        The other names added to the input_names should be ignored by the renaming, which is why they are not
+        added to the initial dictionary.
+        """
         input_and_expected_names = {
             "(('pv__Building1', 'electricityProdBus__Building1'), 'flow')": "pv__B001__To__electricityProdBus__B001",
             "(('pv__Building567', 'electricityProdBus__Building567'), 'flow')": "pv__B567__To__electricityProdBus__B567",
@@ -418,18 +423,18 @@ class TestMpcHandler(_ut.TestCase):
         }
         expected_energy_flows = _pd.DataFrame(
             {
-                "el_pv_produced": [],
-                "el_to_grid": [],
-                "el_pv_to_battery": [],
-                "el_battery_discharge": [],
-                "el_produced": [],
-                "el_from_grid": [],
-                "HP_el_in": [],
-                "HP_heat_out": [],
-                "HP_to_TES": [],
-                "HP_to_demand": [],
-                "TES_to_demand": [],
-                "sh_delivered": [],
+                "el_pv_produced": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+                "el_to_grid": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+                "el_pv_to_battery": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+                "el_battery_discharge": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+                "el_produced": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+                "el_from_grid": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+                "HP_el_in": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+                "HP_heat_out": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+                "HP_to_TES": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+                "HP_to_demand": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+                "TES_to_demand": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+                "sh_delivered": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
             },
             index=_pd.date_range("2018-01-01 00:00:00", "2018-01-02 00:00:00", freq="60min"),
         )
