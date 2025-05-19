@@ -268,10 +268,10 @@ class MpcHandler:
         # TODO: label to results sheet.
         # TODO: get optihood name into new df
         # TODO: rename optihood name to desired name
-        results = self.rename_oemof_labels(results)
+        results = self.rename_result_labels(results)
         flow_label_to_sheet = self.get_flow_label_to_sheet(results)
         energy_flows = _pd.DataFrame()
-        for flow_label, new_label in desired_flows_with_new_names:
+        for flow_label, new_label in desired_flows_with_new_names.items():
             sheet = flow_label_to_sheet[flow_label]
             energy_flows[new_label] = results[sheet][flow_label]
 
@@ -284,7 +284,7 @@ class MpcHandler:
         """
         for sheet, df in results.items():
             rename_dict = self.rename_oemof_labels(df.columns)
-            df.rename(columns=rename_dict)
+            df.rename(columns=rename_dict, inplace=True)
 
         return results
 
@@ -302,7 +302,7 @@ class MpcHandler:
         # TODO: find a better place for this, as it should be used in the new results data class.
         rename_dict = {}
         for column in columns:
-            if "'flow'" not in column:
+            if isinstance(column, int) or "'flow'" not in column:
                 """Leave the column out, and it will stay the same."""
                 continue
             parts = column.split(',')

@@ -397,7 +397,10 @@ class TestMpcHandler(_ut.TestCase):
         }
         input_names = list(input_and_expected_names.keys())
         input_names += ["storage_content",  # TODO: check whether this should become "sh_storage_content"
-                        "some_flow_to_be_ignored"]
+                        "some_flow_to_be_ignored",
+                        0,
+                        42,
+                        ]
         rename_dict = mpci.MpcHandler.rename_oemof_labels(input_names)
 
         self.assertDictEqual(rename_dict, input_and_expected_names)
@@ -444,7 +447,7 @@ class TestMpcHandler(_ut.TestCase):
         data = _pd.ExcelFile(str(_input_data_path))
         results = {}
         for sheet in data.sheet_names:
-            results[sheet] = data.sheet_names(sheet)
+            results[sheet] = data.parse(sheet)
         data.close()
 
         mpc = mpci.MpcHandler(prediction_window_in_hours=2, time_step_in_minutes=60,
