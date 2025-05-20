@@ -401,6 +401,7 @@ class TestMpcHandler(_ut.TestCase):
                         0,  # This occurs in the capacity sheets and should be fixed at a different level.
                         42,
                         ]
+
         rename_dict = mpci.MpcHandler.rename_oemof_labels(input_names)
 
         self.assertDictEqual(rename_dict, input_and_expected_names)

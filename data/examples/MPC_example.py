@@ -54,7 +54,7 @@ def define_desired_flows_and_their_new_names() -> dict[str, str]:
         "pv__B001__To__electricityProdBus__B001": "el_pv_produced",
 
         # surplus PV electricity exported to the grid
-        "electricityBus__B001__To__excess_electricityBus": "el_to_grid",
+        "electricityBus__B001__To__excesselectricityBus__B001": "el_to_grid",
 
         # PV electricity stored in the battery
         "electricityProdBus__B001__To__electricalStorage__B001": "el_pv_to_battery",
@@ -66,7 +66,7 @@ def define_desired_flows_and_their_new_names() -> dict[str, str]:
         "electricityBus__B001__To__producedElectricity__B001": "el_produced",
 
         # electricity taken from the grid for own consumption in this timestep
-        "electricity_resource__B001__To__gridBus__B001": "el_from_grid",
+        "electricityResource__B001__To__gridBus__B001": "el_from_grid",
 
         # electricity flowing into the heat pump
         "electricityInBus__B001__To__HP__B001": "HP_el_in",
@@ -99,10 +99,10 @@ def translate_flows_to_control_signals(energy_flows):
     These need to be translated to e.g. pumping rates, valve positions, etc.
     For this example, we will ignore this step.
     """
-    control_signals = _pd.DataFrame(0, index=energy_flows.index)
+    control_signals = _pd.DataFrame(index=energy_flows.index)
 
     # Get a True/False boolean for each time step, where the HP produces heat.
-    HP_out = energy_flows["HP_out"] > 1e-4
+    HP_out = energy_flows["HP_heat_out"] > 1e-4
 
     # Apply this on both the HP and the pump supplying fluid to the HP.
     control_signals["HP_is_on"] = HP_out
@@ -207,11 +207,11 @@ if __name__ == '__main__':
         result_file_path = result_dir_path / f"{result_file_name}_{current_time_step.strftime("%Y_%m_%d__%H_%M_%S")}.xlsx"
         network.exportToExcel(result_file_path)
 
-        # energy_flows = mpc.get_desired_energy_flows(results, desired_flows_with_new_names)
+        energy_flows = mpc.get_desired_energy_flows(results, desired_flows_with_new_names)
 
         # ===============
         # responsibility of the User.
-        # control_signals = translate_flows_to_control_signals(energy_flows)
-        # control_system(control_signals)
+        control_signals = translate_flows_to_control_signals(energy_flows)
+        control_system(control_signals)
         # ===============
 

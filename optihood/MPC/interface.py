@@ -280,13 +280,14 @@ class MpcHandler:
         To: electricityInBus__B001__To__HP__B001
         """
         for sheet, df in results.items():
+            df.columns = [str(column) for column in df.columns]
             rename_dict = self.rename_oemof_labels(df.columns)
             df.rename(columns=rename_dict, inplace=True)
 
         return results
 
     @staticmethod
-    def rename_oemof_labels(columns) -> dict[str, str]:
+    def rename_oemof_labels(columns: list[str]) -> dict[str, str]:
         """
         Renames: (('electricityInBus__Building1', 'HP__Building1'), 'flow')
         To: electricityInBus__B001__To__HP__B001
@@ -299,6 +300,7 @@ class MpcHandler:
         # TODO: find a better place for this, as it should be used in the new results data class.
         rename_dict = {}
         for column in columns:
+            column = str(column)
             if isinstance(column, int) or "'flow'" not in column:
                 """Leave the column out, and it will stay the same."""
                 continue
