@@ -74,6 +74,7 @@ class TestMpcExample(_ut.TestCase):
 
             errors = []
 
+            # compare raw results.
             list_of_result_files = list(mpc_example.result_dir_path.glob("*.xlsx"))
             names_of_result_files = [f.name for f in list_of_result_files]
 
@@ -94,15 +95,37 @@ class TestMpcExample(_ut.TestCase):
                 except ExceptionGroup as e:
                     errors.append(e)
 
-            # TODO: compare input to translate_flows_to_control_signals using mock/patch
+            # compare desired energy flows.
+            list_of_result_files_csv = list(mpc_example.result_dir_path.glob("*.csv"))
+            names_of_result_files_csv = [f.name for f in list_of_result_files_csv]
+
+            try:
+                self.assertListEqual(names_of_result_files_csv, ["results_MPC_example_2018_01_01__00_00_00.csv",
+                                                                 "results_MPC_example_2018_01_01__01_00_00.csv",
+                                                                 "results_MPC_example_2018_01_01__02_00_00.csv",
+                                                                 ]
+                                     )
+            except Exception as e:
+                errors.append(e)
+
+            for results_file_path in list_of_result_files_csv:
+                expected_file_path = expected_files_dir / results_file_path.name
+                try:
+                    xlsh.compare_csv_files(results_file_path, expected_file_path, "energy_flows",
+                                           manual_test=show_differences, rel_tolerance=1.0)
+                except ExceptionGroup as e:
+                    errors.append(e)
+
             if errors and i == 0:
+                """Ignore the errors the first time around, in case the optimizer makes entirely different choices."""
                 continue
 
             elif errors and i == 1:
-                """Ignore the errors the first time around, in case the optimizer chose the 27% difference case."""
+                """Test fails as errors obtained in both runs."""
                 raise ExceptionGroup(f"Found {len(errors)} mismatched prediction windows", errors)
 
             else:
+                """Test passes if no errors found in the first run."""
                 break
 
 

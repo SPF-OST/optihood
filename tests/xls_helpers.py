@@ -48,13 +48,13 @@ def plot_dfs_and_differences(df_new: _pd.DataFrame, df_expected: _pd.DataFrame, 
 
 
 def compare_xls_files(
-    testCase: _ut.TestCase,
-    file_path: str,
-    file_path_expected: str,
-    sheet_names_expected: _tp.Sequence[str],
-    abs_tolerance: _tp.Optional[float] = None,
-    rel_tolerance: _tp.Optional[float] = None,
-    manual_test: bool = False,
+        testCase: _ut.TestCase,
+        file_path: _pl.Path,
+        file_path_expected: _pl.Path,
+        sheet_names_expected: _tp.Sequence[str],
+        abs_tolerance: _tp.Optional[float] = None,
+        rel_tolerance: _tp.Optional[float] = None,
+        manual_test: bool = False,
 ):
     """Used to provide better feedback when comparing xls files.
     Assembles all errors before raising them.
@@ -67,7 +67,6 @@ def compare_xls_files(
     """
     with _pd.ExcelFile(file_path) as data:
         with _pd.ExcelFile(file_path_expected) as expected_data:
-
             check_sheet_names(testCase, data, sheet_names_expected)
             errors = []
 
@@ -77,47 +76,74 @@ def compare_xls_files(
                 df_new = data.parse(sheet)
                 df_expected = expected_data.parse(sheet)
 
-                try:
-                    if abs_tolerance and rel_tolerance:
-                        _pd.testing.assert_frame_equal(df_new, df_expected, atol=abs_tolerance, rtol=rel_tolerance, check_exact=False)
-                    elif abs_tolerance:
-                        _pd.testing.assert_frame_equal(df_new, df_expected, atol=abs_tolerance, check_exact=False)
-                    elif rel_tolerance:
-                        _pd.testing.assert_frame_equal(df_new, df_expected, rtol=rel_tolerance, check_exact=False)
-                    else:
-                        _pd.testing.assert_frame_equal(df_new, df_expected, check_exact=True)
-                except AssertionError as current_error:
-                    """Optihood doesn't export the results in a consistent way.
-                    Therefore, this hack reorders the results.
-                    Instead, the export should be ordered consistently.
-                    """
-
-                    df_new = df_new.sort_values(by=[df_new.columns[0]], ignore_index=True)
-                    df_expected = df_expected.sort_values(by=[df_new.columns[0]], ignore_index=True)
-
-                    """ The dType of a column sometimes gets set to int instead of float. 
-                        This reduces the feedback of the test to a dType check.
-                        Ignoring the dType ensures better feedback.
-                    """
-                    try:
-                        if abs_tolerance and rel_tolerance:
-                            _pd.testing.assert_frame_equal(df_new, df_expected, atol=abs_tolerance, rtol=rel_tolerance, check_dtype=False, check_exact=False)
-                        elif abs_tolerance:
-                            _pd.testing.assert_frame_equal(df_new, df_expected, atol=abs_tolerance, check_dtype=False, check_exact=False)
-                        elif rel_tolerance:
-                            _pd.testing.assert_frame_equal(df_new, df_expected, rtol=rel_tolerance, check_dtype=False, check_exact=False)
-                        else:
-                            _pd.testing.assert_frame_equal(df_new, df_expected, check_dtype=False, check_exact=True)
-                    except AssertionError as current_error_2:
-                        errors.append(current_error)
-                        errors.append(current_error_2)
-                        if manual_test:
-                            """Plot differences in sheet to simplify comparison."""
-                            plot_dfs_and_differences(df_new, df_expected, sheet)
+                compare_dataframes(abs_tolerance, df_expected, df_new, errors, manual_test, rel_tolerance, sheet)
     if errors:
         if manual_test:
             _plt.show(block=True)
         raise ExceptionGroup(f"found {len(errors)} errors in {file_path}", errors)
+
+
+def compare_csv_files(file_path: _pl.Path,
+                      file_path_expected: _pl.Path,
+                      name_for_df: str,
+                      abs_tolerance: _tp.Optional[float] = None,
+                      rel_tolerance: _tp.Optional[float] = None,
+                      manual_test: bool = False,
+                      ):
+    df_new = _pd.read_csv(file_path)
+    df_expected = _pd.read_csv(file_path_expected)
+
+    errors = []
+    compare_dataframes(abs_tolerance, df_expected, df_new, errors, manual_test, rel_tolerance, name_for_df)
+
+    if errors:
+        if manual_test:
+            _plt.show(block=True)
+        raise ExceptionGroup(f"found {len(errors)} errors in {file_path}", errors)
+
+
+def compare_dataframes(abs_tolerance, df_expected, df_new, errors, manual_test, rel_tolerance, sheet):
+    try:
+        if abs_tolerance and rel_tolerance:
+            _pd.testing.assert_frame_equal(df_new, df_expected, atol=abs_tolerance, rtol=rel_tolerance,
+                                           check_exact=False)
+        elif abs_tolerance:
+            _pd.testing.assert_frame_equal(df_new, df_expected, atol=abs_tolerance, check_exact=False)
+        elif rel_tolerance:
+            _pd.testing.assert_frame_equal(df_new, df_expected, rtol=rel_tolerance, check_exact=False)
+        else:
+            _pd.testing.assert_frame_equal(df_new, df_expected, check_exact=True)
+    except AssertionError as current_error:
+        """Optihood doesn't export the results in a consistent way.
+        Therefore, this hack reorders the results.
+        Instead, the export should be ordered consistently.
+        """
+
+        df_new = df_new.sort_values(by=[df_new.columns[0]], ignore_index=True)
+        df_expected = df_expected.sort_values(by=[df_new.columns[0]], ignore_index=True)
+
+        """ The dType of a column sometimes gets set to int instead of float. 
+            This reduces the feedback of the test to a dType check.
+            Ignoring the dType ensures better feedback.
+        """
+        try:
+            if abs_tolerance and rel_tolerance:
+                _pd.testing.assert_frame_equal(df_new, df_expected, atol=abs_tolerance, rtol=rel_tolerance,
+                                               check_dtype=False, check_exact=False)
+            elif abs_tolerance:
+                _pd.testing.assert_frame_equal(df_new, df_expected, atol=abs_tolerance, check_dtype=False,
+                                               check_exact=False)
+            elif rel_tolerance:
+                _pd.testing.assert_frame_equal(df_new, df_expected, rtol=rel_tolerance, check_dtype=False,
+                                               check_exact=False)
+            else:
+                _pd.testing.assert_frame_equal(df_new, df_expected, check_dtype=False, check_exact=True)
+        except AssertionError as current_error_2:
+            errors.append(current_error)
+            errors.append(current_error_2)
+            if manual_test:
+                """Plot differences in sheet to simplify comparison."""
+                plot_dfs_and_differences(df_new, df_expected, sheet)
 
 
 def check_assertion(testCase: _ut.TestCase, errors: list, actual, expected):
@@ -128,11 +154,11 @@ def check_assertion(testCase: _ut.TestCase, errors: list, actual, expected):
 
 
 def check_dataframe_assertion(
-    errors: list,
-    actual: _pd.DataFrame,
-    expected: _pd.DataFrame,
-    absolute_tolerance: float = None,
-    check_dtype: bool = True,
+        errors: list,
+        actual: _pd.DataFrame,
+        expected: _pd.DataFrame,
+        absolute_tolerance: float = None,
+        check_dtype: bool = True,
 ):
     try:
         if absolute_tolerance:

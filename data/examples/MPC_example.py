@@ -208,6 +208,7 @@ if __name__ == '__main__':
         network.exportToExcel(result_file_path)
 
         energy_flows = mpc.get_desired_energy_flows(results, desired_flows_with_new_names)
+        energy_flows.to_csv(result_file_path.with_suffix('.csv'))
 
         # ===============
         # responsibility of the User.
