@@ -1,0 +1,6 @@
+label,building,from,to,efficiency
+gridElectricity,1,gridBus,electricityInBus,1
+electricitySource,1,electricityProdBus,electricityBus,1
+producedElectricity,1,electricityBus,electricityInBus,1
+shSource,1,shSourceBus,spaceHeatingBus,1
+spaceHeating,1,spaceHeatingBus,shDemandBus,1

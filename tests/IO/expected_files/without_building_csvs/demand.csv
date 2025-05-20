@@ -1,0 +1,13 @@
+label,building,active,from,fixed,nominal value,building model,label_unique,from_unique
+electricityDemand,1,1,electricityInBus,1,1,,electricityDemand__B001,['electricityInBus__B001']
+spaceHeatingDemand,1,1,shDemandBus,1,1,,spaceHeatingDemand__B001,['shDemandBus__B001']
+domesticHotWaterDemand,1,1,dhwDemandBus,1,1,,domesticHotWaterDemand__B001,['dhwDemandBus__B001']
+electricityDemand,2,1,electricityInBus,1,1,,electricityDemand__B002,['electricityInBus__B002']
+spaceHeatingDemand,2,1,shDemandBus,1,1,,spaceHeatingDemand__B002,['shDemandBus__B002']
+domesticHotWaterDemand,2,1,dhwDemandBus,1,1,,domesticHotWaterDemand__B002,['dhwDemandBus__B002']
+electricityDemand,3,1,electricityInBus,1,1,,electricityDemand__B003,['electricityInBus__B003']
+spaceHeatingDemand,3,1,shDemandBus,1,1,,spaceHeatingDemand__B003,['shDemandBus__B003']
+domesticHotWaterDemand,3,1,dhwDemandBus,1,1,,domesticHotWaterDemand__B003,['dhwDemandBus__B003']
+electricityDemand,4,1,electricityInBus,1,1,,electricityDemand__B004,['electricityInBus__B004']
+spaceHeatingDemand,4,1,shDemandBus,1,1,,spaceHeatingDemand__B004,['shDemandBus__B004']
+domesticHotWaterDemand,4,1,dhwDemandBus,1,1,,domesticHotWaterDemand__B004,['dhwDemandBus__B004']
