@@ -458,4 +458,4 @@ class TestMpcHandler(_ut.TestCase):
                               nr_of_buildings=1)
         energy_flows = mpc.get_desired_energy_flows(results, desired_flows_with_new_names)
 
-        _pd.testing.assert_frame_equal(energy_flows, expected_energy_flows, check_dtype=False)
+        _pd.testing.assert_frame_equal(energy_flows, expected_energy_flows)
