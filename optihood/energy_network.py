@@ -1119,7 +1119,7 @@ class EnergyNetworkClass(solph.EnergySystem):
             print("************** Optimized Capacities the Network **************")
             for k,v in capacities_invested_pipes.items():
                 if v > 0.001:
-                    print("{:.1f} kW DH Pipe \033[3m {} \033[0m".format(v, k[0]))
+                    print("{:.2f} kW DH Pipe \033[3m {} \033[0m".format(v, k[0]))
             print("")
 
         # Building level technologies
