@@ -462,6 +462,11 @@ class EnergyNetworkClass(solph.EnergySystem):
                 self.__gbEff = data["transformers"][data["transformers"]["label"] == "GasBoiler"]["efficiency"].iloc[0]
             else:
                 self.__gbEff = float(data["transformers"][data["transformers"]["label"] == "GasBoiler"]["efficiency"].iloc[0].split(",")[0])
+        if any(data["transformers"]["label"] == "BiomassBoiler"):
+            if isinstance(data["transformers"][data["transformers"]["label"] == "BiomassBoiler"]["efficiency"].iloc[0], (int,float)):
+                self.__bbEff = data["transformers"][data["transformers"]["label"] == "BiomassBoiler"]["efficiency"].iloc[0]
+            else:
+                self.__bbEff = float(data["transformers"][data["transformers"]["label"] == "BiomassBoiler"]["efficiency"].iloc[0].split(",")[0])
         if any(data["transformers"][data["transformers"]["label"]=="ElectricRod"]["active"] == 1):
             self.__elRodEff = float(data["transformers"][data["transformers"]["label"] == "ElectricRod"]["efficiency"].iloc[0])
         if any(data["transformers"]["label"] == "Chiller"):
@@ -705,7 +710,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         return result
 
     def _updateCapacityDictInputInvestment(self, transformerFlowCapacityDict):
-        components = ["CHP", "GWHP", "HP", "GasBoiler", "ElectricRod", "Chiller"]
+        components = ["CHP", "GWHP", "HP", "GasBoiler", "BiomassBoiler", "ElectricRod", "Chiller"]
         for inflow, outflow in list(transformerFlowCapacityDict):
             index = (inflow, outflow)
             if "__" in str(inflow):
@@ -812,6 +817,15 @@ class EnergyNetworkClass(solph.EnergySystem):
                             if ("shSource" in t.label and not self._temperatureLevels) or ("heatStorageBus0" in t.label and self._temperatureLevels):
                                 capacitiesTransformers[(second, t.label)] = capacitiesTransformers[(
                                 first, second)] * self.__gbEff
+                                del capacitiesTransformers[(first, second)]
+            elif "BiomassBoiler" in second:
+                for index, value in enumerate(self.nodes):
+                    if second == value.label:
+                        test = self.nodes[index].conversion_factors
+                        for t in test.keys():
+                            if ("shSource" in t.label and not self._temperatureLevels) or ("heatStorageBus0" in t.label and self._temperatureLevels):
+                                capacitiesTransformers[(second, t.label)] = capacitiesTransformers[(
+                                first, second)] * self.__bbEff
                                 del capacitiesTransformers[(first, second)]
             elif "ElectricRod" in second:
                 for index, value in enumerate(self.nodes):
@@ -1179,6 +1193,12 @@ class EnergyNetworkClass(solph.EnergySystem):
                 if investSH > 0.05:
                     should_print_header = True
                     output_lines.append("{:.1f} kW GasBoiler.".format(investSH))
+
+            if ("BiomassBoiler__" + buildingLabel, shOutputLabel + buildingLabel) in capacitiesInvestedTransformers:
+                investSH = capacitiesInvestedTransformers["BiomassBoiler__" + buildingLabel, shOutputLabel + buildingLabel]
+                if investSH > 0.05:
+                    should_print_header = True
+                    output_lines.append("{:.1f} kW BiomassBoiler.".format(investSH))
 
             if ("heatSource_SHsolarCollector__" + buildingLabel,
                 "solarConnectBusSH__" + buildingLabel) in capacitiesInvestedTransformers:
