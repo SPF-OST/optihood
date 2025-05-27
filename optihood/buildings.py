@@ -668,7 +668,7 @@ class Building:
         label = data["label"] + '__' + self.__buildingLabel
         inputBusLabel = data["from"] + '__' + self.__buildingLabel
         outputBuses = [self.__busDict[o + '__' + self.__buildingLabel] for o in data["to"].split(",")]
-        efficiency = [float(e) for e in data["efficiency"].split(",")]
+        efficiency = [float(e) for e in str(data["efficiency"]).split(",")]
         envImpactPerCapacity = float(data["impact_cap"]) / float(data["lifetime"])
         if data["capacity_min"] == 'x':
             capacityMinSH = float(data["capacity_SH"])
