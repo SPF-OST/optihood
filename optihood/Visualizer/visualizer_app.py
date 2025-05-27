@@ -35,8 +35,8 @@ import optihood.Visualizer.convert_scenario as _cv
 def setup_cytoscape_app(graphData: _tp.Optional[_cv.EnergyNetworkGraphData] = None,
                         nodes: _tp.Optional[_tp.Dict[str, _tp.Dict[str, _tp.Union[str, float]]]] = None,
                         edges: _tp.Optional[_tp.Dict[str, _tp.Dict[str, _tp.Union[str, float]]]] = None,
-                        node_layout_file: _tp.Type[str] = 'saved_layout.json',
-                        layout_mode: _tp.Type[str] ='breadthfirst') -> dash.Dash:
+                        node_layout_file: str = 'saved_layout.json',
+                        layout_mode: str ='breadthfirst') -> dash.Dash:
     """
     This example comes directly from the Plotly homepage.
     http://dash.plotly.com/cytoscape/events
@@ -520,8 +520,8 @@ def run_fig_visualizer(figure_handle: plt.Figure) -> None:
 def run_cytoscape_visualizer(graphData: _tp.Optional[_cv.EnergyNetworkGraphData] = None,
                              nodes: _tp.Optional[_tp.Dict[str, _tp.Dict[str, _tp.Union[str, float]]]] = None,
                              edges: _tp.Optional[_tp.Dict[str, _tp.Dict[str, _tp.Union[str, float]]]] = None,
-                             node_layout_file: _tp.Type[str] = 'saved_layout.json',
-                             layout_mode: _tp.Type[str] ='breadthfirst') -> None:
+                             node_layout_file: str = 'saved_layout.json',
+                             layout_mode: str ='breadthfirst') -> None:
     app = setup_cytoscape_app(graphData, nodes, edges, node_layout_file, layout_mode)
     app.run_server(debug=True)
 
