@@ -54,10 +54,6 @@ def get_energy_type(label: str):
     if any(flag in label for flag in dhw_temp_grid_parts):
         return EnergyTypes.dhw_temp_grid
 
-    district_parts = ["district", "District", "dh", "heatingSource"]
-    if any(flag in label for flag in district_parts):
-        return EnergyTypes.district
-
     electric_parts = ["electric", "Electric", "grid", "pv"]
     if any(flag in label for flag in electric_parts):
         return EnergyTypes.electricity
@@ -69,6 +65,10 @@ def get_energy_type(label: str):
     dhw_parts = ["dhw", "domesticHotWater", 'heatSource65']
     if any(flag in label for flag in dhw_parts):
         return EnergyTypes.domestic_hot_water
+
+    district_parts = ["district", "District", "dh", "heatingSource"]
+    if any(flag in label for flag in district_parts):
+        return EnergyTypes.district
 
     gas_parts = ["gas", "Gas"]
     if any(flag in label for flag in gas_parts):
