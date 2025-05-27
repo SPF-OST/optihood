@@ -21,8 +21,6 @@ filter_results = False   #False
 include_links = True
 building_no = 1
 
-manual = True          #True
-
 # Helper functions
 def get_building_no(node):
     """Extract building number from node or return 0 if not present."""
@@ -33,7 +31,7 @@ def is_link(node):
     return "link" in node.lower()
 
 
-@_pt.mark.skipif(manual, reason="Manual test of visualizer")
+@_pt.mark.manual
 class TestVisualizeEnergyNetwork(_ut.TestCase):
     def setUp(self):
         self.maxDiff = None
@@ -68,7 +66,7 @@ class TestVisualizeEnergyNetwork(_ut.TestCase):
         self.assertEqual(True, False)  # add assertion here
 
 
-@_pt.mark.skipif(manual, reason="Manual test of visualizer")
+@_pt.mark.manual
 class TestVisualizeEnergyNetwork_from_csv(_ut.TestCase):
     def setUp(self):
         self.maxDiff = None

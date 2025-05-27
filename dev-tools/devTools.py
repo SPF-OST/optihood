@@ -208,9 +208,8 @@ def _maybeRunPytest(arguments, testResultsDirPath):
         and not arguments.shallCreateRelease
     )
     if arguments.shallRunAll or arguments.pytestMarkersExpression is not None or wasCalledWithoutArguments:
-        # markerExpressions = _getMarkerExpressions(arguments.pytestMarkersExpression)
-        # additionalArgs = ["-m", markerExpressions]
-        additionalArgs = ""
+        markerExpressions = _getMarkerExpressions(arguments.pytestMarkersExpression)
+        additionalArgs = ["-m", markerExpressions]
 
         cmd = [
             _SCRIPTS_DIR / "pytest",
