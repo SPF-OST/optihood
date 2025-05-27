@@ -1,10 +1,13 @@
 import json
+import os
 from textwrap import dedent as d
 import typing as _tp
 
 import dash
+from datetime import datetime
 import plotly.express as px
-from dash import html, dcc, Input, Output, State, callback, ctx
+from dash import html, dcc, Input, Output, State, callback, ctx, callback_context
+from dash.exceptions import PreventUpdate
 import dash_cytoscape as cyto
 import matplotlib.pyplot as plt
 import matplotlib as _mpl
@@ -31,7 +34,9 @@ import optihood.Visualizer.convert_scenario as _cv
 
 def setup_cytoscape_app(graphData: _tp.Optional[_cv.EnergyNetworkGraphData] = None,
                         nodes: _tp.Optional[_tp.Dict[str, _tp.Dict[str, _tp.Union[str, float]]]] = None,
-                        edges: _tp.Optional[_tp.Dict[str, _tp.Dict[str, _tp.Union[str, float]]]] = None) -> dash.Dash:
+                        edges: _tp.Optional[_tp.Dict[str, _tp.Dict[str, _tp.Union[str, float]]]] = None,
+                        node_layout_file: _tp.Type[str] = 'saved_layout.json',
+                        layout_mode: _tp.Type[str] ='breadthfirst') -> dash.Dash:
     """
     This example comes directly from the Plotly homepage.
     http://dash.plotly.com/cytoscape/events
@@ -63,6 +68,8 @@ def setup_cytoscape_app(graphData: _tp.Optional[_cv.EnergyNetworkGraphData] = No
             'style': {
                 'label': 'data(label)',
                 'background-color': 'data(color)',
+                'font-size': '20px',
+                'font-weight': 'bold'
             }
         },
 
@@ -146,7 +153,7 @@ def setup_cytoscape_app(graphData: _tp.Optional[_cv.EnergyNetworkGraphData] = No
             'selector': f'.{stv.EnergyTypes.electricity.value}',
             'style': {
                 "line-style": 'dashed',
-                'line-color': 'blue',
+                'line-color': 'forestgreen',
                 # 'label': 'data(label)'
             }
         },
@@ -155,7 +162,7 @@ def setup_cytoscape_app(graphData: _tp.Optional[_cv.EnergyNetworkGraphData] = No
             'style': {
                 # "line-style": 'dashed',
                 # 'line-dash-pattern': [6, 3],
-                'line-color': 'red',
+                'line-color': 'tomato',
                 # 'label': 'data(label)'
             }
         },
@@ -163,7 +170,7 @@ def setup_cytoscape_app(graphData: _tp.Optional[_cv.EnergyNetworkGraphData] = No
             'selector': f'.{stv.EnergyTypes.space_heating.value}',
             'style': {
                 # 'curve-style': 'segments',
-                'line-color': 'black',
+                'line-color': 'goldenrod',
                 # 'label': 'data(label)'
             }
         },
@@ -171,7 +178,7 @@ def setup_cytoscape_app(graphData: _tp.Optional[_cv.EnergyNetworkGraphData] = No
             'selector': f'.{stv.EnergyTypes.gas.value}',
             'style': {
                 'curve-style': 'segments',
-                'line-color': 'purple',
+                'line-color': 'mediumpurple',
                 # 'label': 'data(label)'
             }
         },
@@ -179,8 +186,65 @@ def setup_cytoscape_app(graphData: _tp.Optional[_cv.EnergyNetworkGraphData] = No
             'selector': f'.{stv.EnergyTypes.unknown.value}',
             'style': {
                 # 'curve-style': 'segments',
+                "line-style": 'dashed',
                 'line-color': 'grey',
-                'width': 10
+                # 'width': 10
+                # 'label': 'data(label)'
+            }
+        },
+        {
+            'selector': f'.{stv.EnergyTypes.low_temp_grid.value}',
+            'style': {
+                # 'curve-style': 'segments',
+                'line-color': 'dodgerblue',
+                # 'label': 'data(label)'
+            }
+        },
+        {
+            'selector': f'.{stv.EnergyTypes.sh_temp_grid.value}',
+            'style': {
+                # 'curve-style': 'segments',
+                'line-color': 'goldenrod',
+                # 'label': 'data(label)'
+            }
+        },
+        {
+            'selector': f'.{stv.EnergyTypes.med_temp_grid.value}',
+            'style': {
+                # 'curve-style': 'segments',
+                'line-color': 'orangered',
+                # 'label': 'data(label)'
+            }
+        },
+        {
+            'selector': f'.{stv.EnergyTypes.dhw_temp_grid.value}',
+            'style': {
+                # 'curve-style': 'segments',
+                'line-color': 'tomato',
+                # 'label': 'data(label)'
+            }
+        },
+        {
+            'selector': f'.{stv.EnergyTypes.biomass.value}',
+            'style': {
+                # 'curve-style': 'segments',
+                'line-color': 'yellowgreen',
+                # 'label': 'data(label)'
+            }
+        },
+        {
+            'selector': f'.{stv.EnergyTypes.oil.value}',
+            'style': {
+                # 'curve-style': 'segments',
+                'line-color': 'royalblue',
+                # 'label': 'data(label)'
+            }
+        },
+        {
+            'selector': f'.{stv.EnergyTypes.district.value}',
+            'style': {
+                # 'curve-style': 'segments',
+                'line-color': 'crimson',
                 # 'label': 'data(label)'
             }
         },
@@ -190,11 +254,13 @@ def setup_cytoscape_app(graphData: _tp.Optional[_cv.EnergyNetworkGraphData] = No
     app.layout = html.Div([
         cyto.Cytoscape(
             id='cytoscape-event-callbacks-3',
-            layout={'name': 'breadthfirst'},  # 'cose', 'breadthfirst'
+            layout={'name': layout_mode},  # 'cose', 'breadthfirst'
             elements=edges + nodes,
             stylesheet=default_stylesheet,
             style={'width': '100%', 'height': '640px'}
         ),
+        html.Button("💾 Save Layout", id="save-button", n_clicks=0),
+        html.Div(id="save-status", style={"marginTop": "10px", "color": "green"}),
         # html.Button('Add Node', id='btn-add-node-example', n_clicks_timestamp=0),
         # html.Button('Remove Node', id='btn-remove-node-example', n_clicks_timestamp=0),
         dcc.Markdown(id='cytoscape-selectedNodeData-markdown'),
@@ -232,6 +298,28 @@ def setup_cytoscape_app(graphData: _tp.Optional[_cv.EnergyNetworkGraphData] = No
         NodalData = stv.scenario_data_factory(stv.ScenarioDataTypes.example)
         selected_nodes_list = [NodalData.read_nodal_infos(data) for data in data_list]
         return "You selected the nodes: " + "\n* ".join(selected_nodes_list)
+
+    @callback(
+        Output("save-status", "children"),
+        Input("save-button", "n_clicks"),
+        State("cytoscape-event-callbacks-3", "elements"),
+        prevent_initial_call=True
+    )
+    def save_layout(_, elements):
+        if not callback_context.triggered:
+            raise PreventUpdate
+
+        if elements:
+            positions = {
+                el['data']['id']: el['position']
+                for el in elements if 'position' in el
+            }
+            with open(node_layout_file, "w") as f:
+                json.dump(positions, f, indent=2)
+            timestamp = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+            return f"Layout saved successfully at {timestamp}. Location: {os.path.abspath(node_layout_file)}"
+
+        return "No elements to save."
 
     # # =====================================================================
     # # The following deals with image export, which does not work as is.
@@ -431,8 +519,10 @@ def run_fig_visualizer(figure_handle: plt.Figure) -> None:
 
 def run_cytoscape_visualizer(graphData: _tp.Optional[_cv.EnergyNetworkGraphData] = None,
                              nodes: _tp.Optional[_tp.Dict[str, _tp.Dict[str, _tp.Union[str, float]]]] = None,
-                             edges: _tp.Optional[_tp.Dict[str, _tp.Dict[str, _tp.Union[str, float]]]] = None) -> None:
-    app = setup_cytoscape_app(graphData, nodes, edges)
+                             edges: _tp.Optional[_tp.Dict[str, _tp.Dict[str, _tp.Union[str, float]]]] = None,
+                             node_layout_file: _tp.Type[str] = 'saved_layout.json',
+                             layout_mode: _tp.Type[str] ='breadthfirst') -> None:
+    app = setup_cytoscape_app(graphData, nodes, edges, node_layout_file, layout_mode)
     app.run_server(debug=True)
 
 
