@@ -54,6 +54,8 @@ class BusTypes(_enum.StrEnum):
     heatDemandBus = "heatDemandBus"
     lowTSourceBus = "lowTSourceBus"
     lowTSinkBus = "lowTSinkBus"
+    dhHeatInBus ="districtHeatingInBus"
+    dhHeatBus= "districtHeatingBus"
 
 
 class CommoditySourcesLabels(_enum.StrEnum):
@@ -119,6 +121,7 @@ class LinksTypes(_enum.StrEnum):
     heatLink0= "heatLink0"
     heatLink2 = "heatLink2"
     lowTempHeatLink = "lowTempHeatLink"
+    dhLink = "dhLink"
 
 
 class ProfileLabels(_enum.StrEnum):
