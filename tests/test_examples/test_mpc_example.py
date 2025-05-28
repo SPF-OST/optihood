@@ -118,6 +118,7 @@ class TestMpcExample(_ut.TestCase):
 
             if errors and i == 0:
                 """Ignore the errors the first time around, in case the optimizer makes entirely different choices."""
+                print(f"{self.id()} failed the first time around.")
                 continue
 
             elif errors and i == 1:
