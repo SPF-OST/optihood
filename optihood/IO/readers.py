@@ -4,7 +4,7 @@ import pathlib as _pl
 
 import pandas as _pd
 
-import optihood.entities as _ent
+import optihood.entities as ent
 
 
 @_dc.dataclass
@@ -15,7 +15,7 @@ class CsvReader:
     """
 
     dir_path: _pl.Path
-    use_function: str = 'current'  # or 'future'
+    use_function: str = 'future'  # or 'current'
 
     def __post_init__(self):
         if self.use_function == 'current':
@@ -28,34 +28,36 @@ class CsvReader:
         # One issue the following addresses, is the "nr as string" outputs.
 
         df = _pd.read_csv(self.dir_path / file_name)
-        for column in df.columns:
-            self.make_nrs_numeric(df, column)
+        [self.make_nrs_numeric(df, column) for column in df.columns]
 
         return df
 
     @staticmethod
     def safe_to_numeric(value):
+        # TODO: cleanup differing versions.
         try:
             return _pd.to_numeric(value)
         except (ValueError, TypeError):
             return value
-
+          
     @staticmethod
-    def make_nrs_numeric_current(df: _pd.DataFrame, column_name: str):
-        df[column_name] = df[column_name].apply(CsvReader.safe_to_numeric)
+    def make_nrs_numeric_current(df: _pd.DataFrame, column_name: str) -> None:
+        df[column_name] = df[column_name].apply(_pd.to_numeric, errors="ignore")
+        # df[column_name] = df[column_name].apply(CsvReader.safe_to_numeric)
 
     @staticmethod
     def make_nrs_numeric_without_future_warning(df: _pd.DataFrame, column_name: str) -> None:
         # Fix using "coerce" and re-filling NaN values.
         # Unfortunately, this applies to full text columns as well.
+        def parse_numbers(x):
+            # Suggested by pandas developers
+            # https://github.com/pandas-dev/pandas/issues/59221#issuecomment-2755021659
+            try:
+                return _pd.to_numeric(x)
+            except Exception:
+                return x
 
-        if df[column_name].dtype == object:
-            series_old = df[column_name].copy(deep=True)
-            df[column_name] = df[column_name].apply(_pd.to_numeric, errors="coerce")
-            nan_map = df[column_name].isna()
-            if len(nan_map) > 0:
-                df[column_name] = df[column_name].astype(object)
-                df.loc[nan_map, column_name] = series_old[nan_map]
+        df[column_name] = df[column_name].apply(parse_numbers)
 
 
 @_dc.dataclass
@@ -69,18 +71,18 @@ class CsvScenarioReader(CsvReader):
 
     def __post_init__(self):
         super().__post_init__()
-        paths = _ent.CsvInputFilePathsRelative
+        paths = ent.CsvInputFilePathsRelative
         self.relative_file_paths = {
-            _ent.NodeKeys.buses: paths.buses,
-            _ent.NodeKeys.grid_connection: paths.grid_connection,
-            _ent.NodeKeys.commodity_sources: paths.commodity_sources,
-            _ent.NodeKeys.solar: paths.solar,
-            _ent.NodeKeys.transformers: paths.transformers,
-            _ent.NodeKeys.demand: paths.demand,
-            _ent.NodeKeys.storages: paths.storages,
-            _ent.NodeKeys.stratified_storage: paths.stratified_storage,
-            _ent.NodeKeys.profiles: paths.profiles,
-            _ent.NodeKeys.links: paths.links,
+            ent.NodeKeys.buses: paths.buses,
+            ent.NodeKeys.grid_connection: paths.grid_connection,
+            ent.NodeKeys.commodity_sources: paths.commodity_sources,
+            ent.NodeKeys.solar: paths.solar,
+            ent.NodeKeys.transformers: paths.transformers,
+            ent.NodeKeys.demand: paths.demand,
+            ent.NodeKeys.storages: paths.storages,
+            ent.NodeKeys.stratified_storage: paths.stratified_storage,
+            ent.NodeKeys.profiles: paths.profiles,
+            ent.NodeKeys.links: paths.links,
         }
 
     def read_scenario(self) -> dict[str, _pd.DataFrame]:
@@ -95,7 +97,7 @@ class CsvScenarioReader(CsvReader):
                 data[key] = self.read(rel_path)
                 # df_current = _pd.read_csv(path)
             except FileNotFoundError as e:
-                if not key == _ent.NodeKeys.links:
+                if not key == ent.NodeKeys.links:
                     errors.append(e)
 
             # validation_error = self.validate(key, df_current)
@@ -121,3 +123,69 @@ def parse_config(configFilePath: str):
     configData = {k.lower(): v for k, v in configData.items()}
 
     return configData
+
+
+def add_unique_label_columns(nodal_data: dict[str, _pd.DataFrame]) -> dict[str, _pd.DataFrame]:
+    """Provides new columns with unique labels for "label", "to", "from", "connect"
+    This function also adds a unique label for the buildings in "building_model_parameters".
+
+    The DataFrames in the sheets are updated automatically as each df is a pointer to that sheet.
+    """
+    sheets = list(nodal_data.keys())
+    building_sheet_name = ent.NodeKeysOptional.building_model_parameters
+
+    if building_sheet_name in sheets:
+        sheets.remove(building_sheet_name)
+        df = nodal_data[building_sheet_name]
+        df[ent.BuildingModelParameters.building_unique] = get_unique_buildings(df)
+
+    sheets_with_no_need_for_unique_labels = [ent.NodeKeys.ice_storage, ent.NodeKeys.stratified_storage,
+                                             ent.NodeKeys.profiles, ent.NodeKeys.links]
+    # TODO: maybe remove time_step_data from sheets as well.
+
+    [sheets.remove(x) for x in sheets_with_no_need_for_unique_labels if x in sheets]
+    for sheet in sheets:
+        df = nodal_data[sheet]
+        df[ent.CommonLabels.label_unique] = get_unique_labels(
+            df[[ent.CommonLabels.label, ent.CommonLabels.building]])
+
+        if ent.CommonLabels.from_bus in df.columns:
+            df[ent.CommonLabels.from_unique] = get_unique_buses(
+                df[[ent.CommonLabels.from_bus, ent.CommonLabels.building]], ent.CommonLabels.from_bus)
+
+        if ent.CommonLabels.to in df.columns:
+            df[ent.CommonLabels.to_unique] = get_unique_buses(df[[ent.CommonLabels.to, ent.CommonLabels.building]],
+                                                              ent.CommonLabels.to)
+
+        if ent.CommonLabels.connect in df.columns:
+            df[ent.CommonLabels.connect_unique] = get_unique_buses(
+                df[[ent.CommonLabels.connect, ent.CommonLabels.building]], ent.CommonLabels.connect)
+
+    return nodal_data
+
+
+def get_unique_labels(df: _pd.DataFrame) -> list[str]:
+    return [f"{row[ent.CommonLabels.label.value]}__B{str(row[ent.CommonLabels.building.value]).zfill(3)}" for _, row
+            in df.iterrows()]
+
+
+def get_unique_buses(df: _pd.DataFrame, buses_column: str) -> list[list[str]]:
+    """Returns lists of strings for all cases, to simplify usage later."""
+    buses = []
+    for _, row in df.iterrows():
+        row_buses = []
+        for bus in row[buses_column].split(","):
+            row_buses.append(f"{bus}__B{str(row[ent.CommonLabels.building.value]).zfill(3)}")
+        buses.append(row_buses)
+    return buses
+
+
+def get_unique_buildings(df: _pd.DataFrame) -> list[str]:
+    """Returns strings for both cases, to simplify usage later."""
+    if ent.BuildingModelParameters.Circuit in df.columns:
+        return [
+            (f"Building_model__B{str(row[ent.BuildingModelParameters.Building_Number]).zfill(3)}"
+             f"_C{str(row[ent.BuildingModelParameters.Circuit]).zfill(3)}")
+            for _, row in df.iterrows()]
+
+    return [f"Building_model__B{str(row[ent.BuildingModelParameters.Building_Number]).zfill(3)}" for _, row in df.iterrows()]

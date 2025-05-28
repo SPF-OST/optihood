@@ -10,6 +10,7 @@ from optihood.storages import *
 from optihood.sinks import SinkRCModel
 from optihood.links import LinkTemperatureDemand
 from optihood._helpers import *
+import optihood.entities as _ent
 
 intRate = 0.05
 
@@ -50,7 +51,6 @@ class Building:
     def addBus(self, data, opt, mergeLinkBuses, mergeHeatSourceSink, electricityImpact, clusterSize, includeCarbonBenefits):
         # Create Bus objects from buses table
         for i, b in data.iterrows():
-            if b["active"]:
                 if (mergeLinkBuses and b["label"] in self.__linkBuses) or (mergeHeatSourceSink and b["label"] in self.__heatSourceSinkBuses):
                     label = b["label"]
                 else:
@@ -121,7 +121,6 @@ class Building:
     def addPV(self, data, data_timeseries, opt, dispatchMode):
         # Create Source objects from table 'commodity sources'
         for i, s in data.iterrows():
-            if s["active"]:
                 if opt == "costs":
                     epc=self._calculateInvest(s)[0]
                     base=self._calculateInvest(s)[1]
@@ -168,7 +167,6 @@ class Building:
     def addSolar(self, data, data_timeseries, opt, mergeLinkBuses, dispatchMode, temperatureLevels):
         # Create Source objects from table 'commodity sources'
         for i, s in data.iterrows():
-            if s["active"]:
                 if mergeLinkBuses and s["from"] in self.__linkBuses:
                     inputBusLabel = s["from"]
                 else:
@@ -247,7 +245,6 @@ class Building:
     def addPVT(self, data, data_timeseries, opt, mergeLinkBuses, dispatchMode):
         # Create Source objects from table 'commodity sources'
         for i, s in data.iterrows():
-            if s["active"]:
                 if mergeLinkBuses and s["from"] in self.__linkBuses:
                     inputBusLabel = s["from"]
                 else:
@@ -354,7 +351,6 @@ class Building:
         # Create Source objects from table 'commodity sources'
 
         for i, cs in data.iterrows():
-            if cs["active"]:
                 sourceLabel = cs["label"]+'__' + self.__buildingLabel
                 if (mergeHeatSourceSink and cs["to"] in self.__heatSourceSinkBuses) or \
                         (mergeLinkBuses and cs["to"] in self.__linkBuses):
@@ -404,7 +400,6 @@ class Building:
     def addSink(self, data, timeseries, buildingModelParams, mergeLinkBuses, mergeHeatSourceSink, temperatureLevels):
         # Create Sink objects with fixed time series from 'demand' table
         for i, de in data.iterrows():
-            if de["active"]:
                 sinkLabel = de["label"]+'__'+self.__buildingLabel
                 if (mergeLinkBuses and de["from"] in self.__linkBuses) or (mergeHeatSourceSink and de["from"] in self.__heatSourceSinkBuses):
                     inputBusLabel = de["from"]
@@ -762,7 +757,6 @@ class Building:
     
     def addTransformer(self, data, operationTemperatures, temperatureAmb, temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode, temperatureLevels):
         for i, t in data.iterrows():
-            if t["active"]:
                 if t["label"] == "HP":
                     self._addHeatPump(t, operationTemperatures, temperatureAmb, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode, temperatureLevels)
                 elif t["label"] == "GWHP":
@@ -784,7 +778,6 @@ class Building:
     def addStorage(self, data, storageParams, ambientTemperature, opt, mergeLinkBuses, dispatchMode, temperatureLevels):
         sList = []
         for i, s in data.iterrows():
-            if s["active"]:
                 storageLabel = s["label"]+'__'+self.__buildingLabel
                 if temperatureLevels and s["label"] == "thermalStorage":
                     inputBuses = [self.__busDict[iLabel + '__' + self.__buildingLabel] for iLabel in s["from"].split(",")]
@@ -848,19 +841,24 @@ class Building:
                         initial_ice_frac = float(s["initial capacity"])
                     else:
                         initial_ice_frac = 0
-                    self.__nodesList.append(IceStorage(label=storageLabel,input=self.__busDict[inputBusLabel],
-                                                       output=self.__busDict[outputBusLabel],
-                                                       tStorInit=float(storageParams["ice_storage"].at[s["label"],"intitial_temp"]),
-                                                       fIceInit = initial_ice_frac,
-                                                       fMax=float(storageParams["ice_storage"].at[s["label"],"max_ice_fraction"]),
-                                                       rho=float(storageParams["ice_storage"].at[s["label"],"rho_fluid"]),
-                                                       V=float(s["capacity max"])/1000, # conversion from L to m3
-                                                       hfluid=float(storageParams["ice_storage"].at[s["label"],"h_fluid"]),
-                                                       cp=float(storageParams["ice_storage"].at[s["label"],"cp_fluid"]),
-                                                       Tamb=ambientTemperature,
-                                                       UAtank=float(storageParams["ice_storage"].at[s["label"],"UA_tank"]),
-                                                       inflow_conversion_factor=float(storageParams["ice_storage"].at[s["label"],"inflow_conversion_factor"]),
-                                                       outflow_conversion_factor=float(storageParams["ice_storage"].at[s["label"],"outflow_conversion_factor"])))
+
+                    self.__nodesList.append(
+                        IceStorage(label=storageLabel,
+                                   input=self.__busDict[inputBusLabel],
+                                   output=self.__busDict[outputBusLabel],
+                                   tStorInit=float(s[_ent.StorageLabels.initial_temp]),
+                                   fIceInit=initial_ice_frac,
+                                   fMax=float(storageParams["ice_storage"].at[s["label"], "max_ice_fraction"]),
+                                   rho=float(storageParams["ice_storage"].at[s["label"], "rho_fluid"]),
+                                   V=float(s["capacity max"])/1000,  # conversion from L to m3
+                                   hfluid=float(storageParams["ice_storage"].at[s["label"], "h_fluid"]),
+                                   cp=float(storageParams["ice_storage"].at[s["label"], "cp_fluid"]),
+                                   Tamb=ambientTemperature,
+                                   UAtank=float(storageParams["ice_storage"].at[s["label"], "UA_tank"]),
+                                   inflow_conversion_factor=float(storageParams["ice_storage"].at[s["label"], "inflow_conversion_factor"]),
+                                   outflow_conversion_factor=float(storageParams["ice_storage"].at[s["label"], "outflow_conversion_factor"])
+                                   )
+                    )
 
                 elif s["label"] not in ["dhwStorage", "shStorage", "thermalStorage"] and "Storage" in s["label"]:
                     is_tank = False

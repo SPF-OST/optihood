@@ -1,0 +1,2 @@
+label,building,active,from,to,efficiency,capacity_DHW,capacity_SH,capacity_el,capacity_min,lifetime,maintenance,installation,planification,invest_base,invest_cap,heat_impact,elec_impact,impact_cap
+HP,1,1,electricityInBus,"shSourceBus,dhwSourceBus",3.5,150,150,,150,20,0.05,0.5,0.1,8204,1078,0,0,280.9

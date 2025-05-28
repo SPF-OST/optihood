@@ -24,47 +24,68 @@ from optihood._helpers import *
 from optihood.links import Link
 import optihood.IO.readers as _re
 
+# TODO: define nr_of_buildings once
+
 
 class OptimizationProperties:
     """
-    class under construction ...
+    Configurable attributes of energy networks.
     """
-    def __init__(self, optType, mergeLinkBuses, mergeHeatSourceSink, temperatureLevels, clusters, dispatchMode, includeCarbonBenefits):
-        self._optType = optType
-        self._mergeLinkBuses = mergeLinkBuses
-        self._mergeHeatSourceSink = mergeHeatSourceSink
-        self._temperatureLevels = temperatureLevels
-        self._clusters = clusters
-        self._dispatchMode = dispatchMode
-        self._includeCarbonBenefits = includeCarbonBenefits
+    def __init__(self,
+                 # TODO: fix argument types
+                 optimization_type: _tp.Literal["costs", "env"],  # Pycharm highlights the input if anything else.
+                 merge_link_buses: bool = False,
+                 merge_buses: _tp.Optional[_tp.Sequence[str]] = None,
+                 merge_heat_source_sink: bool = False,
+                 temperature_levels: bool = False,
+                 cluster_size: _tp.Optional[dict[str, int]] = None,
+                 dispatch_mode: bool = False,
+                 include_carbon_benefits: bool = False
+                 ) -> None:
+        """
+        # TODO: explain inputs
+        Parameters
+        ----------
 
-    @property
-    def optType(self):
-        return self._optType
+        cluster_size:
+            Used to provide a selected number of days which could be assumed representative of the entire time range.
 
-    @property
-    def mergeLinkBuses(self):
-        return self._mergeLinkBuses
+        optimization_type:
+            "cost", or "env" depending on which criteria should be optimized.
 
-    @property
-    def mergeHeatSourceSink(self):
-        return self._mergeHeatSourceSink
+        merge_link_buses:
+            False: one bus of provided type per building.
+            True: all buildings use the same bus for each type.
 
-    @property
-    def temperatureLevels(self):
-        return self._temperatureLevels
+        merge_buses:
+            Specify which buses to merge when merge_link_buses set to True
 
-    @property
-    def clusters(self):
-        return self._clusters
+        merge_heat_source_sink:
 
-    @property
-    def dispatchMode(self):
-        return self._dispatchMode
+        temperature_levels:
 
-    @property
-    def includeCarbonBenefits(self):
-        return self._includeCarbonBenefits
+        dispatch_mode:
+            True: activate dispatch optimization
+            False: do investment + dispatch optimization
+
+        include_carbon_benefits:
+
+        """
+
+        self.optimization_type = optimization_type
+        self.merge_link_buses = merge_link_buses
+        self.merge_buses = merge_buses
+        self.merge_heat_source_sink = merge_heat_source_sink
+        self.temperature_levels = temperature_levels
+        self.cluster_size = cluster_size
+        self.dispatch_mode = dispatch_mode
+        self.include_carbon_benefits = include_carbon_benefits
+
+    def check_mutually_exclusive_inputs(self):
+        if self.merge_link_buses and self.temperature_levels:
+            logging.error("The options merge_link_buses and temperature_levels should not be set True at the same time. "
+                          "This use case is not supported in the present version of optihood. Only one of "
+                          "mergeLinkBuses and temperatureLevels should be set to True.")
 
 
 def get_data_from_df(df: pd.DataFrame, column_name: str):
@@ -124,7 +145,8 @@ class EnergyNetworkClass(solph.EnergySystem):
         self._rho = 1. #default value for water in kg/L
         if not os.path.exists(".\\log_files"):
             os.mkdir(".\\log_files")
-        logger.define_logging(logpath=os.getcwd(), logfile=f'.\\log_files\\optihood_{datetime.now().strftime("%d.%m.%Y %H.%M.%S")}.log')
+        screen_format = "%(asctime)s-%(levelname)s:  %(message)s"
+        logger.define_logging(screen_format=screen_format, logpath=os.getcwd(), logfile=f'.\\log_files\\optihood_{datetime.now().strftime("%d.%m.%Y %H.%M.%S")}.log')
         logging.info("Initializing the energy network")
         super(EnergyNetworkClass, self).__init__(timeindex=timestamp, infer_last_interval=True)
 
@@ -142,7 +164,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         self.set_using_nodal_data(clusterSize, filePath, includeCarbonBenefits, initial_nodal_data, mergeBuses,
                                   mergeHeatSourceSink, mergeLinkBuses, numberOfBuildings, opt)
 
-    def set_using_nodal_data(self, clusterSize, filePath, includeCarbonBenefits, initial_nodal_data, mergeBuses,
+    def set_using_nodal_data(self, clusterSize, filePath, includeCarbonBenefits, initial_nodal_data: dict[str, pd.DataFrame], mergeBuses,
                              mergeHeatSourceSink, mergeLinkBuses, numberOfBuildings, opt):
         nodesData = self.createNodesData(initial_nodal_data, filePath, numberOfBuildings, clusterSize)
         # nodesData["buses"]["excess costs"] = nodesData["buses"]["excess costs indiv"]
@@ -247,6 +269,11 @@ class EnergyNetworkClass(solph.EnergySystem):
         return values
 
     def createNodesData(self, nodesData, file_or_folder_path, numBuildings, clusterSize):
+        for key, df in nodesData.items():
+            if _ent.BusesLabels.active not in df.columns:
+                continue
+            nodesData[key] = df.where(df[_ent.BusesLabels.active] == 1).dropna(how="all")
+
         self.__noOfBuildings = numBuildings
 
         # update stratified_storage and ice storage index
@@ -378,6 +405,8 @@ class EnergyNetworkClass(solph.EnergySystem):
 
         nodesData["building_model"] = {}
         if (nodesData['demand']['building model'].notna().any()) and (nodesData['demand']['building model'] == 'Yes').any():
+            # TODO: extract reading of internal gains and building model.
+            # TODO: pass data_frames to be used here.
             internalGainsPath = nodesData["profiles"].loc[nodesData["profiles"]["name"] == "internal_gains", "path"].iloc[0]
             bmodelparamsPath = nodesData["profiles"].loc[nodesData["profiles"]["name"] == "building_model_params", "path"].iloc[0]
             if not os.path.exists(internalGainsPath):
@@ -608,7 +637,22 @@ class EnergyNetworkClass(solph.EnergySystem):
         # calculate results (CAPEX, OPEX, FeedIn Costs, environmental impacts etc...) for each building
         self._calculateResultsPerBuilding(mergeLinkBuses)
 
+        # todo: return data class
+        #       - unprocessed results sheets
+        #       - processed results
+        #           - total
+        #           - per building
+        #           - envImpact, capacitiesTransformersNetwork, capacitiesStoragesNetwork
+        #           - costs, en
+        #       - optimization metadata
+        #       -
+        # def optimize(self, return_data_class=True):
+        # if return_data_class:
+        #     return a
+
+        # warning("sunsetting old")
         return envImpact, capacitiesTransformersNetwork, capacitiesStoragesNetwork
+
 
     def printbuildingModelTemperatures(self, filename):
         df = pd.DataFrame()
@@ -968,11 +1012,20 @@ class EnergyNetworkClass(solph.EnergySystem):
                         self.__intermediateOpTempsHP[buildingLabel] = sum(
                             solph.views.node(self._optimizationResults, 'HP__' + buildingLabel)["sequences"][
                                 ('HP__' + buildingLabel, f"heatStorageBus{i+1}__{buildingLabel}"), 'flow'])
-                    self.__dhwHP[buildingLabel] = sum(
-                        solph.views.node(self._optimizationResults, 'HP__' + buildingLabel)["sequences"][
-                            ('HP__' + buildingLabel, dhwOutputLabel + buildingLabel), 'flow'])
-                    self.__annualCopHP[buildingLabel] = (self.__shHP[buildingLabel] + self.__dhwHP[buildingLabel]) / (
-                        self.__elHP[buildingLabel] + 1e-6)
+                    try:
+                        self.__dhwHP[buildingLabel] = sum(
+                            solph.views.node(self._optimizationResults, 'HP__' + buildingLabel)["sequences"][
+                                ('HP__' + buildingLabel, dhwOutputLabel + buildingLabel), 'flow'])
+                    except KeyError as e:
+                        """If the dhwStorage is never used, then this will not be available."""
+                        pass
+
+                    if buildingLabel in self.__dhwHP.keys():
+                        self.__annualCopHP[buildingLabel] = (self.__shHP[buildingLabel] + self.__dhwHP[buildingLabel]) / (
+                            self.__elHP[buildingLabel] + 1e-6)
+                    else:
+                        self.__annualCopHP[buildingLabel] = self.__shHP[buildingLabel] / (
+                            self.__elHP[buildingLabel] + 1e-6)
                 else:
                     self.__annualCopHP[buildingLabel] = 0
 
@@ -1080,10 +1133,17 @@ class EnergyNetworkClass(solph.EnergySystem):
                         self.__envImpactTechnologies[buildingLabel].update({x: impactThermalStorage})
 
     def printMetaresults(self):
-        print("")
-        print("Meta Results:")
-        pp.pprint(self._metaResults)
+        self._communicate_meta_results(self._metaResults, pp.pprint)
         return self._metaResults
+
+    def log_meta_results(self) -> None:
+        self._communicate_meta_results(self._metaResults, logging.info)
+
+    @staticmethod
+    def _communicate_meta_results(meta_results, communication_method: callable) -> None:
+        communication_method("")
+        communication_method("Meta Results:")
+        communication_method(meta_results)
 
     def calcStateofCharge(self, type, building):
         if "thermalStorage" in type:
@@ -1204,35 +1264,63 @@ class EnergyNetworkClass(solph.EnergySystem):
                     print("Invested in {:.1f} L Aquifier Storage.".format(invest))
             print("")
 
-    def printCosts(self):
-        capexNetwork = sum(self.__capex["Building" + str(b + 1)] for b in range(len(self.__buildings)))
-        opexNetwork = sum(sum(self.__opex["Building" + str(b + 1)].values()) for b in range(len(self.__buildings)))
-        feedinNetwork = sum(self.__feedIn["Building" + str(b + 1)] for b in range(len(self.__buildings)))
-        print("Investment Costs for the system: {} CHF".format(capexNetwork))
-        print("Operation Costs for the system: {} CHF".format(opexNetwork))
-        print("Feed In Costs for the system: {} CHF".format(feedinNetwork))
-        print("Total Costs for the system: {} CHF".format(capexNetwork + opexNetwork + feedinNetwork))
+    def calculate_costs(self) -> tuple[float, float, float]:
+        # TODO: reduce to functional programming style by passing required arguments.
+        capex_network = sum(self.__capex["Building" + str(b + 1)] for b in range(len(self.__buildings)))
+        feed_in_network = sum(self.__feedIn["Building" + str(b + 1)] for b in range(len(self.__buildings)))
+        opex_network = sum(sum(self.__opex["Building" + str(b + 1)].values()) for b in range(len(self.__buildings)))
+        return capex_network, feed_in_network, opex_network
 
-    def printEnvImpacts(self):
-        envImpactInputsNetwork = sum(sum(self.__envImpactInputs["Building" + str(b + 1)].values()) for b in range(len(self.__buildings)))
-        envImpactTechnologiesNetwork = sum(sum(self.__envImpactTechnologies["Building" + str(b + 1)].values()) for b in range(len(self.__buildings)))
-        print("Environmental impact from input resources for the system: {} kg CO2 eq".format(envImpactInputsNetwork))
-        print("Environmental impact from energy conversion and storage technologies for the system: {} kg CO2 eq".format(envImpactTechnologiesNetwork))
-        print("Total: {} kg CO2 eq".format(envImpactInputsNetwork + envImpactTechnologiesNetwork))
+    def printCosts(self) -> None:
+        capex_network, feed_in_network, opex_network = self.calculate_costs()
+        self._communicate_costs(capex_network, feed_in_network, opex_network, print)
+
+    def log_costs(self) -> None:
+        capex_network, feed_in_network, opex_network = self.calculate_costs()
+        self._communicate_costs(capex_network, feed_in_network, opex_network, logging.info)
+
+    @staticmethod
+    def _communicate_costs(capex_network: float, feed_in_network: float, opex_network: float,
+                           communication_method: callable) -> None:
+        communication_method(f"Investment Costs for the system: {capex_network} CHF")
+        communication_method(f"Feed In Costs for the system: {feed_in_network} CHF")
+        communication_method(f"Operation Costs for the system: {opex_network} CHF")
+        communication_method(f"Total Costs for the system: {capex_network + feed_in_network + opex_network} CHF")
 
     def getTotalCosts(self):
-        capexNetwork = sum(self.__capex["Building" + str(b + 1)] for b in range(len(self.__buildings)))
-        opexNetwork = sum(
-            sum(self.__opex["Building" + str(b + 1)].values()) for b in range(len(self.__buildings)))
-        feedinNetwork = sum(self.__feedIn["Building" + str(b + 1)] for b in range(len(self.__buildings)))
+        # TODO: check whether this can be removed.
+        capexNetwork, feedinNetwork, opexNetwork = self.calculate_costs()
         return capexNetwork + opexNetwork + feedinNetwork
 
-    def getTotalEnvImpacts(self):
-        envImpactInputsNetwork = sum(
+    def printEnvImpacts(self) -> None:
+        env_impact_inputs_network, env_impact_technologies_network = self.calculate_environmental_impacts()
+        self._communicate_environmental_impacts(env_impact_inputs_network, env_impact_technologies_network, print)
+
+    def calculate_environmental_impacts(self):
+        # TODO: reduce to functional programming style by passing required arguments.
+        env_impact_inputs_network = sum(  # operation related impacts, as in "input resources"
             sum(self.__envImpactInputs["Building" + str(b + 1)].values()) for b in range(len(self.__buildings)))
-        envImpactTechnologiesNetwork = sum(
+        env_impact_technologies_network = sum(
             sum(self.__envImpactTechnologies["Building" + str(b + 1)].values()) for b in range(len(self.__buildings)))
-        return envImpactTechnologiesNetwork + envImpactInputsNetwork
+        return env_impact_inputs_network, env_impact_technologies_network
+
+    def log_environmental_impacts(self) -> None:
+        env_impact_inputs, env_impact_technologies = self.calculate_environmental_impacts()
+        self._communicate_environmental_impacts(env_impact_inputs, env_impact_technologies, logging.info)
+
+    @staticmethod
+    def _communicate_environmental_impacts(env_impact_inputs_network, env_impact_technologies_network,
+                                           communication_method: callable) -> None:
+        communication_method(f"Environmental impact from input resources for the system: "
+                             f"{env_impact_inputs_network} kg CO2 eq")
+        communication_method(f"Environmental impact from energy conversion and storage technologies for the system: "
+                             f"{env_impact_technologies_network} kg CO2 eq")
+        communication_method(f"Total: {env_impact_inputs_network + env_impact_technologies_network} kg CO2 eq")
+
+    def getTotalEnvImpacts(self):
+        # TODO: check whether this can be removed.
+        env_impact_inputs_network, env_impact_technologies_network = self.calculate_environmental_impacts()
+        return env_impact_technologies_network + env_impact_inputs_network
 
     def exportToExcel(self, file_name, mergeLinkBuses=False):
         hSB_sheet = [] #Special sheet for the merged heatStorageBus
@@ -1326,6 +1414,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         self.check_mutually_exclusive_inputs(mergeLinkBuses)
         self._dispatchMode = dispatchMode
         self._optimizationType = opt
+        # TODO: self._mergeBuses missing?
         logging.info(f"Defining the energy network from the input files: {input_data_dir}")
 
         csvReader = _re.CsvScenarioReader(input_data_dir)
@@ -1379,7 +1468,7 @@ class EnergyNetworkGroup(EnergyNetworkClass):
         self._mergeBuses = mergeBuses
         data = pd.ExcelFile(filePath)
         initial_nodal_data = self.get_nodal_data_from_Excel(data)
-        # data.close()
+        data.close()
         nodesData = self.createNodesData(initial_nodal_data, filePath, numberOfBuildings, clusterSize)
         # nodesData["buses"]["excess costs"] = nodesData["buses"]["excess costs group"]
         # nodesData["electricity_cost"]["cost"] = nodesData["electricity_cost"]["cost group"]
@@ -1410,7 +1499,6 @@ class EnergyNetworkGroup(EnergyNetworkClass):
                 nodesData["natGas_cost"] = natGasCost
             nodesData["weather_data"] = weatherData
 
-        nodesData["links"]= data.parse("links")
         self._convertNodes(nodesData, opt, mergeLinkBuses, mergeBuses, mergeHeatSourceSink, includeCarbonBenefits, clusterSize)
         self._addLinks(nodesData["links"], numberOfBuildings, mergeLinkBuses)
         logging.info(f"Nodes from file {filePath} successfully converted")
@@ -1422,7 +1510,6 @@ class EnergyNetworkGroup(EnergyNetworkClass):
         if mergeLinkBuses:
             return
         for i, l in data.iterrows():
-            if l["active"]:
                 if l["investment"]:
                     investment = solph.Investment(
                         ep_costs=l["invest_cap"],
