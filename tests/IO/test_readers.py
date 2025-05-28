@@ -4,6 +4,7 @@ import unittest as _ut
 import pandas as _pd
 
 import optihood.IO.readers as ior
+import optihood.IO.writers as wr
 import optihood.energy_network as en
 import optihood.entities as ent
 import tests.xls_helpers as xlsh
@@ -22,6 +23,13 @@ def join_if_multiple(x):
         return ', '.join(x)
 
     return x[0]
+
+
+def write_expected_file(nodal_data_with_unique_labels, expected_files_path: _pl.Path) -> None:
+    """Helper function to update the expected files."""
+    writer = wr.ScenarioFileWriterCSV(_pl.Path("irrelevant"), "individual")
+    writer.data = nodal_data_with_unique_labels
+    writer._write_scenario_to_file(expected_files_path)
 
 
 class TestCsvScenarioReader(_ut.TestCase):
@@ -97,10 +105,10 @@ class TestCsvScenarioReader(_ut.TestCase):
         nodal_data_with_unique_labels = ior.add_unique_label_columns(nodal_data)
 
         expected_files_path = _pl.Path(__file__).parent / "expected_files" / "without_building_csvs"
-        # import optihood.IO.writers as wr
-        # writer = wr.ScenarioFileWriterCSV("irrelevant", "individual")
-        # writer.data = nodal_data_with_unique_labels
-        # writer._write_scenario_to_file(expected_files_path)
+        # =================================
+        # TODO: Use this to update the expected files.  # pylint: disable=fixme
+        # write_expected_file(nodal_data_with_unique_labels, expected_files_path)
+        # =================================
 
         csvReader = ior.CsvScenarioReader(expected_files_path)
         expected_data = csvReader.read_scenario()
@@ -161,10 +169,11 @@ class TestCsvScenarioReader(_ut.TestCase):
         nodal_data_with_unique_labels = ior.add_unique_label_columns(nodal_data)
 
         expected_files_path = _pl.Path(__file__).parent / "expected_files" / "without_building_csvs"
-        # import optihood.IO.writers as wr
-        # writer = wr.ScenarioFileWriterCSV("irrelevant", "individual")
-        # writer.data = nodal_data_with_unique_labels
-        # writer._write_scenario_to_file(expected_files_path)
+
+        # =================================
+        # TODO: Use this to update the expected files.  # pylint: disable=fixme
+        # write_expected_file(nodal_data_with_unique_labels, expected_files_path)
+        # =================================
 
         csvReader = ior.CsvScenarioReader(expected_files_path)
         expected_data = csvReader.read_scenario()
