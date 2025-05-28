@@ -268,16 +268,11 @@ class EnergyNetworkClass(solph.EnergySystem):
         values = df.loc[row_indices, desired_column].iloc[0]
         return values
 
-    def createNodesData(self, initial_nodal_data, file_or_folder_path, numBuildings, clusterSize):
-        # ==================================================
-        # For MPC, we would like to original to stay intact.
-        # After this point, we do not need the "inactive" rows
-        nodesData = initial_nodal_data.copy()
+    def createNodesData(self, nodesData, file_or_folder_path, numBuildings, clusterSize):
         for key, df in nodesData.items():
             if _ent.BusesLabels.active not in df.columns:
                 continue
             nodesData[key] = df.where(df[_ent.BusesLabels.active] == 1).dropna(how="all")
-        # ==================================================
 
         self.__noOfBuildings = numBuildings
 
