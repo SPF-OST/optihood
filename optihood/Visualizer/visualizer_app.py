@@ -154,24 +154,18 @@ def setup_cytoscape_app(graphData: _tp.Optional[_cv.EnergyNetworkGraphData] = No
             'style': {
                 "line-style": 'dashed',
                 'line-color': 'forestgreen',
-                # 'label': 'data(label)'
             }
         },
         {
             'selector': f'.{stv.EnergyTypes.domestic_hot_water.value}',
             'style': {
-                # "line-style": 'dashed',
-                # 'line-dash-pattern': [6, 3],
                 'line-color': 'tomato',
-                # 'label': 'data(label)'
             }
         },
         {
             'selector': f'.{stv.EnergyTypes.space_heating.value}',
             'style': {
-                # 'curve-style': 'segments',
                 'line-color': 'goldenrod',
-                # 'label': 'data(label)'
             }
         },
         {
@@ -179,73 +173,55 @@ def setup_cytoscape_app(graphData: _tp.Optional[_cv.EnergyNetworkGraphData] = No
             'style': {
                 'curve-style': 'segments',
                 'line-color': 'mediumpurple',
-                # 'label': 'data(label)'
             }
         },
         {
             'selector': f'.{stv.EnergyTypes.unknown.value}',
             'style': {
-                # 'curve-style': 'segments',
                 "line-style": 'dashed',
                 'line-color': 'grey',
-                # 'width': 10
-                # 'label': 'data(label)'
             }
         },
         {
             'selector': f'.{stv.EnergyTypes.low_temp_grid.value}',
             'style': {
-                # 'curve-style': 'segments',
                 'line-color': 'dodgerblue',
-                # 'label': 'data(label)'
             }
         },
         {
             'selector': f'.{stv.EnergyTypes.sh_temp_grid.value}',
             'style': {
-                # 'curve-style': 'segments',
                 'line-color': 'goldenrod',
-                # 'label': 'data(label)'
             }
         },
         {
             'selector': f'.{stv.EnergyTypes.med_temp_grid.value}',
             'style': {
-                # 'curve-style': 'segments',
                 'line-color': 'orangered',
-                # 'label': 'data(label)'
             }
         },
         {
             'selector': f'.{stv.EnergyTypes.dhw_temp_grid.value}',
             'style': {
-                # 'curve-style': 'segments',
                 'line-color': 'tomato',
-                # 'label': 'data(label)'
             }
         },
         {
             'selector': f'.{stv.EnergyTypes.biomass.value}',
             'style': {
-                # 'curve-style': 'segments',
                 'line-color': 'yellowgreen',
-                # 'label': 'data(label)'
             }
         },
         {
             'selector': f'.{stv.EnergyTypes.oil.value}',
             'style': {
-                # 'curve-style': 'segments',
                 'line-color': 'royalblue',
-                # 'label': 'data(label)'
             }
         },
         {
             'selector': f'.{stv.EnergyTypes.district.value}',
             'style': {
-                # 'curve-style': 'segments',
                 'line-color': 'crimson',
-                # 'label': 'data(label)'
             }
         },
 
@@ -261,32 +237,7 @@ def setup_cytoscape_app(graphData: _tp.Optional[_cv.EnergyNetworkGraphData] = No
         ),
         html.Button("💾 Save Layout", id="save-button", n_clicks=0),
         html.Div(id="save-status", style={"marginTop": "10px", "color": "green"}),
-        # html.Button('Add Node', id='btn-add-node-example', n_clicks_timestamp=0),
-        # html.Button('Remove Node', id='btn-remove-node-example', n_clicks_timestamp=0),
         dcc.Markdown(id='cytoscape-selectedNodeData-markdown'),
-
-        # # =====================================================================
-        # # The following deals with image export, which does not work as is.
-        # # ---------------------------------------------------------------------
-        # html.Div(className='four columns', children=[
-        #     dcc.Tabs(id='tabs-image-export', children=[
-        #         dcc.Tab(label='generate jpg', value='jpg'),
-        #         dcc.Tab(label='generate png', value='png'),
-        #         dcc.Tab(label='generate svg', value='svg')
-        #     ]),
-        #     html.Div(style=styles['tab'], children=[
-        #         html.Div(
-        #             id='image-text',
-        #             children='image data will appear here',
-        #             style=styles['output']
-        #         )
-        #     ]),
-        #     html.Div('Download graph:'),
-        #     html.Button("as jpg", id="btn-get-jpg"),
-        #     html.Button("as png", id="btn-get-png"),
-        #     html.Button("as svg", id="btn-get-svg")
-        # ])
-        # # =====================================================================
     ])
 
     @callback(Output('cytoscape-selectedNodeData-markdown', 'children'),
@@ -320,101 +271,6 @@ def setup_cytoscape_app(graphData: _tp.Optional[_cv.EnergyNetworkGraphData] = No
             return f"Layout saved successfully at {timestamp}. Location: {os.path.abspath(node_layout_file)}"
 
         return "No elements to save."
-
-    # # =====================================================================
-    # # The following deals with image export, which does not work as is.
-    # # ---------------------------------------------------------------------
-    # @callback(
-    #     Output('image-text', 'children'),
-    #     Input('cytoscape-event-callbacks-3', 'imageData'),
-    # )
-    # def put_image_string(data):
-    #     return data
-    #
-    # @callback(
-    #     Output("cytoscape-event-callbacks-3", "generateImage"),
-    #     [
-    #         Input('tabs-image-export', 'value'),
-    #         Input("btn-get-jpg", "n_clicks"),
-    #         Input("btn-get-png", "n_clicks"),
-    #         Input("btn-get-svg", "n_clicks"),
-    #     ])
-    # def get_image(tab, get_jpg_clicks, get_png_clicks, get_svg_clicks):
-    #
-    #     # File type to output of 'svg, 'png', 'jpg', or 'jpeg' (alias of 'jpg')
-    #     ftype = tab
-    #
-    #     # 'store': Stores the image data in 'imageData' !only jpg/png are supported
-    #     # 'download'`: Downloads the image as a file with all data handling
-    #     # 'both'`: Stores image data and downloads image as file.
-    #     action = 'store'
-    #
-    #     if ctx.triggered:
-    #         if ctx.triggered_id != "tabs-image-export":
-    #             action = "download"
-    #             ftype = ctx.triggered_id.split("-")[-1]
-    #
-    #     return {
-    #         'type': ftype,
-    #         'action': action
-    #     }
-    # # =====================================================================
-
-    # @callback(Output('cytoscape-event-callbacks-3', 'elements'),
-    #           Input('btn-add-node-example', 'n_clicks_timestamp'),
-    #           Input('btn-remove-node-example', 'n_clicks_timestamp'),
-    #           State('cytoscape-event-callbacks-3', 'elements'))
-    # def update_elements(btn_add, btn_remove, elements):
-    #     current_nodes, deleted_nodes = get_current_and_deleted_nodes(elements)
-    #     # If the add button was clicked most recently and there are nodes to add
-    #     if int(btn_add) > int(btn_remove) and len(deleted_nodes):
-    #
-    #         # We pop one node from deleted nodes and append it to nodes list.
-    #         current_nodes.append(deleted_nodes.pop())
-    #         # Get valid edges -- both source and target nodes are in the current graph
-    #         cy_edges = get_current_valid_edges(current_nodes, edges)
-    #         return cy_edges + current_nodes
-    #
-    #     # If the remove button was clicked most recently and there are nodes to remove
-    #     elif int(btn_remove) > int(btn_add) and len(current_nodes):
-    #         current_nodes.pop()
-    #         cy_edges = get_current_valid_edges(current_nodes, edges)
-    #         return cy_edges + current_nodes
-    #
-    #     # Neither have been clicked yet (or fallback condition)
-    #     return elements
-    #
-    # def get_current_valid_edges(current_nodes, all_edges):
-    #     """Returns edges that are present in Cytoscape:
-    #     its source and target nodes are still present in the graph.
-    #     """
-    #     valid_edges = []
-    #     node_ids = {n['data']['id'] for n in current_nodes}
-    #
-    #     for e in all_edges:
-    #         if e['data']['source'] in node_ids and e['data']['target'] in node_ids:
-    #             valid_edges.append(e)
-    #     return valid_edges
-    #
-    # def get_current_and_deleted_nodes(elements):
-    #     """Returns nodes that are present in Cytoscape and the deleted nodes
-    #     """
-    #     current_nodes = []
-    #     deleted_nodes = []
-    #
-    #     # get current graph nodes
-    #     for ele in elements:
-    #         # if the element is a node
-    #         if 'source' not in ele['data']:
-    #             current_nodes.append(ele)
-    #
-    #     # get deleted nodes
-    #     node_ids = {n['data']['id'] for n in current_nodes}
-    #     for n in nodes:
-    #         if n['data']['id'] not in node_ids:
-    #             deleted_nodes.append(n)
-    #
-    #     return current_nodes, deleted_nodes
 
     return app
 
