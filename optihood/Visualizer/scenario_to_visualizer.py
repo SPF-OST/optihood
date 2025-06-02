@@ -28,10 +28,38 @@ class EnergyTypes(_enum.StrEnum):
     gas = 'gas'
     oil = 'oil'
     hydrogen = 'H2'
+    biomass = 'biomass'
+    low_temp_grid = 'low_temp_grid'
+    sh_temp_grid = 'sh_temp_grid'
+    med_temp_grid = 'med_temp_grid'
+    dhw_temp_grid = 'dhw_temp_grid'
+    district = 'district'
     unknown = 'unknown'
 
 
 def get_energy_type(label: str):
+    low_temp_grid_parts = ["lowTemp", "lowTSourceBus", "lowTSinkBus", "lakePotential", "riverPotential"]
+    if any(flag in label for flag in low_temp_grid_parts):
+        return EnergyTypes.low_temp_grid
+
+    # In the optimization mode with multiple temperature levels, there are three discrete levels marked as:
+    # 0 (lowest temperature), 1 and 2 (highest temperature).
+    # The lowest temperature (level 0) is the temperature at which space heat is provided
+    # The highest temperature (level 2) is the temperature at which domestic hot water is provided
+    # The temperature level 1 represents a discrete temperature level between level 0 and level 1.
+
+    sh_temp_grid_parts = ["heat0", "heatLink0", "heatStorageBus0", "heatBus0", "heatDemand0", "heatDemandBus0", "heatDemandEndBus0"]
+    if any(flag in label for flag in sh_temp_grid_parts):
+        return EnergyTypes.sh_temp_grid
+
+    med_temp_grid_parts = ["heatStorageBus1"]
+    if any(flag in label for flag in med_temp_grid_parts):
+        return EnergyTypes.med_temp_grid
+
+    dhw_temp_grid_parts = ["heat2", "heatLink2", "heatStorageBus2", "heatBus2", "heatDemand2", "heatDemandBus2", "heatDemandEndBus2"]
+    if any(flag in label for flag in dhw_temp_grid_parts):
+        return EnergyTypes.dhw_temp_grid
+
     electric_parts = ["electric", "Electric", "grid", "pv"]
     if any(flag in label for flag in electric_parts):
         return EnergyTypes.electricity
@@ -44,9 +72,21 @@ def get_energy_type(label: str):
     if any(flag in label for flag in dhw_parts):
         return EnergyTypes.domestic_hot_water
 
+    district_parts = ["district", "District", "dh", "heatingSource"]
+    if any(flag in label for flag in district_parts):
+        return EnergyTypes.district
+
     gas_parts = ["gas", "Gas"]
     if any(flag in label for flag in gas_parts):
         return EnergyTypes.gas
+
+    biomass_parts = ["biomass", "Biomass"]
+    if any(flag in label for flag in biomass_parts):
+        return EnergyTypes.biomass
+
+    oil_parts = ["oil", "Oil"]
+    if any(flag in label for flag in oil_parts):
+        return EnergyTypes.oil
 
     print(f'Unknown label type found: {label}')
     return EnergyTypes.unknown
@@ -55,9 +95,13 @@ def get_energy_type(label: str):
 def get_energy_type_based_on_both_labels(label: str, other_label: str) -> EnergyTypes:
     """ Edges are based on the current node and another (to or from)."""
 
-    transformer_parts = ["HP", "solar", "GasBoiler", "Dummy", "Dummy"]
+    transformer_parts = ["HP", "solar", "GasBoiler", "BiomassBoiler", "OilBoiler", "Dummy", "HP_d", "GWHP_d"]
+    source_parts = ["Dummy", "wasteheatPotential", "wasteIncineratorPotential"]
+    storage_parts = ["pitStorage", "thermalStorage"]
 
-    if any(flag in label for flag in transformer_parts):
+    all_parts = transformer_parts + source_parts + storage_parts
+
+    if any(flag in label for flag in all_parts):
         return get_energy_type(other_label)
 
     return get_energy_type(label)
@@ -858,11 +902,11 @@ class SolarConverter(ScenarioToVisualizerAbstract):
             from_nodes, to_nodes = ScenarioToVisualizerAbstract.get_to_and_from_nodes(line)
 
             label = line['label']
-            if label == SolarTypes.pv:
+            if label.startswith(SolarTypes.pv):
                 list_of_solar.append(
                     SolarConverter.get_PVConverter(line, to_nodes)
                 )
-            elif label == SolarTypes.solarCollector:
+            elif label.startswith(SolarTypes.solarCollector):
                 list_of_solar.append(
                     SolarConverter.get_SolarCollectorConverter(line, from_nodes, to_nodes)
                 )
@@ -985,6 +1029,13 @@ class LinksConverter(ScenarioToVisualizerAbstract):
                 )
                 to_nodes.append(
                     ScenarioToVisualizerAbstract.get_id_with_building(BusTypes.heatDemandBus+label[-1], building)
+                )
+            elif "dhLink" in label:
+                from_nodes.append(
+                    ScenarioToVisualizerAbstract.get_id_with_building(BusTypes.dhHeatInBus, building)
+                )
+                to_nodes.append(
+                    ScenarioToVisualizerAbstract.get_id_with_building(BusTypes.dhHeatBus, building)
                 )
             else:  # electricity
                 from_nodes.append(

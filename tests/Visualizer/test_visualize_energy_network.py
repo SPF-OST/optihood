@@ -73,10 +73,9 @@ class TestVisualizeEnergyNetwork_from_csv(_ut.TestCase):
 
     def test_visualize_from_energy_network(self):
         # Given
-
-
+        _input_data_dir = packageDir / ".." / "data" / "CSVs" / "basic_example_CSVs"
         _os.chdir(_examples_dir)
-        csvReader = _re.CsvScenarioReader(input_data_dir)
+        csvReader = _re.CsvScenarioReader(_input_data_dir)
         initial_nodal_data = csvReader.read_scenario()
         _os.chdir(cwd)
 

@@ -662,7 +662,7 @@ class Building:
         label = data["label"] + '__' + self.__buildingLabel
         inputBusLabel = data["from"] + '__' + self.__buildingLabel
         outputBuses = [self.__busDict[o + '__' + self.__buildingLabel] for o in data["to"].split(",")]
-        efficiency = [float(e) for e in data["efficiency"].split(",")]
+        efficiency = [float(e) for e in str(data["efficiency"]).split(",")]
         envImpactPerCapacity = float(data["impact_cap"]) / float(data["lifetime"])
         if data["capacity_min"] == 'x':
             capacityMinSH = float(data["capacity_SH"])
@@ -757,9 +757,10 @@ class Building:
     
     def addTransformer(self, data, operationTemperatures, temperatureAmb, temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode, temperatureLevels):
         for i, t in data.iterrows():
-                if t["label"] == "HP":
+            if t["active"]:
+                if pattern_at_start_followed_by_number("HP", t["label"]):
                     self._addHeatPump(t, operationTemperatures, temperatureAmb, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode, temperatureLevels)
-                elif t["label"] == "GWHP":
+                elif pattern_at_start_followed_by_number("GWHP", t["label"]):
                     self._addGeothemalHeatPump(t, operationTemperatures, temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode, temperatureLevels)
                 elif t["label"] == "GWHP split":
                     self._addGeothemalHeatPumpSplit(t, operationTemperatures, temperatureGround, opt, mergeLinkBuses, dispatchMode)
@@ -767,9 +768,9 @@ class Building:
                     self._addCHP(t, len(temperatureAmb), opt, dispatchMode)
                 elif "Boiler" in t["label"]:
                     self._addBoiler(t, opt, dispatchMode)
-                elif t["label"] == "ElectricRod":
+                elif pattern_at_start_followed_by_number("ElectricRod", t["label"]):
                     self._addElectricRod(t, opt, mergeLinkBuses, dispatchMode, temperatureLevels)
-                elif t["label"] == "Chiller":
+                elif pattern_at_start_followed_by_number("Chiller", t["label"]):
                     self._addChiller(t, operationTemperatures[0], temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode)
                 else:
                     logging.warning("Transformer label not identified, adding generic transformer component...")
