@@ -517,11 +517,39 @@ def run_fig_visualizer(figure_handle: plt.Figure) -> None:
     app.run_server(debug=True)
 
 
-def run_cytoscape_visualizer(graphData: _tp.Optional[_cv.EnergyNetworkGraphData] = None,
-                             nodes: _tp.Optional[_tp.Dict[str, _tp.Dict[str, _tp.Union[str, float]]]] = None,
-                             edges: _tp.Optional[_tp.Dict[str, _tp.Dict[str, _tp.Union[str, float]]]] = None,
-                             node_layout_file: str = 'saved_layout.json',
-                             layout_mode: str ='breadthfirst') -> None:
+def run_cytoscape_visualizer(
+        graphData: _tp.Optional[_cv.EnergyNetworkGraphData] = None,
+        nodes: _tp.Optional[_tp.Dict[str, _tp.Dict[str, _tp.Union[str, float]]]] = None,
+        edges: _tp.Optional[_tp.Dict[str, _tp.Dict[str, _tp.Union[str, float]]]] = None,
+        node_layout_file: str = 'saved_layout.json',
+        layout_mode: _tp.Literal["breadthfirst", "circle", "cose", "grid", "random"] = 'breadthfirst'
+        ) -> None:
+    """
+    Method to visualize an energy network.
+    Takes either a EnergyNetworkGraphData object, or the combination of both nodes and edges dictionaries.
+    
+    This visualizer runs in a web browser.
+    There you can move the nodes to a better position and save the positions to the "node_layout_file".
+
+    Parameters
+    ----------
+    graphData:
+        optional EnergyNetworkGraphData object with nodes and edges.
+
+    nodes:
+        optional dictionary of "nodes" in the network. These correspond to the components, links, buses, etc.
+
+    edges:
+        optional dictionary of "edges" in the network. These correspond to flows between nodes and connect them.
+
+    node_layout_file:
+        file where the node positions should be stored.
+
+    layout_mode:
+        When no node_layout_file is available yet, the nodes will be distributed automatically using this algorithm.
+        Options are: "breadthfirst", "circle", "cose", "grid", and "random"
+    """
+
     app = setup_cytoscape_app(graphData, nodes, edges, node_layout_file, layout_mode)
     app.run_server(debug=True)
 
