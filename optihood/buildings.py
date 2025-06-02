@@ -1,5 +1,4 @@
 import numpy as np
-import re as _re
 import oemof.solph as solph
 import pandas as pd
 from oemof.tools import logger
@@ -764,9 +763,9 @@ class Building:
     def addTransformer(self, data, operationTemperatures, temperatureAmb, temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode, temperatureLevels):
         for i, t in data.iterrows():
             if t["active"]:
-                if _re.match(r"^HP(\d+)?$", t["label"]):
+                if pattern_at_start_followed_by_number("HP", t["label"]):
                     self._addHeatPump(t, operationTemperatures, temperatureAmb, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode, temperatureLevels)
-                elif _re.match(r"^GWHP(\d+)?$", t["label"]):
+                elif pattern_at_start_followed_by_number("GWHP", t["label"]):
                     self._addGeothemalHeatPump(t, operationTemperatures, temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode, temperatureLevels)
                 elif t["label"] == "GWHP split":
                     self._addGeothemalHeatPumpSplit(t, operationTemperatures, temperatureGround, opt, mergeLinkBuses, dispatchMode)
@@ -774,9 +773,9 @@ class Building:
                     self._addCHP(t, len(temperatureAmb), opt, dispatchMode)
                 elif "Boiler" in t["label"]:
                     self._addBoiler(t, opt, dispatchMode)
-                elif _re.match(r"^ElectricRod(\d+)?$", t["label"]):
+                elif pattern_at_start_followed_by_number("ElectricRod", t["label"]):
                     self._addElectricRod(t, opt, mergeLinkBuses, dispatchMode, temperatureLevels)
-                elif _re.match(r"^Chiller(\d+)?$", t["label"]):
+                elif pattern_at_start_followed_by_number("Chiller", t["label"]):
                     self._addChiller(t, operationTemperatures[0], temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode)
                 else:
                     logging.warning("Transformer label not identified, adding generic transformer component...")
