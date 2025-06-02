@@ -42,6 +42,12 @@ def get_energy_type(label: str):
     if any(flag in label for flag in low_temp_grid_parts):
         return EnergyTypes.low_temp_grid
 
+    # In the optimization mode with multiple temperature levels, there are three discrete levels marked as:
+    # 0 (lowest temperature), 1 and 2 (highest temperature).
+    # The lowest temperature (level 0) is the temperature at which space heat is provided
+    # The highest temperature (level 2) is the temperature at which domestic hot water is provided
+    # The temperature level 1 represents a discrete temperature level between level 0 and level 1.
+
     sh_temp_grid_parts = ["heat0", "heatLink0", "heatStorageBus0", "heatBus0", "heatDemand0", "heatDemandBus0", "heatDemandEndBus0"]
     if any(flag in label for flag in sh_temp_grid_parts):
         return EnergyTypes.sh_temp_grid
@@ -896,11 +902,11 @@ class SolarConverter(ScenarioToVisualizerAbstract):
             from_nodes, to_nodes = ScenarioToVisualizerAbstract.get_to_and_from_nodes(line)
 
             label = line['label']
-            if SolarTypes.pv in label:
+            if label.startswith(SolarTypes.pv):
                 list_of_solar.append(
                     SolarConverter.get_PVConverter(line, to_nodes)
                 )
-            elif SolarTypes.solarCollector in label:
+            elif label.startswith(SolarTypes.solarCollector):
                 list_of_solar.append(
                     SolarConverter.get_SolarCollectorConverter(line, from_nodes, to_nodes)
                 )
