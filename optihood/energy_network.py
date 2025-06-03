@@ -24,256 +24,10 @@ from optihood._helpers import *
 from optihood.links import Link
 import optihood.IO.readers as _re
 
-# TODO: define nr_of_buildings once
+# TODO: define nr_of_buildings once  # pylint: disable=fixme
 
 
-class OptimizationProperties:
-    """
-    Configurable attributes of energy networks.
-    """
-    def __init__(self,
-                 optimization_type: _tp.Literal["costs", "env"],  # Pycharm highlights the input if anything else.
-                 merge_link_buses: bool = False,
-                 merge_buses: _tp.Optional[_tp.Sequence[str]] = None,
-                 merge_heat_source_sink: bool = False,
-                 temperature_levels: bool = False,
-                 cluster_size: _tp.Optional[dict[str, int]] = None,
-                 dispatch_mode: bool = False,
-                 include_carbon_benefits: bool = False
-                 ) -> None:
-        """
-        # TODO: explain inputs
-        Parameters
-        ----------
-
-        cluster_size:
-            Used to provide a selected number of days which could be assumed representative of the entire time range.
-
-        optimization_type:
-            "cost", or "env" depending on which criteria should be optimized.
-
-        merge_link_buses:
-            False: one bus of provided type per building.
-            True: all buildings use the same bus for each type.
-
-        merge_buses:
-            Specify which buses to merge when merge_link_buses set to True
-
-        merge_heat_source_sink:
-
-        temperature_levels:
-
-        dispatch_mode:
-            True: activate dispatch optimization
-            False: do investment + dispatch optimization
-
-        include_carbon_benefits:
-
-        """
-
-        self.optimization_type = optimization_type
-        self.merge_link_buses = merge_link_buses
-        self.merge_buses = merge_buses
-        self.merge_heat_source_sink = merge_heat_source_sink
-        self.temperature_levels = temperature_levels
-        self.cluster_size = cluster_size
-        self.dispatch_mode = dispatch_mode
-        self.include_carbon_benefits = include_carbon_benefits
-
-    def check_mutually_exclusive_inputs(self):
-        if self.merge_link_buses and self.temperature_levels:
-            logging.error("The options merge_link_buses and temperature_levels should not be set True at the same time. "
-                          "This use case is not supported in the present version of optihood. Only one of "
-                          "mergeLinkBuses and temperatureLevels should be set to True.")
-
-
-def get_data_from_df(df: pd.DataFrame, column_name: str):
-    return df[column_name]
-
-
-def get_data_from_excel_file(data: pd.ExcelFile, column_name: str):
-    return data.parse(column_name)
-
-
-class EnergyNetworkClass(solph.EnergySystem):
-    def __init__(self, timestamp, clusters=None, temperatureLevels=False):
-        self._timeIndexReal = timestamp             # the timeindex passed to the energy network, will be made shorter if clustering is selected
-        self._clusterDate = {}
-        if clusters:
-            self._numberOfDays = len(clusters)
-            lastDay = datetime(timestamp.year[0], 1, 1) + timedelta(self._numberOfDays - 1)
-            lastDay = lastDay.strftime('%Y-%m-%d')
-            i = 1
-            for day in clusters:
-                d_clusterIndex = datetime(timestamp.year[0], 1, 1) + timedelta(i - 1)
-                self._clusterDate[day] = d_clusterIndex.strftime('%Y-%m-%d')
-                i += 1
-            timestamp = pd.date_range(f"{timestamp.year[0]}-01-01 00:00:00", f"{lastDay} 23:00:00", freq=timestamp.freq)
-        self._nodesList = []
-        self._thermalStorageList = []
-        self._storageContentSH = {}
-        self._storageContentDHW = {}
-        self._storageContentTS = {}
-        self._storageContent = {}
-        self.__inputs = {}                          # dictionary of list of inputs indexed by the building label
-        self.__technologies = {}                    # dictionary of list of technologies indexed by the building label
-        self.__capacitiesTransformersBuilding = {}  # dictionary of dictionary of optimized capacities of transformers indexed by the building label
-        self.__capacitiesStoragesBuilding = {}      # dictionary of dictionary of optimized capacities of storages indexed by the building label
-        self.__costParam = {}
-        self.__envParam = {}
-        self.__capex = {}
-        self.__opex = {}
-        self.__feedIn = {}
-        self.__envImpactInputs = {}                 # dictionary of dictionary of environmental impact of different inputs indexed by the building label
-        self.__envImpactTechnologies = {}           # dictionary of dictionary of environmental impact of different technologies indexed by the building label
-        self._busDict = {}
-        self.__elHP = {}
-        self.__shHP = {}
-        self.__dhwHP = {}
-        self.__intermediateOpTempsHP = {}
-        self.__annualCopHP = {}
-        self.__elGWHP = {}
-        self.__shGWHP = {}
-        self.__dhwGWHP = {}
-        self.__intermediateOpTempsGWHP = {}
-        self.__annualCopGWHP = {}
-        self.__elRodEff = np.nan
-        self._temperatureLevels = temperatureLevels
-        self._dispatchMode = False
-        self._c = 4.186 #default value for water in kJ/(kg K)
-        self._rho = 1. #default value for water in kg/L
-        if not os.path.exists(".\\log_files"):
-            os.mkdir(".\\log_files")
-        screen_format = "%(asctime)s-%(levelname)s:  %(message)s"
-        logger.define_logging(screen_format=screen_format, logpath=os.getcwd(), logfile=f'.\\log_files\\optihood_{datetime.now().strftime("%d.%m.%Y %H.%M.%S")}.log')
-        logging.info("Initializing the energy network")
-        super(EnergyNetworkClass, self).__init__(timeindex=timestamp, infer_last_interval=True)
-
-    def setFromExcel(self, filePath, numberOfBuildings, clusterSize={}, opt="costs", mergeLinkBuses=False, mergeBuses=None, mergeHeatSourceSink=False, dispatchMode=False, includeCarbonBenefits=False):
-        self.check_file_path(filePath)
-        self.check_mutually_exclusive_inputs(mergeLinkBuses)
-        self._dispatchMode = dispatchMode
-        self._optimizationType = opt
-        self._mergeBuses = mergeBuses
-        self.__noOfBuildings = numberOfBuildings
-        logging.info("Defining the energy network from the excel file: {}".format(filePath))
-        data = pd.ExcelFile(filePath)
-        initial_nodal_data = self.get_nodal_data_from_Excel(data)
-        data.close()
-
-        nodesData = self.read_profiles_and_other_data(initial_nodal_data, filePath, numberOfBuildings, clusterSize,
-                                                      self.timeindex)
-        self.set_using_nodal_data(clusterSize, filePath, includeCarbonBenefits, nodesData, mergeBuses,
-                                  mergeHeatSourceSink, mergeLinkBuses, numberOfBuildings, opt)
-
-    def set_using_nodal_data(self, clusterSize, filePath, includeCarbonBenefits, nodesData: dict[str, pd.DataFrame], mergeBuses,
-                             mergeHeatSourceSink, mergeLinkBuses, numberOfBuildings, opt,
-                             grouped_network: bool = False
-                             ):
-        if grouped_network and not isinstance(self, EnergyNetworkGroup):
-            logging.error(f"'grouped_network' flag should not be used without using {EnergyNetworkGroup.__name__}.")
-
-        if clusterSize:
-            demandProfiles = {}
-            for i in range(1, numberOfBuildings + 1):
-                demandProfiles[i] = pd.concat(
-                    [nodesData["demandProfiles"][i].loc[d] for d in clusterSize.keys()])
-            nodesData["demandProfiles"] = demandProfiles
-
-            electricityImpact = pd.concat(
-                [nodesData["electricity_impact"].loc[d] * clusterSize[d] for d in clusterSize.keys()])
-            nodesData["electricity_impact"] = electricityImpact
-
-            electricityCost = pd.concat(
-                [nodesData["electricity_cost"].loc[d] * clusterSize[d] for d in clusterSize.keys()])
-            nodesData["electricity_cost"] = electricityCost
-
-            if 'natGas_impact' in nodesData:
-                natGasImpact = pd.concat(
-                    [nodesData["natGas_impact"].loc[d] * clusterSize[d] for d in clusterSize.keys()])
-                natGasCost = pd.concat(
-                    [nodesData["natGas_cost"].loc[d] * clusterSize[d] for d in clusterSize.keys()])
-                nodesData["natGas_impact"] = natGasImpact
-                nodesData["natGas_cost"] = natGasCost
-
-            weatherData = pd.concat([nodesData['weather_data'][
-                                         nodesData['weather_data']['time.mm'] == int(d.split('-')[1])][
-                                         nodesData['weather_data']['time.dd'] == int(d.split('-')[2])][
-                                         ['gls', 'str.diffus', 'tre200h0', 'ground_temp']] for d in clusterSize.keys()])
-
-            nodesData["weather_data"] = weatherData
-
-        self._convertNodes(nodesData, opt, mergeLinkBuses, mergeBuses, mergeHeatSourceSink, includeCarbonBenefits,
-                           clusterSize)
-        logging.info("Nodes from Excel file {} successfully converted".format(filePath))
-
-        if grouped_network:
-            assert isinstance(self, EnergyNetworkGroup)
-            self._addLinks(nodesData["links"], numberOfBuildings, mergeLinkBuses)
-            logging.info("Links successfully added to the energy network")
-
-        self.add(*self._nodesList)
-        logging.info("Nodes successfully added to the energy network")
-
-    def check_mutually_exclusive_inputs(self, mergeLinkBuses):
-        if mergeLinkBuses and self._temperatureLevels:
-            logging.error("The options mergeLinkBuses and temperatureLevels should not be set True at the same time. "
-                          "This use case is not supported in the present version of optihood. Only one of "
-                          "mergeLinkBuses and temperatureLevels should be set to True.")
-
-    @staticmethod
-    def check_file_path(filePath):
-        if not filePath or not os.path.isfile(filePath):
-            logging.error(f"File {filePath} not found.")
-
-    def get_nodal_data_from_df(self, data: pd.DataFrame):
-        nodes_data = self.get_nodal_data(get_data_from_df, data)
-
-        return nodes_data
-
-    def get_nodal_data_from_dict_with_dfs(self, data: dict):
-        """ Facade as the interface is the same as for the DataFrame version. """
-        nodes_data = self.get_nodal_data(get_data_from_df, data)
-
-        return nodes_data
-
-    def get_nodal_data_from_Excel(self, data: pd.ExcelFile):
-        nodes_data = self.get_nodal_data(get_data_from_excel_file, data)
-
-        return nodes_data
-
-    @staticmethod
-    def get_nodal_data(func, data: _tp.Union[pd.ExcelFile, pd.DataFrame, dict]):
-        f""" Uses a specified function to get the nodal data from a specified entry point.
-            e.g.:
-            func = {get_data_from_excel_file}
-            func = {get_data_from_df}            
-        """
-        nodes_data = {
-            _ent.NodeKeys.buses.value: func(data, _ent.NodeKeys.buses.value),
-            _ent.NodeKeys.grid_connection.value: func(data, _ent.NodeKeys.grid_connection.value),
-            _ent.NodeKeys.commodity_sources.value: func(data, _ent.NodeKeys.commodity_sources.value),
-            _ent.NodeKeys.solar.value: func(data, _ent.NodeKeys.solar.value),
-            _ent.NodeKeys.transformers.value: func(data, _ent.NodeKeys.transformers.value),
-            _ent.NodeKeys.demand.value: func(data, _ent.NodeKeys.demand.value),
-            _ent.NodeKeys.storages.value: func(data, _ent.NodeKeys.storages.value),
-            _ent.NodeKeys.stratified_storage.value: func(data, _ent.NodeKeys.stratified_storage.value),
-            _ent.NodeKeys.profiles.value: func(data, _ent.NodeKeys.profiles.value),
-        }
-        
-        try:
-            # This sheet is usually not included for single buildings.
-            nodes_data[_ent.NodeKeys.links.value] = func(data, _ent.NodeKeys.links.value)
-        except:  # multiple exceptions possible, each of which leads to the same conclusion.
-            logging.warning("No data found for links. Moving on without including links.")
-        try:
-            if "ice_storage" in data.sheet_names:
-                nodes_data.update({_ent.NodeKeys.ice_storage.value: func(data, _ent.NodeKeys.ice_storage.value)})
-        except:  # multiple exceptions possible, each of which leads to the same conclusion.
-            logging.warning("No data found for an ice storage. Moving on without including one.")
-
-        return nodes_data
-
+class ProfileAndOtherDataReader:
     @staticmethod
     def get_values_from_dataframe(df: pd.DataFrame, identifier: str, identifier_column: str, desired_column: str):
         f""" Find any {identifier} entries in the {identifier_column} and return the 
@@ -565,6 +319,255 @@ class EnergyNetworkClass(solph.EnergySystem):
                         bmParamers[bmParamers["Building Number"] == (i + 1)][param].iloc[0])
 
         return nodesData
+
+
+class OptimizationProperties:
+    """
+    Configurable attributes of energy networks.
+    """
+    def __init__(self,
+                 optimization_type: _tp.Literal["costs", "env"],  # Pycharm highlights the input if anything else.
+                 merge_link_buses: bool = False,
+                 merge_buses: _tp.Optional[_tp.Sequence[str]] = None,
+                 merge_heat_source_sink: bool = False,
+                 temperature_levels: bool = False,
+                 cluster_size: _tp.Optional[dict[str, int]] = None,
+                 dispatch_mode: bool = False,
+                 include_carbon_benefits: bool = False
+                 ) -> None:
+        """
+        # TODO: explain inputs
+        Parameters
+        ----------
+
+        cluster_size:
+            Used to provide a selected number of days which could be assumed representative of the entire time range.
+
+        optimization_type:
+            "cost", or "env" depending on which criteria should be optimized.
+
+        merge_link_buses:
+            False: one bus of provided type per building.
+            True: all buildings use the same bus for each type.
+
+        merge_buses:
+            Specify which buses to merge when merge_link_buses set to True
+
+        merge_heat_source_sink:
+
+        temperature_levels:
+
+        dispatch_mode:
+            True: activate dispatch optimization
+            False: do investment + dispatch optimization
+
+        include_carbon_benefits:
+
+        """
+
+        self.optimization_type = optimization_type
+        self.merge_link_buses = merge_link_buses
+        self.merge_buses = merge_buses
+        self.merge_heat_source_sink = merge_heat_source_sink
+        self.temperature_levels = temperature_levels
+        self.cluster_size = cluster_size
+        self.dispatch_mode = dispatch_mode
+        self.include_carbon_benefits = include_carbon_benefits
+
+    def check_mutually_exclusive_inputs(self):
+        if self.merge_link_buses and self.temperature_levels:
+            logging.error("The options merge_link_buses and temperature_levels should not be set True at the same time. "
+                          "This use case is not supported in the present version of optihood. Only one of "
+                          "mergeLinkBuses and temperatureLevels should be set to True.")
+
+
+def get_data_from_df(df: pd.DataFrame, column_name: str):
+    return df[column_name]
+
+
+def get_data_from_excel_file(data: pd.ExcelFile, column_name: str):
+    return data.parse(column_name)
+
+
+class EnergyNetworkClass(solph.EnergySystem):
+    def __init__(self, timestamp, clusters=None, temperatureLevels=False):
+        self._timeIndexReal = timestamp             # the timeindex passed to the energy network, will be made shorter if clustering is selected
+        self._clusterDate = {}
+        if clusters:
+            self._numberOfDays = len(clusters)
+            lastDay = datetime(timestamp.year[0], 1, 1) + timedelta(self._numberOfDays - 1)
+            lastDay = lastDay.strftime('%Y-%m-%d')
+            i = 1
+            for day in clusters:
+                d_clusterIndex = datetime(timestamp.year[0], 1, 1) + timedelta(i - 1)
+                self._clusterDate[day] = d_clusterIndex.strftime('%Y-%m-%d')
+                i += 1
+            timestamp = pd.date_range(f"{timestamp.year[0]}-01-01 00:00:00", f"{lastDay} 23:00:00", freq=timestamp.freq)
+        self._nodesList = []
+        self._thermalStorageList = []
+        self._storageContentSH = {}
+        self._storageContentDHW = {}
+        self._storageContentTS = {}
+        self._storageContent = {}
+        self.__inputs = {}                          # dictionary of list of inputs indexed by the building label
+        self.__technologies = {}                    # dictionary of list of technologies indexed by the building label
+        self.__capacitiesTransformersBuilding = {}  # dictionary of dictionary of optimized capacities of transformers indexed by the building label
+        self.__capacitiesStoragesBuilding = {}      # dictionary of dictionary of optimized capacities of storages indexed by the building label
+        self.__costParam = {}
+        self.__envParam = {}
+        self.__capex = {}
+        self.__opex = {}
+        self.__feedIn = {}
+        self.__envImpactInputs = {}                 # dictionary of dictionary of environmental impact of different inputs indexed by the building label
+        self.__envImpactTechnologies = {}           # dictionary of dictionary of environmental impact of different technologies indexed by the building label
+        self._busDict = {}
+        self.__elHP = {}
+        self.__shHP = {}
+        self.__dhwHP = {}
+        self.__intermediateOpTempsHP = {}
+        self.__annualCopHP = {}
+        self.__elGWHP = {}
+        self.__shGWHP = {}
+        self.__dhwGWHP = {}
+        self.__intermediateOpTempsGWHP = {}
+        self.__annualCopGWHP = {}
+        self.__elRodEff = np.nan
+        self._temperatureLevels = temperatureLevels
+        self._dispatchMode = False
+        self._c = 4.186 #default value for water in kJ/(kg K)
+        self._rho = 1. #default value for water in kg/L
+        if not os.path.exists(".\\log_files"):
+            os.mkdir(".\\log_files")
+        screen_format = "%(asctime)s-%(levelname)s:  %(message)s"
+        logger.define_logging(screen_format=screen_format, logpath=os.getcwd(), logfile=f'.\\log_files\\optihood_{datetime.now().strftime("%d.%m.%Y %H.%M.%S")}.log')
+        logging.info("Initializing the energy network")
+        super(EnergyNetworkClass, self).__init__(timeindex=timestamp, infer_last_interval=True)
+
+    def setFromExcel(self, filePath, numberOfBuildings, clusterSize={}, opt="costs", mergeLinkBuses=False, mergeBuses=None, mergeHeatSourceSink=False, dispatchMode=False, includeCarbonBenefits=False):
+        self.check_file_path(filePath)
+        self.check_mutually_exclusive_inputs(mergeLinkBuses)
+        self._dispatchMode = dispatchMode
+        self._optimizationType = opt
+        self._mergeBuses = mergeBuses
+        self.__noOfBuildings = numberOfBuildings
+        logging.info("Defining the energy network from the excel file: {}".format(filePath))
+        data = pd.ExcelFile(filePath)
+        initial_nodal_data = self.get_nodal_data_from_Excel(data)
+        data.close()
+        other_data_reader = ProfileAndOtherDataReader()
+
+        nodesData = other_data_reader.read_profiles_and_other_data(initial_nodal_data, filePath, numberOfBuildings, clusterSize,
+                                                                   self.timeindex)
+        self.set_using_nodal_data(clusterSize, filePath, includeCarbonBenefits, nodesData, mergeBuses,
+                                  mergeHeatSourceSink, mergeLinkBuses, numberOfBuildings, opt)
+
+    def set_using_nodal_data(self, clusterSize, filePath, includeCarbonBenefits, nodesData: dict[str, pd.DataFrame], mergeBuses,
+                             mergeHeatSourceSink, mergeLinkBuses, numberOfBuildings, opt,
+                             grouped_network: bool = False
+                             ):
+        if grouped_network and not isinstance(self, EnergyNetworkGroup):
+            logging.error(f"'grouped_network' flag should not be used without using {EnergyNetworkGroup.__name__}.")
+
+        if clusterSize:
+            demandProfiles = {}
+            for i in range(1, numberOfBuildings + 1):
+                demandProfiles[i] = pd.concat(
+                    [nodesData["demandProfiles"][i].loc[d] for d in clusterSize.keys()])
+            nodesData["demandProfiles"] = demandProfiles
+
+            electricityImpact = pd.concat(
+                [nodesData["electricity_impact"].loc[d] * clusterSize[d] for d in clusterSize.keys()])
+            nodesData["electricity_impact"] = electricityImpact
+
+            electricityCost = pd.concat(
+                [nodesData["electricity_cost"].loc[d] * clusterSize[d] for d in clusterSize.keys()])
+            nodesData["electricity_cost"] = electricityCost
+
+            if 'natGas_impact' in nodesData:
+                natGasImpact = pd.concat(
+                    [nodesData["natGas_impact"].loc[d] * clusterSize[d] for d in clusterSize.keys()])
+                natGasCost = pd.concat(
+                    [nodesData["natGas_cost"].loc[d] * clusterSize[d] for d in clusterSize.keys()])
+                nodesData["natGas_impact"] = natGasImpact
+                nodesData["natGas_cost"] = natGasCost
+
+            weatherData = pd.concat([nodesData['weather_data'][
+                                         nodesData['weather_data']['time.mm'] == int(d.split('-')[1])][
+                                         nodesData['weather_data']['time.dd'] == int(d.split('-')[2])][
+                                         ['gls', 'str.diffus', 'tre200h0', 'ground_temp']] for d in clusterSize.keys()])
+
+            nodesData["weather_data"] = weatherData
+
+        self._convertNodes(nodesData, opt, mergeLinkBuses, mergeBuses, mergeHeatSourceSink, includeCarbonBenefits,
+                           clusterSize)
+        logging.info("Nodes from Excel file {} successfully converted".format(filePath))
+
+        if grouped_network:
+            assert isinstance(self, EnergyNetworkGroup)
+            self._addLinks(nodesData["links"], numberOfBuildings, mergeLinkBuses)
+            logging.info("Links successfully added to the energy network")
+
+        self.add(*self._nodesList)
+        logging.info("Nodes successfully added to the energy network")
+
+    def check_mutually_exclusive_inputs(self, mergeLinkBuses):
+        if mergeLinkBuses and self._temperatureLevels:
+            logging.error("The options mergeLinkBuses and temperatureLevels should not be set True at the same time. "
+                          "This use case is not supported in the present version of optihood. Only one of "
+                          "mergeLinkBuses and temperatureLevels should be set to True.")
+
+    @staticmethod
+    def check_file_path(filePath):
+        if not filePath or not os.path.isfile(filePath):
+            logging.error(f"File {filePath} not found.")
+
+    def get_nodal_data_from_df(self, data: pd.DataFrame):
+        nodes_data = self.get_nodal_data(get_data_from_df, data)
+
+        return nodes_data
+
+    def get_nodal_data_from_dict_with_dfs(self, data: dict):
+        """ Facade as the interface is the same as for the DataFrame version. """
+        nodes_data = self.get_nodal_data(get_data_from_df, data)
+
+        return nodes_data
+
+    def get_nodal_data_from_Excel(self, data: pd.ExcelFile):
+        nodes_data = self.get_nodal_data(get_data_from_excel_file, data)
+
+        return nodes_data
+
+    @staticmethod
+    def get_nodal_data(func, data: _tp.Union[pd.ExcelFile, pd.DataFrame, dict]):
+        f""" Uses a specified function to get the nodal data from a specified entry point.
+            e.g.:
+            func = {get_data_from_excel_file}
+            func = {get_data_from_df}            
+        """
+        nodes_data = {
+            _ent.NodeKeys.buses.value: func(data, _ent.NodeKeys.buses.value),
+            _ent.NodeKeys.grid_connection.value: func(data, _ent.NodeKeys.grid_connection.value),
+            _ent.NodeKeys.commodity_sources.value: func(data, _ent.NodeKeys.commodity_sources.value),
+            _ent.NodeKeys.solar.value: func(data, _ent.NodeKeys.solar.value),
+            _ent.NodeKeys.transformers.value: func(data, _ent.NodeKeys.transformers.value),
+            _ent.NodeKeys.demand.value: func(data, _ent.NodeKeys.demand.value),
+            _ent.NodeKeys.storages.value: func(data, _ent.NodeKeys.storages.value),
+            _ent.NodeKeys.stratified_storage.value: func(data, _ent.NodeKeys.stratified_storage.value),
+            _ent.NodeKeys.profiles.value: func(data, _ent.NodeKeys.profiles.value),
+        }
+        
+        try:
+            # This sheet is usually not included for single buildings.
+            nodes_data[_ent.NodeKeys.links.value] = func(data, _ent.NodeKeys.links.value)
+        except:  # multiple exceptions possible, each of which leads to the same conclusion.
+            logging.warning("No data found for links. Moving on without including links.")
+        try:
+            if "ice_storage" in data.sheet_names:
+                nodes_data.update({_ent.NodeKeys.ice_storage.value: func(data, _ent.NodeKeys.ice_storage.value)})
+        except:  # multiple exceptions possible, each of which leads to the same conclusion.
+            logging.warning("No data found for an ice storage. Moving on without including one.")
+
+        return nodes_data
 
     def _checkStorageTemperatureGradient(self, temp_c):
         listTemperatures = [temp_c]
@@ -1556,8 +1559,10 @@ class EnergyNetworkClass(solph.EnergySystem):
 
         csvReader = _re.CsvScenarioReader(input_data_dir)
         initial_nodal_data = csvReader.read_scenario()
-        nodal_data = self.read_profiles_and_other_data(initial_nodal_data, input_data_dir, nr_of_buildings, clusterSize,
-                                                       self.timeindex)
+
+        other_data_reader = ProfileAndOtherDataReader()
+        nodal_data = other_data_reader.read_profiles_and_other_data(initial_nodal_data, input_data_dir, nr_of_buildings,
+                                                                    clusterSize, self.timeindex)
         self.set_using_nodal_data(clusterSize, input_data_dir, includeCarbonBenefits, nodal_data, mergeBuses,
                                   mergeHeatSourceSink, mergeLinkBuses, nr_of_buildings, opt)
 
@@ -1606,8 +1611,10 @@ class EnergyNetworkGroup(EnergyNetworkClass):
         data = pd.ExcelFile(filePath)
         initial_nodal_data = self.get_nodal_data_from_Excel(data)
         data.close()
-        nodesData = self.read_profiles_and_other_data(initial_nodal_data, filePath, numberOfBuildings, clusterSize,
-                                                      self.timeindex)
+
+        other_data_reader = ProfileAndOtherDataReader()
+        nodesData = other_data_reader.read_profiles_and_other_data(initial_nodal_data, filePath, numberOfBuildings, clusterSize,
+                                                                   self.timeindex)
 
         self.set_using_nodal_data(clusterSize, filePath, includeCarbonBenefits, nodesData, mergeBuses,
                                   mergeHeatSourceSink, mergeLinkBuses, numberOfBuildings, opt, grouped_network=True)
