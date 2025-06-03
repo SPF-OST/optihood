@@ -71,8 +71,8 @@ class BusTypes(_enum.StrEnum):
     heatDemandBus = "heatDemandBus"
     lowTSourceBus = "lowTSourceBus"
     lowTSinkBus = "lowTSinkBus"
-    dhHeatInBus ="districtHeatingInBus"
-    dhHeatBus= "districtHeatingBus"
+    dhHeatInBus = "districtHeatingInBus"
+    dhHeatBus = "districtHeatingBus"
 
 
 class CommoditySourcesLabels(_enum.StrEnum):
@@ -303,3 +303,5 @@ class BuildingModelParameters(_enum.StrEnum):
     tIndoorInit = "tIndoorInit"
     tDistributionInit = "tDistributionInit"
     tWallInit = "tWallInit"
+    tIndoorDay = "tIndoorDay"
+    tIndoorNight = "tIndoorNight"
