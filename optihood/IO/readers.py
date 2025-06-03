@@ -10,6 +10,16 @@ import pandas as _pd
 
 import optihood.entities as ent
 
+# TODO: extract other stuff from set_using_nodal_data.
+# TODO: make excelReader
+# TODO: make ConfigConverter and have CsvReader and CsvWriter be standalone.
+#       ConfigConverter. read, .convert, .write_to_csv, .write_to_excel.
+# TODO: merge ProfileAndOtherDataReader into other readers though:
+#       - Inheritance.
+#       - Structure
+#         CsvScenarioReader = ScenarioReaderAbstract(reader=CsvReader,
+#                             ProfileAndOtherDataReader=ProfileAndOtherDataReader)
+
 
 @_dc.dataclass
 class CsvReader:
@@ -43,7 +53,7 @@ class CsvReader:
             return _pd.to_numeric(value)
         except (ValueError, TypeError):
             return value
-          
+
     @staticmethod
     def make_nrs_numeric_current(df: _pd.DataFrame, column_name: str) -> None:
         df[column_name] = df[column_name].apply(_pd.to_numeric, errors="ignore")
@@ -58,7 +68,7 @@ class CsvReader:
             # https://github.com/pandas-dev/pandas/issues/59221#issuecomment-2755021659
             try:
                 return _pd.to_numeric(x)
-            except Exception:
+            except Exception:  # pylint: disable=broad-except
                 return x
 
         df[column_name] = df[column_name].apply(parse_numbers)
@@ -192,23 +202,31 @@ def get_unique_buildings(df: _pd.DataFrame) -> list[str]:
              f"_C{str(row[ent.BuildingModelParameters.Circuit]).zfill(3)}")
             for _, row in df.iterrows()]
 
-    return [f"Building_model__B{str(row[ent.BuildingModelParameters.Building_Number]).zfill(3)}" for _, row in df.iterrows()]
+    return [f"Building_model__B{str(row[ent.BuildingModelParameters.Building_Number]).zfill(3)}"
+            for _, row in df.iterrows()]
 
 
 class ProfileAndOtherDataReader:
     @staticmethod
-    def get_values_from_dataframe(df: _pd.DataFrame, identifier: str, identifier_column: str, desired_column: str):
+    def get_values_from_dataframe(df: _pd.DataFrame, identifier: str, identifier_column: str, desired_column: str
+                                  ) -> _np.float64 | _np.int64 | str:
         f""" Find any {identifier} entries in the {identifier_column} and return the 
              {desired_column} value of those rows."""
         row_indices = df[identifier_column] == identifier
         values = df.loc[row_indices, desired_column].iloc[0]
+
+        # ==========================================================
+        # Here to satisfy typing. If this fails, the input is wrong.
+        # We could pass a message to be raised if this is incorrect.
+        assert isinstance(values, (_np.float64, _np.int64, str))
+        # ==========================================================
         return values
 
     def read_profiles_and_other_data(self, nodal_data: dict[str, _pd.DataFrame], file_or_folder_path: _pl.Path,
                                      num_buildings: int, cluster_size: dict[str, int] | None,
                                      time_index: _pd.DatetimeIndex,
                                      ) -> dict[str, _pd.DataFrame | dict[str, _pd.DataFrame]]:
-        
+
         self.drop_inactive_rows(nodal_data)
         self.update_indices(nodal_data)
 
@@ -222,13 +240,14 @@ class ProfileAndOtherDataReader:
 
         # TODO: this does not use time_index, why not?
         nodal_data = self.maybe_add_natural_gas(nodal_data)
-        nodal_data = self.maybe_add_building_model_with_internal_gains(nodal_data, num_buildings, cluster_size, time_index)
+        nodal_data = self.maybe_add_building_model_with_internal_gains(nodal_data, num_buildings, cluster_size,
+                                                                       time_index)
         # ====================================================
 
         _log.info(f"Data from file {file_or_folder_path} imported.")
 
         return nodal_data
-    
+
     @staticmethod
     def drop_inactive_rows(nodal_data):
         for key, df in nodal_data.items():
@@ -236,13 +255,13 @@ class ProfileAndOtherDataReader:
                 continue
             nodal_data[key] = df.where(df[ent.BusesLabels.active] == 1).dropna(how="all")
         return nodal_data
-    
+
     @staticmethod
     def update_indices(nodal_data):
         """Stratified storages need the labels as indices."""
         # TODO: adjust this at the reading stage.  # pylint: disable=fixme
-        nodal_data[ent.NodeKeys.stratified_storage.value].set_index(ent.StratifiedStorageLabels.label.value, 
-                                                                     inplace=True)
+        nodal_data[ent.NodeKeys.stratified_storage.value].set_index(ent.StratifiedStorageLabels.label.value,
+                                                                    inplace=True)
         if ent.NodeKeys.ice_storage.value in nodal_data:
             nodal_data[ent.NodeKeys.ice_storage.value].set_index(ent.IceStorageLabels.label.value, inplace=True)
 
@@ -260,11 +279,12 @@ class ProfileAndOtherDataReader:
         nodesData["weather_data"] = _pd.read_csv(weatherDataPath, delimiter=";")
         # add a timestamp column to the dataframe
         for index, row in nodesData['weather_data'].iterrows():
-            time = f"{int(row['time.yy'])}.{int(row['time.mm']):02}.{int(row['time.dd']):02} {int(row['time.hh']):02}:00:00"
+            time = f"{int(row['time.yy'])}.{int(row['time.mm']):02}.{int(row['time.dd']):02} {int(row['time.hh']
+                                                                                                  ):02}:00:00"
             nodesData['weather_data'].at[index, 'timestamp'] = _dt.datetime.strptime(time, "%Y.%m.%d  %H:%M:%S")
             # set datetime index
         nodesData["weather_data"].timestamp = _pd.to_datetime(nodesData["weather_data"].timestamp,
-                                                             format='%Y.%m.%d %H:%M:%S')
+                                                              format='%Y.%m.%d %H:%M:%S')
         nodesData["weather_data"].set_index("timestamp", inplace=True)
         if not clusterSize:
             # for data with typical years; we might have 2 years if summer of 1st yr and winter of 2nd yr is considered
@@ -303,7 +323,7 @@ class ProfileAndOtherDataReader:
             # set datetime index
             nodesData["electricity_cost"].set_index("timestamp", inplace=True)
             nodesData["electricity_cost"].index = _pd.to_datetime(nodesData["electricity_cost"].index,
-                                                                 format='%d.%m.%Y %H:%M')
+                                                                  format='%d.%m.%Y %H:%M')
             nodesData["electricity_cost"] = self.clip_to_time_index(nodesData["electricity_cost"], time_index)
 
         return nodesData
@@ -331,7 +351,7 @@ class ProfileAndOtherDataReader:
             # set datetime index
             nodesData["electricity_impact"].set_index("timestamp", inplace=True)
             nodesData["electricity_impact"].index = _pd.to_datetime(nodesData["electricity_impact"].index,
-                                                                   format='%d.%m.%Y %H:%M')
+                                                                    format='%d.%m.%Y %H:%M')
             nodesData["electricity_impact"] = self.clip_to_time_index(nodesData["electricity_impact"], time_index)
 
         return nodesData
@@ -362,7 +382,7 @@ class ProfileAndOtherDataReader:
         # set datetime index
         for i in range(numBuildings):
             nodesData["demandProfiles"][i + 1].timestamp = _pd.to_datetime(nodesData["demandProfiles"][i + 1].timestamp,
-                                                                          format='%Y-%m-%d %H:%M:%S')
+                                                                           format='%Y-%m-%d %H:%M:%S')
             nodesData["demandProfiles"][i + 1].set_index("timestamp", inplace=True)
             if not clusterSize:
                 nodesData["demandProfiles"][i + 1] = self.clip_to_time_index(nodesData["demandProfiles"][i + 1],
@@ -381,8 +401,9 @@ class ProfileAndOtherDataReader:
         )
 
         if isinstance(natGasImpact, (float, _np.float64)) or (
-                natGasImpact.split('.')[0].replace('-', '').isdigit() and natGasImpact.split('.')[1].replace('-',
-                                                                                                             '').isdigit()):
+                natGasImpact.split('.')[0].replace('-', '').isdigit() and
+                natGasImpact.split('.')[1].replace('-', '').isdigit()
+                ):
             # for constant impact
             natGasImpactValue = float(natGasImpact)
             _log.info("Constant value for natural gas impact")
@@ -396,7 +417,8 @@ class ProfileAndOtherDataReader:
             nodesData["natGas_impact"] = _pd.read_csv(natGasImpact, delimiter=";")
             # set datetime index
             nodesData["natGas_impact"].set_index("timestamp", inplace=True)
-            nodesData["natGas_impact"].index = _pd.to_datetime(nodesData["natGas_impact"].index, format='%d.%m.%Y %H:%M')
+            nodesData["natGas_impact"].index = _pd.to_datetime(nodesData["natGas_impact"].index,
+                                                               format='%d.%m.%Y %H:%M')
             # TODO: should this be clipped according to time_index?
 
         natGasCost = self.get_values_from_dataframe(
@@ -423,7 +445,8 @@ class ProfileAndOtherDataReader:
             # TODO: should this be clipped according to time_index?
         return nodesData
 
-    def maybe_add_building_model_with_internal_gains(self, nodesData, numBuildings, clusterSize, time_index: _pd.DatetimeIndex):
+    def maybe_add_building_model_with_internal_gains(self, nodesData, numBuildings, clusterSize,
+                                                     time_index: _pd.DatetimeIndex):
         nodesData["building_model"] = {}
         if not nodesData['demand']['building model'].notna().any() or not (
                 nodesData['demand']['building model'] == 'Yes').any():
