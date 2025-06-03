@@ -12,6 +12,7 @@ from oemof.tools import logger
 
 import optihood.IO.writers as _wr
 import optihood.entities as _ent
+import optihood.IO.readers as read
 
 try:
     import matplotlib.pyplot as plt
@@ -25,300 +26,6 @@ from optihood.links import Link
 import optihood.IO.readers as _re
 
 # TODO: define nr_of_buildings once  # pylint: disable=fixme
-
-
-class ProfileAndOtherDataReader:
-    @staticmethod
-    def get_values_from_dataframe(df: pd.DataFrame, identifier: str, identifier_column: str, desired_column: str):
-        f""" Find any {identifier} entries in the {identifier_column} and return the 
-             {desired_column} value of those rows."""
-        row_indices = df[identifier_column] == identifier
-        values = df.loc[row_indices, desired_column].iloc[0]
-        return values
-
-    def read_profiles_and_other_data(self, nodal_data: dict[str, pd.DataFrame], file_or_folder_path: _pl.Path,
-                                     num_buildings: int, cluster_size: dict[str, int] | None,
-                                     time_index: pd.DatetimeIndex,
-                                     ) -> dict[str, pd.DataFrame | dict[str, pd.DataFrame]]:
-        # TODO: pass timeIndex, into this, and pass it along.
-        # TODO: extract method from energy_network and place it somewhere meaningful: IO, readers.
-        def drop_inactive_rows(nodal_data):
-            for key, df in nodal_data.items():
-                if _ent.BusesLabels.active not in df.columns:
-                    continue
-                nodal_data[key] = df.where(df[_ent.BusesLabels.active] == 1).dropna(how="all")
-            return nodal_data
-
-        drop_inactive_rows(nodal_data)
-
-        # ====================================================
-        # update stratified_storage and ice storage index
-        # TODO: can this be done consistently when reading?
-        def update_indices(nodal_data):
-            """Stratified storages need the labels as indices."""
-            # TODO: adjust this at the reading stage.  # pylint: disable=fixme
-            nodal_data[_ent.NodeKeys.stratified_storage.value].set_index(_ent.StratifiedStorageLabels.label.value, inplace=True)
-            if _ent.NodeKeys.ice_storage.value in nodal_data:
-                nodal_data[_ent.NodeKeys.ice_storage.value].set_index(_ent.IceStorageLabels.label.value, inplace=True)
-
-        update_indices(nodal_data)
-        # ====================================================
-
-        # ====================================================
-        # extract input data from CSVs
-        # TODO: how would this change when getting data from an api connection?
-        nodal_data = self.add_demand_profiles(nodal_data, cluster_size, num_buildings, time_index)
-        nodal_data = self.add_electricity_impact(nodal_data, time_index)
-        nodal_data = self.add_electricity_cost(nodal_data, time_index)
-        nodal_data = self.add_weather_profiles(nodal_data, cluster_size, time_index)
-
-        # TODO: this does not use time_index, why not?
-        nodal_data = self.maybe_add_natural_gas(nodal_data)
-        nodal_data = self.maybe_add_building_model_with_internal_gains(nodal_data, num_buildings, cluster_size, time_index)
-        # ====================================================
-
-        logging.info(f"Data from file {file_or_folder_path} imported.")
-
-        return nodal_data
-
-    def add_weather_profiles(self, nodesData, clusterSize, time_index: pd.DatetimeIndex):
-        weatherDataPath = self.get_values_from_dataframe(
-            df=nodesData[_ent.NodeKeys.profiles],
-            identifier_column=_ent.ProfileLabels.name,
-            identifier=_ent.ProfileTypes.weather,
-            desired_column=_ent.ProfileLabels.path,
-        )
-
-        if not os.path.exists(weatherDataPath):
-            logging.error("Error in weather data file path")
-
-        nodesData["weather_data"] = pd.read_csv(weatherDataPath, delimiter=";")
-        # add a timestamp column to the dataframe
-        for index, row in nodesData['weather_data'].iterrows():
-            time = f"{int(row['time.yy'])}.{int(row['time.mm']):02}.{int(row['time.dd']):02} {int(row['time.hh']):02}:00:00"
-            nodesData['weather_data'].at[index, 'timestamp'] = datetime.strptime(time, "%Y.%m.%d  %H:%M:%S")
-            # set datetime index
-        nodesData["weather_data"].timestamp = pd.to_datetime(nodesData["weather_data"].timestamp,
-                                                             format='%Y.%m.%d %H:%M:%S')
-        nodesData["weather_data"].set_index("timestamp", inplace=True)
-        if not clusterSize:
-            # for data with typical years; we might have 2 years if summer of 1st yr and winter of 2nd yr is considered
-            # we need to change index if len > 2 years
-            if nodesData["weather_data"].index.year.unique().__len__() > 2:
-                new_index = pd.to_datetime({
-                    'year': time_index.year[0],
-                    'month': nodesData["weather_data"].index.month,
-                    'day': nodesData["weather_data"].index.day,
-                    'hour': nodesData["weather_data"].index.hour})
-                nodesData["weather_data"].index = new_index
-            nodesData["weather_data"] = nodesData["weather_data"][time_index[0]:time_index[-1]]
-
-        return nodesData
-
-    def add_electricity_cost(self, nodesData, time_index: pd.DatetimeIndex):
-        electricityCost = self.get_values_from_dataframe(
-            df=nodesData[_ent.NodeKeys.commodity_sources],
-            identifier_column=_ent.CommonLabels.label,
-            identifier=_ent.CommoditySourceTypes.electricityResource,
-            desired_column=_ent.CommoditySourcesLabels.variable_costs,
-        )
-
-        if isinstance(electricityCost, (np.float64, np.int64)):
-            # for constant cost
-            electricityCostValue = electricityCost
-            logging.info("Constant value for electricity cost")
-            nodesData["electricity_cost"] = pd.DataFrame()
-            nodesData["electricity_cost"]["cost"] = (nodesData["demandProfiles"][1].shape[0]) * [
-                electricityCostValue]
-            nodesData["electricity_cost"].index = nodesData["demandProfiles"][1].index
-        elif not os.path.exists(electricityCost):
-            logging.error("Error in electricity cost file path")
-        else:
-            nodesData["electricity_cost"] = pd.read_csv(electricityCost, delimiter=";")
-            # set datetime index
-            nodesData["electricity_cost"].set_index("timestamp", inplace=True)
-            nodesData["electricity_cost"].index = pd.to_datetime(nodesData["electricity_cost"].index,
-                                                                 format='%d.%m.%Y %H:%M')
-            nodesData["electricity_cost"] = nodesData["electricity_cost"][time_index[0]: time_index[-1]]
-
-        return nodesData
-
-    def add_electricity_impact(self, nodesData, time_index: pd.DatetimeIndex):
-        electricityImpact = self.get_values_from_dataframe(
-            df=nodesData[_ent.NodeKeys.commodity_sources],
-            identifier=_ent.CommoditySourceTypes.electricityResource,
-            identifier_column=_ent.CommoditySourcesLabels.label,
-            desired_column=_ent.CommoditySourcesLabels.CO2_impact,
-        )
-
-        if isinstance(electricityImpact, (np.float64, np.int64)):
-            # for constant impact
-            electricityImpactValue = electricityImpact
-            logging.info("Constant value for electricity impact")
-            nodesData["electricity_impact"] = pd.DataFrame()
-            nodesData["electricity_impact"]["impact"] = (nodesData["demandProfiles"][1].shape[0]) * [
-                electricityImpactValue]
-            nodesData["electricity_impact"].index = nodesData["demandProfiles"][1].index
-        elif not os.path.exists(electricityImpact):
-            logging.error("Error in electricity impact file path")
-        else:
-            nodesData["electricity_impact"] = pd.read_csv(electricityImpact, delimiter=";")
-            # set datetime index
-            nodesData["electricity_impact"].set_index("timestamp", inplace=True)
-            nodesData["electricity_impact"].index = pd.to_datetime(nodesData["electricity_impact"].index,
-                                                                   format='%d.%m.%Y %H:%M')
-            nodesData["electricity_impact"] = nodesData["electricity_impact"][time_index[0]: time_index[-1]]
-
-        return nodesData
-
-    def add_demand_profiles(self, nodesData, clusterSize, numBuildings, time_index: pd.DatetimeIndex):
-        demandProfilesPath = self.get_values_from_dataframe(
-            df=nodesData[_ent.NodeKeys.profiles],
-            identifier_column=_ent.ProfileLabels.name,
-            identifier=_ent.ProfileTypes.demand,
-            desired_column=_ent.ProfileLabels.path,
-        )
-
-        if (not os.listdir(demandProfilesPath)) or (not os.path.exists(demandProfilesPath)):
-            logging.error("Error in the demand profiles path: The folder is either empty or does not exist")
-
-        demandProfiles = {}  # dictionary of dataframes for each building's demand profiles
-        i = 0
-        for filename in os.listdir(
-                demandProfilesPath):  # this path should contain csv file(s) (one for each building's profiles)
-            i += 1  # Building number
-            if i > numBuildings:
-                logging.warning("Demand profiles folder has more files than the number of buildings specified")
-                break
-            demandProfiles.update({i: pd.read_csv(os.path.join(demandProfilesPath, filename), delimiter=";")})
-
-        nodesData["demandProfiles"] = demandProfiles
-
-        # set datetime index
-        for i in range(numBuildings):
-            nodesData["demandProfiles"][i + 1].timestamp = pd.to_datetime(nodesData["demandProfiles"][i + 1].timestamp,
-                                                                          format='%Y-%m-%d %H:%M:%S')
-            nodesData["demandProfiles"][i + 1].set_index("timestamp", inplace=True)
-            if not clusterSize:
-                nodesData["demandProfiles"][i + 1] = nodesData["demandProfiles"][i + 1][
-                                                     time_index[0]:time_index[-1]]
-        return nodesData
-
-    def maybe_add_natural_gas(self, nodesData):
-        if "naturalGasResource" not in nodesData["commodity_sources"]["label"].values:
-            return nodesData
-
-        natGasImpact = self.get_values_from_dataframe(
-            df=nodesData[_ent.NodeKeys.commodity_sources],
-            identifier_column=_ent.CommonLabels.label,
-            identifier=_ent.CommoditySourceTypes.naturalGasResource,
-            desired_column=_ent.CommoditySourcesLabels.CO2_impact,
-        )
-
-        if isinstance(natGasImpact, (float, np.float64)) or (
-                natGasImpact.split('.')[0].replace('-', '').isdigit() and natGasImpact.split('.')[1].replace('-',
-                                                                                                             '').isdigit()):
-            # for constant impact
-            natGasImpactValue = float(natGasImpact)
-            logging.info("Constant value for natural gas impact")
-            nodesData["natGas_impact"] = pd.DataFrame()
-            nodesData["natGas_impact"]["impact"] = (nodesData["demandProfiles"][1].shape[0]) * [
-                natGasImpactValue]
-            nodesData["natGas_impact"].index = nodesData["demandProfiles"][1].index
-        elif not os.path.exists(natGasImpact):
-            logging.error("Error in natural gas impact file path")
-        else:
-            nodesData["natGas_impact"] = pd.read_csv(natGasImpact, delimiter=";")
-            # set datetime index
-            nodesData["natGas_impact"].set_index("timestamp", inplace=True)
-            nodesData["natGas_impact"].index = pd.to_datetime(nodesData["natGas_impact"].index, format='%d.%m.%Y %H:%M')
-            # TODO: should this be clipped according to time_index?
-
-        natGasCost = self.get_values_from_dataframe(
-            df=nodesData[_ent.NodeKeys.commodity_sources],
-            identifier_column=_ent.CommonLabels.label,
-            identifier=_ent.CommoditySourceTypes.naturalGasResource,
-            desired_column=_ent.CommoditySourcesLabels.variable_costs,
-        )
-
-        if isinstance(natGasCost, np.float64):
-            # for constant cost
-            natGasCostValue = natGasCost
-            logging.info("Constant value for natural gas cost")
-            nodesData["natGas_cost"] = pd.DataFrame()
-            nodesData["natGas_cost"]["cost"] = (nodesData["demandProfiles"][1].shape[0]) * [natGasCostValue]
-            nodesData["natGas_cost"].index = nodesData["demandProfiles"][1].index
-        elif not os.path.exists(natGasCost):
-            logging.error("Error in natural gas cost file path")
-        else:
-            nodesData["natGas_cost"] = pd.read_csv(natGasCost, delimiter=";")
-            # set datetime index
-            nodesData["natGas_cost"].set_index("timestamp", inplace=True)
-            nodesData["natGas_cost"].index = pd.to_datetime(nodesData["natGas_cost"].index, format='%d.%m.%Y %H:%M')
-            # TODO: should this be clipped according to time_index?
-        return nodesData
-
-    def maybe_add_building_model_with_internal_gains(self, nodesData, numBuildings, clusterSize, time_index: pd.DatetimeIndex):
-        nodesData["building_model"] = {}
-        if not nodesData['demand']['building model'].notna().any() or not (
-                nodesData['demand']['building model'] == 'Yes').any():
-            logging.info("Building model either not selected or invalid string value entered")
-        else:
-            internalGainsPath = self.get_values_from_dataframe(
-                df=nodesData[_ent.NodeKeys.profiles],
-                identifier_column=_ent.ProfileLabels.name,
-                identifier=_ent.ProfileTypes.internal_gains,
-                desired_column=_ent.ProfileLabels.path,
-            )
-
-            if not os.path.exists(internalGainsPath):
-                logging.error("Error in internal gains file path for building model.")
-
-            internalGains = pd.read_csv(internalGainsPath, delimiter=';')
-            internalGains.timestamp = pd.to_datetime(internalGains.timestamp, format='%d.%m.%Y %H:%M')
-            internalGains.set_index("timestamp", inplace=True)
-
-            if not clusterSize:
-                internalGains = internalGains[time_index[0]:time_index[-1]]
-
-            bmodelparamsPath = self.get_values_from_dataframe(
-                df=nodesData[_ent.NodeKeys.profiles],
-                identifier_column=_ent.ProfileLabels.name,
-                identifier=_ent.ProfileTypes.building_model_params,
-                desired_column=_ent.ProfileLabels.path,
-            )
-
-            if not os.path.exists(bmodelparamsPath):
-                logging.error("Error in building model parameters file path.")
-
-            bmParamers = pd.read_csv(bmodelparamsPath, delimiter=';')
-            for i in range(numBuildings):
-                nodesData["building_model"][i + 1] = {}
-                nodesData["building_model"][i + 1]["timeseries"] = pd.DataFrame()
-                nodesData["building_model"][i + 1]["timeseries"]["tAmb"] = np.array(
-                    nodesData["weather_data"]["tre200h0"])
-                nodesData["building_model"][i + 1]["timeseries"]["IrrH"] = np.array(
-                    nodesData["weather_data"]["gls"]) / 1000  # conversion from W/m2 to kW/m2
-                nodesData["building_model"][i + 1]["timeseries"][f"Qocc"] = internalGains[f'Total (kW) {i + 1}'].values
-
-                if "tIndoorDay" in bmParamers.columns:
-                    tIndoorDay = float(bmParamers[bmParamers["Building Number"] == (i + 1)]['tIndoorDay'].iloc[0])
-                    tIndoorNight = float(bmParamers[bmParamers["Building Number"] == (i + 1)]['tIndoorNight'].iloc[0])
-                    tIndoorSet = [tIndoorNight, tIndoorNight, tIndoorNight, tIndoorNight, tIndoorNight, tIndoorNight,
-                                  tIndoorNight, tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay,
-                                  tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay,
-                                  tIndoorNight, tIndoorNight, tIndoorNight, tIndoorNight] * 365
-                    nodesData["building_model"][i + 1]["timeseries"]["tIndoorSet"] = pd.DataFrame(tIndoorSet).values
-                paramList = ['gAreaWindows', 'rDistribution', 'cDistribution', 'rWall', 'cWall', 'rIndoor',
-                             'cIndoor',
-                             'qDistributionMin', 'qDistributionMax', 'tIndoorMin', 'tIndoorMax', 'tIndoorInit',
-                             'tWallInit', 'tDistributionInit']
-
-                for param in paramList:
-                    nodesData["building_model"][i + 1][param] = float(
-                        bmParamers[bmParamers["Building Number"] == (i + 1)][param].iloc[0])
-
-        return nodesData
 
 
 class OptimizationProperties:
@@ -454,7 +161,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         data = pd.ExcelFile(filePath)
         initial_nodal_data = self.get_nodal_data_from_Excel(data)
         data.close()
-        other_data_reader = ProfileAndOtherDataReader()
+        other_data_reader = read.ProfileAndOtherDataReader()
 
         nodesData = other_data_reader.read_profiles_and_other_data(initial_nodal_data, filePath, numberOfBuildings, clusterSize,
                                                                    self.timeindex)
@@ -500,7 +207,7 @@ class EnergyNetworkClass(solph.EnergySystem):
 
         self._convertNodes(nodesData, opt, mergeLinkBuses, mergeBuses, mergeHeatSourceSink, includeCarbonBenefits,
                            clusterSize)
-        logging.info("Nodes from Excel file {} successfully converted".format(filePath))
+        logging.info("Nodes from {} successfully converted".format(filePath))
 
         if grouped_network:
             assert isinstance(self, EnergyNetworkGroup)
@@ -1560,7 +1267,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         csvReader = _re.CsvScenarioReader(input_data_dir)
         initial_nodal_data = csvReader.read_scenario()
 
-        other_data_reader = ProfileAndOtherDataReader()
+        other_data_reader = read.ProfileAndOtherDataReader()
         nodal_data = other_data_reader.read_profiles_and_other_data(initial_nodal_data, input_data_dir, nr_of_buildings,
                                                                     clusterSize, self.timeindex)
         self.set_using_nodal_data(clusterSize, input_data_dir, includeCarbonBenefits, nodal_data, mergeBuses,
@@ -1612,7 +1319,7 @@ class EnergyNetworkGroup(EnergyNetworkClass):
         initial_nodal_data = self.get_nodal_data_from_Excel(data)
         data.close()
 
-        other_data_reader = ProfileAndOtherDataReader()
+        other_data_reader = read.ProfileAndOtherDataReader()
         nodesData = other_data_reader.read_profiles_and_other_data(initial_nodal_data, filePath, numberOfBuildings, clusterSize,
                                                                    self.timeindex)
 
