@@ -161,7 +161,8 @@ class EnergyNetworkClass(solph.EnergySystem):
         initial_nodal_data = self.get_nodal_data_from_Excel(data)
         data.close()
 
-        nodesData = self.read_profiles_and_other_data(initial_nodal_data, filePath, numberOfBuildings, clusterSize)
+        nodesData = self.read_profiles_and_other_data(initial_nodal_data, filePath, numberOfBuildings, clusterSize,
+                                                      self.timeindex)
         self.set_using_nodal_data(clusterSize, filePath, includeCarbonBenefits, nodesData, mergeBuses,
                                   mergeHeatSourceSink, mergeLinkBuses, numberOfBuildings, opt)
 
@@ -283,7 +284,7 @@ class EnergyNetworkClass(solph.EnergySystem):
 
     def read_profiles_and_other_data(self, nodal_data: dict[str, pd.DataFrame], file_or_folder_path: _pl.Path,
                                      num_buildings: int, cluster_size: dict[str, int] | None,
-                                     # time_index: pd.DatetimeIndex,
+                                     time_index: pd.DatetimeIndex,
                                      ) -> dict[str, pd.DataFrame | dict[str, pd.DataFrame]]:
         # TODO: pass timeIndex, into this, and pass it along.
         # TODO: extract method from energy_network and place it somewhere meaningful: IO, readers.
@@ -312,20 +313,21 @@ class EnergyNetworkClass(solph.EnergySystem):
         # ====================================================
         # extract input data from CSVs
         # TODO: how would this change when getting data from an api connection?
-        nodal_data = self.add_demand_profiles(nodal_data, cluster_size, num_buildings)
-        nodal_data = self.add_electricity_impact(nodal_data)
-        nodal_data = self.add_electricity_cost(nodal_data)
-        nodal_data = self.add_weather_profiles(nodal_data, cluster_size)
+        nodal_data = self.add_demand_profiles(nodal_data, cluster_size, num_buildings, time_index)
+        nodal_data = self.add_electricity_impact(nodal_data, time_index)
+        nodal_data = self.add_electricity_cost(nodal_data, time_index)
+        nodal_data = self.add_weather_profiles(nodal_data, cluster_size, time_index)
 
+        # TODO: this does not use time_index, why not?
         nodal_data = self.maybe_add_natural_gas(nodal_data)
-        nodal_data = self.maybe_add_building_model_with_internal_gains(nodal_data, num_buildings, cluster_size)
+        nodal_data = self.maybe_add_building_model_with_internal_gains(nodal_data, num_buildings, cluster_size, time_index)
         # ====================================================
 
         logging.info(f"Data from file {file_or_folder_path} imported.")
 
         return nodal_data
 
-    def add_weather_profiles(self, nodesData, clusterSize):
+    def add_weather_profiles(self, nodesData, clusterSize, time_index: pd.DatetimeIndex):
         weatherDataPath = self.get_values_from_dataframe(
             df=nodesData[_ent.NodeKeys.profiles],
             identifier_column=_ent.ProfileLabels.name,
@@ -350,16 +352,16 @@ class EnergyNetworkClass(solph.EnergySystem):
             # we need to change index if len > 2 years
             if nodesData["weather_data"].index.year.unique().__len__() > 2:
                 new_index = pd.to_datetime({
-                    'year': self.timeindex.year[0],
+                    'year': time_index.year[0],
                     'month': nodesData["weather_data"].index.month,
                     'day': nodesData["weather_data"].index.day,
                     'hour': nodesData["weather_data"].index.hour})
                 nodesData["weather_data"].index = new_index
-            nodesData["weather_data"] = nodesData["weather_data"][self.timeindex[0]:self.timeindex[-1]]
+            nodesData["weather_data"] = nodesData["weather_data"][time_index[0]:time_index[-1]]
 
         return nodesData
 
-    def add_electricity_cost(self, nodesData):
+    def add_electricity_cost(self, nodesData, time_index: pd.DatetimeIndex):
         electricityCost = self.get_values_from_dataframe(
             df=nodesData[_ent.NodeKeys.commodity_sources],
             identifier_column=_ent.CommonLabels.label,
@@ -383,11 +385,11 @@ class EnergyNetworkClass(solph.EnergySystem):
             nodesData["electricity_cost"].set_index("timestamp", inplace=True)
             nodesData["electricity_cost"].index = pd.to_datetime(nodesData["electricity_cost"].index,
                                                                  format='%d.%m.%Y %H:%M')
-            nodesData["electricity_cost"] = nodesData["electricity_cost"][self.timeindex[0]: self.timeindex[-1]]
+            nodesData["electricity_cost"] = nodesData["electricity_cost"][time_index[0]: time_index[-1]]
 
         return nodesData
 
-    def add_electricity_impact(self, nodesData):
+    def add_electricity_impact(self, nodesData, time_index: pd.DatetimeIndex):
         electricityImpact = self.get_values_from_dataframe(
             df=nodesData[_ent.NodeKeys.commodity_sources],
             identifier=_ent.CommoditySourceTypes.electricityResource,
@@ -411,11 +413,11 @@ class EnergyNetworkClass(solph.EnergySystem):
             nodesData["electricity_impact"].set_index("timestamp", inplace=True)
             nodesData["electricity_impact"].index = pd.to_datetime(nodesData["electricity_impact"].index,
                                                                    format='%d.%m.%Y %H:%M')
-            nodesData["electricity_impact"] = nodesData["electricity_impact"][self.timeindex[0]: self.timeindex[-1]]
+            nodesData["electricity_impact"] = nodesData["electricity_impact"][time_index[0]: time_index[-1]]
 
         return nodesData
 
-    def add_demand_profiles(self, nodesData, clusterSize, numBuildings):
+    def add_demand_profiles(self, nodesData, clusterSize, numBuildings, time_index: pd.DatetimeIndex):
         demandProfilesPath = self.get_values_from_dataframe(
             df=nodesData[_ent.NodeKeys.profiles],
             identifier_column=_ent.ProfileLabels.name,
@@ -445,7 +447,7 @@ class EnergyNetworkClass(solph.EnergySystem):
             nodesData["demandProfiles"][i + 1].set_index("timestamp", inplace=True)
             if not clusterSize:
                 nodesData["demandProfiles"][i + 1] = nodesData["demandProfiles"][i + 1][
-                                                     self.timeindex[0]:self.timeindex[-1]]
+                                                     time_index[0]:time_index[-1]]
         return nodesData
 
     def maybe_add_natural_gas(self, nodesData):
@@ -476,6 +478,7 @@ class EnergyNetworkClass(solph.EnergySystem):
             # set datetime index
             nodesData["natGas_impact"].set_index("timestamp", inplace=True)
             nodesData["natGas_impact"].index = pd.to_datetime(nodesData["natGas_impact"].index, format='%d.%m.%Y %H:%M')
+            # TODO: should this be clipped according to time_index?
 
         natGasCost = self.get_values_from_dataframe(
             df=nodesData[_ent.NodeKeys.commodity_sources],
@@ -498,9 +501,10 @@ class EnergyNetworkClass(solph.EnergySystem):
             # set datetime index
             nodesData["natGas_cost"].set_index("timestamp", inplace=True)
             nodesData["natGas_cost"].index = pd.to_datetime(nodesData["natGas_cost"].index, format='%d.%m.%Y %H:%M')
+            # TODO: should this be clipped according to time_index?
         return nodesData
 
-    def maybe_add_building_model_with_internal_gains(self, nodesData, numBuildings, clusterSize):
+    def maybe_add_building_model_with_internal_gains(self, nodesData, numBuildings, clusterSize, time_index: pd.DatetimeIndex):
         nodesData["building_model"] = {}
         if not nodesData['demand']['building model'].notna().any() or not (
                 nodesData['demand']['building model'] == 'Yes').any():
@@ -521,7 +525,7 @@ class EnergyNetworkClass(solph.EnergySystem):
             internalGains.set_index("timestamp", inplace=True)
 
             if not clusterSize:
-                internalGains = internalGains[self.timeindex[0]:self.timeindex[-1]]
+                internalGains = internalGains[time_index[0]:time_index[-1]]
 
             bmodelparamsPath = self.get_values_from_dataframe(
                 df=nodesData[_ent.NodeKeys.profiles],
@@ -1552,7 +1556,8 @@ class EnergyNetworkClass(solph.EnergySystem):
 
         csvReader = _re.CsvScenarioReader(input_data_dir)
         initial_nodal_data = csvReader.read_scenario()
-        nodal_data = self.read_profiles_and_other_data(initial_nodal_data, input_data_dir, nr_of_buildings, clusterSize)
+        nodal_data = self.read_profiles_and_other_data(initial_nodal_data, input_data_dir, nr_of_buildings, clusterSize,
+                                                       self.timeindex)
         self.set_using_nodal_data(clusterSize, input_data_dir, includeCarbonBenefits, nodal_data, mergeBuses,
                                   mergeHeatSourceSink, mergeLinkBuses, nr_of_buildings, opt)
 
@@ -1601,7 +1606,8 @@ class EnergyNetworkGroup(EnergyNetworkClass):
         data = pd.ExcelFile(filePath)
         initial_nodal_data = self.get_nodal_data_from_Excel(data)
         data.close()
-        nodesData = self.read_profiles_and_other_data(initial_nodal_data, filePath, numberOfBuildings, clusterSize)
+        nodesData = self.read_profiles_and_other_data(initial_nodal_data, filePath, numberOfBuildings, clusterSize,
+                                                      self.timeindex)
 
         self.set_using_nodal_data(clusterSize, filePath, includeCarbonBenefits, nodesData, mergeBuses,
                                   mergeHeatSourceSink, mergeLinkBuses, numberOfBuildings, opt, grouped_network=True)
