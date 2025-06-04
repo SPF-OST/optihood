@@ -1,4 +1,4 @@
-﻿# requirements.in
+# requirements.in
 bokeh
 configparser
 python-dateutil
