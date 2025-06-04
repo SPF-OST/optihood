@@ -61,20 +61,6 @@ class CsvReader:
     def make_nrs_numeric_current(df: _pd.DataFrame, column_name: str) -> None:
         df[column_name] = df[column_name].apply(CsvReader.safe_to_numeric)
 
-    # @staticmethod
-    # def make_nrs_numeric_without_future_warning(df: _pd.DataFrame, column_name: str) -> None:
-    #     # Fix using "coerce" and re-filling NaN values.
-    #     # Unfortunately, this applies to full text columns as well.
-    #     def parse_numbers(x):
-    #         # Suggested by pandas developers
-    #         # https://github.com/pandas-dev/pandas/issues/59221#issuecomment-2755021659
-    #         try:
-    #             return _pd.to_numeric(x)
-    #         except Exception:  # pylint: disable=broad-except
-    #             return x
-    #
-    #     df[column_name] = df[column_name].apply(parse_numbers)
-
 
 @_dc.dataclass
 class CsvScenarioReader(CsvReader):
