@@ -450,8 +450,8 @@ class ProfileAndOtherDataReader:
             return nodesData
 
         # Making this a wrapper function simplifies testing.
-        nodesData = self.add_natural_gas_impact(cluster_size, nodesData, time_index)
-        nodesData = self.add_natural_gas_costs(cluster_size, nodesData, time_index)
+        nodesData = self.add_natural_gas_impact(nodesData, cluster_size, time_index)
+        nodesData = self.add_natural_gas_costs(nodesData, cluster_size, time_index)
 
         return nodesData
 
@@ -483,6 +483,8 @@ class ProfileAndOtherDataReader:
         if cluster_size:
             natGasCost = self.cluster_and_multiply_desired_column(nodesData["natGas_cost"], cluster_size)
             nodesData["natGas_cost"] = natGasCost
+
+        return nodesData
 
     def add_natural_gas_impact(self, nodesData, cluster_size, time_index):
         natGasImpact = self.get_values_from_dataframe(
