@@ -498,7 +498,6 @@ class ProfileAndOtherDataReader:
                 natGasImpact.split('.')[0].replace('-', '').isdigit() and
                 natGasImpact.split('.')[1].replace('-', '').isdigit()
         ):
-            
             # for constant impact
             natGasImpactValue = float(natGasImpact)
             _log.info("Constant value for natural gas impact")
