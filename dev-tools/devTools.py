@@ -214,7 +214,7 @@ def _maybeRunPytest(arguments, testResultsDirPath):
         cmd = [
             _SCRIPTS_DIR / "pytest",
             "-v",
-            "-n 3",
+            "-n auto",
             "--dist=load",
             "--cov=optihood",
             f"--cov-report=html:{testResultsDirPath / 'coverage-html'}",
