@@ -3,6 +3,7 @@ import unittest as _ut
 import shutil as _sh
 
 import numpy as _np
+import pytest as _pt
 
 import tests.xls_helpers as xlsh
 
@@ -43,6 +44,7 @@ class TestMpcExample(_ut.TestCase):
         if errors:
             raise ExceptionGroup(f"found {len(errors)} issues:", errors)
 
+    @_pt.mark.xdist_group('expensive_04')
     def test_mpc_example(self):
         """End2end test for the User example.
         This has flaky behavior, as the optimizer choices have little effect on the objective function result.

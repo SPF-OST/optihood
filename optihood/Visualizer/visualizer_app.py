@@ -407,7 +407,7 @@ def run_cytoscape_visualizer(
     """
 
     app = setup_cytoscape_app(graphData, nodes, edges, node_layout_file, layout_mode)
-    app.run_server(debug=True)
+    app.run(debug=True)
 
 
 if __name__ == '__main__':

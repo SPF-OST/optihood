@@ -1,6 +1,9 @@
 import pathlib as _pl
 import unittest as _ut
+import pytest as _pt
 
+import logging as _log
+import numpy as _np
 import pandas as _pd
 
 import optihood.IO.readers as ior
@@ -42,22 +45,6 @@ class TestCsvScenarioReader(_ut.TestCase):
         data.close()
 
     def test_read(self):
-        """Test to ensure new reader produces 'identical' inputs to optihood."""
-        csvReader = ior.CsvScenarioReader(_CSV_DIR_PATH, "current")
-        nodal_data = csvReader.read_scenario()
-
-        errors = []
-
-        xlsh.check_assertion(self, errors, nodal_data.keys(), self.expected_nodal_data.keys())
-
-        for key, df_current in nodal_data.items():
-            # check_dtype=False to simplify comparison between Excel and CSV files.
-            xlsh.check_dataframe_assertion(errors, df_current, self.expected_nodal_data[key], check_dtype=False)
-
-        if errors:
-            raise ExceptionGroup(f"found {len(errors)} errors", errors)
-
-    def test_read_without_future_warning(self):
         """Test to ensure new reader produces 'identical' inputs to optihood."""
         csvReader = ior.CsvScenarioReader(_CSV_DIR_PATH)
         nodal_data = csvReader.read_scenario()
@@ -212,3 +199,205 @@ class TestCsvScenarioReader(_ut.TestCase):
 
         if errors:
             raise ExceptionGroup(f"found {len(errors)} errors", errors)
+
+
+class TestProfileAndOtherDataReader:
+    def setUp(self):
+        self.maxDiff = None
+
+    def test_get_values_from_dataframe(self):
+        """unit test"""
+        df = _pd.DataFrame({"label": ["thing", "stuff"],
+                            "desired_value": [1, 2],
+                            })
+        results = ior.ProfileAndOtherDataReader().get_values_from_dataframe(df, "stuff", "label",
+                                                                            "desired_value", message="Test issue")
+        assert results == 2
+
+    def test_get_values_from_dataframe_nan_raises(self, caplog):
+        """unit test"""
+        df = _pd.DataFrame({"label": ["thing", "stuff"],
+                            "desired_value": [1, _np.nan],
+                            })
+        with caplog.at_level(_log.ERROR):
+            with _pt.raises(ValueError):
+                ior.ProfileAndOtherDataReader().get_values_from_dataframe(df, "stuff", "label",
+                                                                          "desired_value", message="Test issue")
+            assert "Value empty in:" in caplog.text
+
+    def test_get_values_from_dataframe_nan_allowed(self):
+        """unit test"""
+        df = _pd.DataFrame({"label": ["thing", "stuff"],
+                            "desired_value": [1, _np.nan],
+                            })
+        results = ior.ProfileAndOtherDataReader().get_values_from_dataframe(df, "stuff", "label",
+                                                                            "desired_value", message="Test issue",
+                                                                            nan_allowed=True)
+        assert _np.isnan(results)
+
+    def test_get_values_from_dataframe_path(self):
+        """unit test"""
+        df = _pd.DataFrame({"label": ["thing", "stuff"],
+                            "desired_value": [1, "path_to_profile.csv"],
+                            })
+        results = ior.ProfileAndOtherDataReader().get_values_from_dataframe(df, "stuff", "label",
+                                                                            "desired_value", message="Test issue")
+        assert results == "path_to_profile.csv"
+
+    def test_get_values_from_dataframe_change_types(self, caplog):
+        """unit test"""
+        df = _pd.DataFrame({"label": ["thing", "stuff"],
+                            "desired_value": [1, True],
+                            })
+
+        with caplog.at_level(_log.ERROR):
+            with _pt.raises(ValueError):
+                ior.ProfileAndOtherDataReader().get_values_from_dataframe(df, "stuff", "label",
+                                                                          "desired_value", message="Test issue",
+                                                                          desired_instances=(float))
+            assert "Corrupt value in:" in caplog.text
+
+    @_pt.mark.manual
+    def test_add_weather_profiles(self):
+        """Integration test without errors"""
+        ior.ProfileAndOtherDataReader().add_weather_profiles()
+        assert False
+
+    def test_add_weather_profiles_raises(self, caplog):
+        """unit test"""
+        nodal_data = {ent.NodeKeys.profiles: _pd.DataFrame({ent.ProfileLabels.name: [ent.ProfileTypes.weather],
+                                                            ent.ProfileLabels.path: ["no_such_path.no_such_suffix"],
+                                                            })}
+
+        with caplog.at_level(_log.ERROR):
+            with _pt.raises(FileNotFoundError):
+                ior.ProfileAndOtherDataReader().add_weather_profiles(nodal_data, {}, None)
+            assert "Error in weather data file path" in caplog.text
+
+    @_pt.mark.manual
+    def test_add_electricity_cost(self):
+        """Integration test without errors"""
+        ior.ProfileAndOtherDataReader().add_electricity_cost()
+        assert False
+
+    def test_add_electricity_cost_raises(self, caplog):
+        """unit test"""
+        nodal_data = {ent.NodeKeys.commodity_sources: _pd.DataFrame(
+            {ent.CommonLabels.label: [ent.CommoditySourceTypes.electricityResource],
+             ent.CommoditySourcesLabels.variable_costs: ["no_such_path.no_such_suffix"],
+             })}
+        with caplog.at_level(_log.ERROR):
+            with _pt.raises(FileNotFoundError):
+                ior.ProfileAndOtherDataReader().add_electricity_cost(nodal_data, {}, None)
+            assert "Error in electricity cost file path" in caplog.text
+
+    @_pt.mark.manual
+    def test_add_electricity_impact(self):
+        """Integration test without errors"""
+        ior.ProfileAndOtherDataReader().add_electricity_impact()
+        assert False
+
+    def test_add_electricity_impact_raises(self, caplog):
+        """unit test"""
+        nodal_data = {ent.NodeKeys.commodity_sources: _pd.DataFrame(
+            {ent.CommonLabels.label: [ent.CommoditySourceTypes.electricityResource],
+             ent.CommoditySourcesLabels.CO2_impact: ["no_such_path.no_such_suffix"],
+             })}
+        with caplog.at_level(_log.ERROR):
+            with _pt.raises(FileNotFoundError):
+                ior.ProfileAndOtherDataReader().add_electricity_impact(nodal_data, {}, None)
+            assert "Error in electricity impact file path" in caplog.text
+
+    @_pt.mark.manual
+    def test_cluster_desired_column(self):
+        """unit test"""
+        ior.ProfileAndOtherDataReader().cluster_desired_column()
+        assert False
+
+    @_pt.mark.manual
+    def test_cluster_and_multiply_desired_column(self):
+        """unit test"""
+        ior.ProfileAndOtherDataReader().cluster_and_multiply_desired_column()
+        assert False
+
+    @_pt.mark.manual
+    def test_add_demand_profiles(self):
+        """Integration test without errors"""
+        ior.ProfileAndOtherDataReader().add_demand_profiles()
+        assert False
+
+    def test_add_demand_profiles_raises(self, caplog):
+        """unit test"""
+        nodal_data = {ent.NodeKeys.profiles: _pd.DataFrame({ent.ProfileLabels.name: [ent.ProfileTypes.demand],
+                                                            ent.ProfileLabels.path: ["no_such_path.no_such_suffix"],
+                                                            })}
+        with caplog.at_level(_log.ERROR):
+            with _pt.raises(FileNotFoundError):
+                ior.ProfileAndOtherDataReader().add_demand_profiles(nodal_data, {}, 1, None)
+            assert "Error in the demand profiles path" in caplog.text
+
+    @_pt.mark.manual
+    def test_maybe_add_natural_gas(self):
+        """Integration test without errors"""
+        ior.ProfileAndOtherDataReader().maybe_add_natural_gas()
+        assert False
+
+    def test_add_natural_gas_impact_raises(self, caplog):
+        """unit test"""
+        nodal_data = {ent.NodeKeys.commodity_sources: _pd.DataFrame(
+            {ent.CommonLabels.label: [ent.CommoditySourceTypes.naturalGasResource],
+             ent.CommoditySourcesLabels.CO2_impact: ["no_such_path.no_such_suffix"],
+             })}
+
+        with caplog.at_level(_log.ERROR):
+            with _pt.raises(FileNotFoundError):
+                ior.ProfileAndOtherDataReader().add_natural_gas_impact(nodal_data, {},  None)
+            assert "Error in natural gas impact file path" in caplog.text
+
+    def test_maybe_add_natural_gas_cost_raises(self, caplog):
+        """unit test"""
+        nodal_data = {ent.NodeKeys.commodity_sources: _pd.DataFrame(
+            {ent.CommonLabels.label: [ent.CommoditySourceTypes.naturalGasResource],
+             ent.CommoditySourcesLabels.variable_costs: ["no_such_path.no_such_suffix"],
+             })}
+
+        with caplog.at_level(_log.ERROR):
+            with _pt.raises(FileNotFoundError):
+                ior.ProfileAndOtherDataReader().add_natural_gas_costs(nodal_data, {},  None)
+            assert "Error in natural gas cost file path" in caplog.text
+
+    @_pt.mark.manual
+    def test_maybe_add_building_model_with_internal_gains(self):
+        """Integration test without errors"""
+        ior.ProfileAndOtherDataReader().maybe_add_building_model_with_internal_gains()
+        assert False
+
+    def test_add_internal_gains_raises(self, caplog):
+        """unit test"""
+        nodal_data = {ent.NodeKeys.profiles: _pd.DataFrame(
+            {ent.ProfileLabels.name: [ent.ProfileTypes.internal_gains],
+             ent.ProfileLabels.path: ["no_such_path.no_such_suffix"],
+             })}
+
+        with caplog.at_level(_log.ERROR):
+            with _pt.raises(FileNotFoundError):
+                ior.ProfileAndOtherDataReader().add_internal_gains(nodal_data, {},  None)
+            assert "Error in internal gains file path for the building model." in caplog.text
+
+    def test_add_building_models_raises(self, caplog):
+        """unit test"""
+        nodal_data = {ent.NodeKeys.profiles: _pd.DataFrame(
+            {ent.ProfileLabels.name: [ent.ProfileTypes.building_model_params],
+             ent.ProfileLabels.path: ["no_such_path.no_such_suffix"],
+             })}
+
+        with caplog.at_level(_log.ERROR):
+            with _pt.raises(FileNotFoundError):
+                ior.ProfileAndOtherDataReader().add_building_models(nodal_data, {},  None)
+            assert "Error in building model parameters file path." in caplog.text
+
+    @_pt.mark.manual
+    def test_clip_to_time_index(self):
+        """unit test"""
+        ior.ProfileAndOtherDataReader().clip_to_time_index()
+        assert False

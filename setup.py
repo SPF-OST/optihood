@@ -1,11 +1,26 @@
 from setuptools import setup, find_packages
 import subprocess
+import pathlib as _pl
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
+
 # Fetch latest tag
 # latest_tag = subprocess.check_output(["git", "describe", "--tags", "--abbrev=0"]).strip().decode("utf-8")
+
+
+def _getInstallRequirements():
+    requirementsFile = (
+            _pl.Path(__file__).parent / "requirements" / "requirements.in"
+    )
+    lines = requirementsFile.read_text().split("\n")
+    requirements = [l for l in lines if l.strip() and not l.startswith("#")]
+    print("")
+    print(requirements)
+    print("")
+    return requirements
+
 
 setup(
     name='optihood',
@@ -17,13 +32,11 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://optihood.readthedocs.io",
-    install_requires=["bokeh", "configparser", "dash==2.18.1", "dash_cytoscape==1.0.2", "python-dateutil", "matplotlib", "numpy", "oemof.solph",
-                      "oemof.thermal", "openpyxl", "pandas", "plotly", "pvlib", "Pyomo", "scipy", "xlrd", "xlwt"],
+    install_requires=_getInstallRequirements(),
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
         "Operating System :: Microsoft :: Windows",
     ],
-    #setup_requires=["setuptools-git-versioning"],
     python_requires=">=3.12",
 )

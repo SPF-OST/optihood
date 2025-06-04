@@ -154,6 +154,17 @@ if __name__ == '__main__':
     mpc = MpcHandler(prediction_window_in_hours=prediction_window_in_hours, time_step_in_minutes=time_step_in_minutes,
                      nr_of_buildings=number_of_buildings)
 
+    # Provide the full time period of the data.
+    mpc.set_full_time_period(
+        start_year=2018,
+        start_month=1,
+        start_day=1,
+        end_year=2018,
+        end_month=1,
+        end_day=31,
+        time_step_in_minutes=time_step_in_minutes
+    )
+
     # We set the optimization properties, that would normally be given to the Network directly.
     mpc.optimization_settings = OptimizationProperties(
         optimization_type="costs",  # set as "env" for environmental optimization,
@@ -215,4 +226,3 @@ if __name__ == '__main__':
         control_signals = translate_flows_to_control_signals(energy_flows)
         control_system(control_signals)
         # ===============
-

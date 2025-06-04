@@ -51,6 +51,7 @@ class TestConfigExamples(_ut.TestCase):
 
         compare_xls_files(self, excel_file_path, expected_data_path, _SHEET_NAMES, manual_test=True)
 
+    @_pt.mark.xdist_group('expensive_05')
     def test_group_optimization_after_merge(self):
         """
             Very flaky test, which was not the case before!

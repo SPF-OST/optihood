@@ -214,6 +214,8 @@ def _maybeRunPytest(arguments, testResultsDirPath):
         cmd = [
             _SCRIPTS_DIR / "pytest",
             "-v",
+            "--numprocesses=auto",
+            "--dist=loadgroup",
             "--cov=optihood",
             f"--cov-report=html:{testResultsDirPath / 'coverage-html'}",
             f"--cov-report=lcov:{testResultsDirPath / 'coverage.lcov'}",

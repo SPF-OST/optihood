@@ -1,4 +1,4 @@
-﻿# requirements.in
+# requirements.in
 bokeh
 configparser
 python-dateutil
@@ -10,6 +10,7 @@ oemof.thermal==0.0.6
 oemof.tools==0.4.2
 openpyxl
 pandas
+pandas-stubs
 plotly
 pvlib
 Pyomo
@@ -18,3 +19,10 @@ scipy
 workalendar
 xlrd
 xlwt
+
+# visualizer
+dash
+dash-core-components
+dash_cytoscape
+dash-html-components
+dash-table
