@@ -4,11 +4,13 @@ import datetime as _dt
 import logging as _log
 import os as _os
 import pathlib as _pl
+import typing as _tp
 
 import numpy as _np
 import pandas as _pd
 
 import optihood.entities as ent
+
 
 # TODO: extract other stuff from set_using_nodal_data.
 # TODO: make excelReader
@@ -209,7 +211,8 @@ def get_unique_buildings(df: _pd.DataFrame) -> list[str]:
 class ProfileAndOtherDataReader:
     @staticmethod
     def get_values_from_dataframe(df: _pd.DataFrame, identifier: str, identifier_column: str, desired_column: str,
-                                  message: str, desired_instances: tuple[callable] = (str, float, int)
+                                  message: str, desired_instances: _tp.Tuple = (str, float, int, _np.int64, _np.float64),
+                                  nan_allowed: bool = False,
                                   ) -> float | int | str:
         f""" Find any {identifier} entries in the {identifier_column} and return the 
              {desired_column} value of those rows."""
@@ -222,10 +225,14 @@ class ProfileAndOtherDataReader:
             # We currently pass a tuple for the assert for flexibility instead.
             assert isinstance(values, desired_instances)
         except AssertionError:
-            if _np.isnan(values):
-                _log.error(message + f"\n Value empty in {df.loc[row_indices]}")
+            message += f"\n Corrupt value in: \n{df.loc[row_indices]}"
+            _log.error(message)
+            raise ValueError(message)
 
-            _log.error(message + f"\n Corrupt value in {df.loc[row_indices]}")
+        if not nan_allowed and isinstance(values, (float, _np.float64)) and _np.isnan(values):
+            message += f"\n Value empty in: \n{df.loc[row_indices]}"
+            _log.error(message)
+            raise ValueError(message)
 
         return values
 
@@ -324,7 +331,9 @@ class ProfileAndOtherDataReader:
             message="Error in electricity cost."
         )
 
-        if isinstance(electricityCost, (float, int)):
+        # int64 is not an instance of int!!
+        # float64 is not an instance of float!!
+        if isinstance(electricityCost, (float, int, _np.float64, _np.int64)):
             # for constant cost
             electricityCostValue = electricityCost
             _log.info("Constant value for electricity cost")
@@ -357,7 +366,7 @@ class ProfileAndOtherDataReader:
             message="Error in electricity impact.",
         )
 
-        if isinstance(electricityImpact, (float, int)):
+        if isinstance(electricityImpact, (float, int, _np.float64, _np.int64)):
             # for constant impact
             electricityImpactValue = electricityImpact
             _log.info("Constant value for electricity impact")
@@ -441,7 +450,7 @@ class ProfileAndOtherDataReader:
             message="Error in natural gas impact.",
         )
 
-        if isinstance(natGasImpact, (int, float)) or (
+        if isinstance(natGasImpact, (int, float, _np.float64, _np.int64)) or (
                 natGasImpact.split('.')[0].replace('-', '').isdigit() and
                 natGasImpact.split('.')[1].replace('-', '').isdigit()
                 ):
@@ -474,7 +483,7 @@ class ProfileAndOtherDataReader:
             message="Error in natural gas cost.",
         )
 
-        if isinstance(natGasCost, (int, float)):
+        if isinstance(natGasCost, (int, float, _np.float64, _np.int64)):
             # for constant cost
             natGasCostValue = natGasCost
             _log.info("Constant value for natural gas cost")

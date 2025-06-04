@@ -1,6 +1,9 @@
 import pathlib as _pl
 import unittest as _ut
+import pytest as _pt
 
+import logging as _log
+import numpy as _np
 import pandas as _pd
 
 import optihood.IO.readers as ior
@@ -212,3 +215,100 @@ class TestCsvScenarioReader(_ut.TestCase):
 
         if errors:
             raise ExceptionGroup(f"found {len(errors)} errors", errors)
+
+
+class TestProfileAndOtherDataReader:
+    def setUp(self):
+        self.maxDiff = None
+
+    def test_get_values_from_dataframe(self):
+        df = _pd.DataFrame({"label": ["thing", "stuff"],
+                            "desired_value": [1, 2],
+                            })
+        results = ior.ProfileAndOtherDataReader().get_values_from_dataframe(df, "stuff", "label",
+                                                                            "desired_value", message="Test issue")
+        assert results == 2
+
+    def test_get_values_from_dataframe_nan(self, caplog):
+        df = _pd.DataFrame({"label": ["thing", "stuff"],
+                            "desired_value": [1, _np.nan],
+                            })
+        with caplog.at_level(_log.ERROR):
+            with _pt.raises(ValueError):
+                ior.ProfileAndOtherDataReader().get_values_from_dataframe(df, "stuff", "label",
+                                                                          "desired_value", message="Test issue")
+            assert "Value empty in:" in caplog.text
+
+    def test_get_values_from_dataframe_nan_allowed(self):
+        df = _pd.DataFrame({"label": ["thing", "stuff"],
+                            "desired_value": [1, _np.nan],
+                            })
+        results = ior.ProfileAndOtherDataReader().get_values_from_dataframe(df, "stuff", "label",
+                                                                            "desired_value", message="Test issue",
+                                                                            nan_allowed=True)
+        assert _np.isnan(results)
+
+    def test_get_values_from_dataframe_path(self):
+        df = _pd.DataFrame({"label": ["thing", "stuff"],
+                            "desired_value": [1, "path_to_profile.csv"],
+                            })
+        results = ior.ProfileAndOtherDataReader().get_values_from_dataframe(df, "stuff", "label",
+                                                                            "desired_value", message="Test issue")
+        assert results == "path_to_profile.csv"
+
+    def test_get_values_from_dataframe_change_types(self, caplog):
+        df = _pd.DataFrame({"label": ["thing", "stuff"],
+                            "desired_value": [1, True],
+                            })
+
+        with caplog.at_level(_log.ERROR):
+            with _pt.raises(ValueError):
+                ior.ProfileAndOtherDataReader().get_values_from_dataframe(df, "stuff", "label",
+                                                                          "desired_value", message="Test issue",
+                                                                          desired_instances=(float))
+            assert "Corrupt value in:" in caplog.text
+
+    @_pt.mark.manual
+    def test_add_weather_profiles(self):
+        ior.ProfileAndOtherDataReader().add_weather_profiles()
+        assert False
+
+    @_pt.mark.manual
+    def test_add_electricity_cost(self):
+        ior.ProfileAndOtherDataReader().add_electricity_cost()
+        assert False
+
+    @_pt.mark.manual
+    def test_add_electricity_impact(self):
+        ior.ProfileAndOtherDataReader().add_electricity_impact()
+        assert False
+
+    @_pt.mark.manual
+    def test_cluster_desired_column(self):
+        ior.ProfileAndOtherDataReader().cluster_desired_column()
+        assert False
+
+    @_pt.mark.manual
+    def test_cluster_and_multiply_desired_column(self):
+        ior.ProfileAndOtherDataReader().cluster_and_multiply_desired_column()
+        assert False
+
+    @_pt.mark.manual
+    def test_add_demand_profiles(self):
+        ior.ProfileAndOtherDataReader().add_demand_profiles()
+        assert False
+
+    @_pt.mark.manual
+    def test_maybe_add_natural_gas(self):
+        ior.ProfileAndOtherDataReader().maybe_add_natural_gas()
+        assert False
+
+    @_pt.mark.manual
+    def test_maybe_add_building_model_with_internal_gains(self):
+        ior.ProfileAndOtherDataReader().maybe_add_building_model_with_internal_gains()
+        assert False
+
+    @_pt.mark.manual
+    def test_clip_to_time_index(self):
+        ior.ProfileAndOtherDataReader().clip_to_time_index()
+        assert False
