@@ -31,13 +31,6 @@ class CsvReader:
     """
 
     dir_path: _pl.Path
-    use_function: str = 'future'  # or 'current'
-
-    def __post_init__(self):
-        if self.use_function == 'current':
-            self.make_nrs_numeric = self.make_nrs_numeric_current
-        elif self.use_function == 'future':
-            self.make_nrs_numeric = self.make_nrs_numeric_without_future_warning
 
     def read(self, file_name: str) -> _pd.DataFrame:
         # read_csv does not have as strong a parser as ExcelFile.parse.
@@ -58,7 +51,7 @@ class CsvReader:
             return value
 
     @staticmethod
-    def make_nrs_numeric_current(df: _pd.DataFrame, column_name: str) -> None:
+    def make_nrs_numeric(df: _pd.DataFrame, column_name: str) -> None:
         df[column_name] = df[column_name].apply(CsvReader.safe_to_numeric)
 
 
@@ -72,7 +65,6 @@ class CsvScenarioReader(CsvReader):
     relative_file_paths: dict[str, str] = _dc.field(init=False)
 
     def __post_init__(self):
-        super().__post_init__()
         paths = ent.CsvInputFilePathsRelative
         self.relative_file_paths = {
             ent.NodeKeys.buses: paths.buses,

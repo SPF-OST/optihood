@@ -46,7 +46,7 @@ class TestCsvScenarioReader(_ut.TestCase):
 
     def test_read(self):
         """Test to ensure new reader produces 'identical' inputs to optihood."""
-        csvReader = ior.CsvScenarioReader(_CSV_DIR_PATH, "current")
+        csvReader = ior.CsvScenarioReader(_CSV_DIR_PATH)
         nodal_data = csvReader.read_scenario()
 
         errors = []
