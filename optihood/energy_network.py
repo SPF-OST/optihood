@@ -175,36 +175,6 @@ class EnergyNetworkClass(solph.EnergySystem):
         if grouped_network and not isinstance(self, EnergyNetworkGroup):
             logging.error(f"'grouped_network' flag should not be used without using {EnergyNetworkGroup.__name__}.")
 
-        if clusterSize:
-            demandProfiles = {}
-            for i in range(1, numberOfBuildings + 1):
-                demandProfiles[i] = pd.concat(
-                    [nodesData["demandProfiles"][i].loc[d] for d in clusterSize.keys()])
-            nodesData["demandProfiles"] = demandProfiles
-
-            electricityImpact = pd.concat(
-                [nodesData["electricity_impact"].loc[d] * clusterSize[d] for d in clusterSize.keys()])
-            nodesData["electricity_impact"] = electricityImpact
-
-            electricityCost = pd.concat(
-                [nodesData["electricity_cost"].loc[d] * clusterSize[d] for d in clusterSize.keys()])
-            nodesData["electricity_cost"] = electricityCost
-
-            if 'natGas_impact' in nodesData:
-                natGasImpact = pd.concat(
-                    [nodesData["natGas_impact"].loc[d] * clusterSize[d] for d in clusterSize.keys()])
-                natGasCost = pd.concat(
-                    [nodesData["natGas_cost"].loc[d] * clusterSize[d] for d in clusterSize.keys()])
-                nodesData["natGas_impact"] = natGasImpact
-                nodesData["natGas_cost"] = natGasCost
-
-            weatherData = pd.concat([nodesData['weather_data'][
-                                         nodesData['weather_data']['time.mm'] == int(d.split('-')[1])][
-                                         nodesData['weather_data']['time.dd'] == int(d.split('-')[2])][
-                                         ['gls', 'str.diffus', 'tre200h0', 'ground_temp']] for d in clusterSize.keys()])
-
-            nodesData["weather_data"] = weatherData
-
         self._convertNodes(nodesData, opt, mergeLinkBuses, mergeBuses, mergeHeatSourceSink, includeCarbonBenefits,
                            clusterSize)
         logging.info("Nodes from {} successfully converted".format(filePath))

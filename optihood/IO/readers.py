@@ -208,18 +208,25 @@ def get_unique_buildings(df: _pd.DataFrame) -> list[str]:
 
 class ProfileAndOtherDataReader:
     @staticmethod
-    def get_values_from_dataframe(df: _pd.DataFrame, identifier: str, identifier_column: str, desired_column: str
-                                  ) -> _np.float64 | _np.int64 | str:
+    def get_values_from_dataframe(df: _pd.DataFrame, identifier: str, identifier_column: str, desired_column: str,
+                                  message: str, desired_instances: tuple[callable] = (str, float, int)
+                                  ) -> float | int | str:
         f""" Find any {identifier} entries in the {identifier_column} and return the 
              {desired_column} value of those rows."""
         row_indices = df[identifier_column] == identifier
         values = df.loc[row_indices, desired_column].iloc[0]
 
-        # ==========================================================
-        # Here to satisfy typing. If this fails, the input is wrong.
-        # We could pass a message to be raised if this is incorrect.
-        assert isinstance(values, (_np.float64, _np.int64, str))
-        # ==========================================================
+        try:
+            # This makes this method less reusable.
+            # It could be put into a wrapper function instead.
+            # We currently pass a tuple for the assert for flexibility instead.
+            assert isinstance(values, desired_instances)
+        except AssertionError:
+            if _np.isnan(values):
+                _log.error(message + f"\n Value empty in {df.loc[row_indices]}")
+
+            _log.error(message + f"\n Corrupt value in {df.loc[row_indices]}")
+
         return values
 
     def read_profiles_and_other_data(self, nodal_data: dict[str, _pd.DataFrame], file_or_folder_path: _pl.Path,
@@ -234,12 +241,12 @@ class ProfileAndOtherDataReader:
         # extract input data from CSVs
         # TODO: how would this change when getting data from an api connection?
         nodal_data = self.add_demand_profiles(nodal_data, cluster_size, num_buildings, time_index)
-        nodal_data = self.add_electricity_impact(nodal_data, time_index)
-        nodal_data = self.add_electricity_cost(nodal_data, time_index)
+        nodal_data = self.add_electricity_impact(nodal_data, cluster_size, time_index)
+        nodal_data = self.add_electricity_cost(nodal_data, cluster_size, time_index)
         nodal_data = self.add_weather_profiles(nodal_data, cluster_size, time_index)
 
         # TODO: this does not use time_index, why not?
-        nodal_data = self.maybe_add_natural_gas(nodal_data)
+        nodal_data = self.maybe_add_natural_gas(nodal_data, cluster_size, time_index)
         nodal_data = self.maybe_add_building_model_with_internal_gains(nodal_data, num_buildings, cluster_size,
                                                                        time_index)
         # ====================================================
@@ -271,6 +278,7 @@ class ProfileAndOtherDataReader:
             identifier_column=ent.ProfileLabels.name,
             identifier=ent.ProfileTypes.weather,
             desired_column=ent.ProfileLabels.path,
+            message="Error in weather data file path",
         )
 
         if not _os.path.exists(weatherDataPath):
@@ -298,17 +306,26 @@ class ProfileAndOtherDataReader:
                 nodesData["weather_data"].index = new_index
             nodesData["weather_data"] = self.clip_to_time_index(nodesData["weather_data"], time_index)
 
+        if clusterSize:
+            weatherData = _pd.concat([nodesData['weather_data'][
+                                         nodesData['weather_data']['time.mm'] == int(d.split('-')[1])][
+                                         nodesData['weather_data']['time.dd'] == int(d.split('-')[2])][
+                                         ['gls', 'str.diffus', 'tre200h0', 'ground_temp']] for d in clusterSize.keys()])
+
+            nodesData["weather_data"] = weatherData
+
         return nodesData
 
-    def add_electricity_cost(self, nodesData, time_index: _pd.DatetimeIndex):
+    def add_electricity_cost(self, nodesData, cluster_size, time_index: _pd.DatetimeIndex):
         electricityCost = self.get_values_from_dataframe(
             df=nodesData[ent.NodeKeys.commodity_sources],
             identifier_column=ent.CommonLabels.label,
             identifier=ent.CommoditySourceTypes.electricityResource,
             desired_column=ent.CommoditySourcesLabels.variable_costs,
+            message="Error in electricity cost."
         )
 
-        if isinstance(electricityCost, (_np.float64, _np.int64)):
+        if isinstance(electricityCost, (float, int)):
             # for constant cost
             electricityCostValue = electricityCost
             _log.info("Constant value for electricity cost")
@@ -326,17 +343,22 @@ class ProfileAndOtherDataReader:
                                                                   format='%d.%m.%Y %H:%M')
             nodesData["electricity_cost"] = self.clip_to_time_index(nodesData["electricity_cost"], time_index)
 
+        if cluster_size:
+            electricityCost = self.cluster_and_multiply_desired_column(nodesData["electricity_cost"], cluster_size)
+            nodesData["electricity_cost"] = electricityCost
+
         return nodesData
 
-    def add_electricity_impact(self, nodesData, time_index: _pd.DatetimeIndex):
+    def add_electricity_impact(self, nodesData, cluster_size, time_index: _pd.DatetimeIndex):
         electricityImpact = self.get_values_from_dataframe(
             df=nodesData[ent.NodeKeys.commodity_sources],
             identifier=ent.CommoditySourceTypes.electricityResource,
             identifier_column=ent.CommoditySourcesLabels.label,
             desired_column=ent.CommoditySourcesLabels.CO2_impact,
+            message="Error in electricity impact.",
         )
 
-        if isinstance(electricityImpact, (_np.float64, _np.int64)):
+        if isinstance(electricityImpact, (float, int)):
             # for constant impact
             electricityImpactValue = electricityImpact
             _log.info("Constant value for electricity impact")
@@ -354,14 +376,28 @@ class ProfileAndOtherDataReader:
                                                                     format='%d.%m.%Y %H:%M')
             nodesData["electricity_impact"] = self.clip_to_time_index(nodesData["electricity_impact"], time_index)
 
+        if cluster_size:
+            electricityImpact = self.cluster_and_multiply_desired_column(nodesData["electricity_impact"], cluster_size)
+            nodesData["electricity_impact"] = electricityImpact
+
         return nodesData
 
+    @staticmethod
+    def cluster_desired_column(df: _pd.DataFrame, clusterSize: dict[str, int]) -> _pd.DataFrame:
+        return _pd.concat([df.loc[d] for d in clusterSize.keys()])
+
+    @staticmethod
+    def cluster_and_multiply_desired_column(df: _pd.DataFrame,  cluster_size: dict[str, int]) -> _pd.DataFrame:
+        return _pd.concat([df.loc[d] * v for d, v in cluster_size.items()])
+
     def add_demand_profiles(self, nodesData, clusterSize, numBuildings, time_index: _pd.DatetimeIndex):
+        # demandProfilesPath should contain csv file(s) (one for each building's profiles)
         demandProfilesPath = self.get_values_from_dataframe(
             df=nodesData[ent.NodeKeys.profiles],
             identifier_column=ent.ProfileLabels.name,
             identifier=ent.ProfileTypes.demand,
             desired_column=ent.ProfileLabels.path,
+            message="Error in the demand profiles path."
         )
 
         if (not _os.listdir(demandProfilesPath)) or (not _os.path.exists(demandProfilesPath)):
@@ -369,8 +405,7 @@ class ProfileAndOtherDataReader:
 
         demandProfiles = {}  # dictionary of dataframes for each building's demand profiles
         i = 0
-        for filename in _os.listdir(
-                demandProfilesPath):  # this path should contain csv file(s) (one for each building's profiles)
+        for filename in _os.listdir(demandProfilesPath):
             i += 1  # Building number
             if i > numBuildings:
                 _log.warning("Demand profiles folder has more files than the number of buildings specified")
@@ -387,9 +422,15 @@ class ProfileAndOtherDataReader:
             if not clusterSize:
                 nodesData["demandProfiles"][i + 1] = self.clip_to_time_index(nodesData["demandProfiles"][i + 1],
                                                                              time_index)
+        if clusterSize:
+            demandProfiles = {}
+            for i in range(1, numBuildings + 1):
+                demandProfiles[i] = self.cluster_desired_column(nodesData["demandProfiles"][i], clusterSize)
+            nodesData["demandProfiles"] = demandProfiles
+
         return nodesData
 
-    def maybe_add_natural_gas(self, nodesData):
+    def maybe_add_natural_gas(self, nodesData, cluster_size, time_index: _pd.DatetimeIndex):
         if "naturalGasResource" not in nodesData["commodity_sources"]["label"].values:
             return nodesData
 
@@ -398,9 +439,10 @@ class ProfileAndOtherDataReader:
             identifier_column=ent.CommonLabels.label,
             identifier=ent.CommoditySourceTypes.naturalGasResource,
             desired_column=ent.CommoditySourcesLabels.CO2_impact,
+            message="Error in natural gas impact.",
         )
 
-        if isinstance(natGasImpact, (float, _np.float64)) or (
+        if isinstance(natGasImpact, (int, float)) or (
                 natGasImpact.split('.')[0].replace('-', '').isdigit() and
                 natGasImpact.split('.')[1].replace('-', '').isdigit()
                 ):
@@ -419,16 +461,21 @@ class ProfileAndOtherDataReader:
             nodesData["natGas_impact"].set_index("timestamp", inplace=True)
             nodesData["natGas_impact"].index = _pd.to_datetime(nodesData["natGas_impact"].index,
                                                                format='%d.%m.%Y %H:%M')
-            # TODO: should this be clipped according to time_index?
+            # nodesData["natGas_impact"] = self.clip_to_time_index(nodesData["natGas_impact"], time_index)
+
+        if cluster_size:
+            natGasImpact = self.cluster_and_multiply_desired_column(nodesData["natGas_impact"], cluster_size)
+            nodesData["natGas_impact"] = natGasImpact
 
         natGasCost = self.get_values_from_dataframe(
             df=nodesData[ent.NodeKeys.commodity_sources],
             identifier_column=ent.CommonLabels.label,
             identifier=ent.CommoditySourceTypes.naturalGasResource,
             desired_column=ent.CommoditySourcesLabels.variable_costs,
+            message="Error in natural gas cost.",
         )
 
-        if isinstance(natGasCost, _np.float64):
+        if isinstance(natGasCost, (int, float)):
             # for constant cost
             natGasCostValue = natGasCost
             _log.info("Constant value for natural gas cost")
@@ -442,7 +489,12 @@ class ProfileAndOtherDataReader:
             # set datetime index
             nodesData["natGas_cost"].set_index("timestamp", inplace=True)
             nodesData["natGas_cost"].index = _pd.to_datetime(nodesData["natGas_cost"].index, format='%d.%m.%Y %H:%M')
-            # TODO: should this be clipped according to time_index?
+            # nodesData["natGas_cost"] = self.clip_to_time_index(nodesData["natGas_cost"], time_index)
+
+        if cluster_size:
+            natGasCost = self.cluster_and_multiply_desired_column(nodesData["natGas_cost"], cluster_size)
+            nodesData["natGas_cost"] = natGasCost
+
         return nodesData
 
     def maybe_add_building_model_with_internal_gains(self, nodesData, numBuildings, clusterSize,
@@ -457,10 +509,11 @@ class ProfileAndOtherDataReader:
                 identifier_column=ent.ProfileLabels.name,
                 identifier=ent.ProfileTypes.internal_gains,
                 desired_column=ent.ProfileLabels.path,
+                message="Error in internal gains file path for the building model."
             )
 
             if not _os.path.exists(internalGainsPath):
-                _log.error("Error in internal gains file path for building model.")
+                _log.error("Error in internal gains file path for the building model.")
 
             internalGains = _pd.read_csv(internalGainsPath, delimiter=';')
             internalGains.timestamp = _pd.to_datetime(internalGains.timestamp, format='%d.%m.%Y %H:%M')
@@ -474,6 +527,7 @@ class ProfileAndOtherDataReader:
                 identifier_column=ent.ProfileLabels.name,
                 identifier=ent.ProfileTypes.building_model_params,
                 desired_column=ent.ProfileLabels.path,
+                message="Error in building model parameters file path."
             )
 
             if not _os.path.exists(bmodelparamsPath):
