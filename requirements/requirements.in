@@ -10,6 +10,7 @@ oemof.thermal==0.0.6
 oemof.tools==0.4.2
 openpyxl
 pandas
+pandas-stubs
 plotly
 pvlib
 Pyomo

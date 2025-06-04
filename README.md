@@ -72,6 +72,11 @@ commands could be used.
     pytest
 ```
 
+7. To upgrade the environment using an updated requirement/requirements.in file:
+```commandline
+    pip-compile-multi --no-upgrade
+```
+
 ## Defining an energy network
 
 Optihood offers a several functionalities to define an energy network, optimize it and visualize the results, which
