@@ -211,7 +211,8 @@ def get_unique_buildings(df: _pd.DataFrame) -> list[str]:
 class ProfileAndOtherDataReader:
     @staticmethod
     def get_values_from_dataframe(df: _pd.DataFrame, identifier: str, identifier_column: str, desired_column: str,
-                                  message: str, desired_instances: _tp.Tuple = (str, float, int, _np.int64, _np.float64),
+                                  message: str,
+                                  desired_instances: _tp.Tuple = (str, float, int, _np.int64, _np.float64),
                                   nan_allowed: bool = False,
                                   ) -> float | int | str:
         f""" Find any {identifier} entries in the {identifier_column} and return the 
@@ -289,6 +290,7 @@ class ProfileAndOtherDataReader:
 
         if not _os.path.exists(weatherDataPath):
             _log.error("Error in weather data file path")
+            raise FileNotFoundError(weatherDataPath)
 
         nodesData["weather_data"] = _pd.read_csv(weatherDataPath, delimiter=";")
         # add a timestamp column to the dataframe
@@ -343,6 +345,7 @@ class ProfileAndOtherDataReader:
             nodesData["electricity_cost"].index = nodesData["demandProfiles"][1].index
         elif not _os.path.exists(electricityCost):
             _log.error("Error in electricity cost file path")
+            raise FileNotFoundError(electricityCost)
         else:
             nodesData["electricity_cost"] = _pd.read_csv(electricityCost, delimiter=";")
             # set datetime index
@@ -360,8 +363,8 @@ class ProfileAndOtherDataReader:
     def add_electricity_impact(self, nodesData, cluster_size, time_index: _pd.DatetimeIndex):
         electricityImpact = self.get_values_from_dataframe(
             df=nodesData[ent.NodeKeys.commodity_sources],
-            identifier=ent.CommoditySourceTypes.electricityResource,
             identifier_column=ent.CommoditySourcesLabels.label,
+            identifier=ent.CommoditySourceTypes.electricityResource,
             desired_column=ent.CommoditySourcesLabels.CO2_impact,
             message="Error in electricity impact.",
         )
@@ -376,6 +379,7 @@ class ProfileAndOtherDataReader:
             nodesData["electricity_impact"].index = nodesData["demandProfiles"][1].index
         elif not _os.path.exists(electricityImpact):
             _log.error("Error in electricity impact file path")
+            raise FileNotFoundError("Error in electricity impact file path")
         else:
             nodesData["electricity_impact"] = _pd.read_csv(electricityImpact, delimiter=";")
             # set datetime index
@@ -408,8 +412,11 @@ class ProfileAndOtherDataReader:
             message="Error in the demand profiles path."
         )
 
-        if (not _os.listdir(demandProfilesPath)) or (not _os.path.exists(demandProfilesPath)):
-            _log.error("Error in the demand profiles path: The folder is either empty or does not exist")
+        if not _os.path.exists(demandProfilesPath) or not _os.listdir(demandProfilesPath):
+            _log.error(f"Error in the demand profiles path: The folder is either empty or does not exist: "
+                       f"{demandProfilesPath}")
+            raise FileNotFoundError(f"Error in the demand profiles path: The folder is either empty or does not exist: "
+                                    f"{demandProfilesPath}")
 
         demandProfiles = {}  # dictionary of dataframes for each building's demand profiles
         i = 0
@@ -442,39 +449,13 @@ class ProfileAndOtherDataReader:
         if "naturalGasResource" not in nodesData["commodity_sources"]["label"].values:
             return nodesData
 
-        natGasImpact = self.get_values_from_dataframe(
-            df=nodesData[ent.NodeKeys.commodity_sources],
-            identifier_column=ent.CommonLabels.label,
-            identifier=ent.CommoditySourceTypes.naturalGasResource,
-            desired_column=ent.CommoditySourcesLabels.CO2_impact,
-            message="Error in natural gas impact.",
-        )
+        # Making this a wrapper function simplifies testing.
+        nodesData = self.add_natural_gas_impact(cluster_size, nodesData, time_index)
+        nodesData = self.add_natural_gas_costs(cluster_size, nodesData, time_index)
 
-        if isinstance(natGasImpact, (int, float, _np.float64, _np.int64)) or (
-                natGasImpact.split('.')[0].replace('-', '').isdigit() and
-                natGasImpact.split('.')[1].replace('-', '').isdigit()
-                ):
-            # for constant impact
-            natGasImpactValue = float(natGasImpact)
-            _log.info("Constant value for natural gas impact")
-            nodesData["natGas_impact"] = _pd.DataFrame()
-            nodesData["natGas_impact"]["impact"] = (nodesData["demandProfiles"][1].shape[0]) * [
-                natGasImpactValue]
-            nodesData["natGas_impact"].index = nodesData["demandProfiles"][1].index
-        elif not _os.path.exists(natGasImpact):
-            _log.error("Error in natural gas impact file path")
-        else:
-            nodesData["natGas_impact"] = _pd.read_csv(natGasImpact, delimiter=";")
-            # set datetime index
-            nodesData["natGas_impact"].set_index("timestamp", inplace=True)
-            nodesData["natGas_impact"].index = _pd.to_datetime(nodesData["natGas_impact"].index,
-                                                               format='%d.%m.%Y %H:%M')
-            # nodesData["natGas_impact"] = self.clip_to_time_index(nodesData["natGas_impact"], time_index)
+        return nodesData
 
-        if cluster_size:
-            natGasImpact = self.cluster_and_multiply_desired_column(nodesData["natGas_impact"], cluster_size)
-            nodesData["natGas_impact"] = natGasImpact
-
+    def add_natural_gas_costs(self, nodesData, cluster_size, time_index):
         natGasCost = self.get_values_from_dataframe(
             df=nodesData[ent.NodeKeys.commodity_sources],
             identifier_column=ent.CommonLabels.label,
@@ -482,7 +463,6 @@ class ProfileAndOtherDataReader:
             desired_column=ent.CommoditySourcesLabels.variable_costs,
             message="Error in natural gas cost.",
         )
-
         if isinstance(natGasCost, (int, float, _np.float64, _np.int64)):
             # for constant cost
             natGasCostValue = natGasCost
@@ -492,16 +472,50 @@ class ProfileAndOtherDataReader:
             nodesData["natGas_cost"].index = nodesData["demandProfiles"][1].index
         elif not _os.path.exists(natGasCost):
             _log.error("Error in natural gas cost file path")
+            raise FileNotFoundError(f"Error in natural gas cost file path: {natGasCost}")
+
         else:
             nodesData["natGas_cost"] = _pd.read_csv(natGasCost, delimiter=";")
             # set datetime index
             nodesData["natGas_cost"].set_index("timestamp", inplace=True)
             nodesData["natGas_cost"].index = _pd.to_datetime(nodesData["natGas_cost"].index, format='%d.%m.%Y %H:%M')
-            # nodesData["natGas_cost"] = self.clip_to_time_index(nodesData["natGas_cost"], time_index)
-
+            nodesData["natGas_cost"] = self.clip_to_time_index(nodesData["natGas_cost"], time_index)
         if cluster_size:
             natGasCost = self.cluster_and_multiply_desired_column(nodesData["natGas_cost"], cluster_size)
             nodesData["natGas_cost"] = natGasCost
+
+    def add_natural_gas_impact(self, nodesData, cluster_size, time_index):
+        natGasImpact = self.get_values_from_dataframe(
+            df=nodesData[ent.NodeKeys.commodity_sources],
+            identifier_column=ent.CommonLabels.label,
+            identifier=ent.CommoditySourceTypes.naturalGasResource,
+            desired_column=ent.CommoditySourcesLabels.CO2_impact,
+            message="Error in natural gas impact.",
+        )
+        if isinstance(natGasImpact, (int, float, _np.float64, _np.int64)) or (
+                natGasImpact.split('.')[0].replace('-', '').isdigit() and
+                natGasImpact.split('.')[1].replace('-', '').isdigit()
+        ):
+            # for constant impact
+            natGasImpactValue = float(natGasImpact)
+            _log.info("Constant value for natural gas impact")
+            nodesData["natGas_impact"] = _pd.DataFrame()
+            nodesData["natGas_impact"]["impact"] = (nodesData["demandProfiles"][1].shape[0]) * [
+                natGasImpactValue]
+            nodesData["natGas_impact"].index = nodesData["demandProfiles"][1].index
+        elif not _os.path.exists(natGasImpact):
+            _log.error("Error in natural gas impact file path")
+            raise FileNotFoundError(f"Error in natural gas impact file path: {natGasImpact}")
+        else:
+            nodesData["natGas_impact"] = _pd.read_csv(natGasImpact, delimiter=";")
+            # set datetime index
+            nodesData["natGas_impact"].set_index("timestamp", inplace=True)
+            nodesData["natGas_impact"].index = _pd.to_datetime(nodesData["natGas_impact"].index,
+                                                               format='%d.%m.%Y %H:%M')
+            nodesData["natGas_impact"] = self.clip_to_time_index(nodesData["natGas_impact"], time_index)
+        if cluster_size:
+            natGasImpact = self.cluster_and_multiply_desired_column(nodesData["natGas_impact"], cluster_size)
+            nodesData["natGas_impact"] = natGasImpact
 
         return nodesData
 
@@ -512,61 +526,68 @@ class ProfileAndOtherDataReader:
                 nodesData['demand']['building model'] == 'Yes').any():
             _log.info("Building model either not selected or invalid string value entered")
         else:
-            internalGainsPath = self.get_values_from_dataframe(
-                df=nodesData[ent.NodeKeys.profiles],
-                identifier_column=ent.ProfileLabels.name,
-                identifier=ent.ProfileTypes.internal_gains,
-                desired_column=ent.ProfileLabels.path,
-                message="Error in internal gains file path for the building model."
-            )
+            nodesData, internalGains = self.add_internal_gains(nodesData, clusterSize, time_index)
 
-            if not _os.path.exists(internalGainsPath):
-                _log.error("Error in internal gains file path for the building model.")
+            nodesData = self.add_building_models(nodesData, numBuildings, internalGains)
 
-            internalGains = _pd.read_csv(internalGainsPath, delimiter=';')
-            internalGains.timestamp = _pd.to_datetime(internalGains.timestamp, format='%d.%m.%Y %H:%M')
-            internalGains.set_index("timestamp", inplace=True)
+        return nodesData
 
-            if not clusterSize:
-                internalGains = self.clip_to_time_index(internalGains, time_index)
+    def add_internal_gains(self, nodesData, clusterSize, time_index):
+        internalGainsPath = self.get_values_from_dataframe(
+            df=nodesData[ent.NodeKeys.profiles],
+            identifier_column=ent.ProfileLabels.name,
+            identifier=ent.ProfileTypes.internal_gains,
+            desired_column=ent.ProfileLabels.path,
+            message="Error in internal gains file path for the building model."
+        )
+        if not _os.path.exists(internalGainsPath):
+            _log.error("Error in internal gains file path for the building model.")
+            raise FileNotFoundError(f"Error in internal gains file path for the building model{internalGainsPath}")
+        internalGains = _pd.read_csv(internalGainsPath, delimiter=';')
+        internalGains.timestamp = _pd.to_datetime(internalGains.timestamp, format='%d.%m.%Y %H:%M')
+        internalGains.set_index("timestamp", inplace=True)
+        if not clusterSize:
+            internalGains = self.clip_to_time_index(internalGains, time_index)
+        return nodesData, internalGains
 
-            bmodelparamsPath = self.get_values_from_dataframe(
-                df=nodesData[ent.NodeKeys.profiles],
-                identifier_column=ent.ProfileLabels.name,
-                identifier=ent.ProfileTypes.building_model_params,
-                desired_column=ent.ProfileLabels.path,
-                message="Error in building model parameters file path."
-            )
+    def add_building_models(self, nodesData, numBuildings, internalGains):
+        b_model_params_Path = self.get_values_from_dataframe(
+            df=nodesData[ent.NodeKeys.profiles],
+            identifier_column=ent.ProfileLabels.name,
+            identifier=ent.ProfileTypes.building_model_params,
+            desired_column=ent.ProfileLabels.path,
+            message="Error in building model parameters file path."
+        )
+        if not _os.path.exists(b_model_params_Path):
+            _log.error("Error in building model parameters file path.")
+            raise FileNotFoundError(f"Error in building model parameters file path: {b_model_params_Path}")
 
-            if not _os.path.exists(bmodelparamsPath):
-                _log.error("Error in building model parameters file path.")
+        bmParamers = _pd.read_csv(b_model_params_Path, delimiter=';')
+        for i in range(numBuildings):
+            nodesData["building_model"][i + 1] = {}
+            nodesData["building_model"][i + 1]["timeseries"] = _pd.DataFrame()
+            nodesData["building_model"][i + 1]["timeseries"]["tAmb"] = _np.array(
+                nodesData["weather_data"]["tre200h0"])
+            nodesData["building_model"][i + 1]["timeseries"]["IrrH"] = _np.array(
+                nodesData["weather_data"]["gls"]) / 1000  # conversion from W/m2 to kW/m2
+            nodesData["building_model"][i + 1]["timeseries"][f"Qocc"] = internalGains[f'Total (kW) {i + 1}'].values
 
-            bmParamers = _pd.read_csv(bmodelparamsPath, delimiter=';')
-            for i in range(numBuildings):
-                nodesData["building_model"][i + 1] = {}
-                nodesData["building_model"][i + 1]["timeseries"] = _pd.DataFrame()
-                nodesData["building_model"][i + 1]["timeseries"]["tAmb"] = _np.array(
-                    nodesData["weather_data"]["tre200h0"])
-                nodesData["building_model"][i + 1]["timeseries"]["IrrH"] = _np.array(
-                    nodesData["weather_data"]["gls"]) / 1000  # conversion from W/m2 to kW/m2
-                nodesData["building_model"][i + 1]["timeseries"][f"Qocc"] = internalGains[f'Total (kW) {i + 1}'].values
+            if "tIndoorDay" in bmParamers.columns:
+                tIndoorDay = float(bmParamers[bmParamers["Building Number"] == (i + 1)]['tIndoorDay'].iloc[0])
+                tIndoorNight = float(bmParamers[bmParamers["Building Number"] == (i + 1)]['tIndoorNight'].iloc[0])
+                tIndoorSet = [tIndoorNight, tIndoorNight, tIndoorNight, tIndoorNight, tIndoorNight, tIndoorNight,
+                              tIndoorNight, tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay,
+                              tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay,
+                              tIndoorNight, tIndoorNight, tIndoorNight, tIndoorNight] * 365
+                nodesData["building_model"][i + 1]["timeseries"]["tIndoorSet"] = _pd.DataFrame(tIndoorSet).values
+            paramList = ['gAreaWindows', 'rDistribution', 'cDistribution', 'rWall', 'cWall', 'rIndoor',
+                         'cIndoor',
+                         'qDistributionMin', 'qDistributionMax', 'tIndoorMin', 'tIndoorMax', 'tIndoorInit',
+                         'tWallInit', 'tDistributionInit']
 
-                if "tIndoorDay" in bmParamers.columns:
-                    tIndoorDay = float(bmParamers[bmParamers["Building Number"] == (i + 1)]['tIndoorDay'].iloc[0])
-                    tIndoorNight = float(bmParamers[bmParamers["Building Number"] == (i + 1)]['tIndoorNight'].iloc[0])
-                    tIndoorSet = [tIndoorNight, tIndoorNight, tIndoorNight, tIndoorNight, tIndoorNight, tIndoorNight,
-                                  tIndoorNight, tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay,
-                                  tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay,
-                                  tIndoorNight, tIndoorNight, tIndoorNight, tIndoorNight] * 365
-                    nodesData["building_model"][i + 1]["timeseries"]["tIndoorSet"] = _pd.DataFrame(tIndoorSet).values
-                paramList = ['gAreaWindows', 'rDistribution', 'cDistribution', 'rWall', 'cWall', 'rIndoor',
-                             'cIndoor',
-                             'qDistributionMin', 'qDistributionMax', 'tIndoorMin', 'tIndoorMax', 'tIndoorInit',
-                             'tWallInit', 'tDistributionInit']
-
-                for param in paramList:
-                    nodesData["building_model"][i + 1][param] = float(
-                        bmParamers[bmParamers["Building Number"] == (i + 1)][param].iloc[0])
+            for param in paramList:
+                nodesData["building_model"][i + 1][param] = float(
+                    bmParamers[bmParamers["Building Number"] == (i + 1)][param].iloc[0])
 
         return nodesData
 
