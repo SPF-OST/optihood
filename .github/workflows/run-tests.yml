@@ -36,6 +36,7 @@ jobs:
         run: |
           venv\Scripts\python -m pip install --upgrade pip
           venv\Scripts\python -m pip install wheel
+          venv\Scripts\python -m pip install --no-compile -r requirements/requirements.txt
           venv\Scripts\python -m pip install --no-compile -r requirements/requirements_dev.txt
 
 #      - name: Static type checking with mypy

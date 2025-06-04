@@ -43,7 +43,7 @@ class MpcComponentBasic:
 
     @staticmethod
     @_abc.abstractmethod
-    def required_entries_not_in_data(df) -> bool:
+    def required_entries_not_in_data(df) -> bool:  # pragma: no cover
         """As this is always MPC, we will be overwriting these values at all time-steps.
         Thus, the User should always provide all required values.
         When the User misses one, or all, the defaults should be provided instead.
@@ -52,7 +52,7 @@ class MpcComponentBasic:
 
     @staticmethod
     @_abc.abstractmethod
-    def get_entries(initial_state: dict, row) -> dict:
+    def get_entries(initial_state: dict, row) -> dict:  # pragma: no cover
         raise NotImplementedError
 
 

@@ -71,7 +71,6 @@ class OptimizationProperties:
         include_carbon_benefits:
 
         """
-
         self.optimization_type = optimization_type
         self.merge_link_buses = merge_link_buses
         self.merge_buses = merge_buses
@@ -81,9 +80,11 @@ class OptimizationProperties:
         self.dispatch_mode = dispatch_mode
         self.include_carbon_benefits = include_carbon_benefits
 
+        self.check_mutually_exclusive_inputs()
+
     def check_mutually_exclusive_inputs(self):
         if self.merge_link_buses and self.temperature_levels:
-            logging.error("The options merge_link_buses and temperature_levels should not be set True at the same time. "
+            logging.error("The options merge_link_buses and temperature_levels should not be set True at the same time."
                           "This use case is not supported in the present version of optihood. Only one of "
                           "mergeLinkBuses and temperatureLevels should be set to True.")
 
