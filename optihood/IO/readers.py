@@ -245,7 +245,6 @@ class ProfileAndOtherDataReader:
         nodal_data = self.add_electricity_cost(nodal_data, cluster_size, time_index)
         nodal_data = self.add_weather_profiles(nodal_data, cluster_size, time_index)
 
-        # TODO: this does not use time_index, why not?
         nodal_data = self.maybe_add_natural_gas(nodal_data, cluster_size, time_index)
         nodal_data = self.maybe_add_building_model_with_internal_gains(nodal_data, num_buildings, cluster_size,
                                                                        time_index)
