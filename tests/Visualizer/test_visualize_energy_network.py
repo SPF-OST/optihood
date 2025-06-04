@@ -97,6 +97,7 @@ class TestVisualizeEnergyNetwork_from_csv(_ut.TestCase):
 
         self.assertEqual(True, False)  # add assertion here
 
+
 class TestScenarioTillGraphData(_ut.TestCase):
     def setUp(self):
         self.maxDiff = None

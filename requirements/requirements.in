@@ -19,3 +19,10 @@ scipy
 workalendar
 xlrd
 xlwt
+
+# visualizer
+dash
+dash-core-components
+dash_cytoscape
+dash-html-components
+dash-table
