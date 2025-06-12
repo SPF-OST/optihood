@@ -1312,16 +1312,23 @@ class EnergyNetworkClass(solph.EnergySystem):
         storage_mapping = {
             "SH": "shStorage",
             "DHW": "dhwStorage",
-            "PIT": "pitStorage"}
+            "PIT": "pitStorage"
+        }
 
-        for i in range(1, self.__noOfBuildings+1):
+        for i in range(1, self.__noOfBuildings + 1):
             building_label = f"Building{i}"
             if self._temperatureLevels:
                 self._storageContentTS = self.calcStateofCharge("thermalStorage", building_label)
             else:
                 for storage_name, storage_type in storage_mapping.items():
-                    storage_content = getattr(self, f"_storageContent{storage_name}")
-                    storage_content.update(self.calcStateofCharge(storage_type, building_label))
+                    group_key = storage_type + '__' + building_label
+                    if group_key in self.groups:
+                        # Only process if the storage exists for this building
+                        setattr(self, f"_storageContent{storage_name}",
+                                self.calcStateofCharge(storage_type, building_label))
+                    else:
+                        # Optionally, clear or initialize the attribute if storage does not exist
+                        setattr(self, f"_storageContent{storage_name}", {})
 
             hSB_sheet.append(f'heatStorageBus_Building{i}') #name of the different heatStorageBuses
         with pd.ExcelWriter(file_name, engine='openpyxl') as writer:
