@@ -115,6 +115,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         self._storageContentSH = {}
         self._storageContentDHW = {}
         self._storageContentTS = {}
+        self._storageContentPIT = {}                # TODO: check and update the code for calculation of storage content for pit
         self._storageContent = {}
         self.__inputs = {}                          # dictionary of list of inputs indexed by the building label
         self.__technologies = {}                    # dictionary of list of technologies indexed by the building label
