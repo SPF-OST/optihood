@@ -152,7 +152,7 @@ class ThermalStoragePit(GenericStoragePit):
 
         height_multiplication_factor, loss_rate, fixed_losses_relative, capacity_min, capacity_max, epc, env_capa, \
         temp_h, temp_c = \
-            self._precalculate(stratifiedStorageParams,label.split("__")[0],min,max,volume_cost,env_cap, rho=rho, c=c)
+            self._precalculate(stratifiedStorageParams,label.split("__")[0].rstrip('0123456789'),min,max,volume_cost,env_cap, rho=rho, c=c)
 
         storageLabel = label.split("__")[0]
 
@@ -188,8 +188,8 @@ class ThermalStoragePit(GenericStoragePit):
             temp_c=temp_c,
             rho=rho,
             c=c,
-            inflow_conversion_factor=stratifiedStorageParams.at[storageLabel, 'inflow_conversion_factor'],
-            outflow_conversion_factor=stratifiedStorageParams.at[storageLabel, 'outflow_conversion_factor'],
+            inflow_conversion_factor=stratifiedStorageParams.at[storageLabel.rstrip('0123456789'), 'inflow_conversion_factor'],
+            outflow_conversion_factor=stratifiedStorageParams.at[storageLabel.rstrip('0123456789'), 'outflow_conversion_factor'],
             invest_relation_input_capacity=1,
             invest_relation_output_capacity=1,
             balanced=False,
