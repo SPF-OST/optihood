@@ -24,47 +24,68 @@ from optihood._helpers import *
 from optihood.links import Link
 import optihood.IO.readers as _re
 
+# TODO: define nr_of_buildings once
+
 
 class OptimizationProperties:
     """
-    class under construction ...
+    Configurable attributes of energy networks.
     """
-    def __init__(self, optType, mergeLinkBuses, mergeHeatSourceSink, temperatureLevels, clusters, dispatchMode, includeCarbonBenefits):
-        self._optType = optType
-        self._mergeLinkBuses = mergeLinkBuses
-        self._mergeHeatSourceSink = mergeHeatSourceSink
-        self._temperatureLevels = temperatureLevels
-        self._clusters = clusters
-        self._dispatchMode = dispatchMode
-        self._includeCarbonBenefits = includeCarbonBenefits
+    def __init__(self,
+                 # TODO: fix argument types
+                 optimization_type: _tp.Literal["costs", "env"],  # Pycharm highlights the input if anything else.
+                 merge_link_buses: bool = False,
+                 merge_buses: _tp.Optional[_tp.Sequence[str]] = None,
+                 merge_heat_source_sink: bool = False,
+                 temperature_levels: bool = False,
+                 cluster_size: _tp.Optional[dict[str, int]] = None,
+                 dispatch_mode: bool = False,
+                 include_carbon_benefits: bool = False
+                 ) -> None:
+        """
+        # TODO: explain inputs
+        Parameters
+        ----------
 
-    @property
-    def optType(self):
-        return self._optType
+        cluster_size:
+            Used to provide a selected number of days which could be assumed representative of the entire time range.
 
-    @property
-    def mergeLinkBuses(self):
-        return self._mergeLinkBuses
+        optimization_type:
+            "cost", or "env" depending on which criteria should be optimized.
 
-    @property
-    def mergeHeatSourceSink(self):
-        return self._mergeHeatSourceSink
+        merge_link_buses:
+            False: one bus of provided type per building.
+            True: all buildings use the same bus for each type.
 
-    @property
-    def temperatureLevels(self):
-        return self._temperatureLevels
+        merge_buses:
+            Specify which buses to merge when merge_link_buses set to True
 
-    @property
-    def clusters(self):
-        return self._clusters
+        merge_heat_source_sink:
 
-    @property
-    def dispatchMode(self):
-        return self._dispatchMode
+        temperature_levels:
 
-    @property
-    def includeCarbonBenefits(self):
-        return self._includeCarbonBenefits
+        dispatch_mode:
+            True: activate dispatch optimization
+            False: do investment + dispatch optimization
+
+        include_carbon_benefits:
+
+        """
+
+        self.optimization_type = optimization_type
+        self.merge_link_buses = merge_link_buses
+        self.merge_buses = merge_buses
+        self.merge_heat_source_sink = merge_heat_source_sink
+        self.temperature_levels = temperature_levels
+        self.cluster_size = cluster_size
+        self.dispatch_mode = dispatch_mode
+        self.include_carbon_benefits = include_carbon_benefits
+
+    def check_mutually_exclusive_inputs(self):
+        if self.merge_link_buses and self.temperature_levels:
+            logging.error("The options merge_link_buses and temperature_levels should not be set True at the same time. "
+                          "This use case is not supported in the present version of optihood. Only one of "
+                          "mergeLinkBuses and temperatureLevels should be set to True.")
 
 
 def get_data_from_df(df: pd.DataFrame, column_name: str):
@@ -93,9 +114,8 @@ class EnergyNetworkClass(solph.EnergySystem):
         self._thermalStorageList = []
         self._storageContentSH = {}
         self._storageContentDHW = {}
-        self._storageContentPIT0 = {}
-        self._storageContentPIT1 = {}
         self._storageContentTS = {}
+        self._storageContent = {}
         self.__inputs = {}                          # dictionary of list of inputs indexed by the building label
         self.__technologies = {}                    # dictionary of list of technologies indexed by the building label
         self.__capacitiesTransformersBuilding = {}  # dictionary of dictionary of optimized capacities of transformers indexed by the building label
@@ -125,7 +145,8 @@ class EnergyNetworkClass(solph.EnergySystem):
         self._rho = 1. #default value for water in kg/L
         if not os.path.exists(".\\log_files"):
             os.mkdir(".\\log_files")
-        logger.define_logging(logpath=os.getcwd(), logfile=f'.\\log_files\\optihood_{datetime.now().strftime("%d.%m.%Y %H.%M.%S")}.log')
+        screen_format = "%(asctime)s-%(levelname)s:  %(message)s"
+        logger.define_logging(screen_format=screen_format, logpath=os.getcwd(), logfile=f'.\\log_files\\optihood_{datetime.now().strftime("%d.%m.%Y %H.%M.%S")}.log')
         logging.info("Initializing the energy network")
         super(EnergyNetworkClass, self).__init__(timeindex=timestamp, infer_last_interval=True)
 
@@ -134,6 +155,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         self.check_mutually_exclusive_inputs(mergeLinkBuses)
         self._dispatchMode = dispatchMode
         self._optimizationType = opt
+        self._mergeBuses = mergeBuses
         logging.info("Defining the energy network from the excel file: {}".format(filePath))
         data = pd.ExcelFile(filePath)
         initial_nodal_data = self.get_nodal_data_from_Excel(data)
@@ -142,7 +164,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         self.set_using_nodal_data(clusterSize, filePath, includeCarbonBenefits, initial_nodal_data, mergeBuses,
                                   mergeHeatSourceSink, mergeLinkBuses, numberOfBuildings, opt)
 
-    def set_using_nodal_data(self, clusterSize, filePath, includeCarbonBenefits, initial_nodal_data, mergeBuses,
+    def set_using_nodal_data(self, clusterSize, filePath, includeCarbonBenefits, initial_nodal_data: dict[str, pd.DataFrame], mergeBuses,
                              mergeHeatSourceSink, mergeLinkBuses, numberOfBuildings, opt):
         nodesData = self.createNodesData(initial_nodal_data, filePath, numberOfBuildings, clusterSize)
         # nodesData["buses"]["excess costs"] = nodesData["buses"]["excess costs indiv"]
@@ -222,8 +244,20 @@ class EnergyNetworkClass(solph.EnergySystem):
             _ent.NodeKeys.demand.value: func(data, _ent.NodeKeys.demand.value),
             _ent.NodeKeys.storages.value: func(data, _ent.NodeKeys.storages.value),
             _ent.NodeKeys.stratified_storage.value: func(data, _ent.NodeKeys.stratified_storage.value),
-            _ent.NodeKeys.profiles.value: func(data, _ent.NodeKeys.profiles.value)
+            _ent.NodeKeys.profiles.value: func(data, _ent.NodeKeys.profiles.value),
         }
+
+        try:
+            # This sheet is usually not included for single buildings.
+            nodes_data[_ent.NodeKeys.links.value] = func(data, _ent.NodeKeys.links.value)
+        except:  # multiple exceptions possible, each of which leads to the same conclusion.
+            logging.warning("No data found for links. Moving on without including links.")
+        try:
+            if "ice_storage" in data.sheet_names:
+                nodes_data.update({_ent.NodeKeys.ice_storage.value: func(data, _ent.NodeKeys.ice_storage.value)})
+        except:  # multiple exceptions possible, each of which leads to the same conclusion.
+            logging.warning("No data found for an ice storage. Moving on without including one.")
+
         return nodes_data
 
     @staticmethod
@@ -235,10 +269,17 @@ class EnergyNetworkClass(solph.EnergySystem):
         return values
 
     def createNodesData(self, nodesData, file_or_folder_path, numBuildings, clusterSize):
+        for key, df in nodesData.items():
+            if _ent.BusesLabels.active not in df.columns:
+                continue
+            nodesData[key] = df.where(df[_ent.BusesLabels.active] == 1).dropna(how="all")
+
         self.__noOfBuildings = numBuildings
 
-        # update stratified_storage index
+        # update stratified_storage and ice storage index
         nodesData[_ent.NodeKeys.stratified_storage.value].set_index(_ent.StratifiedStorageLabels.label.value, inplace=True)
+        if _ent.NodeKeys.ice_storage.value in nodesData:
+            nodesData[_ent.NodeKeys.ice_storage.value].set_index(_ent.IceStorageLabels.label.value, inplace=True)
 
         # extract input data from CSVs
         electricityImpact = self.get_values_from_dataframe(nodesData[_ent.NodeKeys.commodity_sources.value], _ent.CommoditySourceTypes.electricityResource.value, _ent.CommoditySourcesLabels.label.value, _ent.CommoditySourcesLabels.CO2_impact.value)
@@ -287,6 +328,7 @@ class EnergyNetworkClass(solph.EnergySystem):
             # set datetime index
             nodesData["electricity_impact"].set_index("timestamp", inplace=True)
             nodesData["electricity_impact"].index = pd.to_datetime(nodesData["electricity_impact"].index, format='%d.%m.%Y %H:%M')
+            nodesData["electricity_impact"] = nodesData["electricity_impact"][self.timeindex[0]: self.timeindex[-1]]
 
         if type(electricityCost) == np.float64 or type(electricityCost) == np.int64:
             # for constant cost
@@ -303,6 +345,7 @@ class EnergyNetworkClass(solph.EnergySystem):
             # set datetime index
             nodesData["electricity_cost"].set_index("timestamp", inplace=True)
             nodesData["electricity_cost"].index = pd.to_datetime(nodesData["electricity_cost"].index, format='%d.%m.%Y %H:%M')
+            nodesData["electricity_cost"] = nodesData["electricity_cost"][self.timeindex[0]: self.timeindex[-1]]
 
         if "naturalGasResource" in nodesData["commodity_sources"]["label"].values:
             if isinstance(natGasImpact, (float, np.float64)) or (natGasImpact.split('.')[0].replace('-','').isdigit() and natGasImpact.split('.')[1].replace('-','').isdigit()):
@@ -348,11 +391,22 @@ class EnergyNetworkClass(solph.EnergySystem):
             nodesData["weather_data"].timestamp = pd.to_datetime(nodesData["weather_data"].timestamp,
                                                                           format='%Y.%m.%d %H:%M:%S')
             nodesData["weather_data"].set_index("timestamp", inplace=True)
-            if (not clusterSize) and nodesData["weather_data"].index.year.unique().__len__() == 1:
+            if (not clusterSize):
+                # for data with typical years; we might have 2 years if summer of 1st yr and winter of 2nd yr is considered
+                # we need to change index if len > 2 years
+                if nodesData["weather_data"].index.year.unique().__len__() > 2:
+                    new_index = pd.to_datetime({
+                        'year': self.timeindex.year[0],
+                        'month': nodesData["weather_data"].index.month,
+                        'day': nodesData["weather_data"].index.day,
+                        'hour': nodesData["weather_data"].index.hour})
+                    nodesData["weather_data"].index = new_index
                 nodesData["weather_data"] = nodesData["weather_data"][self.timeindex[0]:self.timeindex[-1]]
 
         nodesData["building_model"] = {}
         if (nodesData['demand']['building model'].notna().any()) and (nodesData['demand']['building model'] == 'Yes').any():
+            # TODO: extract reading of internal gains and building model.
+            # TODO: pass data_frames to be used here.
             internalGainsPath = nodesData["profiles"].loc[nodesData["profiles"]["name"] == "internal_gains", "path"].iloc[0]
             bmodelparamsPath = nodesData["profiles"].loc[nodesData["profiles"]["name"] == "building_model_params", "path"].iloc[0]
             if not os.path.exists(internalGainsPath):
@@ -395,7 +449,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         listTemperatures.extend(self.__operationTemperatures)
         gradient = [h - l for l, h in zip(listTemperatures, listTemperatures[1:])]
         return all(x == gradient[0] for x in gradient)
-    
+
     def _convertNodes(self, data, opt, mergeLinkBuses, mergeBuses, mergeHeatSourceSink, includeCarbonBenefits, clusterSize):
         if not data:
             logging.error("Nodes data is missing.")
@@ -436,21 +490,26 @@ class EnergyNetworkClass(solph.EnergySystem):
             self.__LgenericStorage = {}
             self.__Lsh = self._rho * self._c * (self.__temperatureSH - data["stratified_storage"].loc["shStorage", "temp_c"]) / 3600
             self.__Ldhw = self._rho * self._c * (self.__temperatureDHW - data["stratified_storage"].loc["dhwStorage", "temp_c"]) / 3600
-            if 'tankStorage' in data['storages']['label'].unique():
-                self.__LgenericStorage['tankStorage'] = self._rho * self._c * (data["stratified_storage"].loc["tankStorage", "temp_h"] - data["stratified_storage"].loc["tankStorage", "temp_c"]) / 3600 #TO BE IMPROVED
-            if 'pitStorage0' in data['storages']['label'].unique():
-                self.__LgenericStorage['pitStorage0'] = self._rho * self._c * (data["stratified_storage"].loc["pitStorage0", "temp_h"] - data["stratified_storage"].loc["pitStorage0", "temp_c"]) / 3600
-            if 'pitStorage1' in data['storages']['label'].unique():
-                self.__LgenericStorage['pitStorage1'] = self._rho * self._c * (data["stratified_storage"].loc["pitStorage1", "temp_h"] - data["stratified_storage"].loc["pitStorage1", "temp_c"]) / 3600
-            if 'boreholeStorage' in data['storages']['label'].unique():
-                self.__LgenericStorage['boreholeStorage'] = self._rho * self._c * (data["stratified_storage"].loc["boreholeStorage", "temp_h"] - data["stratified_storage"].loc["boreholeStorage", "temp_c"]) / 3600
-            if 'aquifierStorage' in data['storages']['label'].unique():
-                self.__LgenericStorage['aquifierStorage'] = self._rho * self._c * (data["stratified_storage"].loc["aquifierStorage", "temp_h"] - data["stratified_storage"].loc["aquifierStorage", "temp_c"]) / 3600
+            if data['storages']['label'].str.match(r'^tankStorage(\d+)?$').any():
+                self.__LgenericStorage['tankStorage'] = data["stratified_storage"].loc["tankStorage", "energy_density_per_m3"]/1000
+            if data['storages']['label'].str.match(r'^pitStorage(\d+)?$').any():
+                self.__LgenericStorage['pitStorage'] = data["stratified_storage"].loc["pitStorage", "energy_density_per_m3"]/1000
+            if data['storages']['label'].str.match(r'^boreholeStorage(\d+)?$').any():
+                self.__LgenericStorage['boreholeStorage'] = data["stratified_storage"].loc["boreholeStorage", "energy_density_per_m3"]/1000
+            if data['storages']['label'].str.match(r'^aquifierStorage(\d+)?$').any():
+                self.__LgenericStorage['aquifierStorage'] = data["stratified_storage"].loc["aquifierStorage", "energy_density_per_m3"]/1000
+        # Storage conversion m3 - kWh for ice storage
+        if data['storages']['label'].str.match(r'^iceStorage(\d+)?$').any():
+            self.__m3IceStorage = self._rho * 1000 * self._c * (10 - 0) / 3600
         self._addBuildings(data, opt, mergeLinkBuses, mergeBuses, mergeHeatSourceSink, includeCarbonBenefits, clusterSize)
 
     def _addBuildings(self, data, opt, mergeLinkBuses, mergeBuses, mergeHeatSourceSink, includeCarbonBenefits, clusterSize):
         numberOfBuildings = max(data["buses"]["building"])
         self.__buildings = [Building('Building' + str(i + 1)) for i in range(numberOfBuildings)]
+        storageParams = {}
+        for s in [_ent.NodeKeys.stratified_storage.value, _ent.NodeKeys.ice_storage.value]:
+            if s in data:
+                storageParams.update({s: data[s]})
         for b in self.__buildings:
             buildingLabel = b.getBuildingLabel()
             i = int(buildingLabel[8:])
@@ -469,17 +528,17 @@ class EnergyNetworkClass(solph.EnergySystem):
                 natGasImpact = data["natGas_impact"]
             else:
                 natGasCost = natGasImpact = None
-            b.addSource(data["commodity_sources"][data["commodity_sources"]["building"] == i], data["electricity_impact"], data["electricity_cost"], natGasCost, natGasImpact, opt, mergeHeatSourceSink)
+            b.addSource(data["commodity_sources"][data["commodity_sources"]["building"] == i], data["electricity_impact"], data["electricity_cost"], natGasCost, natGasImpact, opt, mergeHeatSourceSink, mergeLinkBuses)
             if i in data["building_model"]:
                 bmdata = data["building_model"][i]
             else:
                 bmdata = {}
             b.addSink(data["demand"][data["demand"]["building"] == i], data["demandProfiles"][i], bmdata, mergeLinkBuses, mergeHeatSourceSink, self._temperatureLevels)
             b.addTransformer(data["transformers"][data["transformers"]["building"] == i], self.__operationTemperatures, self.__temperatureAmb, self.__temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, self._dispatchMode, self._temperatureLevels)
-            storageList = b.addStorage(data["storages"][data["storages"]["building"] == i], data["stratified_storage"], opt, mergeLinkBuses, self._dispatchMode, self._temperatureLevels)
-            b.addSolar(data["solar"][(data["solar"]["building"] == i) & (data["solar"]["label"] == "solarCollector")], data["weather_data"], opt, mergeLinkBuses, self._dispatchMode, self._temperatureLevels)
-            b.addPV(data["solar"][(data["solar"]["building"] == i) & (data["solar"]["label"] == "pv")], data["weather_data"], opt, self._dispatchMode)
-            b.addPVT(data["solar"][(data["solar"]["building"] == i) & (data["solar"]["label"] == "pvt")], data["weather_data"], opt, mergeLinkBuses, self._dispatchMode)
+            storageList = b.addStorage(data["storages"][data["storages"]["building"] == i], storageParams, self.__temperatureAmb, opt, mergeLinkBuses, self._dispatchMode, self._temperatureLevels)
+            b.addSolar(data["solar"][(data["solar"]["building"] == i) & (data["solar"]["label"].str.match(r"^solarCollector(\d+)?$"))], data["weather_data"], opt, mergeLinkBuses, self._dispatchMode, self._temperatureLevels)
+            b.addPV(data["solar"][(data["solar"]["building"] == i) & (data["solar"]["label"].str.match(r"^pv(\d+)?$"))], data["weather_data"], opt, self._dispatchMode)
+            b.addPVT(data["solar"][(data["solar"]["building"] == i) & (data["solar"]["label"].str.match(r"^pvt(\d+)?$"))], data["weather_data"], opt, mergeLinkBuses, self._dispatchMode)
             self._nodesList.extend(b.getNodesList())
             self._thermalStorageList.extend(storageList)
             self.__inputs[buildingLabel] = b.getInputs()
@@ -543,6 +602,9 @@ class EnergyNetworkClass(solph.EnergySystem):
         # constraint on PVT capacity if PVT technology is selected
         if any("pvt" in n.label for n in self.nodes):
             self._optimizationModel = PVTElectricalThermalCapacityConstraint(self._optimizationModel, numberOfBuildings)
+        # constraint on STC capacity if STC technology is selected
+        if any("solarCollector" in n.label for n in self.nodes):
+            self._optimizationModel = STCThermalCapacityConstraint(self._optimizationModel, numberOfBuildings)
         # constraint on storage content for clustering
         """if clusterSize:
             self._optimizationModel = dailySHStorageConstraint(self._optimizationModel)"""
@@ -575,11 +637,26 @@ class EnergyNetworkClass(solph.EnergySystem):
         # calculate results (CAPEX, OPEX, FeedIn Costs, environmental impacts etc...) for each building
         self._calculateResultsPerBuilding(mergeLinkBuses)
 
+        # todo: return data class
+        #       - unprocessed results sheets
+        #       - processed results
+        #           - total
+        #           - per building
+        #           - envImpact, capacitiesTransformersNetwork, capacitiesStoragesNetwork
+        #           - costs, en
+        #       - optimization metadata
+        #       -
+        # def optimize(self, return_data_class=True):
+        # if return_data_class:
+        #     return a
+
+        # warning("sunsetting old")
         return envImpact, capacitiesTransformersNetwork, capacitiesStoragesNetwork
+
 
     def printbuildingModelTemperatures(self, filename):
         df = pd.DataFrame()
-        df["timestamp"] = self.timeindex
+        df["timestamp"] = self.timeindex[0:-1]
         for i in range(self.__noOfBuildings):
             bNo = i + 1
             tIndoor = [v for k, v in self._optimizationModel.SinkRCModelBlock.tIndoor.get_values().items() if
@@ -606,16 +683,46 @@ class EnergyNetworkClass(solph.EnergySystem):
             df[f"epsilonIndoor_B{bNo}"] = epsilonIndoor
         df.to_csv(filename, sep=';', index=False)
 
-    def saveUnprocessedResults(self, resultFile):
-        with pd.ExcelWriter(resultFile) as writer:
-            busLabelList = []
-            for i in self.nodes:
-                if str(type(i)).replace("<class 'oemof.solph.", "").replace("'>", "") == "network.bus.Bus":
-                    busLabelList.append(i.label)
-            for i in busLabelList:
-                result = pd.DataFrame.from_dict(solph.views.node(self._optimizationResults, i)["sequences"])
-                result.to_excel(writer, sheet_name=i)
-            writer.save()
+    def exportIceStorageModelParams(self, filename):
+        df = pd.DataFrame()
+        df["timestamp"] = self.timeindex[0:-1]
+        for i in range(self.__noOfBuildings):
+            bNo = i + 1
+            tStor = [v for k, v in self._optimizationModel.IceStorageBlock.tStor.get_values().items() if
+                       k[0].label.endswith(f"Building{bNo}")]
+            mIceStor = [v for k, v in self._optimizationModel.IceStorageBlock.mIceStor.get_values().items() if
+                             k[0].label.endswith(f"Building{bNo}")]
+            fIce = [v for k, v in self._optimizationModel.IceStorageBlock.fIce.get_values().items() if
+                     k[0].label.endswith(f"Building{bNo}")]
+            iceStatus = [v for k, v in self._optimizationModel.IceStorageBlock.iceStatus.get_values().items() if
+                             k[0].label.endswith(f"Building{bNo}")]
+            tStor_prev = [v for k, v in self._optimizationModel.IceStorageBlock.tStor_prev.get_values().items() if
+                            k[0].label.endswith(f"Building{bNo}")]
+            mIceStor_prev = [v for k, v in
+                                  self._optimizationModel.IceStorageBlock.mIceStor_prev.get_values().items() if
+                                  k[0].label.endswith(f"Building{bNo}")]
+            if tStor:
+                df[f"tStor_B{bNo}"] = tStor
+                df[f"mIceStor_B{bNo}"] = mIceStor
+                df[f"fIce_B{bNo}"] = fIce
+                df[f"iceStatus_prev_B{bNo}"] = iceStatus
+                df[f"tStor_prev_B{bNo}"] = tStor_prev
+                df[f"mIceStor_prev_B{bNo}"] = mIceStor_prev
+        df.to_csv(filename, sep=';', index=False)
+
+    def saveUnprocessedResults(self, resultFile=None):
+        busLabelList = []
+        result = {}
+        for i in self.nodes:
+            if str(type(i)).replace("<class 'oemof.solph.", "").replace("'>", "") == "buses._bus.Bus":
+                busLabelList.append(i.label)
+        for i in busLabelList:
+            if "sequences" in solph.views.node(self._optimizationResults, i):
+                result[i] = pd.DataFrame.from_dict(solph.views.node(self._optimizationResults, i)["sequences"])
+                if resultFile is not None:
+                    with pd.ExcelWriter(resultFile) as writer:
+                        result[i].to_excel(writer, sheet_name=i)
+        return result
 
     def _updateCapacityDictInputInvestment(self, transformerFlowCapacityDict):
         components = ["CHP", "GWHP", "HP", "GasBoiler", "ElectricRod", "Chiller"]
@@ -670,17 +777,17 @@ class EnergyNetworkClass(solph.EnergySystem):
         for x in storageCapacityDict:
             index = str(x)
             if x in storageList:  # useful when we want to implement two or more storage units of the same type
-                if str(x).startswith(('sh', 'dh', 'el', 'th')):
-                    capacitiesInvestedStorages[index] = capacitiesInvestedStorages[index] + \
-                                                        optimizationModel.GenericInvestmentStorageBlock.invest[x].value
-                else:
+                if str(x).startswith('pit'):
                     capacitiesInvestedStorages[index] = capacitiesInvestedStorages[index] + \
                                                         optimizationModel.GenericInvestmentStorageBlockPit.invest[x].value
-            else:
-                if str(x).startswith(('sh', 'dh', 'el', 'th')):
-                    capacitiesInvestedStorages[str(x)] = optimizationModel.GenericInvestmentStorageBlock.invest[x].value
                 else:
+                    capacitiesInvestedStorages[index] = capacitiesInvestedStorages[index] + \
+                                                        optimizationModel.GenericInvestmentStorageBlock.invest[x].value
+            else:
+                if str(x).startswith('pit'):
                     capacitiesInvestedStorages[index] = optimizationModel.GenericInvestmentStorageBlockPit.invest[x].value
+                else:
+                    capacitiesInvestedStorages[str(x)] = optimizationModel.GenericInvestmentStorageBlock.invest[x].value
 
         # Convert kWh into L
         capacitiesInvestedStorages = self._compensateStorageCapacities(capacitiesInvestedStorages)
@@ -782,14 +889,14 @@ class EnergyNetworkClass(solph.EnergySystem):
                 capacitiesStorages[storage] = capacitiesStorages[storage] / self.__Ltank
             elif "tank" in storage and not self._temperatureLevels:
                 capacitiesStorages[storage] = capacitiesStorages[storage] / self.__LgenericStorage['tankStorage']
-            elif "pitStorage0" in storage and not self._temperatureLevels:
-                capacitiesStorages[storage] = capacitiesStorages[storage] / self.__LgenericStorage['pitStorage0']
-            elif "pitStorage1" in storage and not self._temperatureLevels:
-                capacitiesStorages[storage] = capacitiesStorages[storage] / self.__LgenericStorage['pitStorage1']
+            elif "pitStorage" in storage and not self._temperatureLevels:
+                capacitiesStorages[storage] = capacitiesStorages[storage] / self.__LgenericStorage['pitStorage']
             elif "borehole" in storage and not self._temperatureLevels:
                 capacitiesStorages[storage] = capacitiesStorages[storage] / self.__LgenericStorage['boreholeStorage']
             elif "aquifier" in storage and not self._temperatureLevels:
                 capacitiesStorages[storage] = capacitiesStorages[storage] / self.__LgenericStorage['aquifierStorage']
+            elif "iceStorage" in storage:
+                capacitiesStorages[storage] = capacitiesStorages[storage]/self.__m3IceStorage
         return capacitiesStorages
 
     def _postprocessingClusters(self, clusterSize):
@@ -826,7 +933,7 @@ class EnergyNetworkClass(solph.EnergySystem):
             gridBusLabel = "gridBus" + '__' + buildingLabel
             naturalGasSourceLabel = "naturalGasResource" + '__' + buildingLabel
             naturalGasBusLabel = "naturalGasBus" + '__' + buildingLabel
-            if mergeLinkBuses:
+            if mergeLinkBuses and ("electricity" in self._mergeBuses or "electricityBus" in self._mergeBuses):
                 electricityBusLabel = "electricityBus"
                 excessElectricityBusLabel = "excesselectricityBus"
             else:
@@ -888,7 +995,7 @@ class EnergyNetworkClass(solph.EnergySystem):
                                                    ["sequences"][(electricityBusLabel, excessElectricityBusLabel), "flow"]) * self.__costParam[excessElectricityBusLabel]
             else: # in case of merged links feed in for all buildings except Building1 is set to 0 (to avoid repetition)
                 self.__feedIn[buildingLabel] = 0
-            if mergeLinkBuses:
+            if mergeLinkBuses and ("electricity" in self._mergeBuses or "electricityInBus" in self._mergeBuses):
                 elInBusLabel = 'electricityInBus'
             else:
                 elInBusLabel = 'electricityInBus__'+buildingLabel
@@ -912,11 +1019,20 @@ class EnergyNetworkClass(solph.EnergySystem):
                         self.__intermediateOpTempsHP[buildingLabel] = sum(
                             solph.views.node(self._optimizationResults, 'HP__' + buildingLabel)["sequences"][
                                 ('HP__' + buildingLabel, f"heatStorageBus{i+1}__{buildingLabel}"), 'flow'])
-                    self.__dhwHP[buildingLabel] = sum(
-                        solph.views.node(self._optimizationResults, 'HP__' + buildingLabel)["sequences"][
-                            ('HP__' + buildingLabel, dhwOutputLabel + buildingLabel), 'flow'])
-                    self.__annualCopHP[buildingLabel] = (self.__shHP[buildingLabel] + self.__dhwHP[buildingLabel]) / (
-                        self.__elHP[buildingLabel] + 1e-6)
+                    try:
+                        self.__dhwHP[buildingLabel] = sum(
+                            solph.views.node(self._optimizationResults, 'HP__' + buildingLabel)["sequences"][
+                                ('HP__' + buildingLabel, dhwOutputLabel + buildingLabel), 'flow'])
+                    except KeyError as e:
+                        """If the dhwStorage is never used, then this will not be available."""
+                        pass
+
+                    if buildingLabel in self.__dhwHP.keys():
+                        self.__annualCopHP[buildingLabel] = (self.__shHP[buildingLabel] + self.__dhwHP[buildingLabel]) / (
+                            self.__elHP[buildingLabel] + 1e-6)
+                    else:
+                        self.__annualCopHP[buildingLabel] = self.__shHP[buildingLabel] / (
+                            self.__elHP[buildingLabel] + 1e-6)
                 else:
                     self.__annualCopHP[buildingLabel] = 0
 
@@ -971,7 +1087,7 @@ class EnergyNetworkClass(solph.EnergySystem):
                 envParamNaturalGas.reset_index(inplace=True, drop=True)
             else:
                 envParamNaturalGas = 0
-            
+
             # Environmental impact due to inputs (natural gas, electricity, etc...)
             self.__envImpactInputs[buildingLabel].update({i[0]: sum(solph.views.node(self._optimizationResults, i[1])["sequences"][(i[0], i[1]), "flow"] * self.__envParam[i[0]]) for i in inputs})
             c = envParamGridElectricity * gridElectricityFlow
@@ -1024,34 +1140,49 @@ class EnergyNetworkClass(solph.EnergySystem):
                         self.__envImpactTechnologies[buildingLabel].update({x: impactThermalStorage})
 
     def printMetaresults(self):
-        print("")
-        print("Meta Results:")
-        pp.pprint(self._metaResults)
+        self._communicate_meta_results(self._metaResults, pp.pprint)
         return self._metaResults
 
+    def log_meta_results(self) -> None:
+        self._communicate_meta_results(self._metaResults, logging.info)
+
+    @staticmethod
+    def _communicate_meta_results(meta_results, communication_method: callable) -> None:
+        communication_method("")
+        communication_method("Meta Results:")
+        communication_method(meta_results)
+
     def calcStateofCharge(self, type, building):
-        s = {}
         if "thermalStorage" in type:
             for i,temperature in enumerate(self.__operationTemperatures):
                 thermal_type = type + str(temperature)[:2]
                 if thermal_type + '__' + building in self.groups:
                     storage = self.groups[thermal_type + '__' + building]
-                    s.setdefault(building, {})[thermal_type] = self._optimizationResults[(storage, None)]["sequences"]
+                    self._storageContent.setdefault(building, {})[thermal_type] = self._optimizationResults[(storage, None)]["sequences"]
                 if temperature == self.__operationTemperatures[-1]:
-                    lists = np.array(list(s[building].values()))
+                    lists = np.array(list(self._storageContent[building].values()))
                     # Calculate the sum of corresponding elements in the arrays
                     sums = np.sum(lists, axis=0)
-                    s[building][thermal_type][f'Overall_storage_content_{building}'] = sums
+                    self._storageContent[building][thermal_type][f'Overall_storage_content_{building}'] = sums
         elif type + '__' + building in self.groups:
             storage = self.groups[type + '__' + building]
-            s[building] = self._optimizationResults[(storage, None)]["sequences"]
-        return s.copy()
+            self._storageContent[building] = self._optimizationResults[(storage, None)]["sequences"]
+        return self._storageContent
 
     def printInvestedCapacities(self, capacitiesInvestedTransformers, capacitiesInvestedStorages):
         if self._temperatureLevels:
             shOutputLabel = "heatStorageBus0__"
         else:
             shOutputLabel = "shSourceBus__"
+        storage_types = {
+            "tankStorage": "Tank Storage",
+            "pitStorage": "Pit Storage",
+            "boreholeStorage": "Borehole Storage",
+            "electricalStorage": "Electrical Storage",
+            "dhwStorage": "DHW Storage Tank",
+            "shStorage": "SH Storage Tank",
+            "thermalStorage": "Multilayer Thermal Storage Tank"
+        }
         for b in range(len(self.__buildings)):
             buildingLabel = "Building" + str(b + 1)
             print("************** Optimized Capacities for {} **************".format(buildingLabel))
@@ -1087,8 +1218,8 @@ class EnergyNetworkClass(solph.EnergySystem):
                 investSH = capacitiesInvestedTransformers["GasBoiler__" + buildingLabel, shOutputLabel + buildingLabel]
                 if investSH > 0.05:
                     print("Invested in {:.1f} kW GasBoiler.".format(investSH))
-            if ("heat_solarCollector__" + buildingLabel, "solarConnectBus__" + buildingLabel) in capacitiesInvestedTransformers:
-                invest = capacitiesInvestedTransformers[("heat_solarCollector__" + buildingLabel, "solarConnectBus__" + buildingLabel)]
+            if ("heatSource_SHsolarCollector__" + buildingLabel, "solarConnectBusSH__" + buildingLabel) in capacitiesInvestedTransformers:
+                invest = capacitiesInvestedTransformers[("heatSource_SHsolarCollector__" + buildingLabel, "solarConnectBusSH__" + buildingLabel)]
                 if invest > 0.05:
                     print("Invested in {:.1f} m² SolarCollector.".format(invest))
             if ("pv__" + buildingLabel, "electricityProdBus__" + buildingLabel) in capacitiesInvestedTransformers:
@@ -1096,88 +1227,83 @@ class EnergyNetworkClass(solph.EnergySystem):
                 if invest > 0.05:
                     print("Invested in {:.1f} kWp  PV.".format(invest))
             if ("heatSource_SHpvt__" + buildingLabel, "pvtConnectBusSH__" + buildingLabel) in capacitiesInvestedTransformers:
+                invest = capacitiesInvestedTransformers[("heatSource_SHpvt__" + buildingLabel, "pvtConnectBusSH__" + buildingLabel)]
                 if invest > 0.05:
-                    invest = capacitiesInvestedTransformers[("heatSource_SHpvt__" + buildingLabel, "pvtConnectBusSH__" + buildingLabel)]
                     print("Invested in {:.1f} m² PVT collector.".format(invest))
-            if "electricalStorage__" + buildingLabel in capacitiesInvestedStorages:
-                invest = capacitiesInvestedStorages["electricalStorage__" + buildingLabel]
-                if invest > 0.05:
-                    print("Invested in {:.1f} kWh Electrical Storage.".format(invest))
-            if "dhwStorage__" + buildingLabel in capacitiesInvestedStorages:
-                invest = capacitiesInvestedStorages["dhwStorage__" + buildingLabel]
-                if invest > 0.05:
-                    print("Invested in {:.1f} L DHW Storage Tank.".format(invest))
-            if "dhwStorage1__" + buildingLabel in capacitiesInvestedStorages:
-                invest = capacitiesInvestedStorages["dhwStorage1__" + buildingLabel]
-                if invest > 0.05:
-                    print("Invested in {:.1f} L DHW Storage1 Tank.".format(invest))
-            if "shStorage__" + buildingLabel in capacitiesInvestedStorages:
-                invest = capacitiesInvestedStorages["shStorage__" + buildingLabel]
-                if invest > 0.05:
-                    print("Invested in {:.1f} L SH Storage Tank.".format(invest))
-            if "thermalStorage__" + buildingLabel in capacitiesInvestedStorages:
-                invest = capacitiesInvestedStorages["thermalStorage__" + buildingLabel]
-                if invest > 0.05:
-                    print("Invested in {:.1f} L Multilayer Thermal Storage Tank.".format(invest))
-            if "tankStorage__" + buildingLabel in capacitiesInvestedStorages:
-                invest = capacitiesInvestedStorages["tankStorage__" + buildingLabel]
-                if invest > 0.05:
-                    print("Invested in {:.1f} L Generic Storage.".format(invest))
-            if "pitStorage__" + buildingLabel in capacitiesInvestedStorages:
-                invest = capacitiesInvestedStorages["pitStorage__" + buildingLabel]
-                if invest > 0.05:
-                    print("Invested in {:.1f} L Pit Storage.".format(invest))
-            if "pitStorage0__" + buildingLabel in capacitiesInvestedStorages:
-                invest = capacitiesInvestedStorages["pitStorage0__" + buildingLabel]
-                if invest > 0.05:
-                    print("Invested in {:.1f} L Pit Storage 0.".format(invest))
-            if "pitStorage1__" + buildingLabel in capacitiesInvestedStorages:
-                invest = capacitiesInvestedStorages["pitStorage1__" + buildingLabel]
-                if invest > 0.05:
-                    print("Invested in {:.1f} L Pit Storage 1.".format(invest))
-            if "pitStorage2__" + buildingLabel in capacitiesInvestedStorages:
-                invest = capacitiesInvestedStorages["pitStorage2__" + buildingLabel]
-                if invest > 0.05:
-                    print("Invested in {:.1f} L Pit Storage 2.".format(invest))
-            if "boreholeStorage__" + buildingLabel in capacitiesInvestedStorages:
-                invest = capacitiesInvestedStorages["boreholeStorage__" + buildingLabel]
-                if invest > 0.05:
-                    print("Invested in {:.1f} L Borehole Storage.".format(invest))
-            if "aquifierStorage__" + buildingLabel in capacitiesInvestedStorages:
-                invest = capacitiesInvestedStorages["aquifierStorage__" + buildingLabel]
-                if invest > 0.05:
-                    print("Invested in {:.1f} L Aquifier Storage.".format(invest))
+
+            for key, invest in capacitiesInvestedStorages.items():
+                if invest > 0.05 and key.endswith("__" + buildingLabel):
+                    for storage_prefix, label_base in storage_types.items():
+                        if key.startswith(storage_prefix):
+                            # Extract suffix (e.g., "1" in "dhwStorage1__building1")
+                            middle = key[len(storage_prefix):-len("__" + buildingLabel)]
+                            suffix = middle if middle.isdigit() else ""
+
+                            # Apply suffix to all storage types
+                            label = f"{label_base} {suffix}" if suffix else label_base
+
+                            # Choose unit
+                            unit = "kWh" if storage_prefix == "electricalStorage" else "L"
+                            print(f"Invested in {invest:.1f} {unit} {label}.")
             print("")
 
-    def printCosts(self):
-        capexNetwork = sum(self.__capex["Building" + str(b + 1)] for b in range(len(self.__buildings)))
-        opexNetwork = sum(sum(self.__opex["Building" + str(b + 1)].values()) for b in range(len(self.__buildings)))
-        feedinNetwork = sum(self.__feedIn["Building" + str(b + 1)] for b in range(len(self.__buildings)))
-        print("Investment Costs for the system: {} CHF".format(capexNetwork))
-        print("Operation Costs for the system: {} CHF".format(opexNetwork))
-        print("Feed In Costs for the system: {} CHF".format(feedinNetwork))
-        print("Total Costs for the system: {} CHF".format(capexNetwork + opexNetwork + feedinNetwork))
+    def calculate_costs(self) -> tuple[float, float, float]:
+        # TODO: reduce to functional programming style by passing required arguments.
+        capex_network = sum(self.__capex["Building" + str(b + 1)] for b in range(len(self.__buildings)))
+        feed_in_network = sum(self.__feedIn["Building" + str(b + 1)] for b in range(len(self.__buildings)))
+        opex_network = sum(sum(self.__opex["Building" + str(b + 1)].values()) for b in range(len(self.__buildings)))
+        return capex_network, feed_in_network, opex_network
 
-    def printEnvImpacts(self):
-        envImpactInputsNetwork = sum(sum(self.__envImpactInputs["Building" + str(b + 1)].values()) for b in range(len(self.__buildings)))
-        envImpactTechnologiesNetwork = sum(sum(self.__envImpactTechnologies["Building" + str(b + 1)].values()) for b in range(len(self.__buildings)))
-        print("Environmental impact from input resources for the system: {} kg CO2 eq".format(envImpactInputsNetwork))
-        print("Environmental impact from energy conversion and storage technologies for the system: {} kg CO2 eq".format(envImpactTechnologiesNetwork))
-        print("Total: {} kg CO2 eq".format(envImpactInputsNetwork + envImpactTechnologiesNetwork))
+    def printCosts(self) -> None:
+        capex_network, feed_in_network, opex_network = self.calculate_costs()
+        self._communicate_costs(capex_network, feed_in_network, opex_network, print)
+
+    def log_costs(self) -> None:
+        capex_network, feed_in_network, opex_network = self.calculate_costs()
+        self._communicate_costs(capex_network, feed_in_network, opex_network, logging.info)
+
+    @staticmethod
+    def _communicate_costs(capex_network: float, feed_in_network: float, opex_network: float,
+                           communication_method: callable) -> None:
+        communication_method(f"Investment Costs for the system: {capex_network} CHF")
+        communication_method(f"Feed In Costs for the system: {feed_in_network} CHF")
+        communication_method(f"Operation Costs for the system: {opex_network} CHF")
+        communication_method(f"Total Costs for the system: {capex_network + feed_in_network + opex_network} CHF")
 
     def getTotalCosts(self):
-        capexNetwork = sum(self.__capex["Building" + str(b + 1)] for b in range(len(self.__buildings)))
-        opexNetwork = sum(
-            sum(self.__opex["Building" + str(b + 1)].values()) for b in range(len(self.__buildings)))
-        feedinNetwork = sum(self.__feedIn["Building" + str(b + 1)] for b in range(len(self.__buildings)))
+        # TODO: check whether this can be removed.
+        capexNetwork, feedinNetwork, opexNetwork = self.calculate_costs()
         return capexNetwork + opexNetwork + feedinNetwork
 
-    def getTotalEnvImpacts(self):
-        envImpactInputsNetwork = sum(
+    def printEnvImpacts(self) -> None:
+        env_impact_inputs_network, env_impact_technologies_network = self.calculate_environmental_impacts()
+        self._communicate_environmental_impacts(env_impact_inputs_network, env_impact_technologies_network, print)
+
+    def calculate_environmental_impacts(self):
+        # TODO: reduce to functional programming style by passing required arguments.
+        env_impact_inputs_network = sum(  # operation related impacts, as in "input resources"
             sum(self.__envImpactInputs["Building" + str(b + 1)].values()) for b in range(len(self.__buildings)))
-        envImpactTechnologiesNetwork = sum(
+        env_impact_technologies_network = sum(
             sum(self.__envImpactTechnologies["Building" + str(b + 1)].values()) for b in range(len(self.__buildings)))
-        return envImpactTechnologiesNetwork + envImpactInputsNetwork
+        return env_impact_inputs_network, env_impact_technologies_network
+
+    def log_environmental_impacts(self) -> None:
+        env_impact_inputs, env_impact_technologies = self.calculate_environmental_impacts()
+        self._communicate_environmental_impacts(env_impact_inputs, env_impact_technologies, logging.info)
+
+    @staticmethod
+    def _communicate_environmental_impacts(env_impact_inputs_network, env_impact_technologies_network,
+                                           communication_method: callable) -> None:
+        communication_method(f"Environmental impact from input resources for the system: "
+                             f"{env_impact_inputs_network} kg CO2 eq")
+        communication_method(f"Environmental impact from energy conversion and storage technologies for the system: "
+                             f"{env_impact_technologies_network} kg CO2 eq")
+        communication_method(f"Total: {env_impact_inputs_network + env_impact_technologies_network} kg CO2 eq")
+
+    def getTotalEnvImpacts(self):
+        # TODO: check whether this can be removed.
+        env_impact_inputs_network, env_impact_technologies_network = self.calculate_environmental_impacts()
+        return env_impact_technologies_network + env_impact_inputs_network
 
     def exportToExcel(self, file_name, mergeLinkBuses=False):
         hSB_sheet = [] #Special sheet for the merged heatStorageBus
@@ -1185,12 +1311,10 @@ class EnergyNetworkClass(solph.EnergySystem):
         storage_mapping = {
             "SH": "shStorage",
             "DHW": "dhwStorage",
-            "PIT0": "pitStorage0",
-            "PIT1": "pitStorage1"}
+            "PIT": "pitStorage"}
 
-        for i in range(1, self.__noOfBuildings + 1):
+        for i in range(1, self.__noOfBuildings+1):
             building_label = f"Building{i}"
-
             if self._temperatureLevels:
                 self._storageContentTS = self.calcStateofCharge("thermalStorage", building_label)
             else:
@@ -1283,6 +1407,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         self.check_mutually_exclusive_inputs(mergeLinkBuses)
         self._dispatchMode = dispatchMode
         self._optimizationType = opt
+        # TODO: self._mergeBuses missing?
         logging.info(f"Defining the energy network from the input files: {input_data_dir}")
 
         csvReader = _re.CsvScenarioReader(input_data_dir)
@@ -1333,9 +1458,10 @@ class EnergyNetworkGroup(EnergyNetworkClass):
         logging.info("Defining the energy network from the excel file: {}".format(filePath))
         self._dispatchMode = dispatchMode
         self._optimizationType = opt
+        self._mergeBuses = mergeBuses
         data = pd.ExcelFile(filePath)
         initial_nodal_data = self.get_nodal_data_from_Excel(data)
-        # data.close()
+        data.close()
         nodesData = self.createNodesData(initial_nodal_data, filePath, numberOfBuildings, clusterSize)
         # nodesData["buses"]["excess costs"] = nodesData["buses"]["excess costs group"]
         # nodesData["electricity_cost"]["cost"] = nodesData["electricity_cost"]["cost group"]
@@ -1366,7 +1492,6 @@ class EnergyNetworkGroup(EnergyNetworkClass):
                 nodesData["natGas_cost"] = natGasCost
             nodesData["weather_data"] = weatherData
 
-        nodesData["links"]= data.parse("links")
         self._convertNodes(nodesData, opt, mergeLinkBuses, mergeBuses, mergeHeatSourceSink, includeCarbonBenefits, clusterSize)
         self._addLinks(nodesData["links"], numberOfBuildings, mergeLinkBuses)
         logging.info(f"Nodes from file {filePath} successfully converted")
@@ -1378,7 +1503,6 @@ class EnergyNetworkGroup(EnergyNetworkClass):
         if mergeLinkBuses:
             return
         for i, l in data.iterrows():
-            if l["active"]:
                 if l["investment"]:
                     investment = solph.Investment(
                         ep_costs=l["invest_cap"],
@@ -1401,9 +1525,13 @@ class EnergyNetworkGroup(EnergyNetworkClass):
                     elif "heat" in l["label"]:
                         busesOut.append(self._busDict["heatBus" + l["label"][-1] + '__Building' + str(b + 1)])
                         busesIn.append(self._busDict["heatDemandBus" + l["label"][-1] + '__Building' + str(b + 1)])
-                    else:
+                    elif "electricity" in l["label"]:
                         busesOut.append(self._busDict["electricityBus" + '__Building' + str(b + 1)])
                         busesIn.append(self._busDict["electricityInBus" + '__Building' + str(b + 1)])
+                    elif "dhLink" in l["label"]:
+                        if "districtHeatingInBus" + '__Building' + str(b + 1) in self._busDict:
+                            busesOut.append(self._busDict["districtHeatingInBus" + '__Building' + str(b + 1)])
+                        busesIn.append(self._busDict["districtHeatingBus" + '__Building' + str(b + 1)])
 
                 self._nodesList.append(Link(
                     label=l["label"],

@@ -1,7 +1,20 @@
 import enum as _enum
 
 
+class CommonLabels(_enum.StrEnum):
+    label = "label"
+    label_unique = "label_unique"
+    from_bus = "from"
+    from_unique = "from_unique"
+    to = "to"
+    to_unique = "to_unique"
+    connect = "connect"
+    connect_unique = "connect_unique"
+    building = "building"
+
+
 class NodeKeys(_enum.StrEnum):
+    links = 'links'
     buses = "buses"
     grid_connection = "grid_connection"
     commodity_sources = "commodity_sources"
@@ -10,7 +23,13 @@ class NodeKeys(_enum.StrEnum):
     demand = "demand"
     storages = "storages"
     stratified_storage = "stratified_storage"
+    ice_storage = "ice_storage"
     profiles = "profiles"
+
+
+class NodeKeysOptional:
+    # TODO: move other optional ones here and fix any arising issues.
+    building_model_parameters = "building_model_parameters"
 
 
 class CsvInputFilePathsRelative(_enum.StrEnum):
@@ -22,11 +41,13 @@ class CsvInputFilePathsRelative(_enum.StrEnum):
     demand = "demand.csv"
     storages = "storages.csv"
     stratified_storage = "stratified_storage.csv"
+    ice_storage = "ice_storage.csv"
     profiles = "profiles.csv"
+    links = 'links.csv'
 
 
 class BusesLabels(_enum.StrEnum):
-    label = "label"
+    label = CommonLabels.label.value
     building = "building"
     excess = "excess"
     excess_costs = "excess costs"
@@ -46,12 +67,18 @@ class BusTypes(_enum.StrEnum):
     dhwDemandBus = "dhwDemandBus"
     dhwStorageBus = "dhwStorageBus"
     solarConnectBus = "solarConnectBus"
+    heatBus = "heatBus"
+    heatDemandBus = "heatDemandBus"
+    lowTSourceBus = "lowTSourceBus"
+    lowTSinkBus = "lowTSinkBus"
+    dhHeatInBus ="districtHeatingInBus"
+    dhHeatBus= "districtHeatingBus"
 
 
 class CommoditySourcesLabels(_enum.StrEnum):
-    label = "label"
+    label = CommonLabels.label.value
     building = "building"
-    to = "to"
+    to = CommonLabels.to.value
     variable_costs = "variable costs"
     CO2_impact = "CO2 impact"
     active = "active"
@@ -63,10 +90,10 @@ class CommoditySourceTypes(_enum.StrEnum):
 
 
 class DemandLabels(_enum.StrEnum):
-    label = "label"
+    label = CommonLabels.label.value
     building = "building"
     active = "active"
-    from_bus = "from"  # 'from' cannot be used as an attribute: 'from package import stuff'
+    from_bus = CommonLabels.from_bus.value
     fixed = "fixed"
     nominal_value = "nominal value"
     building_model = "building model"
@@ -79,10 +106,10 @@ class DemandTypes(_enum.StrEnum):
 
 
 class GridConnectionLabels(_enum.StrEnum):
-    label = "label"
+    label = CommonLabels.label.value
     building = "building"
-    from_bus = "from"
-    to = "to"
+    from_bus = CommonLabels.from_bus.value
+    to = CommonLabels.to.value
     efficiency = "efficiency"
 
 
@@ -96,7 +123,7 @@ class GridConnectionTypes(_enum.StrEnum):
 
 
 class LinksLabels(_enum.StrEnum):
-    label = "label"
+    label = CommonLabels.label.value
     active = "active"
     efficiency = "efficiency"
     invest_base = "invest_base"
@@ -108,6 +135,10 @@ class LinksTypes(_enum.StrEnum):
     electricityLink = "electricityLink"
     shLink = "shLink"
     dhwLink = "dhwLink"
+    heatLink0 = "heatLink0"
+    heatLink2 = "heatLink2"
+    lowTempHeatLink = "lowTempHeatLink"
+    dhLink = "dhLink"
 
 
 class ProfileLabels(_enum.StrEnum):
@@ -117,16 +148,17 @@ class ProfileLabels(_enum.StrEnum):
 
 
 class ProfileTypes(_enum.StrEnum):
-    demand = "demand_profiles"
-    weather = "weather_data"
+    demand = "demand_profiles"  # mandatory
+    weather = "weather_data"  # mandatory
+    # TODO: add missing profile types
 
 
 class SolarLabels(_enum.StrEnum):
-    label = "label"
+    label = CommonLabels.label.value
     building = "building"
     active = "active"
-    from_bus = "from"
-    to = "to"
+    from_bus = CommonLabels.from_bus.value
+    to = CommonLabels.to.value
     connect = "connect"
     electrical_consumption = "electrical_consumption"
     peripheral_losses = "peripheral_losses"
@@ -161,17 +193,18 @@ class SolarTypes(_enum.StrEnum):
 
 
 class StorageLabels(_enum.StrEnum):
-    label = "label"
+    label = CommonLabels.label.value
     building = "building"
     active = "active"
-    from_bus = "from"
-    to = "to"
-    efficiency_inflow = "efficiency_inflow"
-    efficiency_outflow = "efficiency_outflow"
-    initial_capacity = "initial_capacity"
-    capacity_min = "capacity_min"
-    capacity_max = "capacity_max"
-    capacity_loss = "capacity_loss"
+    from_bus = CommonLabels.from_bus.value
+    to = CommonLabels.to.value
+    efficiency_inflow = "efficiency inflow"
+    efficiency_outflow = "efficiency outflow"
+    initial_capacity = "initial capacity"
+    initial_temp = "initial_temp"
+    capacity_min = "capacity min"
+    capacity_max = "capacity max"
+    capacity_loss = "capacity loss"
     lifetime = "lifetime"
     maintenance = "maintenance"
     installation = "installation"
@@ -190,7 +223,7 @@ class StorageTypes(_enum.StrEnum):
 
 
 class StratifiedStorageLabels(_enum.StrEnum):
-    label = "label"
+    label = CommonLabels.label.value
     diameter = "diameter"
     temp_h = "temp_h"
     temp_c = "temp_c"
@@ -208,12 +241,27 @@ class StratifiedStorageTypes(_enum.StrEnum):
     shStorage = "shStorage"
 
 
+class IceStorageLabels(_enum.StrEnum):
+    label = CommonLabels.label.value
+    max_ice_fraction = "max_ice_fraction"
+    rho_fluid = "rho_fluid"
+    h_fluid = "h_fluid"
+    cp_fluid = "cp_fluid"
+    UA_tank = "UA_tank"
+    inflow_conversion_factor = "inflow_conversion_factor"
+    outflow_conversion_factor = "outflow_conversion_factor"
+
+
+class IceStorageTypes(_enum.StrEnum):
+    iceStorage = "iceStorage"
+
+
 class TransformerLabels(_enum.StrEnum):
-    label = "label"
+    label = CommonLabels.label.value
     building = "building"
     active = "active"
-    from_bus = "from"
-    to = "to"
+    from_bus = CommonLabels.from_bus.value
+    to = CommonLabels.to.value
     efficiency = "efficiency"
     capacity_DHW = "capacity_DHW"
     capacity_SH = "capacity_SH"
@@ -235,3 +283,23 @@ class TransformerTypes(_enum.StrEnum):
     HP = "HP"
     GWHP = "GWHP"
     GasBoiler = "GasBoiler"
+
+
+class BuildingModelParameters(_enum.StrEnum):
+    building_unique = "building_unique"
+    Building_Number = "Building Number"
+    Circuit = "Circuit"
+    gAreaWindows = "gAreaWindows"
+    rDistribution = "rDistribution"
+    cDistribution = "cDistribution"
+    rIndoor = "rIndoor"
+    cIndoor = "cIndoor"
+    rWall = "rWall"
+    cWall = "cWall"
+    qDistributionMin = "qDistributionMin"
+    qDistributionMax = "qDistributionMax"
+    tIndoorMin = "tIndoorMin"
+    tIndoorMax = "tIndoorMax"
+    tIndoorInit = "tIndoorInit"
+    tDistributionInit = "tDistributionInit"
+    tWallInit = "tWallInit"

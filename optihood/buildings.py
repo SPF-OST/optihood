@@ -10,6 +10,7 @@ from optihood.storages import *
 from optihood.sinks import SinkRCModel
 from optihood.links import LinkTemperatureDemand
 from optihood._helpers import *
+import optihood.entities as _ent
 
 intRate = 0.05
 
@@ -50,7 +51,6 @@ class Building:
     def addBus(self, data, opt, mergeLinkBuses, mergeHeatSourceSink, electricityImpact, clusterSize, includeCarbonBenefits):
         # Create Bus objects from buses table
         for i, b in data.iterrows():
-            if b["active"]:
                 if (mergeLinkBuses and b["label"] in self.__linkBuses) or (mergeHeatSourceSink and b["label"] in self.__heatSourceSinkBuses):
                     label = b["label"]
                 else:
@@ -83,15 +83,16 @@ class Building:
                         # add the excess production cost to self.__costParam
                         self.__costParam["excess"+label] = float(b["excess costs"])
                     if "shortage" in b:
-                        self.__nodesList.append(
-                            solph.components.Source(
-                                label="shortage"+label,
-                                outputs={
-                                    self.__busDict[label]: solph.Flow(
-                                        variable_costs=float(b["shortage costs"])*(opt == "costs")  # if opt = "env" variable costs should be zero
-                                    )}))
-                        # add the excess production cost to self.__costParam
-                        self.__costParam["shortage"+label] = float(b["shortage costs"])
+                        if b["shortage"]:
+                            self.__nodesList.append(
+                                solph.components.Source(
+                                    label="shortage"+label,
+                                    outputs={
+                                        self.__busDict[label]: solph.Flow(
+                                            variable_costs=float(b["shortage costs"])*(opt == "costs")  # if opt = "env" variable costs should be zero
+                                        )}))
+                            # add the excess production cost to self.__costParam
+                            self.__costParam["shortage"+label] = float(b["shortage costs"])
 
         if (mergeLinkBuses or mergeHeatSourceSink) and self.__buildingLabel=='Building1':
             return self.__busDict
@@ -105,19 +106,21 @@ class Building:
             self.__busDict[label] = busDictBuilding1[label]
 
     def linkBuses(self, busesToMerge):
-        if "electricity" in busesToMerge:
-            self.__linkBuses.extend(["electricityBus", "electricityInBus"])
-        if "space_heat" in busesToMerge:
-            self.__linkBuses.extend(["spaceHeatingBus", "shDemandBus"])
-        if "domestic_hot_water" in busesToMerge:
-            self.__linkBuses.extend(["domesticHotWaterBus", "dhwDemandBus"])
-        if "heat_buses" in busesToMerge:
-            self.__linkBuses.extend(["heatDemandBus0", "heatDemandBus2"])
+        for b in busesToMerge:
+            if b == "electricity":
+                self.__linkBuses.extend(["electricityBus", "electricityInBus"])
+            elif b == "space_heat":
+                self.__linkBuses.extend(["spaceHeatingBus", "shDemandBus"])
+            elif b == "domestic_hot_water":
+                self.__linkBuses.extend(["domesticHotWaterBus", "dhwDemandBus"])
+            elif b == "heat_buses":
+                self.__linkBuses.extend(["heatDemandBus0", "heatDemandBus2"])
+            else:
+                self.__linkBuses.append(b)
 
     def addPV(self, data, data_timeseries, opt, dispatchMode):
         # Create Source objects from table 'commodity sources'
         for i, s in data.iterrows():
-            if s["active"]:
                 if opt == "costs":
                     epc=self._calculateInvest(s)[0]
                     base=self._calculateInvest(s)[1]
@@ -164,22 +167,16 @@ class Building:
     def addSolar(self, data, data_timeseries, opt, mergeLinkBuses, dispatchMode, temperatureLevels):
         # Create Source objects from table 'commodity sources'
         for i, s in data.iterrows():
-            if s["active"]:
                 if mergeLinkBuses and s["from"] in self.__linkBuses:
                     inputBusLabel = s["from"]
                 else:
                     inputBusLabel = s["from"] + '__' + self.__buildingLabel
-                if temperatureLevels:
-                    outputSHBusLabel = s["to"].split(",")[0] + '__' + self.__buildingLabel
-                    outputDHWBusLabel = s["to"].split(",")[1] + '__' + self.__buildingLabel
-                    outputBusLabel3 = s["to"].split(",")[2] + '__' + self.__buildingLabel
-                    outputBuses = [self.__busDict[outputSHBusLabel], self.__busDict[outputDHWBusLabel], self.__busDict[outputBusLabel3]]
-                    deltaT = [float(t) for t in s["delta_temp_n"].split(",")]
-                    inletTemp = [float(t) for t in s["temp_collector_inlet"].split(",")]
+                outputBuses = [self.__busDict[o + '__' + self.__buildingLabel] for o in s["to"].split(",")]
+                connectBuses = [self.__busDict[c + '__' + self.__buildingLabel] for c in s["connect"].split(",")]
+                if isinstance(s["delta_temp_n"], float) or isinstance(s["delta_temp_n"], int):
+                    delta_temp_n = [float(s["delta_temp_n"])]
                 else:
-                    outputBuses = [self.__busDict[s["to"] + '__' + self.__buildingLabel]]
-                    deltaT = float(s["delta_temp_n"])
-                    inletTemp = float(s["temp_collector_inlet"])
+                    delta_temp_n = [float(t) for t in s["delta_temp_n"].split(",")]
                 if opt == "costs":
                     epc=self._calculateInvest(s)[0]
                     base=self._calculateInvest(s)[1]
@@ -206,38 +203,58 @@ class Building:
                 collector=SolarCollector(s["label"], self.__buildingLabel,
                                                        self.__busDict[inputBusLabel],
                                                        outputBuses,
-                                                       self.__busDict[s["connect"]+ '__' + self.__buildingLabel],
+                                                       connectBuses,
                                                        float(s["electrical_consumption"]), float(s["peripheral_losses"]), float(s["latitude"]),
                                                        float(s["longitude"]), float(s["tilt"]), s["roof_area"],
                                                        s["zenith_angle"], float(s["azimuth"]),
-                                                       float(s["eta_0"]), float(s["a_1"]), float(s["a_2"]), inletTemp,
-                                                       deltaT, data_timeseries['gls'], data_timeseries['str.diffus'],
+                                                       float(s["eta_0"]), float(s["a_1"]), float(s["a_2"]), float(s["temp_collector_inlet"]),
+                                                       delta_temp_n, data_timeseries['gls'], data_timeseries['str.diffus'],
                                                         data_timeseries['tre200h0'], float(s["capacity_min"]), float(s["capacity_max"]),
                                                        epc, base, env_capa, env_flow, varc, dispatchMode)
-                self.__nodesList.append(collector.getSolar("source"))
-                self.__nodesList.append(collector.getSolar("transformer"))
-                self.__nodesList.append(collector.getSolar("sink"))
 
-                self.__envParam["heat_"+s["label"] + '__' + self.__buildingLabel] = envParam
+                nodes = []
+                for t in ["source", "transformer", "sink"]:
+                    sh, T2, dhw = collector.getSolar(t)
+                    if outputBuses.__len__() == 2:
+                        nodes.extend([sh, dhw])
+                    elif outputBuses.__len__() == 3:
+                        nodes.extend([sh, T2, dhw])
+                    else:
+                        nodes.extend([sh])
+                for x in nodes:
+                    self.__nodesList.append(x)
 
-                self.__costParam["heat_"+s["label"] + '__' + self.__buildingLabel] = [self._calculateInvest(s)[0],
-                                                                              self._calculateInvest(s)[1]]
-                self.__technologies.append([outputBuses[0], s["label"] + '__' + self.__buildingLabel])
+                self.__envParam['heatSource_SH' + s['label'] + '__' + self.__buildingLabel] = envParam
+                self.__costParam['heatSource_SH' + s['label'] + '__' + self.__buildingLabel] = [self._calculateInvest(s)[0],
+                                                                                                self._calculateInvest(s)[1]]
+                self.__technologies.append(
+                    [outputBuses[0], s["label"] + 'SH__' + self.__buildingLabel])
+
+                if outputBuses.__len__() >= 2:
+                    self.__envParam['heatSource_DHW' + s['label'] + '__' + self.__buildingLabel] = [env_flow, 0, 0]
+                    self.__costParam['heatSource_DHW' + s['label'] + '__' + self.__buildingLabel] = [0, 0]
+                    self.__technologies.append(
+                        [outputBuses[-1], s["label"] + 'DHW__' + self.__buildingLabel])
+
+                if outputBuses.__len__() == 3:
+                    self.__envParam['heatSource_T2' + s['label'] + '__' + self.__buildingLabel] = [env_flow, 0, 0]
+                    self.__costParam['heatSource_T2' + s['label'] + '__' + self.__buildingLabel] = [0, 0]
+                    self.__technologies.append(
+                        [outputBuses[1], s["label"] + 'T2__' + self.__buildingLabel])
 
     def addPVT(self, data, data_timeseries, opt, mergeLinkBuses, dispatchMode):
         # Create Source objects from table 'commodity sources'
         for i, s in data.iterrows():
-            if s["active"]:
                 if mergeLinkBuses and s["from"] in self.__linkBuses:
                     inputBusLabel = s["from"]
                 else:
                     inputBusLabel = s["from"] + '__' + self.__buildingLabel
-
-                outputBuses = [self.__busDict[s["to"].split(",")[0] + '__' + self.__buildingLabel],
-                               self.__busDict[s["to"].split(",")[1] + '__' + self.__buildingLabel],
-                               self.__busDict[s["to"].split(",")[2] + '__' + self.__buildingLabel]]
-                connectBuses = [self.__busDict[s["connect"].split(",")[0] + '__' + self.__buildingLabel],
-                               self.__busDict[s["connect"].split(",")[1] + '__' + self.__buildingLabel]]
+                outputBuses = [self.__busDict[o + '__' + self.__buildingLabel] for o in s["to"].split(",")]
+                connectBuses = [self.__busDict[c + '__' + self.__buildingLabel] for c in s["connect"].split(",")]
+                if isinstance(s["delta_temp_n"], float) or isinstance(s["delta_temp_n"], int):
+                    delta_temp_n = [float(s["delta_temp_n"])]
+                else:
+                    delta_temp_n = [float(t) for t in s["delta_temp_n"].split(",")]
                 if opt == "costs":
                     epc = self._calculateInvest(s)[0]
                     base = self._calculateInvest(s)[1]
@@ -270,26 +287,38 @@ class Building:
                                                        float(s["longitude"]), float(s["tilt"]), s["roof_area"],
                                                        float(s["zenith_angle"]), float(s["azimuth"]),
                                                        float(s["eta_0"]), float(s["a_1"]), float(s["a_2"]), float(s["temp_collector_inlet"]),data_timeseries['tre200h0'],
-                                                       float(s["delta_temp_n"]), data_timeseries['gls'], data_timeseries['str.diffus'], float(s["capacity_min"]), float(s["capacity_max"]),
-                                                       epc, base, env_capa, env_flow, varc, dispatchMode,
-                                                        float(s["pv_efficiency"]))
+                                                       delta_temp_n, data_timeseries['gls'], data_timeseries['str.diffus'], float(s["capacity_min"]), float(s["capacity_max"]),
+                                                       epc, base, env_capa, env_flow, varc, dispatchMode)
                 nodes = [pvtcollector.getPVT("el_source")]
                 for t in ["heat_source", "heat_transformer", "excess_heat_sink"]:
-                    nodes.append(pvtcollector.getPVT(t))
+                    sh, T2, dhw = pvtcollector.getPVT(t)
+                    if outputBuses.__len__() == 3:
+                        nodes.extend([sh, dhw])
+                    elif outputBuses.__len__() == 4:
+                        nodes.extend([sh, T2, dhw])
+                    else:
+                        nodes.extend([sh])
                 for x in nodes:
                     self.__nodesList.append(x)
 
-
-                self.__envParam['heatSourceSH_' + s['label'] + '__' + self.__buildingLabel] = envParam
-                self.__envParam['heatSourceDHW_' + s['label'] + '__' + self.__buildingLabel] = [env_flow, 0, 0]
-                self.__costParam['heatSourceSH_' + s['label'] + '__' + self.__buildingLabel] = [self._calculateInvest(s)[0],
-                                                                                            self._calculateInvest(s)[1]]
-                self.__costParam['heatSourceDHW_' + s['label'] + '__' + self.__buildingLabel] = [0, 0]
-
+                self.__envParam['heatSource_SH' + s['label'] + '__' + self.__buildingLabel] = envParam
+                self.__costParam['heatSource_SH' + s['label'] + '__' + self.__buildingLabel] = [self._calculateInvest(s)[0],
+                                                                                                self._calculateInvest(s)[1]]
                 self.__technologies.append(
                     [outputBuses[0], s["label"] + 'SH__' + self.__buildingLabel])
-                self.__technologies.append(
-                    [outputBuses[1], s["label"] + 'DHW__' + self.__buildingLabel])
+
+                if outputBuses.__len__() >= 3:
+                    self.__envParam['heatSource_DHW' + s['label'] + '__' + self.__buildingLabel] = [env_flow, 0, 0]
+                    self.__costParam['heatSource_DHW' + s['label'] + '__' + self.__buildingLabel] = [0, 0]
+                    self.__technologies.append(
+                        [outputBuses[-2], s["label"] + 'DHW__' + self.__buildingLabel])
+
+                if outputBuses.__len__() == 4:
+                    self.__envParam['heatSource_T2' + s['label'] + '__' + self.__buildingLabel] = [env_flow, 0, 0]
+                    self.__costParam['heatSource_T2' + s['label'] + '__' + self.__buildingLabel] = [0, 0]
+                    self.__technologies.append(
+                        [outputBuses[1], s["label"] + 'T2__' + self.__buildingLabel])
+
 
     def addGridSeparation(self, dataGridSeparation, mergeLinkBuses):
         if not dataGridSeparation.empty:
@@ -318,13 +347,13 @@ class Building:
                                                               outputs={self.__busDict[outputBusLabel]: solph.Flow()},
                                                       conversion_factors={self.__busDict[outputBusLabel]: float(gs["efficiency"])}))
 
-    def addSource(self, data, data_elimpact, data_elcost, data_natGascost, data_natGasImpact, opt, mergeHeatSourceSink):
+    def addSource(self, data, data_elimpact, data_elcost, data_natGascost, data_natGasImpact, opt, mergeHeatSourceSink, mergeLinkBuses):
         # Create Source objects from table 'commodity sources'
 
         for i, cs in data.iterrows():
-            if cs["active"]:
                 sourceLabel = cs["label"]+'__' + self.__buildingLabel
-                if mergeHeatSourceSink and cs["to"] in self.__heatSourceSinkBuses:
+                if (mergeHeatSourceSink and cs["to"] in self.__heatSourceSinkBuses) or \
+                        (mergeLinkBuses and cs["to"] in self.__linkBuses):
                     outputBusLabel = cs["to"]
                 else:
                     outputBusLabel = cs["to"] + '__' + self.__buildingLabel
@@ -356,13 +385,13 @@ class Building:
                     costParameter = float(cs["variable costs"])
                     # add the inputs (natural gas, wood, etc...) to self.__inputs
                     self.__inputs.append([sourceLabel, outputBusLabel])
-
+                flowargs = {'variable_costs':varCosts,
+                            'custom_attributes': {'env_per_flow': envImpactPerFlow},}
+                if "potential" in cs["label"].lower():
+                    flowargs.update({'full_load_time_max': cs["full_load_time_max"], "nominal_value": cs["nominal_value"]})
                 self.__nodesList.append(solph.components.Source(
                     label=sourceLabel,
-                    outputs={self.__busDict[outputBusLabel]: solph.Flow(
-                            variable_costs=varCosts,
-                            custom_attributes={'env_per_flow': envImpactPerFlow},
-                        )}))
+                    outputs={self.__busDict[outputBusLabel]: solph.Flow(**flowargs)}))
 
                 # set environment and cost parameters
                 self.__envParam[sourceLabel] = envParameter
@@ -371,7 +400,6 @@ class Building:
     def addSink(self, data, timeseries, buildingModelParams, mergeLinkBuses, mergeHeatSourceSink, temperatureLevels):
         # Create Sink objects with fixed time series from 'demand' table
         for i, de in data.iterrows():
-            if de["active"]:
                 sinkLabel = de["label"]+'__'+self.__buildingLabel
                 if (mergeLinkBuses and de["from"] in self.__linkBuses) or (mergeHeatSourceSink and de["from"] in self.__heatSourceSinkBuses):
                     inputBusLabel = de["from"]
@@ -386,7 +414,7 @@ class Building:
                     if "spaceHeatingDemand" not in sinkLabel:
                         logging.error("Building model has been selected for one or more demands other than space heating. "
                                       "This is not supported in optihood.")
-                    if temperatureLevels:
+                    if temperatureLevels and "," in de["from"]:
                         inputBusDict = {self.__busDict[k]: solph.Flow() for k in inputBusLabel}
                     else:
                         inputBusDict = {self.__busDict[inputBusLabel]: solph.Flow()}
@@ -454,6 +482,10 @@ class Building:
         hpSHLabel = data["label"] + '__' + self.__buildingLabel
         if mergeLinkBuses and data["from"] in self.__linkBuses:
             inputBusLabel = [data["from"]]
+        elif mergeLinkBuses and any([b in self.__linkBuses for b in data["from"].split(',')]):
+            inputBusLabel = [i + '__' + self.__buildingLabel for i in data["from"].split(",") if
+                             i not in self.__linkBuses]
+            inputBusLabel.extend([i for i in data["from"].split(",") if i in self.__linkBuses])
         elif mergeHeatSourceSink and any([b in self.__heatSourceSinkBuses for b in data["from"].split(',')]):
             inputBusLabel = [i + '__' + self.__buildingLabel for i in data["from"].split(",") if
                              i not in self.__heatSourceSinkBuses]
@@ -500,6 +532,10 @@ class Building:
         gwhpSHLabel = data["label"] + '__' + self.__buildingLabel
         if mergeLinkBuses and data["from"] in self.__linkBuses:
             inputBusLabel = [data["from"]]
+        elif mergeLinkBuses and any([b in self.__linkBuses for b in data["from"].split(',')]):
+            inputBusLabel = [i + '__' + self.__buildingLabel for i in data["from"].split(",") if
+                             i not in self.__linkBuses]
+            inputBusLabel.extend([i for i in data["from"].split(",") if i in self.__linkBuses])
         elif mergeHeatSourceSink and any([b in self.__heatSourceSinkBuses for b in data["from"].split(',')]):
             inputBusLabel = [i + '__' + self.__buildingLabel for i in data["from"].split(",") if i not in self.__heatSourceSinkBuses]
             inputBusLabel.extend([i for i in data["from"].split(",") if i in self.__heatSourceSinkBuses])
@@ -592,88 +628,60 @@ class Building:
         self.__envParam[gwhpSHLabel] = [float(data["heat_impact"]), 0, envImpactPerCapacity]
         self.__envParam[gwhpDHWLabel] = [float(data["heat_impact"]), 0, envImpactPerCapacity]
 
-    def _addCHP(self, data, timesteps, opt, dispatchMode, temperatureLevels):
-        chpSHLabel = data["label"] + '__' + self.__buildingLabel
+    def _addCHP(self, data, timesteps, opt, dispatchMode):
+        chpLabel = data["label"] + '__' + self.__buildingLabel
         inputBusLabel = data["from"] + '__' + self.__buildingLabel
-        outputBuses = []
-        outputElBusLabel = data["to"].split(",")[0] + '__' + self.__buildingLabel
-        outputSHBusLabel = data["to"].split(",")[1] + '__' + self.__buildingLabel
-        outputDHWBusLabel = data["to"].split(",")[2] + '__' + self.__buildingLabel
-        elEfficiency = float(data["efficiency"].split(",")[0])
-        shEfficiency = float(data["efficiency"].split(",")[1]) # space heating bus label if temperatureLevels is False
-        dhwEfficiency = float(data["efficiency"].split(",")[2]) # domestic hot water bus label if temperatureLevels is False
-        outputBuses.append(self.__busDict[outputElBusLabel])
-        outputBuses.append(self.__busDict[outputSHBusLabel])
-        outputBuses.append(self.__busDict[outputDHWBusLabel])
-        efficiency = [elEfficiency, shEfficiency, dhwEfficiency]
-        if temperatureLevels:
-            outputBusLabel3 = data["to"].split(",")[3] + '__' + self.__buildingLabel  # outputSHBusLabel, outputDHWBusLabel, outputBusLabel3 are in the order of increasing temperatures
-            outputBuses.append(self.__busDict[outputBusLabel3])
-            T2Efficiency = float(data["efficiency"].split(",")[3])
-            efficiency.append(T2Efficiency)
+        outputBuses = [self.__busDict[o + '__' + self.__buildingLabel] for o in data["to"].split(",")]
+        efficiency = [float(e) for e in data["efficiency"].split(",")]
         envImpactPerCapacity = float(data["impact_cap"]) / float(data["lifetime"])
         if data["capacity_min"] == 'x':
             capacityMinSH = float(data["capacity_SH"])
         else:
             capacityMinSH = float(data["capacity_min"])
         chp = CHP(self.__buildingLabel, self.__busDict[inputBusLabel],
-                  self.__busDict[outputElBusLabel],
-                  self.__busDict[outputSHBusLabel],
-                  self.__busDict[outputDHWBusLabel],
-                  elEfficiency, shEfficiency,
-                  dhwEfficiency, capacityMinSH,
+                  outputBuses,
+                  efficiency,
+                  capacityMinSH,
                   float(data["capacity_SH"]),
                   self._calculateInvest(data)[0] * (opt == "costs") + envImpactPerCapacity * (opt == "env"),
                   self._calculateInvest(data)[1] * (opt == "costs"), float(data["elec_impact"]) * (opt == "env"),
                   float(data["heat_impact"]) * (opt == "env"),
                   float(data["elec_impact"]), float(data["heat_impact"]), envImpactPerCapacity, timesteps, dispatchMode)
 
-        self.__nodesList.append(chp.getCHP("sh"))
+        self.__nodesList.append(chp.getCHP())
 
         # set technologies, environment and cost parameters
-        self.__technologies.append([outputElBusLabel, chpSHLabel])
-        self.__technologies.append([outputSHBusLabel, chpSHLabel])
-        self.__technologies.append([outputDHWBusLabel, chpSHLabel])
+        for i in range(len(outputBuses)):
+            self.__technologies.append([data["to"].split(",")[i] + '__' + self.__buildingLabel, chpLabel])
 
-        self.__costParam[chpSHLabel] = [self._calculateInvest(data)[0], self._calculateInvest(data)[1]]
+        self.__costParam[chpLabel] = [self._calculateInvest(data)[0], self._calculateInvest(data)[1]]
 
-        self.__envParam[chpSHLabel] = [float(data["heat_impact"]), float(data["elec_impact"]), envImpactPerCapacity]
+        self.__envParam[chpLabel] = [float(data["heat_impact"]), float(data["elec_impact"]), envImpactPerCapacity]
 
-    def _addGasBoiler(self, data, opt, dispatchMode, temperatureLevels):
-        gasBoilLabel = data["label"] + '__' + self.__buildingLabel
+    def _addBoiler(self, data, opt, dispatchMode):
+        label = data["label"] + '__' + self.__buildingLabel
         inputBusLabel = data["from"] + '__' + self.__buildingLabel
-        outputBuses = []
-        outputSHBusLabel = data["to"].split(",")[0] + '__' + self.__buildingLabel
-        outputDHWBusLabel = data["to"].split(",")[1] + '__' + self.__buildingLabel
-        efficiency1 = float(data["efficiency"].split(",")[0])
-        efficiency2 = float(data["efficiency"].split(",")[1])
-        outputBuses.append(self.__busDict[outputSHBusLabel])
-        outputBuses.append(self.__busDict[outputDHWBusLabel])
-        efficiency = [efficiency1, efficiency2]
-        if temperatureLevels:
-            outputBusLabel3 = data["to"].split(",")[2] + '__' + self.__buildingLabel  # outputSHBusLabel, outputDHWBusLabel, outputBusLabel3 are in the order of increasing temperatures
-            outputBuses.append(self.__busDict[outputBusLabel3])
-            efficiency3 = float(data["efficiency"].split(",")[2])
-            efficiency.append(efficiency3)
+        outputBuses = [self.__busDict[o + '__' + self.__buildingLabel] for o in data["to"].split(",")]
+        efficiency = [float(e) for e in str(data["efficiency"]).split(",")]
         envImpactPerCapacity = float(data["impact_cap"]) / float(data["lifetime"])
         if data["capacity_min"] == 'x':
             capacityMinSH = float(data["capacity_SH"])
         else:
             capacityMinSH = float(data["capacity_min"])
 
-        self.__nodesList.append(GasBoiler(self.__buildingLabel, self.__busDict[inputBusLabel],
+        self.__nodesList.append(GenericCombinedTransformer(label, self.__busDict[inputBusLabel],
                   outputBuses,
                   efficiency, capacityMinSH, float(data["capacity_SH"]),
                   self._calculateInvest(data)[0] * (opt == "costs") + envImpactPerCapacity * (opt == "env"),
                   self._calculateInvest(data)[1] * (opt == "costs"), float(data["heat_impact"]) * (opt == "env"), float(data["heat_impact"]), envImpactPerCapacity, dispatchMode))
 
         # set technologies, environment and cost parameters
-        self.__technologies.append([outputSHBusLabel, gasBoilLabel])
-        self.__technologies.append([outputDHWBusLabel, gasBoilLabel])
+        for i in range(len(outputBuses)):
+            self.__technologies.append([data["to"].split(",")[i] + '__' + self.__buildingLabel, label])
 
-        self.__costParam[gasBoilLabel] = [self._calculateInvest(data)[0], self._calculateInvest(data)[1]]
+        self.__costParam[label] = [self._calculateInvest(data)[0], self._calculateInvest(data)[1]]
 
-        self.__envParam[gasBoilLabel] = [float(data["heat_impact"]), 0, envImpactPerCapacity]
+        self.__envParam[label] = [float(data["heat_impact"]), 0, envImpactPerCapacity]
 
     def _addElectricRod(self, data, opt, mergeLinkBuses, dispatchMode, temperatureLevels):
         elRodLabel = data["label"] + '__' + self.__buildingLabel
@@ -681,22 +689,15 @@ class Building:
             inputBusLabel = data["from"]
         else:
             inputBusLabel = data["from"] + '__' + self.__buildingLabel
-        outputBuses = []
-        outputSHBusLabel = data["to"].split(",")[0] + '__' + self.__buildingLabel
-        outputDHWBusLabel = data["to"].split(",")[1] + '__' + self.__buildingLabel
-        efficiency = float(data["efficiency"])
-        outputBuses.append(self.__busDict[outputSHBusLabel])
-        outputBuses.append(self.__busDict[outputDHWBusLabel])
-        if temperatureLevels:
-            outputBusLabel3 = data["to"].split(",")[2] + '__' + self.__buildingLabel  # outputSHBusLabel, outputDHWBusLabel, outputBusLabel3 are in the order of increasing temperatures
-            outputBuses.append(self.__busDict[outputBusLabel3])
+        outputBuses = [self.__busDict[o + '__' + self.__buildingLabel] for o in data["to"].split(",")]
+        efficiency = [float(e) for e in data["efficiency"].split(",")]
         envImpactPerCapacity = float(data["impact_cap"]) / float(data["lifetime"])
         if data["capacity_min"] == 'x':
             capacityMinSH = float(data["capacity_SH"])
         else:
             capacityMinSH = float(data["capacity_min"])
 
-        self.__nodesList.append(ElectricRod(self.__buildingLabel, self.__busDict[inputBusLabel],
+        self.__nodesList.append(GenericCombinedTransformer(elRodLabel, self.__busDict[inputBusLabel],
                                           outputBuses,
                                           efficiency, capacityMinSH, float(data["capacity_SH"]),
                                           self._calculateInvest(data)[0] * (opt == "costs") + envImpactPerCapacity * (
@@ -706,11 +707,10 @@ class Building:
                                           envImpactPerCapacity, dispatchMode))
 
         # set technologies, environment and cost parameters
-        self.__technologies.append([outputSHBusLabel, elRodLabel])
-        self.__technologies.append([outputDHWBusLabel, elRodLabel])
+        for i in range(len(outputBuses)):
+            self.__technologies.append([data["to"].split(",")[i] + '__' + self.__buildingLabel, elRodLabel])
 
         self.__costParam[elRodLabel] = [self._calculateInvest(data)[0], self._calculateInvest(data)[1]]
-
         self.__envParam[elRodLabel] = [float(data["heat_impact"]), 0, envImpactPerCapacity]
     
     def _addChiller(self, data, temperatureSH, temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode):
@@ -758,33 +758,32 @@ class Building:
     def addTransformer(self, data, operationTemperatures, temperatureAmb, temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode, temperatureLevels):
         for i, t in data.iterrows():
             if t["active"]:
-                if t["label"] == "HP":
+                if pattern_at_start_followed_by_number("HP", t["label"]):
                     self._addHeatPump(t, operationTemperatures, temperatureAmb, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode, temperatureLevels)
-                elif t["label"] == "GWHP":
+                elif pattern_at_start_followed_by_number("GWHP", t["label"]):
                     self._addGeothemalHeatPump(t, operationTemperatures, temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode, temperatureLevels)
                 elif t["label"] == "GWHP split":
                     self._addGeothemalHeatPumpSplit(t, operationTemperatures, temperatureGround, opt, mergeLinkBuses, dispatchMode)
-                elif t["label"] == "CHP":
-                    self._addCHP(t, len(temperatureAmb), opt, dispatchMode, temperatureLevels)
-                elif t["label"] == "GasBoiler":
-                    self._addGasBoiler(t, opt, dispatchMode, temperatureLevels)
-                elif t["label"] == "ElectricRod":
+                elif "CHP" in t["label"]:
+                    self._addCHP(t, len(temperatureAmb), opt, dispatchMode)
+                elif "Boiler" in t["label"]:
+                    self._addBoiler(t, opt, dispatchMode)
+                elif pattern_at_start_followed_by_number("ElectricRod", t["label"]):
                     self._addElectricRod(t, opt, mergeLinkBuses, dispatchMode, temperatureLevels)
-                elif t["label"] == "Chiller":
+                elif pattern_at_start_followed_by_number("Chiller", t["label"]):
                     self._addChiller(t, operationTemperatures[0], temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode)
                 else:
                     logging.warning("Transformer label not identified, adding generic transformer component...")
                     self._addGenericTransformer(t)
 
-    def addStorage(self, data, stratifiedStorageParams, opt, mergeLinkBuses, dispatchMode, temperatureLevels):
+    def addStorage(self, data, storageParams, ambientTemperature, opt, mergeLinkBuses, dispatchMode, temperatureLevels):
         sList = []
         for i, s in data.iterrows():
-            if s["active"]:
                 storageLabel = s["label"]+'__'+self.__buildingLabel
-                if temperatureLevels and s["label"] == "thermalStorage":
+                if temperatureLevels and "thermalStorage" in s["label"]:
                     inputBuses = [self.__busDict[iLabel + '__' + self.__buildingLabel] for iLabel in s["from"].split(",")]
                     outputBuses = [self.__busDict[oLabel + '__' + self.__buildingLabel] for oLabel in s["to"].split(",")]
-                    storTemperatures = stratifiedStorageParams.at[s["label"],"temp_h"].split(",")
+                    storTemperatures = storageParams["stratified_storage"].at[s["label"],"temp_h"].split(",")
                     self.__technologies.append([outputBuses[0].label, f'dummy_{storageLabel.replace("thermalStorage",f"thermalStorage{int(storTemperatures[0])}")}'])
                     self.__technologies.append([outputBuses[1].label, storageLabel.replace("thermalStorage",f"thermalStorage{int(storTemperatures[-1])}")])
                 else:
@@ -802,7 +801,7 @@ class Building:
                 self.__costParam[storageLabel] = [self._calculateInvest(s)[0], self._calculateInvest(s)[1]]
                 self.__envParam[storageLabel] = [float(s["heat_impact"]), float(s["elec_impact"]), envImpactPerCapacity]
 
-                if s["label"] == "electricalStorage":
+                if "electricalStorage" in s["label"]:
                     self.__nodesList.append(ElectricalStorage(self.__buildingLabel, self.__busDict[inputBusLabel],
                                                               self.__busDict[outputBusLabel], float(s["capacity loss"]),
                                                             float(s["initial capacity"]), float(s["efficiency inflow"]),
@@ -813,18 +812,18 @@ class Building:
                                                             float(s["elec_impact"])*(opt == "env"),
                                                             float(s["elec_impact"]), envImpactPerCapacity, dispatchMode))
 
-                elif (s["label"] == "dhwStorage" or s["label"] == "shStorage") and not temperatureLevels:
+                elif ("dhwStorage" in s["label"] or "shStorage" in s["label"]) and not temperatureLevels:
                     self.__nodesList.append(ThermalStorage(storageLabel,
-                                                           stratifiedStorageParams, self.__busDict[inputBusLabel],
+                                                           storageParams["stratified_storage"], self.__busDict[inputBusLabel],
                                                            self.__busDict[outputBusLabel],
                                                         float(s["initial capacity"]), float(s["capacity min"]),
                                                         float(s["capacity max"]),
                                                         self._calculateInvest(s)[0]*(opt == "costs") + envImpactPerCapacity*(opt == "env"),
                                                         self._calculateInvest(s)[1]*(opt == "costs"), float(s["heat_impact"])*(opt == "env"),
                                                         float(s["heat_impact"]), envImpactPerCapacity, dispatchMode))
-                elif (s["label"] == "pitStorage0" or s["label"] == "pitStorage1") and not temperatureLevels:
+                elif "pitStorage" in s["label"] and not temperatureLevels:
                     self.__nodesList.append(ThermalStoragePit(storageLabel,
-                                                           stratifiedStorageParams, self.__busDict[inputBusLabel],
+                                                           storageParams["stratified_storage"], self.__busDict[inputBusLabel],
                                                            self.__busDict[outputBusLabel],
                                                         float(s["initial capacity"]), float(s["capacity min"]),
                                                         float(s["capacity max"]),
@@ -832,9 +831,9 @@ class Building:
                                                         self._calculateInvest(s)[1]*(opt == "costs"), float(s["heat_impact"])*(opt == "env"),
                                                         float(s["heat_impact"]), envImpactPerCapacity, dispatchMode))
 
-                elif s["label"] == "thermalStorage" and temperatureLevels:
+                elif "thermalStorage" in s["label"] and temperatureLevels:
                     storage = ThermalStorageTemperatureLevels(storageLabel,
-                               stratifiedStorageParams, inputBuses,
+                               storageParams["stratified_storage"], inputBuses,
                                outputBuses,
                                float(s["initial capacity"]), float(s["capacity min"]),
                                float(s["capacity max"]),
@@ -848,10 +847,34 @@ class Building:
                     for i in range(len(inputBuses)):
                         self.__nodesList.append(storage.getStorageLevel(i))
                         self.__nodesList.extend(storage.getDummyComponents(i))
-                elif s["label"] != "dhwStorage" and s["label"] != "shStorage" and s["label"] != "thermalStorage":  #"Storage" in s["label"]
+                elif "iceStorage" in s["label"]:
+                    if not np.isnan(s["initial capacity"]):
+                        initial_ice_frac = float(s["initial capacity"])
+                    else:
+                        initial_ice_frac = 0
+
+                    self.__nodesList.append(
+                        IceStorage(label=storageLabel,
+                                   input=self.__busDict[inputBusLabel],
+                                   output=self.__busDict[outputBusLabel],
+                                   tStorInit=float(s[_ent.StorageLabels.initial_temp]),
+                                   fIceInit=initial_ice_frac,
+                                   fMax=float(storageParams["ice_storage"].at[s["label"], "max_ice_fraction"]),
+                                   rho=float(storageParams["ice_storage"].at[s["label"], "rho_fluid"]),
+                                   V=float(s["capacity max"])/1000,  # conversion from L to m3
+                                   hfluid=float(storageParams["ice_storage"].at[s["label"], "h_fluid"]),
+                                   cp=float(storageParams["ice_storage"].at[s["label"], "cp_fluid"]),
+                                   Tamb=ambientTemperature,
+                                   UAtank=float(storageParams["ice_storage"].at[s["label"], "UA_tank"]),
+                                   inflow_conversion_factor=float(storageParams["ice_storage"].at[s["label"], "inflow_conversion_factor"]),
+                                   outflow_conversion_factor=float(storageParams["ice_storage"].at[s["label"], "outflow_conversion_factor"])
+                                   )
+                    )
+
+                elif any(storage in s["label"] for storage in ["tankStorage", "boreholeStorage", "pitStorage"]):
                     is_tank = False
                     self.__nodesList.append(ThermalStorage(storageLabel,
-                           stratifiedStorageParams, self.__busDict[inputBusLabel],
+                           storageParams["stratified_storage"], self.__busDict[inputBusLabel],
                            self.__busDict[outputBusLabel],
                            float(s["initial capacity"]), float(s["capacity min"]),
                            float(s["capacity max"]),
@@ -861,10 +884,10 @@ class Building:
                            self._calculateInvest(s)[1] * (opt == "costs"),
                            float(s["heat_impact"]) * (opt == "env"),
                            float(s["heat_impact"]), envImpactPerCapacity, dispatchMode, is_tank))
-                    is_tank = True
                 else:
                     logging.error("One of the following issues were encountered: (i) Storage label not identified. Storage label"
-                                  "should match one of the following: electricalStorage, dhwStorage, shStorage or thermalStorage."
+                                  "should contain one of the following strings: [electricalStorage, dhwStorage, shStorage, thermalStorage, "
+                                  "tankStorage, boreholeStorage, pitStorage]"
                                   "(ii) Separate dhwStorage and/or shStorage selected when temperatureLevels is set as True."
                                   "Either set temperatureLevels to False or rename the storage label to thermalStorage.")
         return sList

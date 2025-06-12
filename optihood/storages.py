@@ -127,7 +127,11 @@ class ThermalStorage(solph.components.GenericStorage):
                 height = data.at[label, 'height']
                 angle = data.at[label, 'angle']
                 fixed_losses_relative = 3 * u_value * (temp_c - temp_env) / (height * c * rho * (temp_h - temp_c)) * time_increment *3600
-                loss_rate = 0 # 0.4 * fixed_losses_relative # 2 * u_value / (s_base * c * rho * math.sin(angle * np.pi / 180)) * time_increment
+                loss_rate = 0#0.4 * fixed_losses_relative#2 * u_value / (s_base * c * rho * math.sin(angle * np.pi / 180)) * time_increment
+                fixed_losses_absolute = 0
+            elif 'GenericThermalStorage' in label:
+                loss_rate = 0       # relative loss between timesteps could be defined using this parameter
+                fixed_losses_relative = 0
                 fixed_losses_absolute = 0
             else:
                 loss_rate = 0
@@ -246,7 +250,9 @@ class ThermalStorageTemperatureLevels:
         self._numberOfLevels = len(stratifiedStorageParams.at[storageLabel, 'temp_h'].split(","))
         if dispatchMode:
             investArgs={'ep_costs':epc,
-                'custom_attributes': {'env_per_capa': env_capa}}
+                'custom_attributes': {'env_per_capa': env_capa},
+                'minimum': self.__capacityMin / self._numberOfLevels,
+                'maximum': self.__capacityMax}
         else:
             investArgs={'ep_costs':epc,
                 'existing':0,
@@ -387,20 +393,22 @@ class IceStorage(on.Node):
     fMax: maximum allowed ice fraction in the ice storage
     rho: density of water [kg/m3]
     V: Volume of the ice storage [m3]
-    hfluid: []
-    cp: specific heat capacity of water []
+    hfluid: latent heat of fusion of water [kJ/kg]
+    cp: specific heat capacity of water [kJ/(kg.°C)]
     T_amb: ambient temperature time-series [°C]
-    UA_tank: heat loss coefficient of the ice storage tank []
+    UA_tank: heat loss coefficient of the ice storage tank [kW/°C]
     inflow_conversion_factor: efficiency of heat exchanger at the inlet of the ice storage
     outflow_conversion_factor: efficiency of heat exchanger at the outlet of the ice storage
     """
-    def __init__(self, label, input, output, tStorInit, fMax, rho, V, hfluid, cp, Tamb, UAtank, inflow_conversion_factor, outflow_conversion_factor):
-        if tStorInit <= 0:
-            raise ValueError("The initial temperature of ice storage should be greater than 0°C, i.e. without any ice formation.")
+    def __init__(self, label, input, output, tStorInit, fIceInit, fMax, rho, V, hfluid, cp, Tamb, UAtank, inflow_conversion_factor, outflow_conversion_factor):
+        if tStorInit < 0:
+            raise ValueError("The initial temperature of ice storage should be greater than or equal to 0°C.")
         self.tStorInit = tStorInit
-        if fMax < 0.5 or fMax >0.8:
-            raise ValueError(
-                "Maximum ice fraction should be defined within the range 0.5-0.8.")
+        if fIceInit < 0 or fIceInit > 1:
+            raise ValueError("The initial ice fraction in ice storage should be in [0,1]")
+        self.fIceInit = fIceInit
+        if fMax < 0.5 or fMax > 0.8:
+            raise ValueError("Maximum ice fraction should be defined within the range 0.5-0.8")
         self.fMax = fMax
         self.massWaterMax = rho*V
         self.hf = hfluid
@@ -464,19 +472,23 @@ class IceStorageBlock(ScalarBlock):
         o = {n: [o for o in n.outputs][0] for n in group}
 
         #  ************* SET OF ICE STORAGES *****************************
-        self.ICESTORAGES = Set(initizalize=[n for n in group])
+        self.icestorages = Set(initialize=[n for n in group])
 
         #  ************* DECISION VARIABLES *****************************
         # temperature of ice storage
-        self.tStor = Var(self.ICESTORAGES, m.TIMESTEPS, within=NonNegativeReals, bounds=(0,200))
-        self.tStor_prev = Var(self.ICESTORAGES, m.TIMESTEPS, within=NonNegativeReals, bounds=(0,200))
+        self.tStor = Var(self.icestorages, m.TIMESTEPS, within=NonNegativeReals, bounds=(0,90))
+        self.tStor_prev = Var(self.icestorages, m.TIMESTEPS, within=NonNegativeReals, bounds=(0,90))
         # mass of ice in storage
-        self.mIceStor = Var(self.ICESTORAGES, m.TIMESTEPS, within=NonNegativeReals, bounds=(0,1000))
-        self.mIceStor_prev = Var(self.ICESTORAGES, m.TIMESTEPS, within=NonNegativeReals, bounds=(0,1000))
+        self.mIceStor = Var(self.icestorages, m.TIMESTEPS, within=NonNegativeReals, bounds=(0,1000000))
+        self.mIceStor_prev = Var(self.icestorages, m.TIMESTEPS, within=NonNegativeReals, bounds=(0,1000000))
         # ice fraction
-        self.fIce = Var(self.ICESTORAGES, m.TIMESTEPS, within=NonNegativeReals, bounds=(0,self.fMax))
+        self.fIce = Var(self.icestorages, m.TIMESTEPS, within=NonNegativeReals, bounds=(0,1))
         # binary variable defining the status of ice formation in the storage
-        self.iceStatus = Var(self.ICESTORAGES, m.TIMESTEPS, within=Binary)
+        self.iceStatus = Var(self.icestorages, m.TIMESTEPS, within=Binary)
+
+        # for linearization of non-linear constraints with big M method
+        M = 2000
+        epsilon = 0.000001
 
         #  ************* CONSTRAINTS *****************************
 
@@ -496,7 +508,7 @@ class IceStorageBlock(ScalarBlock):
             """
             for g in group:
                 lhs = self.mIceStor_prev[g,0]
-                rhs = 0
+                rhs = g.fIceInit*g.rho*g.V
                 block.initial_ice_state.add((g, 0), (lhs == rhs))
 
         self.initial_ice_state = Constraint(group, m.TIMESTEPS, noruleinit= True)
@@ -513,27 +525,52 @@ class IceStorageBlock(ScalarBlock):
         self.prev_temperature = Constraint(group, m.TIMESTEPS, noruleinit=True)
         self.prev_temperature_build = BuildAction(rule=_prev_temperature_rule)
 
+        def _prev_mass_ice_rule(block):
+            for g in group:
+                for t in m.TIMESTEPS:
+                    if t != 0:
+                        lhs = self.mIceStor_prev[g, t]
+                        rhs = self.mIceStor[g, t - 1]
+                        block.prev_mass_ice.add((g, t), (lhs == rhs))
+
+        self.prev_mass_ice = Constraint(group, m.TIMESTEPS, noruleinit=True)
+        self.prev_mass_ice_build = BuildAction(rule=_prev_mass_ice_rule)
+
+        def _max_ice_fraction_rule(block):
+            """set the value of ice fraction"""
+            for g in group:
+                for t in m.TIMESTEPS:
+                    lhs = self.fIce[g,t]
+                    rhs = g.fMax
+                    block.max_ice_fraction.add((g, t), (lhs <= rhs))
+
+        self.max_ice_fraction = Constraint(group, m.TIMESTEPS, noruleinit=True)
+        self.max_ice_fraction_build = BuildAction(rule=_max_ice_fraction_rule)
+
         def _ice_fraction_rule(block):
             """set the value of ice fraction"""
             for g in group:
                 for t in m.TIMESTEPS:
                     lhs = self.fIce[g,t]
-                    rhs = self.mIceStor[g,t]/g.massWaterMax
+                    rhs = self.mIceStor[g,t]/g.massWaterMax     # division is most likely not allowed!!
                     block.ice_fraction.add((g, t), (lhs == rhs))
 
         self.ice_fraction = Constraint(group, m.TIMESTEPS, noruleinit=True)
         self.ice_fraction_build = BuildAction(rule=_ice_fraction_rule)
 
         def _storage_balance_rule(block):
-            """rule defining the energy balance of every ice storage in every timestep"""
+            """rule defining the energy balance of an ice storage in every timestep"""
             for g in group:
                 for t in m.TIMESTEPS:
                     expr = 0
-                    expr += (g.rho*g.V*g.cp*(self.tStor[g,t] - self.tStor_prev[g,t]))
-                    expr += (g.UAtank*(self.tStor_prev[g,t] - g.Tamb[t])*m.timeincrement[t])
-                    expr += (-g.hf*(self.mIceStor[g,t] - self.mIceStor_prev[g,t]))
-                    expr += (-m.flow[i[g], g, t]*g.inflow_conversion_factor[t]*m.timeincrement[t])
-                    expr += ((m.flow[g, o[g], t]/g.outflow_conversion_factor[t])*m.timeincrement[t])
+                    expr += g.rho*g.V*g.cp*self.tStor[g,t]
+                    expr += - g.rho * g.V * g.cp * self.tStor_prev[g, t]
+                    expr += g.UAtank*self.tStor_prev[g,t]*m.timeincrement[t]
+                    expr += - g.UAtank * g.Tamb[t] * m.timeincrement[t]
+                    expr += - g.hf*self.mIceStor[g,t]
+                    expr += g.hf * self.mIceStor_prev[g, t]
+                    expr += (-m.flow[i[g], g, t]*g.inflow_conversion_factor*m.timeincrement[t])
+                    expr += ((m.flow[g, o[g], t]/g.outflow_conversion_factor)*m.timeincrement[t])
                     block.storage_balance.add((g, t), (expr == 0))
 
         self.storage_balance = Constraint(group, m.TIMESTEPS, noruleinit=True)
@@ -545,8 +582,8 @@ class IceStorageBlock(ScalarBlock):
                 for t in m.TIMESTEPS:
                     lhs = self.mIceStor[g, t]
                     rhs = self.iceStatus[g, t]*(self.mIceStor_prev[g, t] +
-                                                (((m.flow[g, o[g], t]/g.outflow_conversion_factor[t])*m.timeincrement[t]
-                                                  - m.flow[i[g], g, t]*g.inflow_conversion_factor[t]*m.timeincrement[t]
+                                                (((m.flow[g, o[g], t]/g.outflow_conversion_factor)*m.timeincrement[t]
+                                                  - m.flow[i[g], g, t]*g.inflow_conversion_factor*m.timeincrement[t]
                                                   + g.UAtank*(self.tStor_prev[g, t] - g.Tamb[t]) * m.timeincrement[t]
                                                   - g.rho*g.V*g.cp*self.tStor_prev[g, t])/g.hf))
                     block.mass_ice.add((g, t), (lhs == rhs))
@@ -554,21 +591,46 @@ class IceStorageBlock(ScalarBlock):
         self.mass_ice = Constraint(group, m.TIMESTEPS, noruleinit=True)
         self.mass_ice_build = BuildAction(rule=_mass_ice_rule)
 
-        def _ice_state_rule(block):
+        def _ice_state_rule_1(block):
             """rule for calculating the mass of ice in each timestep"""
             for g in group:
                 for t in m.TIMESTEPS:
-                    lhs = self.iceStatus[g,t]
-                    rhs = (self.tStor[g,t] == 0)
-                    block.ice_state.add((g, t), (lhs == rhs))
+                    lhs = self.tStor[g,t]
+                    rhs = M*(1-self.iceStatus[g,t])
+                    block.ice_state_1.add((g, t), (lhs <= rhs))
 
-        self.ice_state = Constraint(group, m.TIMESTEPS, noruleinit=True)
-        self.ice_state_build = BuildAction(rule=_ice_state_rule)
+        self.ice_state_1 = Constraint(group, m.TIMESTEPS, noruleinit=True)
+        self.ice_state_1_build = BuildAction(rule=_ice_state_rule_1)
+
+        def _ice_state_rule_2(block):
+            """rule for calculating the mass of ice in each timestep"""
+            for g in group:
+                for t in m.TIMESTEPS:
+                    lhs = self.tStor[g,t]
+                    rhs = epsilon*(1-self.iceStatus[g,t])
+                    block.ice_state_2.add((g, t), (lhs >= rhs))
+
+        self.ice_state_2 = Constraint(group, m.TIMESTEPS, noruleinit=True)
+        self.ice_state_2_build = BuildAction(rule=_ice_state_rule_2)
+
+        # def _max_heating_energy_rule(block):
+        #     """rule for calculating the mass of ice in each timestep"""
+        #     for g in group:
+        #         for t in m.TIMESTEPS:
+        #             lhs1 = m.flow[i[g], g, t]
+        #             lhs2 = m.flow[g, o[g], t]
+        #             rhs = 50
+        #             block.max_heating_energy_in.add((g, t), (lhs1 <= rhs))
+        #             block.max_heating_energy_out.add((g, t), (lhs2 <= rhs))
+        #
+        # self.max_heating_energy_in = Constraint(group, m.TIMESTEPS, noruleinit=True)
+        # self.max_heating_energy_out = Constraint(group, m.TIMESTEPS, noruleinit=True)
+        # self.max_heating_energy_build = BuildAction(rule=_max_heating_energy_rule)
 
     def _objective_expression(self):
         """objective expression for storages with no investment"""
         m = self.parent_block()
-        if not hasattr(self, "ICESTORAGES"):
+        if not hasattr(self, "icestorages"):
             return 0
         costs = 0   # no cost from using the storage with a fixed capacity
         self.costs = Expression(expr=costs)

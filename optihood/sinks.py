@@ -57,9 +57,10 @@ class SinkRCModel(solph.components.Sink):
             tIndoorInit=21,
             tWallInit=21,
             tDistributionInit=21,
+            outputs=None,
             **kwargs,
     ):
-        super().__init__(**kwargs)
+        super().__init__(custom_attributes={"outputs": outputs},**kwargs)
         self.rDistribution = rDistribution
         self.cDistribution = cDistribution
         self.rIndoor = rIndoor
