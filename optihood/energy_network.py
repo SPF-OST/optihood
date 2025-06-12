@@ -1339,7 +1339,8 @@ class EnergyNetworkClass(solph.EnergySystem):
                             resultDHW = pd.DataFrame.from_dict(solph.views.node(self._optimizationResults, i)["sequences"])  # result sequences of DHW bus
                             resultDHWStorage = pd.DataFrame.from_dict(solph.views.node(self._optimizationResults, dhwStorageBusLabel)["sequences"])  # result sequences of DHW storage bus
                             result = pd.concat([resultDHW, resultDHWStorage], axis=1, sort=True)
-                            result = pd.concat([result, self._storageContentPIT0[i.split("__")[1]]], axis=1, sort=True)
+                            # TODO: check the following loc
+                            # result = pd.concat([result, self._storageContentPIT0[i.split("__")[1]]], axis=1, sort=True)
                         else:
                             result = pd.DataFrame.from_dict(solph.views.node(self._optimizationResults, i)["sequences"])  # result sequences of DHW bus
                     elif mergeLinkBuses and "dhwStorageBus" in i and "sequences" in solph.views.node(self._optimizationResults, i):
