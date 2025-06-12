@@ -1,35 +1,35 @@
 import pandas as pd
 import os
-import pathlib as pl
+import pathlib as _pl
 
 from optihood.IO.writers import ScenarioFileWriterExcel
 from optihood.energy_network import EnergyNetworkGroup as EnergyNetwork
 
-if __name__ == '__main__':
-    """ This case is currently BROKEN."""
+if __name__ == '__main__':    
 
     optimization_type = "cost"
     scenario = "HP_GS_PV"
-    main_result_folder = "..\\results"
     # set a time period for the optimization problem
     timePeriod = pd.date_range("2018-01-01 00:00:00", "2018-01-31 23:00:00", freq="60min")
 
     # define paths for input and result files
-    inputFilePath = pl.Path(f"..\\configs\\basic_example_config")
+    curDir = _pl.Path(__file__).resolve().parent
+    inputFilePath = curDir / ".." / "configs" / "basic_example_config"
     configFileName = f"scenario_{scenario}_group.ini"
     inputfileName = f"scenario_{scenario}.xls"  # excel file which would be created by createScenarioFile()
 
-    resultFilePath = f".\\{main_result_folder}\\{scenario}\\{optimization_type}\\group"
-    resultFileName = "scenario_HP_GS_PV.xls"
+    resultFilePath = curDir / ".." / "results"
+    resultFileName = "results_example_config.xlsx"
 
-    print("result file path: " + resultFilePath)
+    print("Scenario config file path: " + os.path.join(inputFilePath, configFileName))
+    print("Scenario excel file path: " + os.path.join(inputFilePath, inputfileName))
+    print("Result file path: " + os.path.join(resultFilePath, resultFileName))
 
     # initialize parameters
     numberOfBuildings = 4
     optimizationType = "costs"  # set as "env" for environmental optimization and "costs" for cost optimization
     mergeLinkBuses = True
     merge_buses = ["electricity", "space_heat", "domestic_hot_water"]
-    dispatchMode = True  # Set to True to run the optimization in dispatch mode
 
     # solver specific command line options
     optimizationOptions = {
@@ -59,7 +59,7 @@ if __name__ == '__main__':
     # create an energy network and set the network parameters from an excel file
     network = EnergyNetwork(timePeriod)
     network.setFromExcel(os.path.join(inputFilePath, inputfileName), numberOfBuildings, opt=optimizationType,
-                         mergeLinkBuses=mergeLinkBuses, mergeBuses=merge_buses, dispatchMode=dispatchMode)
+                         mergeLinkBuses=mergeLinkBuses, mergeBuses=merge_buses)
 
     # optimize the energy network
     limit, capacitiesTransformers, capacitiesStorages = network.optimize(solver='gurobi',

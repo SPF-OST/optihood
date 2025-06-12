@@ -1,3 +1,3 @@
-,label,building,active,from,to,efficiency,capacity_DHW,capacity_SH,capacity_el,capacity_min,lifetime,maintenance,installation,planification,invest_base,invest_cap,heat_impact,elec_impact,impact_cap
-0,HP,1,1,electricityInBus,"shSourceBus,dhwStorageBus",3.5,500,500,,5,20,0.02,0,0,16679,2152,0,0,280.9
-1,GWHP,1,1,electricityInBus,"shSourceBus,dhwStorageBus",4.5,500,500,,5,20,0.02,0,0,22257,3052,0,0,772
+label,building,active,from,to,efficiency,capacity_DHW,capacity_SH,capacity_el,capacity_min,lifetime,maintenance,installation,planification,invest_base,invest_cap,heat_impact,elec_impact,impact_cap
+HP,1,1,electricityInBus,"shSourceBus,dhwStorageBus",3.5,500,500,,5,20,0.02,0,0,16679,2152,0,0,280.9
+GWHP,1,1,electricityInBus,"shSourceBus,dhwStorageBus",4.5,500,500,,5,20,0.02,0,0,22257,3052,0,0,772

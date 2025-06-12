@@ -40,7 +40,8 @@ commands could be used.
 
 3. Install the requirements into the created virtual environment. The requirements.txt file needs Python 3.12. If using another version, use pip tools to compile the provided requirements.in file before installing the requirements:
     ```commandline
-    pip install wheel
+    venv\Scripts\python.exe -m pip install --upgrade pip
+    pip install wheel pip-compile-multi
     pip install -r requirements.txt
     ```
     It might be required to install C++ build tools. To do that, click on the link that appears with the error message and follow the instructions (it is the lapack package that is missing). In order to be able to install the missing package, it is required to have a complete Visual Studio instance and installing it with the "Desktop development with C++" workload.

@@ -1,4 +1,4 @@
-,label,building,active,from,to,efficiency inflow,efficiency outflow,initial capacity,capacity min,capacity max,capacity loss,lifetime,maintenance,installation,planification,invest_base,invest_cap,heat_impact,elec_impact,impact_cap
-0,electricalStorage,1,1,electricityProdBus,electricityBus,0.9,0.86,0,0,1000000,0,15,0,0,0,5138,981,0,0,28.66
-1,shStorage,1,1,shSourceBus,spaceHeatingBus,,,0,0,1000000,,20,0,0,0,1092,1.41,0,0,0.49
-2,dhwStorage,1,1,dhwStorageBus,domesticHotWaterBus,,,0,0,1000000,,20,0,0,0,2132,6.88,0,0,0.49
+label,building,active,from,to,efficiency inflow,efficiency outflow,initial capacity,capacity min,capacity max,capacity loss,lifetime,maintenance,installation,planification,invest_base,invest_cap,heat_impact,elec_impact,impact_cap
+electricalStorage,1,1,electricityProdBus,electricityBus,0.9,0.86,0,0,1000000,0,15,0,0,0,5138,981,0,0,28.66
+shStorage,1,1,shSourceBus,spaceHeatingBus,,,0,0,1000000,,20,0,0,0,1092,1.41,0,0,0.49
+dhwStorage,1,1,dhwStorageBus,domesticHotWaterBus,,,0,0,1000000,,20,0,0,0,2132,6.88,0,0,0.49

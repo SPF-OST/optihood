@@ -10,7 +10,7 @@ from tests.xls_helpers import compare_xls_files, compare_txt_files
 cwd = _os.getcwd()
 packageDir = _pl.Path(_oh.__file__).resolve().parent
 scriptDir = packageDir / ".." / "data" / "examples"
-example_path = packageDir / ".." / "data" / "results" / "HP_GS_PV" / "cost" / "group"
+example_path = packageDir / ".." / "data" / "results"
 expected_data_dir = _pl.Path(__file__).resolve().parent / "expected_files"
 
 _SHEET_NAMES = ['gridBus__Building1', 'electricityProdBus__Building1', 'electricityInBus', 'shDemandBus',
@@ -46,7 +46,7 @@ class TestConfigExamples(_ut.TestCase):
         _os.chdir(cwd)
         # =============================
 
-        excel_file_path = str(example_path / "scenario_HP_GS_PV.xls")
+        excel_file_path = str(example_path / "results_example_config.xlsx")
         expected_data_path = str(expected_data_dir / "test_run_example_config.xls")
 
         compare_xls_files(self, excel_file_path, expected_data_path, _SHEET_NAMES, manual_test=True)
@@ -66,7 +66,7 @@ class TestConfigExamples(_ut.TestCase):
         _os.chdir(cwd)
         # =============================
 
-        excel_file_path = example_path / "scenario_HP_GS_PV.xls"
+        excel_file_path = example_path / "results_example_config.xlsx"
         assert excel_file_path.is_file()
         # expected_data_path = str(expected_data_dir / "test_run_example_config_after_merge.xls")
 
