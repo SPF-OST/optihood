@@ -97,7 +97,7 @@ def get_energy_type_based_on_both_labels(label: str, other_label: str) -> Energy
 
     transformer_parts = ["HP", "solar", "GasBoiler", "BiomassBoiler", "OilBoiler", "Dummy", "HP_d", "GWHP_d"]
     source_parts = ["Dummy", "wasteheatPotential", "wasteIncineratorPotential"]
-    storage_parts = ["pitStorage", "thermalStorage"]
+    storage_parts = ["pitStorage", "thermalStorage", "tankStorage", "boreholeStorage", "aquiferStorage"]
 
     all_parts = transformer_parts + source_parts + storage_parts
 
