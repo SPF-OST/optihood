@@ -21,7 +21,7 @@ setup(
                       "oemof.thermal", "openpyxl", "pandas", "plotly", "pvlib", "Pyomo", "scipy", "xlrd", "xlwt"],
     classifiers=[
         "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: GPL-3.0 license",
+        "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
         "Operating System :: Microsoft :: Windows",
     ],
     #setup_requires=["setuptools-git-versioning"],
