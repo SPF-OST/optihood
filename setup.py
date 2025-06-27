@@ -35,7 +35,7 @@ setup(
     install_requires=_getInstallRequirements(),
     classifiers=[
         "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: MIT License",
+        "License :: OSI Approved :: GPL-3.0 license",
         "Operating System :: Microsoft :: Windows",
     ],
     python_requires=">=3.12",
