@@ -3,6 +3,7 @@ import pathlib as _pl
 import unittest as _ut
 
 import pandas as _pd
+import pytest as _pt
 
 import optihood as _oh
 import optihood.energy_network as _en
@@ -20,6 +21,7 @@ class TestEnergyNetwork(_ut.TestCase):
     def setUp(self):
         self.maxDiff = None
 
+    @_pt.mark.xdist_group('expensive_06')
     def test_set_from_excel(self):
         """File System touching test to check see whether network is populated correctly using a scenario."""
 
