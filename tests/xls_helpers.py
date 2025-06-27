@@ -169,12 +169,16 @@ def check_dataframe_assertion(
         errors.append(current_error)
 
 
-def run_python_script(script_path: _pl.Path):
+def run_python_script(script_path: _pl.Path) -> None:
     cwd = _os.getcwd()
     _os.chdir(script_path.parent)
-    _sp.run([ROOT_DIR / 'venv' / 'Scripts' / 'python.exe', script_path, '/H'],
-            shell=True, check=True)
+    outcome = _sp.run([ROOT_DIR / 'venv' / 'Scripts' / 'python.exe', script_path, '/H'],
+                      shell=True, check=False,  # check=True does not provide helpful feedback.
+                      capture_output=True, text=True)
     _os.chdir(cwd)
+
+    if outcome.returncode != 0:
+        raise AssertionError(outcome.stderr)
 
 
 def import_example_script(dir_path: _pl.Path, file_name: str):
