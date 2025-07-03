@@ -555,7 +555,8 @@ class EnergyNetworkClass(solph.EnergySystem):
                  mergeLinkBuses=False):
 
         if options is None:
-            options = {"gurobi": {"MIPGap": 0.01}}
+            options = {"gurobi": {"MIPGap": 0.01},
+                       "cbc": {"tee": True}}
 
         self._optimizationModel = solph.Model(self)
         logging.info("Optimization model built successfully")
