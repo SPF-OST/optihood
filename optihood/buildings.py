@@ -867,7 +867,10 @@ class Building:
                                    )
                     )
 
-                elif any(storage in s["label"] for storage in ["tankStorage", "boreholeStorage", "pitStorage"]):
+                elif any(storage in s["label"] for storage in ["tankGenericStorage", "boreholeGenericStorage",
+                                                               "pitGenericStorage", "aquiferGenericStorage"]):
+                    # These are generic storage models with constant losses per timestep
+                    # These models do not include a detailed geometry of the storage type
                     is_tank = False
                     self.__nodesList.append(ThermalStorage(storageLabel,
                            storageParams["stratified_storage"], self.__busDict[inputBusLabel],
