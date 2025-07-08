@@ -236,7 +236,7 @@ class TestMpcHandler(_ut.TestCase):
         input_folder_path = xlsh.ROOT_DATA_DIR / "CSVs" / "MPC_example_CSVs"
         mpc = mpci.MpcHandler(prediction_window_in_hours=24, time_step_in_minutes=60,
                               nr_of_buildings=1)
-        mpc.set_full_time_period(2018, 1, 1, 2018, 1, 31, 60)
+        mpc.set_full_time_period(2018, 1, 1, 2018, 1, 31)
 
         mpc.optimization_settings = en.OptimizationProperties(
             optimization_type="costs",

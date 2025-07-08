@@ -162,7 +162,6 @@ if __name__ == '__main__':
         end_year=2018,
         end_month=1,
         end_day=31,
-        time_step_in_minutes=time_step_in_minutes
     )
 
     # We set the optimization properties, that would normally be given to the Network directly.

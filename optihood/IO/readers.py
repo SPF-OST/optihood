@@ -573,5 +573,4 @@ class ProfileAndOtherDataReader:
 
     @staticmethod
     def clip_to_time_index(df: _pd.DataFrame, time_index: _pd.DatetimeIndex):
-        # TODO: does this need to be a (deep) copy?
         return df[time_index[0]:time_index[-1]]
