@@ -51,8 +51,12 @@ jobs:
       - name: Generate class and package diagrams
         run: venv\Scripts\python dev-tools/devTools.py --diagram=pdf --keep-results
 
+      - name: Test optimizer license
+        run: venv\Scripts\python tests/test_examples/test_optimizer.py
+
       - name: Test with pytest
         run: venv\Scripts\python dev-tools/devTools.py --unit "not manual" --keep-results
+        if: ${{ always() }}
 #
 #      - name: Post coverage report to Coveralls
 #        uses: coverallsapp/github-action@master
