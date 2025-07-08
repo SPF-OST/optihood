@@ -42,7 +42,8 @@ commands could be used.
     ```commandline
     venv\Scripts\python.exe -m pip install --upgrade pip
     pip install wheel pip-compile-multi
-    pip install -r requirements.txt
+    pip install -r requirements/requirements.txt
+    pip install -r requirements/requirements_dev.txt
     ```
     It might be required to install C++ build tools. To do that, click on the link that appears with the error message and follow the instructions (it is the lapack package that is missing). In order to be able to install the missing package, it is required to have a complete Visual Studio instance and installing it with the "Desktop development with C++" workload.
 
@@ -70,6 +71,11 @@ commands could be used.
 6. Run the test suite using:
 ```commandline
     pytest
+```
+
+7. To upgrade the environment using an updated requirement/requirements.in file:
+```commandline
+    pip-compile-multi --no-upgrade
 ```
 
 ## Defining an energy network

@@ -9,7 +9,7 @@ import optihood.energy_network as en
 import optihood.entities as _ent
 from optihood.IO import readers as re
 from optihood.Visualizer import convert_scenario as _cs, visualizer_app as _va
-from optihood.energy_network import OptimizationProperties, EnergyNetworkIndiv as EnergyNetwork
+from optihood.energy_network import OptimizationProperties, EnergyNetworkClass as EnergyNetwork
 
 
 # TODO: Figure out if the visualizer should stay here, or be called from the Network class
@@ -43,7 +43,7 @@ class MpcComponentBasic:
 
     @staticmethod
     @_abc.abstractmethod
-    def required_entries_not_in_data(df) -> bool:
+    def required_entries_not_in_data(df) -> bool:  # pragma: no cover
         """As this is always MPC, we will be overwriting these values at all time-steps.
         Thus, the User should always provide all required values.
         When the User misses one, or all, the defaults should be provided instead.
@@ -52,7 +52,7 @@ class MpcComponentBasic:
 
     @staticmethod
     @_abc.abstractmethod
-    def get_entries(initial_state: dict, row) -> dict:
+    def get_entries(initial_state: dict, row) -> dict:  # pragma: no cover
         raise NotImplementedError
 
 
@@ -193,7 +193,7 @@ class MpcHandler:
     optimization_settings: OptimizationProperties  # provide string literals?
     label_to_sheet: dict[str, str]
 
-    def __init__(self, prediction_window_in_hours: int, time_step_in_minutes: int, nr_of_buildings: int) -> None:
+    def __init__(self, prediction_window_in_hours: int, time_step_in_minutes: int, nr_of_buildings: int,) -> None:
         self.nr_of_buildings = nr_of_buildings
         self.time_step_in_minutes = time_step_in_minutes
         self.prediction_window_in_hours = prediction_window_in_hours
@@ -226,7 +226,7 @@ class MpcHandler:
         network._mergeBuses = self.optimization_settings.merge_buses
 
         network.set_using_nodal_data(
-            initial_nodal_data=current_nodal_data,
+            nodesData=current_nodal_data,
             clusterSize=self.optimization_settings.cluster_size,
             filePath="",  # This is only used in a logging message after processing the data.
             includeCarbonBenefits=self.optimization_settings.include_carbon_benefits,
@@ -242,6 +242,11 @@ class MpcHandler:
         csvReader = re.CsvScenarioReader(input_folder_path)
         nodal_data = csvReader.read_scenario()
         nodal_data = re.add_unique_label_columns(nodal_data)
+        nodal_data = re.ProfileAndOtherDataReader().read_profiles_and_other_data(
+            nodal_data, input_folder_path, self.nr_of_buildings, self.optimization_settings.cluster_size,
+            self.time_period_full,
+        )
+        # TODO: adjust building_model_parameters entry to check nodal_data instead.
         system_state, label_to_sheet = prep_mpc_inputs(nodal_data, building_model_parameters=None)
         self.nodal_data = nodal_data
         self.label_to_sheet = label_to_sheet
@@ -250,6 +255,8 @@ class MpcHandler:
 
     def update_nodal_data(self, current_state: dict[str, dict[str, float]]) -> dict:
         """Requires self.nodal_data"""
+        # TODO: clip profiles?
+        # TODO: adjust building model parameters to correct implementation.
         nodal_data = _cp.deepcopy(self.nodal_data)
         for label, inputs in current_state.items():
             sheet_name = self.label_to_sheet[label]
@@ -259,6 +266,7 @@ class MpcHandler:
                 label_column = _ent.BuildingModelParameters.building_unique
             row_index = sheet[label_column] == label
             for column_name, value in inputs.items():
+                # TODO: deal with incompatible dtype. Sometimes int instead of float.
                 sheet.loc[row_index, column_name] = value
 
         return nodal_data
@@ -349,20 +357,15 @@ class MpcHandler:
 
         raise ValueError("No DateTimeIndex found in results.")
 
-    def set_network_parameters(self, param1, param2):
-        # More difficult than using network interface directly...
-        # Much cleaner api, however...
-        self.optimization_settings: OptimizationProperties = ...
-        raise NotImplementedError
-
-    def set_full_time_period(self, start_year, start_month, start_day, end_year, end_month, end_day,
-                             time_step_in_minutes):
+    def set_full_time_period(self, start_year: int, start_month: int, start_day: int, end_year: int, end_month: int,
+                             end_day: int) -> None:
         """Prepares date time indices starting at 00:00:00 on the start day and ending at 23:00:00 on the end day."""
         self.time_period_full = _pd.date_range(f"{start_year}-{start_month}-{start_day} 00:00:00",
                                                f"{end_year}-{end_month}-{end_day} 23:00:00",
-                                               freq=f"{str(time_step_in_minutes)}min")
+                                               freq=f"{str(self.time_step_in_minutes)}min")
 
     def get_current_time_period(self, current_time_period_start: _pd.DatetimeIndex) -> _pd.DatetimeIndex:
+        """Creates the time period for the current prediction window."""
         current_time_period_end = current_time_period_start + _pd.Timedelta(hours=self.prediction_window_in_hours)
         current_time_period = _pd.date_range(current_time_period_start, current_time_period_end,
                                              freq=f"{str(self.time_step_in_minutes)}min")
