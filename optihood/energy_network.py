@@ -1186,7 +1186,7 @@ class EnergyNetworkClass(solph.EnergySystem):
                     [self._storageContent[building], self._optimizationResults[(storage, None)]["sequences"]],
                     axis=1)
             building_number = int(building.replace("Building", ""))
-            new_col_name = f"{type}B{building_number:03d}_storage_content"
+            new_col_name = f"{type}__B{building_number:03d}_storage_content"
             self._storageContent[building].rename(columns={"storage_content": new_col_name}, inplace=True)
 
     def printInvestedCapacities(self, capacitiesInvestedTransformers, capacitiesInvestedStorages):
