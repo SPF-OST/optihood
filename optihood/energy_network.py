@@ -1187,7 +1187,6 @@ class EnergyNetworkClass(solph.EnergySystem):
                     axis=1)
             new_col_name = f"{type}_storage_content"
             self._storageContent[building].rename(columns={"storage_content": new_col_name}, inplace=True)
-        return self._storageContent
 
     def printInvestedCapacities(self, capacitiesInvestedTransformers, capacitiesInvestedStorages):
         if self._temperatureLevels:
@@ -1334,7 +1333,8 @@ class EnergyNetworkClass(solph.EnergySystem):
             "Pit": "pitStorage",
             "Borehole": "boreholeStorage",
             "Aquifer": "aquiferStorage",
-            "Tank": "tankStorage"
+            "Tank": "tankStorage",
+            "Battery": "electricalStorage"
         }
 
         for i in range(1, self.__noOfBuildings + 1):
