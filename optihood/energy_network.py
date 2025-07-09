@@ -1178,10 +1178,15 @@ class EnergyNetworkClass(solph.EnergySystem):
                     sums = np.sum(lists, axis=0)
                     self._storageContent[building][thermal_type][f'Overall_storage_content_{building}'] = sums
         elif type + '__' + building in self.groups:
-                storage = self.groups[type + '__' + building]
+            storage = self.groups[type + '__' + building]
+            if building not in self._storageContent:
                 self._storageContent[building] = self._optimizationResults[(storage, None)]["sequences"]
-        new_col_name = f"{type}_storage_content"
-        self._storageContent[building].rename(columns={"storage_content": new_col_name}, inplace=True)
+            else:
+                self._storageContent[building] = pd.concat(
+                    [self._storageContent[building], self._optimizationResults[(storage, None)]["sequences"]],
+                    axis=1)
+            new_col_name = f"{type}_storage_content"
+            self._storageContent[building].rename(columns={"storage_content": new_col_name}, inplace=True)
         return self._storageContent
 
     def printInvestedCapacities(self, capacitiesInvestedTransformers, capacitiesInvestedStorages):
@@ -1326,13 +1331,16 @@ class EnergyNetworkClass(solph.EnergySystem):
         storage_mapping = {
             "SH": "shStorage",
             "DHW": "dhwStorage",
-            "PIT": "pitStorage"
+            "Pit": "pitStorage",
+            "Borehole": "boreholeStorage",
+            "Aquifer": "aquiferStorage",
+            "Tank": "tankStorage"
         }
 
         for i in range(1, self.__noOfBuildings + 1):
             building_label = f"Building{i}"
             if self._temperatureLevels:
-                self._storageContentTS = self.calcStateofCharge("thermalStorage", building_label)
+                self.calcStateofCharge("thermalStorage", building_label)
             else:
                 if not hasattr(self, "_storage_content"):
                     self._storage_content = {}
@@ -1346,8 +1354,7 @@ class EnergyNetworkClass(solph.EnergySystem):
                             suffix = group_key[len(storage_type):group_key.index(f"__{building_label}")]
                             if suffix == "" or suffix.isdigit():
                                 storage_instance = group_key.split("__")[0]
-                                self._storage_content[storage_instance] = self.calcStateofCharge(storage_instance,
-                                                                                                 building_label)
+                                self.calcStateofCharge(storage_instance, building_label)
 
             hSB_sheet.append(f'heatStorageBus_Building{i}') #name of the different heatStorageBuses
 
@@ -1401,15 +1408,7 @@ class EnergyNetworkClass(solph.EnergySystem):
             for b in self.__buildings:
                 buildingLabel = b.getBuildingLabel()
 
-                storage_content = pd.DataFrame()
-                for s in self._storage_content:
-                    if buildingLabel in self._storage_content[s]:
-                        if storage_content.empty:
-                            storage_content = self._storage_content[s][buildingLabel]
-                        else:
-                            storage_content = pd.concat([storage_content, self._storage_content[s][buildingLabel]], axis=1, sort=True)
-
-                storage_content.to_excel(writer, sheet_name="storage_content__" + buildingLabel)
+                self._storageContent[buildingLabel].to_excel(writer, sheet_name="storage_content__" + buildingLabel)
 
                 costs = self.__opex[buildingLabel]
                 costs.update({"Investment": self.__capex[buildingLabel],
