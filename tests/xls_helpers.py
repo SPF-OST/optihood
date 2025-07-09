@@ -34,7 +34,10 @@ def check_sheet_names(testCase: _ut.TestCase, data: _pd.ExcelFile, sheet_names_e
 
 
 def plot_dfs_and_differences(df_new: _pd.DataFrame, df_expected: _pd.DataFrame, sheet_name: str):
+    # =======
+    # The following is needed to plot the differences as part of a pycharm test run.
     _mpl.use("QtAgg")
+    # =======
     fig, axs = _plt.subplots(3, 1)
     df_new.plot(ax=axs[0])
     df_expected.plot(ax=axs[1])

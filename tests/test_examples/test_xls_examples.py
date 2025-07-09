@@ -27,11 +27,12 @@ _SHEET_NAMES = ['naturalGasBus__Building1', 'gridBus__Building1', 'electricityBu
                 'naturalGasBus__Building4', 'gridBus__Building4', 'electricityBus__Building4',
                 'electricityProdBus__Building4', 'electricityInBus__Building4', 'shSourceBus__Building4',
                 'spaceHeatingBus__Building4', 'shDemandBus__Building4', 'domesticHotWaterBus__Building4',
-                'dhwDemandBus__Building4', 'solarConnectBus__Building4', 'costs__Building1',
-                'env_impacts__Building1', 'capStorages__Building1', 'capTransformers__Building1',
-                'costs__Building2', 'env_impacts__Building2', 'capStorages__Building2',
-                'capTransformers__Building2', 'costs__Building3', 'env_impacts__Building3',
-                'capStorages__Building3', 'capTransformers__Building3', 'costs__Building4',
+                'dhwDemandBus__Building4', 'solarConnectBus__Building4', 'storage_content__Building1',
+                'costs__Building1', 'env_impacts__Building1', 'capStorages__Building1', 'capTransformers__Building1',
+                'storage_content__Building2', 'costs__Building2', 'env_impacts__Building2', 'capStorages__Building2',
+                'capTransformers__Building2', 'storage_content__Building3', 'costs__Building3',
+                'env_impacts__Building3', 'capStorages__Building3', 'capTransformers__Building3',
+                'storage_content__Building4', 'costs__Building4',
                 'env_impacts__Building4', 'capStorages__Building4', 'capTransformers__Building4']
 
 
@@ -67,12 +68,12 @@ class TestXlsExamples(_ut.TestCase):
         """ End2End test to ensure user example is reproducible.
             This test will need to be adjusted, as Gurobi doesn't reproduce exact values between computing systems.
         """
-        manual = False
+        manual = True
 
         xlsh.run_python_script(script_path)
 
         excel_file_path = str(example_path / "results_basic_example.xlsx")
-        expected_data_path = str(expected_data_dir / "test_results_basic_example_after_merge.xls")
+        expected_data_path = str(expected_data_dir / "test_results_basic_example_after_merge.xlsx")
 
         xlsh.compare_xls_files(self, excel_file_path, expected_data_path, _SHEET_NAMES, abs_tolerance=1e-4,
                                manual_test=manual)
@@ -114,14 +115,23 @@ class TestXlsExamples(_ut.TestCase):
         compare_html_files(self, expected_data_dir / "Sankey_4_costs_old_uuid.html",
                            expected_data_dir / "test_Sankey_basic_example.html", uuid_expected)
 
-    @_pt.mark.skip(reason='Manual test to check quality of feedback when comparing xls files.')
-    def test_compare_results_before_and_after_merge(self):
+    @_pt.mark.manual
+    def test_compare_results_before_and_after_merge_sheets_missing(self):
         """ Used to show the quality of feedback between different xls files.
             These examples also show a change in the optimization results, which needs to be evaluated.
         """
         old_data_path = str(expected_data_dir / "test_run_basic_example.xls")
-        new_data_path = str(expected_data_dir / "test_results_basic_example_after_merge.xls")
-        xlsh.compare_xls_files(self, new_data_path, old_data_path, _SHEET_NAMES, abs_tolerance=1e-4, manual_test=True)
+        new_data_path = str(expected_data_dir / "test_results_basic_example_after_merge.xlsx")
+        xlsh.compare_xls_files(self, old_data_path, new_data_path, _SHEET_NAMES, abs_tolerance=1e-4, manual_test=True)
+
+    @_pt.mark.manual
+    def test_compare_results_before_and_after_merge_shape_and_data_mismatch(self):
+        """ Used to show the quality of feedback between different xls files.
+            These examples also show a change in the optimization results, which needs to be evaluated.
+        """
+        old_data_path = str(expected_data_dir / "test_results_basic_example_after_merge.xls")
+        new_data_path = str(expected_data_dir / "test_results_basic_example_after_merge.xlsx")
+        xlsh.compare_xls_files(self, old_data_path, new_data_path, _SHEET_NAMES, abs_tolerance=1e-4, manual_test=True)
 
 
 if __name__ == '__main__':
