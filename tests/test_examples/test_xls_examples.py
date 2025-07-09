@@ -64,6 +64,7 @@ class TestXlsExamples(_ut.TestCase):
 
         xlsh.compare_xls_files(self, excel_file_path, expected_data_path, _SHEET_NAMES, abs_tolerance=1e-4)
 
+    @_pt.mark.xdist_group('expensive_01')
     def test_basic_after_merge(self):
         """ End2End test to ensure user example is reproducible.
             This test will need to be adjusted, as Gurobi doesn't reproduce exact values between computing systems.
@@ -91,6 +92,7 @@ class TestXlsExamples(_ut.TestCase):
         compare_html_files(self, xlsh.TEST_RESULTS_DIR / "Sankey_4_costs.html",
                            expected_data_dir / "test_Sankey_basic_example.html", uuid_expected)
 
+    @_pt.mark.xdist_group('expensive_02')
     def test_sankey_basic_example_after_merge(self):
         """ End2End test to ensure the Sankey diagram of the user example is reproduced.
             This test is deterministic, as it uses a given result.
@@ -108,6 +110,7 @@ class TestXlsExamples(_ut.TestCase):
     def test_bokeh_basic_example(self):
         assert False == True
 
+    @_pt.mark.xdist_group('expensive_03')
     def test_html_comparison(self):
         """ The html files tend to only differ by a random UUID.
         """

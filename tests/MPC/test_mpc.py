@@ -1,3 +1,4 @@
+import os as _os
 import pathlib as _pl
 import unittest as _ut
 
@@ -5,6 +6,7 @@ import pandas as _pd
 import pytest as _pt
 
 import optihood.MPC.interface as mpci
+import optihood.energy_network as en
 import optihood.entities as ent
 import tests.xls_helpers as xlsh
 
@@ -89,7 +91,7 @@ class TestPrepMpcInputs(_ut.TestCase):
         """Users should get proper feedback when no data is in the csv."""
         building_model_params = _pd.DataFrame(columns=[ent.BuildingModelParameters.tWallInit])
         nodal_data = {ent.NodeKeysOptional.building_model_parameters: building_model_params}
-        with _pt.raises(ValueError) as e:
+        with _pt.raises(ValueError):
             mpci.BuildingMPC().maybe_get_entries_or_defaults(nodal_data)
 
     def test_maybe_get_entries_or_defaults_building_no_init(self):
@@ -226,11 +228,30 @@ class TestMpcHandler(_ut.TestCase):
         Maybe Flaky
         Seems to introduce the "building_model_parameter when run in the terminal
         """
+
+        # Profile data is located relative to example scripts.
+        # Therefore, we need to change directories.
+        cur_dir = _os.getcwd()
+        _os.chdir(xlsh.EXAMPLE_SCRIPT_DIR)
         input_folder_path = xlsh.ROOT_DATA_DIR / "CSVs" / "MPC_example_CSVs"
         mpc = mpci.MpcHandler(prediction_window_in_hours=24, time_step_in_minutes=60,
                               nr_of_buildings=1)
+        mpc.set_full_time_period(2018, 1, 1, 2018, 1, 31)
+
+        mpc.optimization_settings = en.OptimizationProperties(
+            optimization_type="costs",
+            merge_link_buses=False,
+            merge_buses=None,
+            merge_heat_source_sink=False,
+            temperature_levels=False,
+            cluster_size=None,
+            dispatch_mode=True,
+            include_carbon_benefits=False,
+        )
 
         system_state = mpc.get_mpc_scenario_from_csv(input_folder_path)
+
+        _os.chdir(cur_dir)
 
         errors = []
         try:
@@ -382,18 +403,26 @@ class TestMpcHandler(_ut.TestCase):
         """
         input_and_expected_names = {
             "(('pv__Building1', 'electricityProdBus__Building1'), 'flow')": "pv__B001__To__electricityProdBus__B001",
-            "(('pv__Building567', 'electricityProdBus__Building567'), 'flow')": "pv__B567__To__electricityProdBus__B567",
-            "(('electricityBus__Building1', 'excesselectricityBus__Building1'), 'flow')": "electricityBus__B001__To__excesselectricityBus__B001",
-            "(('electricityProdBus__Building1', 'electricalStorage__Building1'), 'flow')": "electricityProdBus__B001__To__electricalStorage__B001",
-            "(('electricalStorage__Building1', 'electricityBus__Building1'), 'flow')": "electricalStorage__B001__To__electricityBus__B001",
-            "(('electricityBus__Building1', 'producedElectricity__Building1'), 'flow')": "electricityBus__B001__To__producedElectricity__B001",
-            "(('electricityResource__Building1', 'gridBus__Building1'), 'flow')": "electricityResource__B001__To__gridBus__B001",
+            "(('pv__Building567', 'electricityProdBus__Building567'), 'flow')":
+                "pv__B567__To__electricityProdBus__B567",
+            "(('electricityBus__Building1', 'excesselectricityBus__Building1'), 'flow')":
+                "electricityBus__B001__To__excesselectricityBus__B001",
+            "(('electricityProdBus__Building1', 'electricalStorage__Building1'), 'flow')":
+                "electricityProdBus__B001__To__electricalStorage__B001",
+            "(('electricalStorage__Building1', 'electricityBus__Building1'), 'flow')":
+                "electricalStorage__B001__To__electricityBus__B001",
+            "(('electricityBus__Building1', 'producedElectricity__Building1'), 'flow')":
+                "electricityBus__B001__To__producedElectricity__B001",
+            "(('electricityResource__Building1', 'gridBus__Building1'), 'flow')":
+                "electricityResource__B001__To__gridBus__B001",
             "(('electricityInBus__Building1', 'HP__Building1'), 'flow')": "electricityInBus__B001__To__HP__B001",
             "(('HP__Building1', 'shSourceBus__Building1'), 'flow')": "HP__B001__To__shSourceBus__B001",
             "(('shSourceBus__Building1', 'shStorage__Building1'), 'flow')": "shSourceBus__B001__To__shStorage__B001",
             "(('shSourceBus__Building1', 'shSource__Building1'), 'flow')": "shSourceBus__B001__To__shSource__B001",
-            "(('shStorage__Building1', 'spaceHeatingBus__Building1'), 'flow')": "shStorage__B001__To__spaceHeatingBus__B001",
-            "(('spaceHeatingBus__Building1', 'spaceHeating__Building1'), 'flow')": "spaceHeatingBus__B001__To__spaceHeating__B001",
+            "(('shStorage__Building1', 'spaceHeatingBus__Building1'), 'flow')":
+                "shStorage__B001__To__spaceHeatingBus__B001",
+            "(('spaceHeatingBus__Building1', 'spaceHeating__Building1'), 'flow')":
+                "spaceHeatingBus__B001__To__spaceHeating__B001",
         }
         input_names = list(input_and_expected_names.keys())
         input_names += ["storage_content",  # TODO: check whether this should become "sh_storage_content"
@@ -426,18 +455,46 @@ class TestMpcHandler(_ut.TestCase):
         }
         expected_energy_flows = _pd.DataFrame(
             {
-                "el_pv_produced": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.108543350181667, 8.272728965148124, 50.89640662861397, 17.94914364741515, 7.54176286459802, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-                "el_to_grid": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 5.586883168290823, 46.5148636963539, 4.562246680843671, 6.47183429359802, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 15.02745821417941, 0.0, 0.0, 0.0],
-                "el_pv_to_battery": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
-                "el_battery_discharge": [0.554028571, 0.469628571, 7.245377247649912, 0.549585714, 0.6267, 3.771141997591101, 6.202756082034924, 5.529049211325205, 5.907222702238744, 3.144218023214221, 0.0, 0.0, 0.0, 0.0, 2.825040474208677, 3.212498410367769, 1.398457143, 1.839342857, 2.005842857, 8.649585714, 12.11352857, 25.47546728336945, 1.689628571, 0.813671429, 0.577228571],
-                "el_produced": [0.554028571, 0.469628571, 7.245377247649912, 0.549585714, 0.6267, 3.771141997591101, 6.202756082034924, 5.529049211325205, 5.907222702238744, 4.252761373395888, 2.6858457968573, 4.381542932260076, 13.38689696657148, 1.069928571, 2.825040474208677, 3.212498410367769, 1.398457143, 1.839342857, 2.005842857, 8.649585714, 12.11352857, 10.44800906919004, 1.689628571, 0.813671429, 0.577228571],
-                "el_from_grid": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
-                "HP_el_in": [0.0, 0.0, 6.788420104649911, 0.0, 0.0, 3.160941997591101, 2.948527511034924, 2.792563497325205, 2.451579845238745, 1.688489944395888, 1.3952600828573, 0.08261436126007536, 11.45105410957148, 0.0, 1.766354760208677, 1.492741267367769, 0.0, 0.0, 0.0, 0.0, 0.0, 6.288094783190043, 0.0, 0.0, 0.0],
-                "HP_heat_out": [0.0, 0.0, 28.77093082197741, 0.0, 0.0, 13.39682019424264, 12.49655733424264, 11.86780923424264, 10.47549639424264, 7.293487614242636, 6.043188243242636, 0.3715253452426365, 52.325, 0.0, 8.007204924272527, 6.730931781940396, 0.0, 0.0, 0.0, 0.0, 0.0, 28.0525510618056, 0.0, 0.0, 0.0],
-                "HP_to_TES": [0.0, 0.0, 15.59785494197741, 0.0, 0.0, 0.0805135742426365, 0.0805135742426365, 0.0805135742426365, 0.0805135742426365, 0.0805135742426365, 0.0805135742426365, 0.0805135742426365, 52.325, 0.0, 3.353566187272527, 0.1341832079403957, 0.0, 0.0, 0.0, 0.0, 0.0, 20.6793614738056, 0.0, 0.0, 0.0],
-                "HP_to_demand": [0.0, 0.0, 13.17307588, 0.0, 0.0, 13.31630662, 12.41604376, 11.78729566, 10.39498282, 7.21297404, 5.962674669, 0.291011771, 0.0, 0.0, 4.653638737, 6.596748574, 0.0, 0.0, 0.0, 0.0, 0.0, 7.373189588, 0.0, 0.0, 0.0],
-                "TES_to_demand": [13.14460485, 13.16625478, 0.0, 13.17181806, 13.27046787, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 3.008074284, 0.0, 0.0, 7.847446237, 8.90450432, 9.358278467, 7.240053475, 6.579958661, 0.0, 9.326260232, 10.91023682, 11.85101617],
-                "sh_delivered": [13.14460485, 13.16625478, 13.17307588, 13.17181806, 13.27046787, 13.31630662, 12.41604376, 11.78729566, 10.39498282, 7.21297404, 5.962674669, 0.291011771, 0.0, 3.008074284, 4.653638737, 6.596748574, 7.847446237, 8.90450432, 9.358278467, 7.240053475, 6.579958661, 7.373189588, 9.326260232, 10.91023682, 11.85101617],
+                "el_pv_produced": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.108543350181667, 8.272728965148124,
+                                   50.89640662861397, 17.94914364741515, 7.54176286459802, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                                   0.0, 0.0, 0.0, 0.0, 0.0],
+                "el_to_grid": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 5.586883168290823, 46.5148636963539,
+                               4.562246680843671, 6.47183429359802, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                               15.02745821417941, 0.0, 0.0, 0.0],
+                "el_pv_to_battery": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ],
+                "el_battery_discharge": [0.554028571, 0.469628571, 7.245377247649912, 0.549585714, 0.6267,
+                                         3.771141997591101, 6.202756082034924, 5.529049211325205, 5.907222702238744,
+                                         3.144218023214221, 0.0, 0.0, 0.0, 0.0, 2.825040474208677, 3.212498410367769,
+                                         1.398457143, 1.839342857, 2.005842857, 8.649585714, 12.11352857,
+                                         25.47546728336945, 1.689628571, 0.813671429, 0.577228571],
+                "el_produced": [0.554028571, 0.469628571, 7.245377247649912, 0.549585714, 0.6267, 3.771141997591101,
+                                6.202756082034924, 5.529049211325205, 5.907222702238744, 4.252761373395888,
+                                2.6858457968573, 4.381542932260076, 13.38689696657148, 1.069928571, 2.825040474208677,
+                                3.212498410367769, 1.398457143, 1.839342857, 2.005842857, 8.649585714, 12.11352857,
+                                10.44800906919004, 1.689628571, 0.813671429, 0.577228571],
+                "el_from_grid": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ],
+                "HP_el_in": [0.0, 0.0, 6.788420104649911, 0.0, 0.0, 3.160941997591101, 2.948527511034924,
+                             2.792563497325205, 2.451579845238745, 1.688489944395888, 1.3952600828573,
+                             0.08261436126007536, 11.45105410957148, 0.0, 1.766354760208677, 1.492741267367769, 0.0,
+                             0.0, 0.0, 0.0, 0.0, 6.288094783190043, 0.0, 0.0, 0.0],
+                "HP_heat_out": [0.0, 0.0, 28.77093082197741, 0.0, 0.0, 13.39682019424264, 12.49655733424264,
+                                11.86780923424264, 10.47549639424264, 7.293487614242636, 6.043188243242636,
+                                0.3715253452426365, 52.325, 0.0, 8.007204924272527, 6.730931781940396, 0.0, 0.0, 0.0,
+                                0.0, 0.0, 28.0525510618056, 0.0, 0.0, 0.0],
+                "HP_to_TES": [0.0, 0.0, 15.59785494197741, 0.0, 0.0, 0.0805135742426365, 0.0805135742426365,
+                              0.0805135742426365, 0.0805135742426365, 0.0805135742426365, 0.0805135742426365,
+                              0.0805135742426365, 52.325, 0.0, 3.353566187272527, 0.1341832079403957, 0.0, 0.0, 0.0,
+                              0.0, 0.0, 20.6793614738056, 0.0, 0.0, 0.0],
+                "HP_to_demand": [0.0, 0.0, 13.17307588, 0.0, 0.0, 13.31630662, 12.41604376, 11.78729566, 10.39498282,
+                                 7.21297404, 5.962674669, 0.291011771, 0.0, 0.0, 4.653638737, 6.596748574, 0.0, 0.0,
+                                 0.0, 0.0, 0.0, 7.373189588, 0.0, 0.0, 0.0],
+                "TES_to_demand": [13.14460485, 13.16625478, 0.0, 13.17181806, 13.27046787, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                                  0.0, 0.0, 3.008074284, 0.0, 0.0, 7.847446237, 8.90450432, 9.358278467, 7.240053475,
+                                  6.579958661, 0.0, 9.326260232, 10.91023682, 11.85101617],
+                "sh_delivered": [13.14460485, 13.16625478, 13.17307588, 13.17181806, 13.27046787, 13.31630662,
+                                 12.41604376, 11.78729566, 10.39498282, 7.21297404, 5.962674669, 0.291011771, 0.0,
+                                 3.008074284, 4.653638737, 6.596748574, 7.847446237, 8.90450432, 9.358278467,
+                                 7.240053475, 6.579958661, 7.373189588, 9.326260232, 10.91023682, 11.85101617],
             },
             index=_pd.date_range("2018-01-01 00:00:00", "2018-01-02 00:00:00", freq="60min"),
         )

@@ -71,8 +71,8 @@ class BusTypes(_enum.StrEnum):
     heatDemandBus = "heatDemandBus"
     lowTSourceBus = "lowTSourceBus"
     lowTSinkBus = "lowTSinkBus"
-    dhHeatInBus ="districtHeatingInBus"
-    dhHeatBus= "districtHeatingBus"
+    dhHeatInBus = "districtHeatingInBus"
+    dhHeatBus = "districtHeatingBus"
 
 
 class CommoditySourcesLabels(_enum.StrEnum):
@@ -150,7 +150,9 @@ class ProfileLabels(_enum.StrEnum):
 class ProfileTypes(_enum.StrEnum):
     demand = "demand_profiles"  # mandatory
     weather = "weather_data"  # mandatory
-    # TODO: add missing profile types
+    # TODO: add missing profile types  # pylint: disable=fixme
+    internal_gains = "internal_gains"  # not mandatory
+    building_model_params = "building_model_params"  # not mandatory
 
 
 class SolarLabels(_enum.StrEnum):
@@ -303,3 +305,5 @@ class BuildingModelParameters(_enum.StrEnum):
     tIndoorInit = "tIndoorInit"
     tDistributionInit = "tDistributionInit"
     tWallInit = "tWallInit"
+    tIndoorDay = "tIndoorDay"
+    tIndoorNight = "tIndoorNight"
