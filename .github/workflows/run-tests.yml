@@ -1,4 +1,6 @@
 name: Run tests #and static checks
+concurrency:
+  group: ${{ github.workflow }}
 
 on:
   push:
