@@ -49,7 +49,7 @@ class TestMpcExample(_ut.TestCase):
 
         This is looped through max. twice, because there is a rare occurrence of a 27% difference between steps.
         """
-        show_differences = True  # Turn true to plot differences.
+        show_differences = False  # Turn true to plot differences.
 
         expected_sheet_names = ['gridBus__Building1',
                                 'electricityBus__Building1',

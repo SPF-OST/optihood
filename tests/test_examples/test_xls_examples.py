@@ -68,7 +68,7 @@ class TestXlsExamples(_ut.TestCase):
         """ End2End test to ensure user example is reproducible.
             This test will need to be adjusted, as Gurobi doesn't reproduce exact values between computing systems.
         """
-        manual = True
+        manual = False
 
         xlsh.run_python_script(script_path)
 
