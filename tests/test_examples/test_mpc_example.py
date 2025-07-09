@@ -49,7 +49,7 @@ class TestMpcExample(_ut.TestCase):
 
         This is looped through max. twice, because there is a rare occurrence of a 27% difference between steps.
         """
-        show_differences = False  # Turn true to plot differences.
+        show_differences = True  # Turn true to plot differences.
 
         expected_sheet_names = ['gridBus__Building1',
                                 'electricityBus__Building1',
@@ -59,6 +59,7 @@ class TestMpcExample(_ut.TestCase):
                                 'dhwSourceBus__Building1',
                                 'spaceHeatingBus__Building1',
                                 'shDemandBus__Building1',
+                                'storage_content__Building1',
                                 'costs__Building1',
                                 'env_impacts__Building1',
                                 'capStorages__Building1',
