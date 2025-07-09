@@ -10,7 +10,7 @@ with open("README.md", "r") as fh:
 setup(
     name='optihood',
     packages=find_packages(),
-    version='v0.02',
+    version='v0.2.1',
     author="Institute for Solar Technology (SPF), OST Rapperswil",
     author_email="neha.dimri@ost.ch",
     description="optihood optimization framework",
