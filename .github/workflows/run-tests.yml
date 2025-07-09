@@ -35,9 +35,9 @@ jobs:
         # Using --no-compile to reduce compile time on CI by not compiling unused .pyc files.
         run: |
           venv\Scripts\python -m pip install --upgrade pip
-          venv\Scripts\python -m pip install wheel
-          venv\Scripts\python -m pip install --no-compile -r requirements/requirements.txt
-          venv\Scripts\python -m pip install --no-compile -r requirements/requirements_dev.txt
+          venv\Scripts\python -m pip install wheel uv
+          venv\Scripts\python -m uv pip install --no-compile -r requirements/requirements.txt
+          venv\Scripts\python -m uv pip install --no-compile -r requirements/requirements_dev.txt
 
 #      - name: Static type checking with mypy
 #        run: venv\Scripts\python dev-tools/devTools.py --type

@@ -1,0 +1,13 @@
+﻿-r requirements.txt
+
+-e file:.
+
+uv
+
+coverage
+pylint
+pytest
+pytest-cov
+pytest-xdist
+
+pyqt6
