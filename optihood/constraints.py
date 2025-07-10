@@ -111,7 +111,8 @@ def environmentalImpactlimit(om, keyword1, keyword2, limit=None):
     flows = {}
     transformerFlowCapacityDictNonConvex = {}
     transformerFlowCapacityDictConvex = {}
-    storageCapacityDict = {}
+    storageCapacityDict1 = {}
+    storageCapacityDict2 = {}
     for (i, o) in om.flows:
         if hasattr(om.flows[i, o], keyword1):
             flows[(i, o)] = om.flows[i, o]
@@ -124,7 +125,12 @@ def environmentalImpactlimit(om, keyword1, keyword2, limit=None):
     if hasattr(om, 'GenericInvestmentStorageBlock'):
         for x in om.GenericInvestmentStorageBlock.INVESTSTORAGES:
             if hasattr(x.investment, keyword2):
-                storageCapacityDict[x] = om.GenericInvestmentStorageBlock.invest[x]
+                storageCapacityDict1[x] = om.GenericInvestmentStorageBlock.invest[x]
+
+    if hasattr(om, 'GenericInvestmentStorageBlockPit'):
+        for x in om.GenericInvestmentStorageBlockPit.INVESTSTORAGES:
+            if hasattr(x.investment, keyword2):
+                storageCapacityDict2[x] = om.GenericInvestmentStorageBlockPit.invest[x]
 
     envImpact = "totalEnvironmentalImpact"
 
@@ -149,7 +155,9 @@ def environmentalImpactlimit(om, keyword1, keyword2, limit=None):
                        for (inflow, outflow) in transformerFlowCapacityDictNonConvex)
                  # fix Environmental impact per storage capacity
                  + sum(om.GenericInvestmentStorageBlock.invest[x] * getattr(x.investment, keyword2) for x in
-                       storageCapacityDict)
+                       storageCapacityDict1)
+                 + sum(om.GenericInvestmentStorageBlockPit.invest[x] * getattr(x.investment, keyword2) for x in
+                       storageCapacityDict2)
         ),
     )
     setattr(
@@ -159,6 +167,8 @@ def environmentalImpactlimit(om, keyword1, keyword2, limit=None):
     )
 
     transformerFlowCapacityDictNonConvex.update(transformerFlowCapacityDictConvex)
+
+    storageCapacityDict = storageCapacityDict1 | storageCapacityDict2
 
     return om, flows, transformerFlowCapacityDictNonConvex, storageCapacityDict
 

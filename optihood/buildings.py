@@ -1,9 +1,5 @@
-import numpy as np
-import oemof.solph as solph
-import pandas as pd
-from oemof.tools import logger
+
 from oemof.tools import economics
-import logging
 from optihood.converters import *
 from optihood.sources import PV
 from optihood.storages import *
@@ -780,7 +776,7 @@ class Building:
         sList = []
         for i, s in data.iterrows():
                 storageLabel = s["label"]+'__'+self.__buildingLabel
-                if temperatureLevels and s["label"] == "thermalStorage":
+                if temperatureLevels and "thermalStorage" in s["label"]:
                     inputBuses = [self.__busDict[iLabel + '__' + self.__buildingLabel] for iLabel in s["from"].split(",")]
                     outputBuses = [self.__busDict[oLabel + '__' + self.__buildingLabel] for oLabel in s["to"].split(",")]
                     storTemperatures = storageParams["stratified_storage"].at[s["label"],"temp_h"].split(",")
@@ -801,7 +797,7 @@ class Building:
                 self.__costParam[storageLabel] = [self._calculateInvest(s)[0], self._calculateInvest(s)[1]]
                 self.__envParam[storageLabel] = [float(s["heat_impact"]), float(s["elec_impact"]), envImpactPerCapacity]
 
-                if s["label"] == "electricalStorage":
+                if "electricalStorage" in s["label"]:
                     self.__nodesList.append(ElectricalStorage(self.__buildingLabel, self.__busDict[inputBusLabel],
                                                               self.__busDict[outputBusLabel], float(s["capacity loss"]),
                                                             float(s["initial capacity"]), float(s["efficiency inflow"]),
@@ -812,7 +808,7 @@ class Building:
                                                             float(s["elec_impact"])*(opt == "env"),
                                                             float(s["elec_impact"]), envImpactPerCapacity, dispatchMode))
 
-                elif (s["label"] == "dhwStorage" or s["label"] == "shStorage") and not temperatureLevels:
+                elif ("dhwStorage" in s["label"] or "shStorage" in s["label"]) and not temperatureLevels:
                     self.__nodesList.append(ThermalStorage(storageLabel,
                                                            storageParams["stratified_storage"], self.__busDict[inputBusLabel],
                                                            self.__busDict[outputBusLabel],
@@ -821,7 +817,17 @@ class Building:
                                                         self._calculateInvest(s)[0]*(opt == "costs") + envImpactPerCapacity*(opt == "env"),
                                                         self._calculateInvest(s)[1]*(opt == "costs"), float(s["heat_impact"])*(opt == "env"),
                                                         float(s["heat_impact"]), envImpactPerCapacity, dispatchMode))
-                elif s["label"] == "thermalStorage" and temperatureLevels:
+                elif "pitStorage" in s["label"] and not temperatureLevels:
+                    self.__nodesList.append(ThermalStoragePit(storageLabel,
+                                                           storageParams["stratified_storage"], self.__busDict[inputBusLabel],
+                                                           self.__busDict[outputBusLabel],
+                                                        float(s["initial capacity"]), float(s["capacity min"]),
+                                                        float(s["capacity max"]),
+                                                        self._calculateInvest(s)[0]*(opt == "costs") + envImpactPerCapacity*(opt == "env"),
+                                                        self._calculateInvest(s)[1]*(opt == "costs"), float(s["heat_impact"])*(opt == "env"),
+                                                        float(s["heat_impact"]), envImpactPerCapacity, dispatchMode))
+
+                elif "thermalStorage" in s["label"] and temperatureLevels:
                     storage = ThermalStorageTemperatureLevels(storageLabel,
                                storageParams["stratified_storage"], inputBuses,
                                outputBuses,
@@ -861,7 +867,10 @@ class Building:
                                    )
                     )
 
-                elif s["label"] not in ["dhwStorage", "shStorage", "thermalStorage"] and "Storage" in s["label"]:
+                elif any(storage in s["label"] for storage in ["tankGenericStorage", "boreholeGenericStorage",
+                                                               "pitGenericStorage", "aquiferGenericStorage"]):
+                    # These are generic storage models with constant losses per timestep
+                    # These models do not include a detailed geometry of the storage type
                     is_tank = False
                     self.__nodesList.append(ThermalStorage(storageLabel,
                            storageParams["stratified_storage"], self.__busDict[inputBusLabel],
@@ -876,8 +885,8 @@ class Building:
                            float(s["heat_impact"]), envImpactPerCapacity, dispatchMode, is_tank))
                 else:
                     logging.error("One of the following issues were encountered: (i) Storage label not identified. Storage label"
-                                  "should either match one of the following: electricalStorage, dhwStorage, shStorage or thermalStorage,"
-                                  "or contain the substring \'Storage\'"
+                                  "should contain one of the following strings: [electricalStorage, dhwStorage, shStorage, thermalStorage, "
+                                  "tankStorage, boreholeStorage, pitStorage]"
                                   "(ii) Separate dhwStorage and/or shStorage selected when temperatureLevels is set as True."
                                   "Either set temperatureLevels to False or rename the storage label to thermalStorage.")
         return sList

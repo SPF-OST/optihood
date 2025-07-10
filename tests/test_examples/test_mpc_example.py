@@ -61,6 +61,7 @@ class TestMpcExample(_ut.TestCase):
                                 'dhwSourceBus__Building1',
                                 'spaceHeatingBus__Building1',
                                 'shDemandBus__Building1',
+                                'storage_content__Building1',
                                 'costs__Building1',
                                 'env_impacts__Building1',
                                 'capStorages__Building1',
