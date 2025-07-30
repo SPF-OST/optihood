@@ -56,10 +56,11 @@ class ElectricalStorage(solph.components.GenericStorage):
 class ThermalStorage(solph.components.GenericStorage):
     def __init__(self, label, stratifiedStorageParams, input, output, initial_storage, min, max, volume_cost, base,
                  varc, env_flow, env_cap, dispatchMode, is_tank = True, rho= 1, c=4.186):
-        u_value, loss_rate, fixed_losses_relative, fixed_losses_absolute, capacity_min, capacity_max, epc, env_capa = \
+        loss_rate, fixed_losses_relative, fixed_losses_absolute, capacity_min, capacity_max, epc, env_capa = \
             self._precalculate(stratifiedStorageParams,label.split("__")[0],min,max,volume_cost,env_cap, is_tank=
             is_tank, rho=rho, c=c)
-        storageLabel = label.split("__")[0]
+        digits = "0123456789"
+        storageLabel = label.split("__")[0].rstrip(digits)
         if dispatchMode:
             investArgs={'minimum':capacity_min,
                 'maximum':capacity_max,
@@ -113,38 +114,47 @@ class ThermalStorage(solph.components.GenericStorage):
                 data.at[label, 'temp_env'])
 
             L_to_kWh = c * rho * (tempH - tempC) / 3600  # converts L data to kWh data for oemof GenericStorage class
-
-
         else:
-            temp_h = data.at[label, 'temp_h']
-            temp_c = data.at[label, 'temp_c']
-            temp_env = data.at[label, 'temp_env']
-            rho = data.at[label, 'rho']
-            c = data.at[label, 'c']
-            u_value = data.at[label, 'u_value']
             time_increment =1
-            if 'pitStorage' in label:
-                height = data.at[label, 'height']
-                angle = data.at[label, 'angle']
-                fixed_losses_relative = 3 * u_value * (temp_c - temp_env) / (height * c * rho * (temp_h - temp_c)) * time_increment *3600
-                loss_rate = 0#0.4 * fixed_losses_relative#2 * u_value / (s_base * c * rho * math.sin(angle * np.pi / 180)) * time_increment
-                fixed_losses_absolute = 0
-            elif 'GenericThermalStorage' in label:
-                loss_rate = 0       # relative loss between timesteps could be defined using this parameter
+            if 'GenericStorage' in label:
+                typical_losses = {'tank': 0.4, 'pit': 0.03, 'borehole': 0.01, 'aquifier': 0.001}
+                try:
+                    loss_rate = next(value for key, value in typical_losses.items() if key in label)
+                except StopIteration:
+                    raise ValueError(
+                        f"No matching storage type found in label '{label}'. The label should contain one of: {list(typical_losses.keys())}")
                 fixed_losses_relative = 0
                 fixed_losses_absolute = 0
+
+                digits = "0123456789"
+                energy_density = data.at[label.rstrip(digits), 'energy_density_per_m3']
+                L_to_kWh = energy_density/1000 # m3 to L conversion
             else:
-                loss_rate = 0
-                fixed_losses_relative = 0
-                fixed_losses_absolute = u_value*(temp_h - temp_env)*1e-6 #convert Wh to MWh
-            L_to_kWh = c * rho * (temp_h - temp_env) / 3600  # converts L data to kWh data for oemof GenericStorage class
+                temp_h = data.at[label, 'temp_h']
+                temp_c = data.at[label, 'temp_c']
+                temp_env = data.at[label, 'temp_env']
+                rho = data.at[label, 'rho']
+                c = data.at[label, 'c']
+                u_value = data.at[label, 'u_value']
+
+                if 'pitStorage' in label:
+                    height = data.at[label, 'height']
+                    angle = data.at[label, 'angle']
+                    fixed_losses_relative = 3 * u_value * (temp_c - temp_env) / (height * c * rho * (temp_h - temp_c)) * time_increment *3600
+                    loss_rate = 0  # 0.4 * fixed_losses_relative#2 * u_value / (s_base * c * rho * math.sin(angle * np.pi / 180)) * time_increment
+                    fixed_losses_absolute = 0
+                else:
+                    loss_rate = 0
+                    fixed_losses_relative = 0
+                    fixed_losses_absolute = u_value*(temp_h - temp_env)*1e-6 #convert Wh to MWh
+                L_to_kWh = c * rho * (temp_h - temp_env) / 3600  # converts L data to kWh data for oemof GenericStorage class
 
         capacity_min = min * L_to_kWh
         capacity_max = max * L_to_kWh
         epc = volume_cost / L_to_kWh
         env_capa = env_cap / L_to_kWh
 
-        return u_value, loss_rate, fixed_losses_relative, fixed_losses_absolute, capacity_min, capacity_max, epc, env_capa
+        return loss_rate, fixed_losses_relative, fixed_losses_absolute, capacity_min, capacity_max, epc, env_capa
 
 class ThermalStoragePit(GenericStoragePit):
     def __init__(self, label, stratifiedStorageParams, input, output, initial_storage, min, max, volume_cost, base,

@@ -340,7 +340,7 @@ class EnergyNetworkClass(solph.EnergySystem):
                 natGasImpact = data["natGas_impact"]
             else:
                 natGasCost = natGasImpact = None
-            b.addSource(data["commodity_sources"][data["commodity_sources"]["building"] == i], data["electricity_impact"], data["electricity_cost"], natGasCost, natGasImpact, opt, mergeHeatSourceSink, mergeLinkBuses)
+            b.addSource(data["commodity_sources"][data["commodity_sources"]["building"] == i], data["electricity_impact"], data["electricity_cost"], natGasCost, natGasImpact, data["fixed_sources"], opt, mergeHeatSourceSink, mergeLinkBuses)
             if i in data["building_model"]:
                 bmdata = data["building_model"][i]
             else:
@@ -602,14 +602,14 @@ class EnergyNetworkClass(solph.EnergySystem):
         for x in storageCapacityDict:
             index = str(x)
             if x in storageList:  # useful when we want to implement two or more storage units of the same type
-                if str(x).startswith('pit'):
+                if str(x).startswith('pitStorage'):
                     capacitiesInvestedStorages[index] = capacitiesInvestedStorages[index] + \
                                                         optimizationModel.GenericInvestmentStorageBlockPit.invest[x].value
                 else:
                     capacitiesInvestedStorages[index] = capacitiesInvestedStorages[index] + \
                                                         optimizationModel.GenericInvestmentStorageBlock.invest[x].value
             else:
-                if str(x).startswith('pit'):
+                if str(x).startswith('pitStorage'):
                     capacitiesInvestedStorages[index] = optimizationModel.GenericInvestmentStorageBlockPit.invest[x].value
                 else:
                     capacitiesInvestedStorages[str(x)] = optimizationModel.GenericInvestmentStorageBlock.invest[x].value
@@ -1011,9 +1011,11 @@ class EnergyNetworkClass(solph.EnergySystem):
         else:
             shOutputLabel = "shSourceBus__"
         storage_types = {
-            "tankStorage": "Tank Storage",
+            "tankGenericStorage": "Tank Generic Storage",
             "pitStorage": "Pit Storage",
-            "boreholeStorage": "Borehole Storage",
+            "pitGenericStorage": "Pit Generic Storage",
+            "boreholeGenericStorage": "Borehole Generic Storage",
+            "aquifierGenericStorage": "Aquifier Generic Storage",
             "electricalStorage": "Electrical Storage",
             "dhwStorage": "DHW Storage Tank",
             "shStorage": "SH Storage Tank",

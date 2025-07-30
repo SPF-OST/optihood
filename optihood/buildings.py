@@ -867,8 +867,9 @@ class Building:
                                    )
                     )
 
-                elif any(storage in s["label"] for storage in ["tankGenericStorage", "boreholeGenericStorage",
-                                                               "pitGenericStorage", "aquiferGenericStorage"]):
+                elif (any(storage in s["label"] for storage in ["tankGenericStorage", "boreholeGenericStorage",
+                                                               "pitGenericStorage", "aquiferGenericStorage"]) and
+                      not temperatureLevels):
                     # These are generic storage models with constant losses per timestep
                     # These models do not include a detailed geometry of the storage type
                     is_tank = False
