@@ -234,6 +234,7 @@ class ProfileAndOtherDataReader:
         nodal_data = self.maybe_add_natural_gas(nodal_data, cluster_size, time_index)
         nodal_data = self.maybe_add_building_model_with_internal_gains(nodal_data, num_buildings, cluster_size,
                                                                        time_index)
+        nodal_data = self.maybe_add_fixed_source_profiles(nodal_data, cluster_size, time_index)
         # ====================================================
 
         _log.info(f"Data from file {file_or_folder_path} imported.")
@@ -430,6 +431,49 @@ class ProfileAndOtherDataReader:
         # Making this a wrapper function simplifies testing.
         nodesData = self.add_natural_gas_impact(nodesData, cluster_size, time_index)
         nodesData = self.add_natural_gas_costs(nodesData, cluster_size, time_index)
+
+        return nodesData
+
+    def maybe_add_fixed_source_profiles(self, nodesData, cluster_size, time_index: _pd.DatetimeIndex):
+        if "fixed" in nodesData["commodity_sources"].columns:
+            if not (nodesData["commodity_sources"]["fixed"].eq(1)).any():
+                return nodesData
+        else:
+            return nodesData
+
+        fixed_source_profiles_path = self.get_values_from_dataframe(
+            df=nodesData[ent.NodeKeys.profiles],
+            identifier_column=ent.ProfileLabels.name,
+            identifier=ent.ProfileTypes.fixed_sources,
+            desired_column=ent.ProfileLabels.path,
+            message="Error in the fixed source profiles path."
+        )
+
+        if not _os.path.exists(fixed_source_profiles_path) or not _os.listdir(fixed_source_profiles_path):
+            _log.error(f"Error in the fixed sources profile path: The folder is either empty or does not exist: "
+                       f"{fixed_source_profiles_path}")
+            raise FileNotFoundError(f"Error in the fixed sources profile path: The folder is either empty or does not exist: "
+                                    f"{fixed_source_profiles_path}")
+
+        fixed_sources_data = {}
+        for filename in _os.listdir(fixed_source_profiles_path):
+            fixed_sources_data.update({filename.split(".csv")[0]: _pd.read_csv(_os.path.join(fixed_source_profiles_path, filename), delimiter=";")})
+
+        nodesData["fixed_sources"] = fixed_sources_data
+
+        # set datetime index
+        for i in nodesData["fixed_sources"].keys():
+            nodesData["fixed_sources"][i].timestamp = _pd.to_datetime(nodesData["fixed_sources"][i].timestamp,
+                                                                           format='%Y-%m-%d %H:%M:%S')
+            nodesData["fixed_sources"][i].set_index("timestamp", inplace=True)
+            if not cluster_size:
+                nodesData["fixed_sources"][i] = self.clip_to_time_index(nodesData["fixed_sources"][i],
+                                                                             time_index)
+        if cluster_size:
+            fixed_sources_data = {}
+            for i in nodesData["fixed_sources"].keys():
+                fixed_sources_data[i] = self.cluster_desired_column(nodesData["fixed_sources"][i], cluster_size)
+            nodesData["fixed_sources"] = fixed_sources_data
 
         return nodesData
 
