@@ -153,6 +153,7 @@ class ProfileTypes(_enum.StrEnum):
     # TODO: add missing profile types  # pylint: disable=fixme
     internal_gains = "internal_gains"  # not mandatory
     building_model_params = "building_model_params"  # not mandatory
+    fixed_sources = "fixed_source_profiles" # not mandatory
 
 
 class SolarLabels(_enum.StrEnum):

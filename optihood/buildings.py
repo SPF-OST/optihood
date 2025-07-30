@@ -343,7 +343,7 @@ class Building:
                                                               outputs={self.__busDict[outputBusLabel]: solph.Flow()},
                                                       conversion_factors={self.__busDict[outputBusLabel]: float(gs["efficiency"])}))
 
-    def addSource(self, data, data_elimpact, data_elcost, data_natGascost, data_natGasImpact, opt, mergeHeatSourceSink, mergeLinkBuses):
+    def addSource(self, data, data_elimpact, data_elcost, data_natGascost, data_natGasImpact, timeseries, opt, mergeHeatSourceSink, mergeLinkBuses):
         # Create Source objects from table 'commodity sources'
 
         for i, cs in data.iterrows():
@@ -383,8 +383,14 @@ class Building:
                     self.__inputs.append([sourceLabel, outputBusLabel])
                 flowargs = {'variable_costs':varCosts,
                             'custom_attributes': {'env_per_flow': envImpactPerFlow},}
-                if "potential" in cs["label"].lower():
-                    flowargs.update({'full_load_time_max': cs["full_load_time_max"], "nominal_value": cs["nominal_value"]})
+                if "fixed" in cs:
+                    if pd.notna(cs["fixed"]) and int(cs["fixed"])==1:
+                        if "waste" in cs["label"].lower():
+                            fixed_profile = timeseries["waste"]
+                        flowargs.update({"fix": fixed_profile["fixed_source"], "nominal_value": float(cs["nominal_value"])})
+                elif "potential" in cs["label"].lower():
+                    flowargs.update({'full_load_time_max': float(cs["full_load_time_max"]), "nominal_value": float(cs["nominal_value"])})
+
                 self.__nodesList.append(solph.components.Source(
                     label=sourceLabel,
                     outputs={self.__busDict[outputBusLabel]: solph.Flow(**flowargs)}))
