@@ -352,7 +352,7 @@ class EnergyNetworkClass(solph.EnergySystem):
             else:
                 natGasCost = natGasImpact = None
             if "fixed_sources" in data:
-                fixed_sources_data = data["fixed_sources"]
+                fixed_sources_data = {k: v for k, v in data["fixed_sources"].items() if buildingLabel in k}
             else:
                 fixed_sources_data = None
             b.addSource(data["commodity_sources"][data["commodity_sources"]["building"] == i], data["electricity_impact"], data["electricity_cost"], natGasCost, natGasImpact, fixed_sources_data, opt, mergeHeatSourceSink, mergeLinkBuses)

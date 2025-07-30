@@ -386,7 +386,7 @@ class Building:
                 if "fixed" in cs:
                     if pd.notna(cs["fixed"]) and int(cs["fixed"])==1:
                         if "waste" in cs["label"].lower():
-                            fixed_profile = timeseries["waste"]
+                            fixed_profile = timeseries[f"waste__{self.__buildingLabel}"]
                         flowargs.update({"fix": fixed_profile["fixed_source"], "nominal_value": float(cs["nominal_value"])})
                 elif "potential" in cs["label"].lower():
                     flowargs.update({'full_load_time_max': float(cs["full_load_time_max"]), "nominal_value": float(cs["nominal_value"])})
