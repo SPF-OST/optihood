@@ -118,6 +118,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         self._storageContentTS = {}
         self._storageContentPIT = {}                # TODO: check and update the code for calculation of storage content for pit
         self._storageContent = {}
+        self.__technology_efficiency = {}
         self.__inputs = {}                          # dictionary of list of inputs indexed by the building label
         self.__technologies = {}                    # dictionary of list of technologies indexed by the building label
         self.__capacitiesTransformersBuilding = {}  # dictionary of dictionary of optimized capacities of transformers indexed by the building label
@@ -275,18 +276,24 @@ class EnergyNetworkClass(solph.EnergySystem):
             self.__temperatureDHW = data["stratified_storage"].loc["dhwStorage", "temp_h"]
             self.__operationTemperatures = [self.__temperatureSH, self.__temperatureDHW]
         # Transformers conversion factors input power - output power
-        if any(data["transformers"]["label"] == "CHP"):
-            self.__chpEff = float(data["transformers"][data["transformers"]["label"] == "CHP"]["efficiency"].iloc[0].split(",")[1])
-        if any(data["transformers"]["label"] == "HP"):
-            self.__hpEff = float(data["transformers"][data["transformers"]["label"] == "HP"]["efficiency"].iloc[0])
-        if any(data["transformers"]["label"] == "GWHP"):
-            self.__gwhpEff = float(data["transformers"][data["transformers"]["label"] == "GWHP"]["efficiency"].iloc[0])
-        if any(data["transformers"]["label"] == "GasBoiler"):
-            self.__gbEff = float(data["transformers"][data["transformers"]["label"] == "GasBoiler"]["efficiency"].iloc[0].split(",")[0])
-        if any(data["transformers"][data["transformers"]["label"]=="ElectricRod"]["active"] == 1):
-            self.__elRodEff = float(data["transformers"][data["transformers"]["label"] == "ElectricRod"]["efficiency"].iloc[0])
-        if any(data["transformers"]["label"] == "Chiller"):
-            self.__chillerEff = float(data["transformers"][data["transformers"]["label"] == "Chiller"]["efficiency"].iloc[0])
+        components = ["CHP", "GWHP", "HP", "GasBoiler", "BiomassBoiler", "OilBoiler", "ElectricRod", "Chiller"]
+        for comp in components:
+            mask = data["transformers"]["label"].str.startswith(comp)
+            df = data["transformers"][mask]  # Filtered DataFrame
+            if not df.empty:
+                eff = df["efficiency"].iloc[0]
+                if comp == "CHP":
+                    value = float(eff.split(",")[1])
+                elif comp in ["GasBoiler", "OilBoiler", "BiomassBoiler"]:
+                    value = float(eff.split(",")[0])
+                else:
+                    value = float(eff)
+                if comp == "ElectricRod":
+                    if df["active"].iloc[0] == 1:
+                        self.__technology_efficiency[comp] = value
+                else:
+                    self.__technology_efficiency[comp] = value
+
         # Storage conversion L - kWh to display the L value
         if self._temperatureLevels:
             self.__Ltank = self._rho * self._c * (self.__operationTemperatures[1] - self.__operationTemperatures[0]) / 3600
@@ -668,63 +675,20 @@ class EnergyNetworkClass(solph.EnergySystem):
 
     def _compensateInputCapacities(self, capacitiesTransformers):
         # Input capacity -> output capacity
+        components = ["CHP", "GWHP", "HP", "GasBoiler", "BiomassBoiler", "OilBoiler", "ElectricRod", "Chiller"]
         for first, second in list(capacitiesTransformers):
-            if "CHP" in second:
-                for index, value in enumerate(self.nodes):
-                    if second == value.label:
-                        test = self.nodes[index].conversion_factors
-                        for t in test.keys():
-                            # if ("shSource" in t.label and not self._temperatureLevels) or ("heatStorageBus0" in t.label and self._temperatureLevels):
-                            if self._transformer_sh_output_flow_dict[second] in t.label:
-                                capacitiesTransformers[(second,t.label)]= capacitiesTransformers[(first,second)]*self.__chpEff
-                                del capacitiesTransformers[(first,second)]
-            elif "GWHP" in second and not any([c.isdigit() for c in second.split("__")[0]]):  # second condition added for splitted GSHPs
-                for index, value in enumerate(self.nodes):
-                    if second == value.label:
-                        test = self.nodes[index].conversion_factors
-                        for t in test.keys():
-                            # if (("shSource" in t.label or "shDemandBus" in t.label) and not self._temperatureLevels) or ("heatStorageBus0" in t.label and self._temperatureLevels):
-                            if self._transformer_sh_output_flow_dict[second] in t.label:
-                                capacitiesTransformers[(second, t.label)] = capacitiesTransformers[(first, second)] * self.__gwhpEff
-                                del capacitiesTransformers[(first, second)]
-            elif "HP" in second and "GWHP" not in second:
-                for index, value in enumerate(self.nodes):
-                    if second == value.label:
-                        test = self.nodes[index].conversion_factors
-                        for t in test.keys():
-                            # if ("shSource" in t.label and not self._temperatureLevels) or ("heatStorageBus0" in t.label and self._temperatureLevels):
-                            if self._transformer_sh_output_flow_dict[second] in t.label:
-                                capacitiesTransformers[(second, t.label)] = capacitiesTransformers[(first, second)]*self.__hpEff
-                                del capacitiesTransformers[(first, second)]
-            elif "Boiler" in second:
-                for index, value in enumerate(self.nodes):
-                    if second == value.label:
-                        test = self.nodes[index].conversion_factors
-                        for t in test.keys():
-                            # if ("shSource" in t.label and not self._temperatureLevels) or ("heatStorageBus0" in t.label and self._temperatureLevels):
-                            if self._transformer_sh_output_flow_dict[second] in t.label:
-                                capacitiesTransformers[(second, t.label)] = capacitiesTransformers[(
-                                first, second)] * self.__gbEff
-                                del capacitiesTransformers[(first, second)]
-            elif "ElectricRod" in second:
-                for index, value in enumerate(self.nodes):
-                    if second == value.label:
-                        test = self.nodes[index].conversion_factors
-                        for t in test.keys():
-                            # if ("shSource" in t.label and not self._temperatureLevels) or ("heatStorageBus0" in t.label and self._temperatureLevels):
-                            if self._transformer_sh_output_flow_dict[second] in t.label:
-                                capacitiesTransformers[(second, t.label)] = capacitiesTransformers[(
-                                first, second)] * self.__elRodEff
-                                del capacitiesTransformers[(first, second)]
-            elif "Chiller" in second:
-                for index, value in enumerate(self.nodes):
-                    if second == value.label:
-                        test = self.nodes[index].outputs
-                        for t in test.keys():
-                            # if "heatSink" in t.label:
-                            if self._transformer_sh_output_flow_dict[second] in t.label:
-                                capacitiesTransformers[(second, t.label)] = capacitiesTransformers[(first, second)] * self.__chillerEff
-                                del capacitiesTransformers[(first, second)]
+            for c in components:
+                if second.startswith(c):
+                    for index, value in enumerate(self.nodes):
+                        if second == value.label:
+                            if second.startswith("Chiller"):
+                                test = self.nodes[index].outputs
+                            else:
+                                test = self.nodes[index].conversion_factors
+                            for t in test.keys():
+                                if self._transformer_sh_output_flow_dict[second] in t.label:
+                                    capacitiesTransformers[(second,t.label)]= capacitiesTransformers[(first,second)]*self.__technology_efficiency[c]
+                                    del capacitiesTransformers[(first,second)]
         return capacitiesTransformers
 
     def _compensateStorageCapacities(self, capacitiesStorages):
