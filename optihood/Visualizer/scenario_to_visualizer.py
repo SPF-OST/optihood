@@ -764,9 +764,8 @@ class PVConverter(ScenarioToVisualizerAbstract):
     heat_impact: float
     elec_impact: float
     impact_cap: float
-    # TODO: make roof_area and zenith_angle optional
-    # roof_area: float
-    # zenith_angle: float
+    roof_area: float
+    zenith_angle: float
 
     def __post_init__(self):
         super().__post_init__()
@@ -793,9 +792,8 @@ class PVConverter(ScenarioToVisualizerAbstract):
                              solar.heat_impact.value: self.heat_impact,
                              solar.elec_impact.value: self.elec_impact,
                              solar.impact_cap.value: self.impact_cap,
-                             # TODO: make roof_area and zenith_angle optional
-                             # solar.roof_area.value: self.roof_area,
-                             # solar.zenith_angle.value: self.zenith_angle,
+                             solar.roof_area.value: self.roof_area,
+                             solar.zenith_angle.value: self.zenith_angle,
                              'color': self.color,
                              },
                     "classes": "solar"}
@@ -827,9 +825,8 @@ class SolarCollectorConverter(ScenarioToVisualizerAbstract):
     heat_impact: float
     elec_impact: float
     impact_cap: float
-    # TODO: make roof_area and zenith_angle optional
-    # roof_area: float
-    # zenith_angle: float
+    roof_area: float
+    zenith_angle: float
 
     def __post_init__(self):
         super().__post_init__()
@@ -859,9 +856,8 @@ class SolarCollectorConverter(ScenarioToVisualizerAbstract):
                              solar.heat_impact.value: self.heat_impact,
                              solar.elec_impact.value: self.elec_impact,
                              solar.impact_cap.value: self.impact_cap,
-                             # TODO: make roof_area and zenith_angle optional
-                             # solar.roof_area.value: self.roof_area,
-                             # solar.zenith_angle.value: self.zenith_angle,
+                             solar.roof_area.value: self.roof_area,
+                             solar.zenith_angle.value: self.zenith_angle,
                              'color': self.color,
                              },
                     "classes": "solar"}
@@ -899,6 +895,12 @@ class SolarConverter(ScenarioToVisualizerAbstract):
 
         if 'active' not in df.columns:
             df['active'] = True
+
+        if 'roof_area' not in df.columns:
+            df['roof_area'] = False
+
+        if 'zenith_angle' not in df.columns:
+            df['zenith_angle'] = False
 
         for i, line in df.iterrows():
             if not line['active']:
@@ -941,9 +943,8 @@ class SolarConverter(ScenarioToVisualizerAbstract):
                            heat_impact=line[solar.heat_impact.value],
                            elec_impact=line[solar.elec_impact.value],
                            impact_cap=line[solar.impact_cap.value],
-                           # TODO: make roof_area and zenith_angle optional
-                           # roof_area=line[solar.roof_area.value],
-                           # zenith_angle=line[solar.zenith_angle.value]
+                           roof_area=line[solar.roof_area.value],
+                           zenith_angle=line[solar.zenith_angle.value]
                            )
 
     @staticmethod
@@ -973,9 +974,8 @@ class SolarConverter(ScenarioToVisualizerAbstract):
                                        a_1=line[solar.a_1.value],
                                        a_2=line[solar.a_2.value],
                                        temp_collector_inlet=line[solar.temp_collector_inlet.value],
-                                       # TODO: make roof_area and zenith_angle optional
-                                       # roof_area=line[solar.roof_area.value],
-                                       # zenith_angle=line[solar.zenith_angle.value]
+                                       roof_area=line[solar.roof_area.value],
+                                       zenith_angle=line[solar.zenith_angle.value]
                                        )
 
 
