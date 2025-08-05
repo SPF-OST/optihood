@@ -223,6 +223,12 @@ class StorageTypes(_enum.StrEnum):
     electricalStorage = "electricalStorage"
     shStorage = "shStorage"
     dhwStorage = "dhwStorage"
+    pitStorage = "pitStorage"
+    tankGenericStorage = "tankGenericStorage"
+    pitGenericStorage = "pitGenericStorage"
+    boreholeGenericStorage = "boreholeGenericStorage"
+    aquifierGenericStorage = "aquifierGenericStorage"
+    thermalStorage = "thermalStorage"
 
 
 class StratifiedStorageLabels(_enum.StrEnum):
@@ -282,10 +288,18 @@ class TransformerLabels(_enum.StrEnum):
 
 
 class TransformerTypes(_enum.StrEnum):
+    # TODO: currently the investment object is applied to the input flow for all transformer types
+    # If this changes, we need to split this class into
+    # (1) transformers with investment on inflow (this class would then be used while converting input capacities to output capacities)
+    # (2) transformers with investment on outflow
     CHP = "CHP"
     HP = "HP"
     GWHP = "GWHP"
     GasBoiler = "GasBoiler"
+    BiomassBoiler = "BiomassBoiler"
+    OilBoiler = "OilBoiler"
+    ElectricRod = "ElectricRod"
+    Chiller = "Chiller"
 
 
 class BuildingModelParameters(_enum.StrEnum):
