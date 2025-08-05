@@ -764,6 +764,7 @@ class PVConverter(ScenarioToVisualizerAbstract):
     heat_impact: float
     elec_impact: float
     impact_cap: float
+    # TODO: make roof_area and zenith_angle optional
     # roof_area: float
     # zenith_angle: float
 
@@ -792,6 +793,7 @@ class PVConverter(ScenarioToVisualizerAbstract):
                              solar.heat_impact.value: self.heat_impact,
                              solar.elec_impact.value: self.elec_impact,
                              solar.impact_cap.value: self.impact_cap,
+                             # TODO: make roof_area and zenith_angle optional
                              # solar.roof_area.value: self.roof_area,
                              # solar.zenith_angle.value: self.zenith_angle,
                              'color': self.color,
@@ -825,6 +827,7 @@ class SolarCollectorConverter(ScenarioToVisualizerAbstract):
     heat_impact: float
     elec_impact: float
     impact_cap: float
+    # TODO: make roof_area and zenith_angle optional
     # roof_area: float
     # zenith_angle: float
 
@@ -856,6 +859,7 @@ class SolarCollectorConverter(ScenarioToVisualizerAbstract):
                              solar.heat_impact.value: self.heat_impact,
                              solar.elec_impact.value: self.elec_impact,
                              solar.impact_cap.value: self.impact_cap,
+                             # TODO: make roof_area and zenith_angle optional
                              # solar.roof_area.value: self.roof_area,
                              # solar.zenith_angle.value: self.zenith_angle,
                              'color': self.color,
@@ -937,6 +941,7 @@ class SolarConverter(ScenarioToVisualizerAbstract):
                            heat_impact=line[solar.heat_impact.value],
                            elec_impact=line[solar.elec_impact.value],
                            impact_cap=line[solar.impact_cap.value],
+                           # TODO: make roof_area and zenith_angle optional
                            # roof_area=line[solar.roof_area.value],
                            # zenith_angle=line[solar.zenith_angle.value]
                            )
@@ -968,6 +973,7 @@ class SolarConverter(ScenarioToVisualizerAbstract):
                                        a_1=line[solar.a_1.value],
                                        a_2=line[solar.a_2.value],
                                        temp_collector_inlet=line[solar.temp_collector_inlet.value],
+                                       # TODO: make roof_area and zenith_angle optional
                                        # roof_area=line[solar.roof_area.value],
                                        # zenith_angle=line[solar.zenith_angle.value]
                                        )
