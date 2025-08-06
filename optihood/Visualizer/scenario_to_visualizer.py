@@ -15,6 +15,7 @@ from optihood.entities import StorageLabels as store
 from optihood.entities import SolarLabels as solar
 from optihood.entities import SolarTypes
 from optihood.entities import LinksLabels as link
+from optihood.entities import StorageTypes
 
 
 class ScenarioDataTypes(_enum.StrEnum):
@@ -97,8 +98,7 @@ def get_energy_type_based_on_both_labels(label: str, other_label: str) -> Energy
 
     transformer_parts = ["HP", "solar", "GasBoiler", "BiomassBoiler", "OilBoiler", "Dummy", "HP_d", "GWHP_d"]
     source_parts = ["Dummy", "wasteheatPotential", "wasteIncineratorPotential"]
-    storage_parts = ["pitStorage", "thermalStorage", "tankStorage", "boreholeStorage", "aquiferStorage",
-                     "pitGenericStorage", "tankGenericStorage", "boreholeGenericStorage", "aquiferGenericStorage"]
+    storage_parts = [s.value for s in StorageTypes if s not in [StorageTypes.shStorage, StorageTypes.dhwStorage, StorageTypes.electricalStorage]]
 
     all_parts = transformer_parts + source_parts + storage_parts
 

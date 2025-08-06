@@ -435,10 +435,9 @@ class ProfileAndOtherDataReader:
         return nodesData
 
     def maybe_add_fixed_source_profiles(self, nodesData, cluster_size, time_index: _pd.DatetimeIndex):
-        if "fixed" in nodesData["commodity_sources"].columns:
-            if not (nodesData["commodity_sources"]["fixed"].eq(1)).any():
-                return nodesData
-        else:
+        if not "fixed" in nodesData["commodity_sources"].columns:
+            return nodesData
+        if not (nodesData["commodity_sources"]["fixed"].eq(1)).any():
             return nodesData
 
         fixed_source_profiles_path = self.get_values_from_dataframe(
