@@ -343,35 +343,35 @@ class Building:
                                                               outputs={self.__busDict[outputBusLabel]: solph.Flow()},
                                                       conversion_factors={self.__busDict[outputBusLabel]: float(gs["efficiency"])}))
 
-    def addSource(self, data, data_elimpact, data_elcost, data_natGascost, data_natGasImpact, opt, mergeHeatSourceSink, mergeLinkBuses):
+    def addSource(self, data, data_elimpact, data_elcost, data_natGascost, data_natGasImpact, timeseries, opt, mergeHeatSourceSink, mergeLinkBuses):
         # Create Source objects from table 'commodity sources'
 
         for i, cs in data.iterrows():
-                sourceLabel = cs["label"]+'__' + self.__buildingLabel
+                label = cs["label"]+'__' + self.__buildingLabel
                 if (mergeHeatSourceSink and cs["to"] in self.__heatSourceSinkBuses) or \
                         (mergeLinkBuses and cs["to"] in self.__linkBuses):
                     outputBusLabel = cs["to"]
                 else:
                     outputBusLabel = cs["to"] + '__' + self.__buildingLabel
                 if opt == "costs":
-                    if 'electricity' in cs["label"]:
+                    if 'electricity' in label:
                         varCosts = data_elcost["cost"]
-                    elif 'naturalGas' in cs['label']:
+                    elif 'naturalGas' in label:
                         varCosts = data_natGascost["cost"]
                     else:
                         varCosts = float(cs["variable costs"])
-                elif 'electricity' in cs["label"]:
+                elif 'electricity' in label:
                     varCosts = data_elimpact["impact"]
-                elif 'naturalGas' in cs["label"]:
+                elif 'naturalGas' in label:
                     varCosts = data_natGasImpact["impact"]
                 else:
                     varCosts = float(cs["CO2 impact"])
 
-                if 'electricity' in cs["label"]:
+                if 'electricity' in label:
                     envImpactPerFlow = data_elimpact["impact"]
                     envParameter = data_elimpact["impact"]
                     costParameter = data_elcost["cost"]
-                elif 'naturalGas' in cs['label']:
+                elif 'naturalGas' in label:
                     envImpactPerFlow = data_natGasImpact["impact"]
                     envParameter = data_natGasImpact["impact"]
                     costParameter = data_natGascost["cost"]
@@ -380,18 +380,24 @@ class Building:
                     envParameter = float(cs["CO2 impact"])
                     costParameter = float(cs["variable costs"])
                     # add the inputs (natural gas, wood, etc...) to self.__inputs
-                    self.__inputs.append([sourceLabel, outputBusLabel])
+                    self.__inputs.append([label, outputBusLabel])
                 flowargs = {'variable_costs':varCosts,
                             'custom_attributes': {'env_per_flow': envImpactPerFlow},}
-                if "potential" in cs["label"].lower():
-                    flowargs.update({'full_load_time_max': cs["full_load_time_max"], "nominal_value": cs["nominal_value"]})
+                if "fixed" in cs:
+                    if pd.notna(cs["fixed"]) and int(cs["fixed"])==1:
+                        if "waste" in label.lower():
+                            fixed_profile = timeseries[f"waste__{self.__buildingLabel}"]
+                        flowargs.update({"fix": fixed_profile["fixed_source"], "nominal_value": float(cs["nominal_value"])})
+                elif "potential" in label.lower():
+                    flowargs.update({'full_load_time_max': float(cs["full_load_time_max"]), "nominal_value": float(cs["nominal_value"])})
+
                 self.__nodesList.append(solph.components.Source(
-                    label=sourceLabel,
+                    label=label,
                     outputs={self.__busDict[outputBusLabel]: solph.Flow(**flowargs)}))
 
                 # set environment and cost parameters
-                self.__envParam[sourceLabel] = envParameter
-                self.__costParam[sourceLabel] = costParameter
+                self.__envParam[label] = envParameter
+                self.__costParam[label] = costParameter
 
     def addSink(self, data, timeseries, buildingModelParams, mergeLinkBuses, mergeHeatSourceSink, temperatureLevels):
         # Create Sink objects with fixed time series from 'demand' table
@@ -775,11 +781,13 @@ class Building:
     def addStorage(self, data, storageParams, ambientTemperature, opt, mergeLinkBuses, dispatchMode, temperatureLevels):
         sList = []
         for i, s in data.iterrows():
-                storageLabel = s["label"]+'__'+self.__buildingLabel
-                if temperatureLevels and "thermalStorage" in s["label"]:
+                label = LabelStringManipulator(s["label"]+'__'+self.__buildingLabel)
+                storageLabel = label.full_name
+                label_prefix_without_digits = label.strip_trailing_digits_from_prefix()
+                if temperatureLevels and "thermalStorage" in storageLabel:
                     inputBuses = [self.__busDict[iLabel + '__' + self.__buildingLabel] for iLabel in s["from"].split(",")]
                     outputBuses = [self.__busDict[oLabel + '__' + self.__buildingLabel] for oLabel in s["to"].split(",")]
-                    storTemperatures = storageParams["stratified_storage"].at[s["label"],"temp_h"].split(",")
+                    storTemperatures = storageParams["stratified_storage"].at[label_prefix_without_digits,"temp_h"].split(",")
                     self.__technologies.append([outputBuses[0].label, f'dummy_{storageLabel.replace("thermalStorage",f"thermalStorage{int(storTemperatures[0])}")}'])
                     self.__technologies.append([outputBuses[1].label, storageLabel.replace("thermalStorage",f"thermalStorage{int(storTemperatures[-1])}")])
                 else:
@@ -797,7 +805,7 @@ class Building:
                 self.__costParam[storageLabel] = [self._calculateInvest(s)[0], self._calculateInvest(s)[1]]
                 self.__envParam[storageLabel] = [float(s["heat_impact"]), float(s["elec_impact"]), envImpactPerCapacity]
 
-                if "electricalStorage" in s["label"]:
+                if "electricalStorage" in storageLabel:
                     self.__nodesList.append(ElectricalStorage(self.__buildingLabel, self.__busDict[inputBusLabel],
                                                               self.__busDict[outputBusLabel], float(s["capacity loss"]),
                                                             float(s["initial capacity"]), float(s["efficiency inflow"]),
@@ -808,7 +816,7 @@ class Building:
                                                             float(s["elec_impact"])*(opt == "env"),
                                                             float(s["elec_impact"]), envImpactPerCapacity, dispatchMode))
 
-                elif ("dhwStorage" in s["label"] or "shStorage" in s["label"]) and not temperatureLevels:
+                elif ("dhwStorage" in storageLabel or "shStorage" in storageLabel) and not temperatureLevels:
                     self.__nodesList.append(ThermalStorage(storageLabel,
                                                            storageParams["stratified_storage"], self.__busDict[inputBusLabel],
                                                            self.__busDict[outputBusLabel],
@@ -817,7 +825,7 @@ class Building:
                                                         self._calculateInvest(s)[0]*(opt == "costs") + envImpactPerCapacity*(opt == "env"),
                                                         self._calculateInvest(s)[1]*(opt == "costs"), float(s["heat_impact"])*(opt == "env"),
                                                         float(s["heat_impact"]), envImpactPerCapacity, dispatchMode))
-                elif "pitStorage" in s["label"] and not temperatureLevels:
+                elif "pitStorage" in storageLabel and not temperatureLevels:
                     self.__nodesList.append(ThermalStoragePit(storageLabel,
                                                            storageParams["stratified_storage"], self.__busDict[inputBusLabel],
                                                            self.__busDict[outputBusLabel],
@@ -827,7 +835,7 @@ class Building:
                                                         self._calculateInvest(s)[1]*(opt == "costs"), float(s["heat_impact"])*(opt == "env"),
                                                         float(s["heat_impact"]), envImpactPerCapacity, dispatchMode))
 
-                elif "thermalStorage" in s["label"] and temperatureLevels:
+                elif "thermalStorage" in storageLabel and temperatureLevels:
                     storage = ThermalStorageTemperatureLevels(storageLabel,
                                storageParams["stratified_storage"], inputBuses,
                                outputBuses,
@@ -843,7 +851,7 @@ class Building:
                     for i in range(len(inputBuses)):
                         self.__nodesList.append(storage.getStorageLevel(i))
                         self.__nodesList.extend(storage.getDummyComponents(i))
-                elif "iceStorage" in s["label"]:
+                elif "iceStorage" in storageLabel:
                     if not np.isnan(s["initial capacity"]):
                         initial_ice_frac = float(s["initial capacity"])
                     else:
@@ -855,20 +863,21 @@ class Building:
                                    output=self.__busDict[outputBusLabel],
                                    tStorInit=float(s[_ent.StorageLabels.initial_temp]),
                                    fIceInit=initial_ice_frac,
-                                   fMax=float(storageParams["ice_storage"].at[s["label"], "max_ice_fraction"]),
-                                   rho=float(storageParams["ice_storage"].at[s["label"], "rho_fluid"]),
+                                   fMax=float(storageParams["ice_storage"].at[label_prefix_without_digits, "max_ice_fraction"]),
+                                   rho=float(storageParams["ice_storage"].at[label_prefix_without_digits, "rho_fluid"]),
                                    V=float(s["capacity max"])/1000,  # conversion from L to m3
-                                   hfluid=float(storageParams["ice_storage"].at[s["label"], "h_fluid"]),
-                                   cp=float(storageParams["ice_storage"].at[s["label"], "cp_fluid"]),
+                                   hfluid=float(storageParams["ice_storage"].at[label_prefix_without_digits, "h_fluid"]),
+                                   cp=float(storageParams["ice_storage"].at[label_prefix_without_digits, "cp_fluid"]),
                                    Tamb=ambientTemperature,
-                                   UAtank=float(storageParams["ice_storage"].at[s["label"], "UA_tank"]),
-                                   inflow_conversion_factor=float(storageParams["ice_storage"].at[s["label"], "inflow_conversion_factor"]),
-                                   outflow_conversion_factor=float(storageParams["ice_storage"].at[s["label"], "outflow_conversion_factor"])
+                                   UAtank=float(storageParams["ice_storage"].at[label_prefix_without_digits, "UA_tank"]),
+                                   inflow_conversion_factor=float(storageParams["ice_storage"].at[label_prefix_without_digits, "inflow_conversion_factor"]),
+                                   outflow_conversion_factor=float(storageParams["ice_storage"].at[label_prefix_without_digits, "outflow_conversion_factor"])
                                    )
                     )
 
-                elif any(storage in s["label"] for storage in ["tankGenericStorage", "boreholeGenericStorage",
-                                                               "pitGenericStorage", "aquiferGenericStorage"]):
+                elif (any(storage in storageLabel for storage in ["tankGenericStorage", "boreholeGenericStorage",
+                                                               "pitGenericStorage", "aquiferGenericStorage"]) and
+                      not temperatureLevels):
                     # These are generic storage models with constant losses per timestep
                     # These models do not include a detailed geometry of the storage type
                     is_tank = False

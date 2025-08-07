@@ -118,6 +118,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         self._storageContentTS = {}
         self._storageContentPIT = {}                # TODO: check and update the code for calculation of storage content for pit
         self._storageContent = {}
+        self.__technology_efficiency = {}
         self.__inputs = {}                          # dictionary of list of inputs indexed by the building label
         self.__technologies = {}                    # dictionary of list of technologies indexed by the building label
         self.__capacitiesTransformersBuilding = {}  # dictionary of dictionary of optimized capacities of transformers indexed by the building label
@@ -275,18 +276,25 @@ class EnergyNetworkClass(solph.EnergySystem):
             self.__temperatureDHW = data["stratified_storage"].loc["dhwStorage", "temp_h"]
             self.__operationTemperatures = [self.__temperatureSH, self.__temperatureDHW]
         # Transformers conversion factors input power - output power
-        if any(data["transformers"]["label"] == "CHP"):
-            self.__chpEff = float(data["transformers"][data["transformers"]["label"] == "CHP"]["efficiency"].iloc[0].split(",")[1])
-        if any(data["transformers"]["label"] == "HP"):
-            self.__hpEff = float(data["transformers"][data["transformers"]["label"] == "HP"]["efficiency"].iloc[0])
-        if any(data["transformers"]["label"] == "GWHP"):
-            self.__gwhpEff = float(data["transformers"][data["transformers"]["label"] == "GWHP"]["efficiency"].iloc[0])
-        if any(data["transformers"]["label"] == "GasBoiler"):
-            self.__gbEff = float(data["transformers"][data["transformers"]["label"] == "GasBoiler"]["efficiency"].iloc[0].split(",")[0])
-        if any(data["transformers"][data["transformers"]["label"]=="ElectricRod"]["active"] == 1):
-            self.__elRodEff = float(data["transformers"][data["transformers"]["label"] == "ElectricRod"]["efficiency"].iloc[0])
-        if any(data["transformers"]["label"] == "Chiller"):
-            self.__chillerEff = float(data["transformers"][data["transformers"]["label"] == "Chiller"]["efficiency"].iloc[0])
+        for comp in _ent.TransformerTypes:
+            mask = data[_ent.NodeKeys.transformers.value][_ent.TransformerLabels.label.value].str.startswith(comp)
+            df = data[_ent.NodeKeys.transformers.value][mask]  # Filtered DataFrame
+            if not df.empty:
+                eff = df[_ent.TransformerLabels.efficiency.value].iloc[0]
+                if comp == _ent.TransformerTypes.CHP.value:
+                    # electricity bus comes before heating bus(es) for CHP
+                    value = float(eff.split(",")[1])
+                elif comp in [_ent.TransformerTypes.GasBoiler.value, _ent.TransformerTypes.OilBoiler.value, _ent.TransformerTypes.BiomassBoiler.value]:
+                    value = float(eff.split(",")[0])
+                else:
+                    value = float(eff)
+                if comp == _ent.TransformerTypes.ElectricRod.value:
+                    if df[_ent.TransformerLabels.active.value].iloc[0] == 1:
+                        # TODO: check why ElectricRod is not assumed active like other components
+                        self.__technology_efficiency[comp] = value
+                else:
+                    self.__technology_efficiency[comp] = value
+
         # Storage conversion L - kWh to display the L value
         if self._temperatureLevels:
             self.__Ltank = self._rho * self._c * (self.__operationTemperatures[1] - self.__operationTemperatures[0]) / 3600
@@ -313,7 +321,27 @@ class EnergyNetworkClass(solph.EnergySystem):
         # Storage conversion m3 - kWh for ice storage
         if data['storages']['label'].str.match(r'^iceStorage(\d+)?$').any():
             self.__m3IceStorage = self._rho * 1000 * self._c * (10 - 0) / 3600
+        self._generate_transformer_sh_output_flow_dict(data["transformers"])
         self._addBuildings(data, opt, mergeLinkBuses, mergeBuses, mergeHeatSourceSink, includeCarbonBenefits, clusterSize)
+
+    def _generate_transformer_sh_output_flow_dict(self, energy_conversion_tech_data):
+        """
+        Creates a dictionary that maps each transformer component (transformer label and
+        associated building number as dict keys) to its corresponding space heating output
+        bus label.
+
+        The mapping is stored in `self._transformer_sh_output_flow`
+
+        This mapping is needed to update the obtained input capacities in the results to output capacities
+        """
+        self._transformer_sh_output_flow = {}
+        for i, r in energy_conversion_tech_data.iterrows():
+            dict_key = f"{r[_ent.TransformerLabels.label]}__Building{r[_ent.TransformerLabels.building]}"
+            if r[_ent.TransformerLabels.label].startswith(_ent.TransformerTypes.CHP):
+                sh_output_bus_label = f"{r[_ent.TransformerLabels.to].split(",")[1]}__Building{r[_ent.TransformerLabels.building]}"
+            else:
+                sh_output_bus_label = f"{r[_ent.TransformerLabels.to].split(",")[0]}__Building{r[_ent.TransformerLabels.building]}"
+            self._transformer_sh_output_flow[dict_key] = sh_output_bus_label
 
     def _addBuildings(self, data, opt, mergeLinkBuses, mergeBuses, mergeHeatSourceSink, includeCarbonBenefits, clusterSize):
         numberOfBuildings = max(data["buses"]["building"])
@@ -335,12 +363,14 @@ class EnergyNetworkClass(solph.EnergySystem):
                 if mergeHeatSourceSink: merge = 'heatSourceSink'
                 b.addToBusDict(busDictBuilding1, merge)
             b.addGridSeparation(data["grid_connection"][data["grid_connection"]["building"] == i], mergeLinkBuses)
+            natGasCost = natGasImpact = None
             if "natGas_cost" in data:
                 natGasCost = data["natGas_cost"]
                 natGasImpact = data["natGas_impact"]
-            else:
-                natGasCost = natGasImpact = None
-            b.addSource(data["commodity_sources"][data["commodity_sources"]["building"] == i], data["electricity_impact"], data["electricity_cost"], natGasCost, natGasImpact, opt, mergeHeatSourceSink, mergeLinkBuses)
+            fixed_sources_data = None
+            if "fixed_sources" in data:
+                fixed_sources_data = {k: v for k, v in data["fixed_sources"].items() if buildingLabel in k}
+            b.addSource(data["commodity_sources"][data["commodity_sources"]["building"] == i], data["electricity_impact"], data["electricity_cost"], natGasCost, natGasImpact, fixed_sources_data, opt, mergeHeatSourceSink, mergeLinkBuses)
             if i in data["building_model"]:
                 bmdata = data["building_model"][i]
             else:
@@ -550,23 +580,13 @@ class EnergyNetworkClass(solph.EnergySystem):
         return result
 
     def _updateCapacityDictInputInvestment(self, transformerFlowCapacityDict):
-        components = ["CHP", "GWHP", "HP", "GasBoiler", "ElectricRod", "Chiller"]
         for inflow, outflow in list(transformerFlowCapacityDict):
             index = (inflow, outflow)
-            if "__" in str(inflow):
-                buildingLabel = str(inflow).split("__")[1]
-            elif "__" in str(outflow):
-                buildingLabel = str(outflow).split("__")[1]
-            if any(c in str(outflow) for c in components):
-                if "Chiller" in str(outflow):
-                    newoutFlow = f"heatSinkBus__{buildingLabel}"
-                elif self._temperatureLevels:
-                    newoutFlow = f"heatStorageBus0__{buildingLabel}"
-                else:
-                    newoutFlow = f"shSourceBus__{buildingLabel}"
-                newIndex = (outflow,newoutFlow)
-                transformerFlowCapacityDict[newIndex] = transformerFlowCapacityDict.pop(index)
-            if 'elSource_pvt' in str(inflow):   # remove PVT electrical capacity
+            if any(c in str(outflow) for c in _ent.TransformerTypes):
+                new_out_flow = self._transformer_sh_output_flow[str(outflow)]
+                new_index = (outflow,new_out_flow)
+                transformerFlowCapacityDict[new_index] = transformerFlowCapacityDict.pop(index)
+            if _ent.BusTypes.electricitySourceBusPVT in str(inflow):   # remove PVT electrical capacity
                 transformerFlowCapacityDict.pop(index)
         return transformerFlowCapacityDict
 
@@ -602,14 +622,14 @@ class EnergyNetworkClass(solph.EnergySystem):
         for x in storageCapacityDict:
             index = str(x)
             if x in storageList:  # useful when we want to implement two or more storage units of the same type
-                if str(x).startswith('pit'):
+                if str(x).startswith(_ent.StorageTypes.pitStorage):
                     capacitiesInvestedStorages[index] = capacitiesInvestedStorages[index] + \
                                                         optimizationModel.GenericInvestmentStorageBlockPit.invest[x].value
                 else:
                     capacitiesInvestedStorages[index] = capacitiesInvestedStorages[index] + \
                                                         optimizationModel.GenericInvestmentStorageBlock.invest[x].value
             else:
-                if str(x).startswith('pit'):
+                if str(x).startswith(_ent.StorageTypes.pitStorage):
                     capacitiesInvestedStorages[index] = optimizationModel.GenericInvestmentStorageBlockPit.invest[x].value
                 else:
                     capacitiesInvestedStorages[str(x)] = optimizationModel.GenericInvestmentStorageBlock.invest[x].value
@@ -650,57 +670,19 @@ class EnergyNetworkClass(solph.EnergySystem):
 
     def _compensateInputCapacities(self, capacitiesTransformers):
         # Input capacity -> output capacity
-        for first, second in list(capacitiesTransformers):
-            if "CHP" in second:
-                for index, value in enumerate(self.nodes):
-                    if second == value.label:
-                        test = self.nodes[index].conversion_factors
-                        for t in test.keys():
-                            if ("shSource" in t.label and not self._temperatureLevels) or ("heatStorageBus0" in t.label and self._temperatureLevels):
-                                capacitiesTransformers[(second,t.label)]= capacitiesTransformers[(first,second)]*self.__chpEff
-                                del capacitiesTransformers[(first,second)]
-            elif "GWHP" in second and not any([c.isdigit() for c in second.split("__")[0]]):  # second condition added for splitted GSHPs
-                for index, value in enumerate(self.nodes):
-                    if second == value.label:
-                        test = self.nodes[index].conversion_factors
-                        for t in test.keys():
-                            if (("shSource" in t.label or "shDemandBus" in t.label) and not self._temperatureLevels) or ("heatStorageBus0" in t.label and self._temperatureLevels):
-                                capacitiesTransformers[(second, t.label)] = capacitiesTransformers[(first, second)] * self.__gwhpEff
-                                del capacitiesTransformers[(first, second)]
-            elif "HP" in second and "GWHP" not in second:
-                for index, value in enumerate(self.nodes):
-                    if second == value.label:
-                        test = self.nodes[index].conversion_factors
-                        for t in test.keys():
-                            if ("shSource" in t.label and not self._temperatureLevels) or ("heatStorageBus0" in t.label and self._temperatureLevels):
-                                capacitiesTransformers[(second, t.label)] = capacitiesTransformers[(first, second)]*self.__hpEff
-                                del capacitiesTransformers[(first, second)]
-            elif "GasBoiler" in second:
-                for index, value in enumerate(self.nodes):
-                    if second == value.label:
-                        test = self.nodes[index].conversion_factors
-                        for t in test.keys():
-                            if ("shSource" in t.label and not self._temperatureLevels) or ("heatStorageBus0" in t.label and self._temperatureLevels):
-                                capacitiesTransformers[(second, t.label)] = capacitiesTransformers[(
-                                first, second)] * self.__gbEff
-                                del capacitiesTransformers[(first, second)]
-            elif "ElectricRod" in second:
-                for index, value in enumerate(self.nodes):
-                    if second == value.label:
-                        test = self.nodes[index].conversion_factors
-                        for t in test.keys():
-                            if ("shSource" in t.label and not self._temperatureLevels) or ("heatStorageBus0" in t.label and self._temperatureLevels):
-                                capacitiesTransformers[(second, t.label)] = capacitiesTransformers[(
-                                first, second)] * self.__elRodEff
-                                del capacitiesTransformers[(first, second)]
-            elif "Chiller" in second:
-                for index, value in enumerate(self.nodes):
-                    if second == value.label:
-                        test = self.nodes[index].outputs
-                        for t in test.keys():
-                            if "heatSink" in t.label:
-                                capacitiesTransformers[(second, t.label)] = capacitiesTransformers[(first, second)] * self.__chillerEff
-                                del capacitiesTransformers[(first, second)]
+        for inflow_bus, transformer in list(capacitiesTransformers):
+            for c in _ent.TransformerTypes:
+                if transformer.startswith(c):
+                    for index, value in enumerate(self.nodes):
+                        if transformer == value.label:
+                            if transformer.startswith(_ent.TransformerTypes.Chiller):
+                                all_buses_connected_to_transformer = self.nodes[index].outputs
+                            else:
+                                all_buses_connected_to_transformer = self.nodes[index].conversion_factors
+                            for b in all_buses_connected_to_transformer.keys():
+                                if self._transformer_sh_output_flow[transformer] in b.label:
+                                    capacitiesTransformers[(transformer,b.label)]= capacitiesTransformers[(inflow_bus,transformer)]*self.__technology_efficiency[c]
+                                    del capacitiesTransformers[(inflow_bus,transformer)]
         return capacitiesTransformers
 
     def _compensateStorageCapacities(self, capacitiesStorages):
@@ -1006,54 +988,54 @@ class EnergyNetworkClass(solph.EnergySystem):
             self._storageContent[building].rename(columns={"storage_content": new_col_name}, inplace=True)
 
     def printInvestedCapacities(self, capacitiesInvestedTransformers, capacitiesInvestedStorages):
-        if self._temperatureLevels:
-            shOutputLabel = "heatStorageBus0__"
-        else:
-            shOutputLabel = "shSourceBus__"
         storage_types = {
-            "tankStorage": "Tank Storage",
-            "pitStorage": "Pit Storage",
-            "boreholeStorage": "Borehole Storage",
-            "electricalStorage": "Electrical Storage",
-            "dhwStorage": "DHW Storage Tank",
-            "shStorage": "SH Storage Tank",
-            "thermalStorage": "Multilayer Thermal Storage Tank"
+            _ent.StorageTypes.tankGenericStorage.value: "Tank Generic Storage",
+            _ent.StorageTypes.pitStorage.value: "Pit Storage",
+            _ent.StorageTypes.pitGenericStorage.value: "Pit Generic Storage",
+            _ent.StorageTypes.boreholeGenericStorage.value: "Borehole Generic Storage",
+            _ent.StorageTypes.aquifierGenericStorage.value: "Aquifier Generic Storage",
+            _ent.StorageTypes.electricalStorage.value: "Electrical Storage",
+            _ent.StorageTypes.dhwStorage.value: "DHW Storage Tank",
+            _ent.StorageTypes.shStorage.value: "SH Storage Tank",
+            _ent.StorageTypes.thermalStorage.value: "Multilayer Thermal Storage Tank"
         }
+
+        transformer_types = {
+            _ent.TransformerTypes.HP.value: "Air Source Heat Pump",
+            _ent.TransformerTypes.GWHP.value: "Water Source Heat Pump",
+            _ent.TransformerTypes.ElectricRod.value: "Electric Rod",
+            _ent.TransformerTypes.CHP.value: "CHP",
+            _ent.TransformerTypes.GasBoiler.value: "Gas Boiler",
+            _ent.TransformerTypes.BiomassBoiler.value: "Biomass Boiler",
+            _ent.TransformerTypes.OilBoiler.value: "Oil Boiler",
+        }
+
+
         for b in range(len(self.__buildings)):
             buildingLabel = "Building" + str(b + 1)
             print("************** Optimized Capacities for {} **************".format(buildingLabel))
-            if ("HP__" + buildingLabel, shOutputLabel + buildingLabel) in capacitiesInvestedTransformers:
-                investSH = capacitiesInvestedTransformers[("HP__" + buildingLabel, shOutputLabel + buildingLabel)]
-                if investSH > 0.05:
-                    print("Invested in {:.1f} kW HP.".format(investSH))
-                    print("     Annual COP = {:.1f}".format(self.__annualCopHP[buildingLabel]))
-            if ("GWHP__" + buildingLabel, shOutputLabel + buildingLabel) in capacitiesInvestedTransformers:
-                investSH = capacitiesInvestedTransformers[("GWHP__" + buildingLabel, shOutputLabel + buildingLabel)]
-                if investSH > 0.05:
-                    print("Invested in {:.1f} kW GWHP.".format(investSH))
-                    print("     Annual COP = {:.1f}".format(self.__annualCopGWHP[buildingLabel]))
-            if (f"GWHP{str(self.__temperatureSH)}__" + buildingLabel, shOutputLabel + buildingLabel) in capacitiesInvestedTransformers:
-                investSH = capacitiesInvestedTransformers[(f"GWHP{str(self.__temperatureSH)}__" + buildingLabel, shOutputLabel + buildingLabel)]
-                if investSH > 0.05:
-                    print("Invested in {:.1f} kW GWHP{}.".format(investSH, str(self.__temperatureSH)))
-                    print("     Annual COP = {:.1f}".format(self.__annualCopGWHP[buildingLabel][0]))
-            if (f"GWHP{str(self.__temperatureDHW)}__" + buildingLabel, "dhwStorageBus__" + buildingLabel) in capacitiesInvestedTransformers:
-                investSH = capacitiesInvestedTransformers[(f"GWHP{str(self.__temperatureDHW)}__" + buildingLabel, "dhwStorageBus__" + buildingLabel)]
-                if investSH > 0.05:
-                    print("Invested in {:.1f} kW GWHP{}.".format(investSH, str(self.__temperatureDHW)))
-                    print("     Annual COP = {:.1f}".format(self.__annualCopGWHP[buildingLabel][1]))
-            if ("ElectricRod__" + buildingLabel, shOutputLabel + buildingLabel) in capacitiesInvestedTransformers:
-                investSH = capacitiesInvestedTransformers[("ElectricRod__" + buildingLabel, shOutputLabel + buildingLabel)]
-                if investSH > 0.05:
-                    print("Invested in {:.1f} kW Electric Rod.".format(investSH))
-            if ("CHP__" + buildingLabel, shOutputLabel + buildingLabel) in capacitiesInvestedTransformers:
-                investSH = capacitiesInvestedTransformers["CHP__" + buildingLabel, shOutputLabel + buildingLabel]
-                if investSH > 0.05:
-                    print("Invested in {:.1f} kW CHP.".format(investSH))  # + investEL))
-            if ("GasBoiler__" + buildingLabel, shOutputLabel + buildingLabel) in capacitiesInvestedTransformers:
-                investSH = capacitiesInvestedTransformers["GasBoiler__" + buildingLabel, shOutputLabel + buildingLabel]
-                if investSH > 0.05:
-                    print("Invested in {:.1f} kW GasBoiler.".format(investSH))
+
+            for key, invest in capacitiesInvestedTransformers.items():
+                if invest > 0.05 and key[0].endswith("__" + buildingLabel):
+                    for transformer_prefix, label_base in transformer_types.items():
+                        if key[0].startswith(transformer_prefix):
+                            # Extract suffix (e.g., "1" in "BiomassBoiler1__Building1")
+                            middle = key[0][len(transformer_prefix):-len("__" + buildingLabel)]
+                            suffix = middle if middle.isdigit() else ""
+
+                            # Apply suffix to all transformer types
+                            label = f"{label_base} {suffix}" if suffix else label_base
+
+                            unit = "kW"
+                            print(f"Invested in {invest:.1f} {unit} {label}.")
+                            #TODO: fix the following LOC
+                            # printing of Annual COPs does not work currently
+                            # most likely due to perfect matching of the string "HP" or "GWHP" while defining self.__annualCopHP
+                            if transformer_prefix==_ent.TransformerTypes.HP.value and False:
+                                print("     Annual COP = {:.1f}".format(self.__annualCopHP[buildingLabel]))
+                            if transformer_prefix == _ent.TransformerTypes.GWHP.value and False:
+                                print("     Annual COP = {:.1f}".format(self.__annualCopGWHP[buildingLabel]))
+
             if ("heatSource_SHsolarCollector__" + buildingLabel, "solarConnectBusSH__" + buildingLabel) in capacitiesInvestedTransformers:
                 invest = capacitiesInvestedTransformers[("heatSource_SHsolarCollector__" + buildingLabel, "solarConnectBusSH__" + buildingLabel)]
                 if invest > 0.05:
@@ -1074,12 +1056,10 @@ class EnergyNetworkClass(solph.EnergySystem):
                             # Extract suffix (e.g., "1" in "dhwStorage1__building1")
                             middle = key[len(storage_prefix):-len("__" + buildingLabel)]
                             suffix = middle if middle.isdigit() else ""
-
                             # Apply suffix to all storage types
                             label = f"{label_base} {suffix}" if suffix else label_base
-
                             # Choose unit
-                            unit = "kWh" if storage_prefix == "electricalStorage" else "L"
+                            unit = "kWh" if storage_prefix == _ent.StorageTypes.electricalStorage.value else "L"
                             print(f"Invested in {invest:.1f} {unit} {label}.")
             print("")
 
