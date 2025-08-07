@@ -290,7 +290,7 @@ class EnergyNetworkClass(solph.EnergySystem):
                     value = float(eff)
                 if comp == _ent.TransformerTypes.ElectricRod.value:
                     if df[_ent.TransformerLabels.active.value].iloc[0] == 1:
-                        # check why ElectricRod is not assumed active like other components
+                        # TODO: check why ElectricRod is not assumed active like other components
                         self.__technology_efficiency[comp] = value
                 else:
                     self.__technology_efficiency[comp] = value
