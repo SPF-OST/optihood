@@ -282,6 +282,7 @@ class EnergyNetworkClass(solph.EnergySystem):
             if not df.empty:
                 eff = df[_ent.TransformerLabels.efficiency.value].iloc[0]
                 if comp == _ent.TransformerTypes.CHP.value:
+                    # electricity bus comes before heating bus(es) for CHP
                     value = float(eff.split(",")[1])
                 elif comp in [_ent.TransformerTypes.GasBoiler.value, _ent.TransformerTypes.OilBoiler.value, _ent.TransformerTypes.BiomassBoiler.value]:
                     value = float(eff.split(",")[0])
@@ -289,6 +290,7 @@ class EnergyNetworkClass(solph.EnergySystem):
                     value = float(eff)
                 if comp == _ent.TransformerTypes.ElectricRod.value:
                     if df[_ent.TransformerLabels.active.value].iloc[0] == 1:
+                        # check why ElectricRod is not assumed active like other components
                         self.__technology_efficiency[comp] = value
                 else:
                     self.__technology_efficiency[comp] = value
@@ -319,17 +321,26 @@ class EnergyNetworkClass(solph.EnergySystem):
         # Storage conversion m3 - kWh for ice storage
         if data['storages']['label'].str.match(r'^iceStorage(\d+)?$').any():
             self.__m3IceStorage = self._rho * 1000 * self._c * (10 - 0) / 3600
-        self._generate_sh_output_flow_dict(data["transformers"])
+        self._generate_transformer_sh_output_flow_dict(data["transformers"])
         self._addBuildings(data, opt, mergeLinkBuses, mergeBuses, mergeHeatSourceSink, includeCarbonBenefits, clusterSize)
 
-    def _generate_sh_output_flow_dict(self, energy_conversion_tech_data):
+    def _generate_transformer_sh_output_flow_dict(self, energy_conversion_tech_data):
+        """
+        Creates a dictionary that maps each transformer component (transformer label and
+        associated building number as dict keys) to its corresponding space heating output
+        bus label.
+
+        The mapping is stored in `self._transformer_sh_output_flow`
+
+        This mapping is needed to update the obtained input capacities in the results to output capacities
+        """
         self._transformer_sh_output_flow = {}
         for i, r in energy_conversion_tech_data.iterrows():
-            dict_key = f"{r[_ent.TransformerLabels.label.value]}__Building{r[_ent.TransformerLabels.building.value]}"
-            if r[_ent.TransformerLabels.label.value].startswith(_ent.TransformerTypes.CHP.value):
-                sh_output_bus_label = f"{r[_ent.TransformerLabels.to.value].split(",")[1]}__Building{r[_ent.TransformerLabels.building.value]}"
+            dict_key = f"{r[_ent.TransformerLabels.label]}__Building{r[_ent.TransformerLabels.building]}"
+            if r[_ent.TransformerLabels.label].startswith(_ent.TransformerTypes.CHP):
+                sh_output_bus_label = f"{r[_ent.TransformerLabels.to].split(",")[1]}__Building{r[_ent.TransformerLabels.building]}"
             else:
-                sh_output_bus_label = f"{r[_ent.TransformerLabels.to.value].split(",")[0]}__Building{r[_ent.TransformerLabels.building.value]}"
+                sh_output_bus_label = f"{r[_ent.TransformerLabels.to].split(",")[0]}__Building{r[_ent.TransformerLabels.building]}"
             self._transformer_sh_output_flow[dict_key] = sh_output_bus_label
 
     def _addBuildings(self, data, opt, mergeLinkBuses, mergeBuses, mergeHeatSourceSink, includeCarbonBenefits, clusterSize):
@@ -352,15 +363,13 @@ class EnergyNetworkClass(solph.EnergySystem):
                 if mergeHeatSourceSink: merge = 'heatSourceSink'
                 b.addToBusDict(busDictBuilding1, merge)
             b.addGridSeparation(data["grid_connection"][data["grid_connection"]["building"] == i], mergeLinkBuses)
+            natGasCost = natGasImpact = None
             if "natGas_cost" in data:
                 natGasCost = data["natGas_cost"]
                 natGasImpact = data["natGas_impact"]
-            else:
-                natGasCost = natGasImpact = None
+            fixed_sources_data = None
             if "fixed_sources" in data:
                 fixed_sources_data = {k: v for k, v in data["fixed_sources"].items() if buildingLabel in k}
-            else:
-                fixed_sources_data = None
             b.addSource(data["commodity_sources"][data["commodity_sources"]["building"] == i], data["electricity_impact"], data["electricity_cost"], natGasCost, natGasImpact, fixed_sources_data, opt, mergeHeatSourceSink, mergeLinkBuses)
             if i in data["building_model"]:
                 bmdata = data["building_model"][i]
@@ -577,8 +586,7 @@ class EnergyNetworkClass(solph.EnergySystem):
                 new_out_flow = self._transformer_sh_output_flow[str(outflow)]
                 new_index = (outflow,new_out_flow)
                 transformerFlowCapacityDict[new_index] = transformerFlowCapacityDict.pop(index)
-            if 'elSource_pvt' in str(inflow):   # remove PVT electrical capacity
-                # TODO: Add the electrical source bus of PVT to entities
+            if _ent.BusTypes.electricitySourceBusPVT in str(inflow):   # remove PVT electrical capacity
                 transformerFlowCapacityDict.pop(index)
         return transformerFlowCapacityDict
 
@@ -662,19 +670,19 @@ class EnergyNetworkClass(solph.EnergySystem):
 
     def _compensateInputCapacities(self, capacitiesTransformers):
         # Input capacity -> output capacity
-        for first, second in list(capacitiesTransformers):
+        for inflow_bus, transformer in list(capacitiesTransformers):
             for c in _ent.TransformerTypes:
-                if second.startswith(c):
+                if transformer.startswith(c):
                     for index, value in enumerate(self.nodes):
-                        if second == value.label:
-                            if second.startswith(_ent.TransformerTypes.Chiller):
-                                test = self.nodes[index].outputs
+                        if transformer == value.label:
+                            if transformer.startswith(_ent.TransformerTypes.Chiller):
+                                all_buses_connected_to_transformer = self.nodes[index].outputs
                             else:
-                                test = self.nodes[index].conversion_factors
-                            for t in test.keys():
-                                if self._transformer_sh_output_flow[second] in t.label:
-                                    capacitiesTransformers[(second,t.label)]= capacitiesTransformers[(first,second)]*self.__technology_efficiency[c]
-                                    del capacitiesTransformers[(first,second)]
+                                all_buses_connected_to_transformer = self.nodes[index].conversion_factors
+                            for b in all_buses_connected_to_transformer.keys():
+                                if self._transformer_sh_output_flow[transformer] in b.label:
+                                    capacitiesTransformers[(transformer,b.label)]= capacitiesTransformers[(inflow_bus,transformer)]*self.__technology_efficiency[c]
+                                    del capacitiesTransformers[(inflow_bus,transformer)]
         return capacitiesTransformers
 
     def _compensateStorageCapacities(self, capacitiesStorages):

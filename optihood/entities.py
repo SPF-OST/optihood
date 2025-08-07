@@ -73,6 +73,7 @@ class BusTypes(_enum.StrEnum):
     lowTSinkBus = "lowTSinkBus"
     dhHeatInBus = "districtHeatingInBus"
     dhHeatBus = "districtHeatingBus"
+    electricitySourceBusPVT = "elSource_pvt"
 
 
 class CommoditySourcesLabels(_enum.StrEnum):
