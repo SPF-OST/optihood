@@ -496,16 +496,22 @@ class PVT:
             print("Label not identified...")
             return []
 
+
+
+
 class HeatPumpLinear:
-    "Information about the model can be found in combined_pro.py CombinedTransformer"
-    def __init__(self, buildingLabel, operationTemperatures, temperatureLow, input, output,
+    """
+    Generic linear heat pump model.
+    Allows the user to input the necessary coefficients for COP calculation.
+    """
+    def __init__(self, label, operationTemperatures, temperatureLow, coef_W, coef_Q, input, output,
                  capacityMin, capacityMax, nomEff,
                  epc, base, varc, env_flow, env_capa, dispatchMode):
         outputTemperatures = {}
         for i in range(len(output)):
             outputTemperatures[output[i]] = operationTemperatures[i]
-        self.__cop = {o:self._calculateCop(t, temperatureLow) for o,t in outputTemperatures.items()}
-        self.avgCopSh = (sum(self.__cop[output[0]])/len(self.__cop[output[0]])) # cop at lowest temperature, i.e. temperature of space heating
+        self.cop = {o:self._calculate_cop(t, temperatureLow, coef_W, coef_Q) for o,t in outputTemperatures.items()}
+        self.avgCopSh = (sum(self.cop[output[0]])/len(self.cop[output[0]])) # cop at lowest temperature, i.e. temperature of space heating
         self.nominalEff = nomEff
         if dispatchMode:
             investArgs = {'ep_costs' : epc * nomEff,
@@ -521,97 +527,45 @@ class HeatPumpLinear:
             'custom_attributes' : {'env_per_capa': env_capa * nomEff}}
         outputDict = {k: solph.Flow(variable_costs=varc,
                           custom_attributes={'env_per_flow': env_flow}, ) for k in output}
-        """outputDict = {k:solph.Flow(variable_costs=varc, nominal_value=capacityMax,  min=0, max=1, nonconvex=solph.NonConvex(),
-                                   custom_attributes={'env_per_flow': env_flow}, ) for k in output}"""
         inputDict = {input[0]: solph.Flow(investment=solph.Investment(**investArgs))}
         if len(input) > 1:
             # Two input HP, second input is for Q evaporator
             inputDict.update({input[1]: solph.Flow()})
-        self.__heatpump = cp.CombinedTransformer(label='HP' + '__' + buildingLabel,
+        self._heatpump = cp.CombinedTransformer(label=label,
                                             inputs=inputDict,
                                             outputs=outputDict,
-                                            efficiencies=self.__cop)
+                                            efficiencies=self.cop)
 
-    def _calculateCop(self, tHigh, tLow):
-        coefW = [0.66610, -2.2365, 15.541, 25.705, -17.407, 3.8145]
-        coefQ = [11.833, 96.504, 14.496, -50.064, 161.02, -133.60]
-        QCondenser = coefQ[0] + (coefQ[1] * tLow / 273.15) + (coefQ[2] * tHigh / 273.15) + (
-                coefQ[3] * tLow / 273.15 * tHigh / 273.15) + (
-                             coefQ[4] * (tLow / 273.15) ** 2) + (
-                             coefQ[5] * (tHigh / 273.15) ** 2)
-        WCompressor = coefW[0] + (coefW[1] * tLow / 273.15) + (coefW[2] * tHigh / 273.15) + (
-                coefW[3] * tLow / 273.15 * tHigh / 273.15) + (
-                             coefW[4] * (tLow / 273.15) ** 2) + (
-                              coefW[5] * (tHigh / 273.15) ** 2)
+    @staticmethod
+    def _calculate_cop(t_high, t_low, coef_W, coef_Q):
+        t_low_K = t_low / 273.15
+        t_high_K = t_high / 273.15
+        QCondenser = (
+                coef_Q[0] +
+                coef_Q[1] * t_low_K +
+                coef_Q[2] * t_high_K +
+                coef_Q[3] * t_low_K * t_high_K +
+                coef_Q[4] * (t_low_K ** 2) +
+                coef_Q[5] * (t_high_K ** 2)
+        )
+        WCompressor = (
+                coef_W[0] +
+                coef_W[1] * t_low_K +
+                coef_W[2] * t_high_K +
+                coef_W[3] * t_low_K * t_high_K +
+                coef_W[4] * (t_low_K ** 2) +
+                coef_W[5] * (t_high_K ** 2)
+        )
         cop = np.divide(QCondenser, WCompressor)
         return cop
 
     def getHP(self, type):
         if type == 'sh':
-            return self.__heatpump
+            return self._heatpump
         else:
             print("Transformer label not identified...")
             return []
 
-
-class GeothermalHeatPumpLinear:
-    "Information about the model can be found in combined_pro.py CombinedTransformer"
-    def __init__(self, buildingLabel, operationTemperatures, temperatureLow, input, output,
-                 capacityMin, capacityMax, nomEff,
-                 epc, base, varc, env_flow, env_capa, dispatchMode):
-        outputTemperatures = {}
-        for i in range(len(output)):
-            outputTemperatures[output[i]] = operationTemperatures[i]
-        self.__cop = {o: self._calculateCop(t, temperatureLow) for o, t in outputTemperatures.items()}
-        self.avgCopSh = (sum(self.__cop[output[0]]) / len(self.__cop[output[0]]))  # cop at lowest temperature, i.e. temperature of space heating
-        self.nominalEff = nomEff
-        if dispatchMode:
-            investArgs= {'ep_costs':epc*nomEff,
-                        'minimum':capacityMin/nomEff,
-                        'maximum':capacityMax/nomEff,
-                        'custom_attributes': {'env_per_capa': env_capa * nomEff}
-                    }
-        else:
-            investArgs= {'ep_costs':epc*nomEff,
-                        'minimum':capacityMin/nomEff,
-                        'maximum':capacityMax/nomEff,
-                        'nonconvex':True,
-                        'offset':base,
-                        'custom_attributes': {'env_per_capa': env_capa * nomEff}
-                    }
-        outputDict = {k: solph.Flow(variable_costs=varc,
-                          custom_attributes={'env_per_flow': env_flow}, ) for k in output}
-        """outputDict = {k: solph.Flow(variable_costs=varc, nominal_value=capacityMax,  min=0, max=1, nonconvex=solph.NonConvex(),
-                                   custom_attributes={'env_per_flow': env_flow}, ) for k in output}"""
-        inputDict = {input[0]: solph.Flow(investment=solph.Investment(**investArgs))}
-        if len(input) > 1:
-            # Two input HP, second input is for Q evaporator
-            inputDict.update({input[1]: solph.Flow()})
-        self.__geothermalheatpump = cp.CombinedTransformer(label='GWHP' + '__' + buildingLabel,
-                                            inputs=inputDict,
-                                            outputs=outputDict,
-                                            efficiencies=self.__cop)
-
-    def _calculateCop(self, tHigh, tLow):
-        coefW = [0.1600, -1.2369, 19.9391, 19.3448, 7.1057, -1.4048]
-        coefQ = [13.8978, 114.8358, -9.3634, -179.4227, 342.3363, -12.4969]
-        QCondenser = coefQ[0] + (coefQ[1] * tLow / 273.15) + (coefQ[2] * tHigh / 273.15) + (
-                coefQ[3] * tLow / 273.15 * tHigh / 273.15) + (
-                             coefQ[4] * (tLow / 273.15) ** 2) + (
-                             coefQ[5] * (tHigh / 273.15) ** 2)
-        WCompressor = coefW[0] + (coefW[1] * tLow / 273.15) + (coefW[2] * tHigh / 273.15) + (
-                coefW[3] * tLow / 273.15 * tHigh / 273.15) + (
-                             coefW[4] * (tLow / 273.15) ** 2) + (
-                              coefW[5] * (tHigh / 273.15) ** 2)
-        cop = np.divide(QCondenser, WCompressor)
-        return cop
-
-    def getHP(self, type):
-        if type == 'sh':
-            return self.__geothermalheatpump
-        else:
-            print("Transformer label not identified...")
-            return []
 
 class Chiller(solph.components.Transformer):
     r"""
