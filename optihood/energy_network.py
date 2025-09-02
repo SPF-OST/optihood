@@ -146,8 +146,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         self._dispatchMode = False
         self._c = 4.186 #default value for water in kJ/(kg K)
         self._rho = 1. #default value for water in kg/L
-        if not os.path.exists(".\\log_files"):
-            os.mkdir(".\\log_files")
+        _pl.Path(".\\log_files").mkdir(parents=True, exist_ok=True)
         screen_format = "%(asctime)s-%(levelname)s:  %(message)s"
         logger.define_logging(screen_format=screen_format, logpath=os.getcwd(), logfile=f'.\\log_files\\optihood_{datetime.now().strftime("%d.%m.%Y %H.%M.%S")}.log')
         logging.info("Initializing the energy network")
