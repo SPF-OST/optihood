@@ -284,7 +284,7 @@ class EnergyNetworkClass(solph.EnergySystem):
                 if comp == _ent.TransformerTypes.CHP.value:
                     # electricity bus comes before heating bus(es) for CHP
                     value = float(eff.split(",")[1])
-                elif isinstance(eff, str) and comp in [_ent.TransformerTypes.GasBoiler.value, _ent.TransformerTypes.OilBoiler.value, _ent.TransformerTypes.BiomassBoiler.value]:
+                elif comp in [_ent.TransformerTypes.GasBoiler.value, _ent.TransformerTypes.OilBoiler.value, _ent.TransformerTypes.BiomassBoiler.value]:
                     value = float(eff.split(",")[0])
                 else:
                     value = float(eff)

@@ -119,7 +119,7 @@ class ThermalStorage(solph.components.GenericStorage):
             time_increment =1
             # TODO: refactor into functions
             if 'GenericStorage' in label_prefix:
-                typical_losses = {'tank': 0.4, 'pit': 0.03, 'borehole': 0.15, 'aquifier': 0.001}
+                typical_losses = {'tank': 0.4, 'pit': 0.03, 'borehole': 0.01, 'aquifier': 0.001}
                 try:
                     loss_rate = next(value for key, value in typical_losses.items() if key in label_prefix)
                 except StopIteration:

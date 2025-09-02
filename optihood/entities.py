@@ -287,10 +287,6 @@ class TransformerLabels(_enum.StrEnum):
     elec_impact = "elec_impact"
     impact_cap = "impact_cap"
 
-class HeatPumpCoefficientLabels(_enum.StrEnum):
-    coef_W = "coef_W"
-    coef_Q = "coef_Q"
-
 
 class TransformerTypes(_enum.StrEnum):
     # TODO: currently the investment object is applied to the input flow for all transformer types
