@@ -92,7 +92,7 @@ class TestEnergyNetwork(_ut.TestCase):
         check_assertion(self, errors, initial_nodal_data["grid_connection"].shape, (24, 5))
         check_assertion(self, errors, initial_nodal_data["commodity_sources"].shape, (8, 6))
         check_assertion(self, errors, initial_nodal_data["solar"].shape, (8, 31))
-        check_assertion(self, errors, initial_nodal_data["transformers"].shape, (16, 19))
+        check_assertion(self, errors, initial_nodal_data["transformers"].shape, (16, 21))
         check_assertion(self, errors, initial_nodal_data["demand"].shape, (12, 7))
         check_assertion(self, errors, initial_nodal_data["storages"].shape, (12, 20))
         check_assertion(self, errors, initial_nodal_data["stratified_storage"].shape, (2, 11))
