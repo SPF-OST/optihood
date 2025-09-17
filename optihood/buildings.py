@@ -480,7 +480,7 @@ class Building:
                             )
                         )
 
-    def _addHeatPump(self, data, operationTempertures, temperature_evap, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode, temperatureLevels):
+    def _addHeatPump(self, data, operationTempertures, temperature_evap, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode):
         label = LabelStringManipulator(data[_ent.TransformerLabels.label] + '__' + self.__buildingLabel)
         from_bus = _ent.TransformerLabels.from_bus
         to_bus = _ent.TransformerLabels.to
@@ -497,14 +497,8 @@ class Building:
         else:
             inputBusLabel = [i + '__' + self.__buildingLabel for i in data[from_bus].split(",")]
         inputBuses = [self.__busDict[i] for i in inputBusLabel]
-        outputBuses = []
-        outputSHBusLabel = data[to_bus].split(",")[0] + '__' + self.__buildingLabel
-        outputDHWBusLabel = data[to_bus].split(",")[1] + '__' + self.__buildingLabel
-        outputBuses.append(self.__busDict[outputSHBusLabel])
-        outputBuses.append(self.__busDict[outputDHWBusLabel])
-        if temperatureLevels:
-            outputBusLabel3 = data[to_bus].split(",")[2] + '__' + self.__buildingLabel  # outputSHBusLabel, outputDHWBusLabel, outputBusLabel3 are in the order of increasing temperatures
-            outputBuses.append(self.__busDict[outputBusLabel3])
+        outputBusLabels = [i + '__' + self.__buildingLabel for i in data[to_bus].split(",")]
+        outputBuses = [self.__busDict[i] for i in outputBusLabels]
         envImpactPerCapacity = float(data[_ent.TransformerLabels.impact_cap]) / float(data[_ent.TransformerLabels.lifetime])
         if data[_ent.TransformerLabels.capacity_min] == 'x':
             capacityMinSH = float(data[_ent.TransformerLabels.capacity_SH])
@@ -536,11 +530,7 @@ class Building:
         self.__nodesList.append(heatPump.getHP("sh"))
 
         # set technologies, environment and cost parameters
-        self.__technologies.append([outputDHWBusLabel, label.full_name])
-        self.__technologies.append([outputSHBusLabel, label.full_name])
-        if temperatureLevels:
-            self.__technologies.append([outputBusLabel3, label.full_name])
-
+        self.__technologies.extend([[o, label.full_name] for o in outputBusLabels])
         self.__costParam[label.full_name] = [self._calculateInvest(data)[0], self._calculateInvest(data)[1]]
 
         self.__envParam[label.full_name] = [float(data[_ent.TransformerLabels.heat_impact]), 0, envImpactPerCapacity]
@@ -730,9 +720,9 @@ class Building:
         for i, t in data.iterrows():
             if t["active"]:
                 if pattern_at_start_followed_by_number("HP", t["label"]):
-                    self._addHeatPump(t, operationTemperatures, temperatureAmb, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode, temperatureLevels)
+                    self._addHeatPump(t, operationTemperatures, temperatureAmb, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode)
                 elif pattern_at_start_followed_by_number("GWHP", t["label"]):
-                    self._addHeatPump(t, operationTemperatures, temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode, temperatureLevels)
+                    self._addHeatPump(t, operationTemperatures, temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode)
                 elif t["label"] == "GWHP split":
                     self._addGeothemalHeatPumpSplit(t, operationTemperatures, temperatureGround, opt, mergeLinkBuses, dispatchMode)
                 elif "CHP" in t["label"]:
