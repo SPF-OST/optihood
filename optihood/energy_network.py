@@ -1305,6 +1305,27 @@ class EnergyNetworkGroup(EnergyNetworkClass):
         self.set_using_nodal_data(clusterSize, filePath, includeCarbonBenefits, nodesData, mergeBuses,
                                   mergeHeatSourceSink, mergeLinkBuses, numberOfBuildings, opt, grouped_network=True)
 
+    def set_from_csv(self, input_data_dir: _pl.Path, nr_of_buildings: int, clusterSize={}, opt: str = "costs",
+                   mergeLinkBuses: bool = False, mergeBuses: _tp.Optional[_tp.Sequence[str]] = None,
+                   mergeHeatSourceSink: bool = False, dispatchMode: bool = False, includeCarbonBenefits: bool = False):
+
+        self.check_dir_path(input_data_dir)
+        self.check_mutually_exclusive_inputs(mergeLinkBuses)
+        self._dispatchMode = dispatchMode
+        self._optimizationType = opt
+        self._mergeBuses = mergeBuses
+        self.__noOfBuildings = nr_of_buildings
+        logging.info(f"Defining the energy network from the input files: {input_data_dir}")
+
+        csvReader = _re.CsvScenarioReader(input_data_dir)
+        initial_nodal_data = csvReader.read_scenario()
+
+        other_data_reader = read.ProfileAndOtherDataReader()
+        nodal_data = other_data_reader.read_profiles_and_other_data(initial_nodal_data, input_data_dir, nr_of_buildings,
+                                                                    clusterSize, self.timeindex)
+        self.set_using_nodal_data(clusterSize, input_data_dir, includeCarbonBenefits, nodal_data, mergeBuses,
+                                  mergeHeatSourceSink, mergeLinkBuses, nr_of_buildings, opt, grouped_network=True)
+
     def _addLinks(self, data, numberOfBuildings, mergeLinkBuses):
         """connects buses A and B (denotes a bidirectional link)"""
         if mergeLinkBuses:
