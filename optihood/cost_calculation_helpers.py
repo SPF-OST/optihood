@@ -1,6 +1,6 @@
 from oemof.tools import economics
 
-intRate = 0.05
+intRate = 0.04
 
 def get_cost_per_capacity_data(data):
     cost_dict = {}

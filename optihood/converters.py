@@ -14,7 +14,7 @@ class SolarCollector:
     """
         Currently, this class supports maximum 3 temperature levels
     """
-    def __init__(self, label, buildingLabel, inputs, outputs, connectors, electrical_consumption, peripheral_losses, latitude,
+    def __init__(self, label, buildingLabel, outputs, connectors, peripheral_losses, latitude,
                  longitude,
                  collector_tilt, roof_area, zenith_angle, collector_azimuth, eta_0, a_1, a_2, temp_collector_inlet,
                  delta_temp_n, irradiance_global,
@@ -105,11 +105,10 @@ class SolarCollector:
         )
         self.__heat_transformer_sh = solph.components.Transformer(
             label=label + 'SH__' + buildingLabel,
-            inputs={connectors[0]: solph.Flow(), inputs: solph.Flow()},
+            inputs={connectors[0]: solph.Flow()},
             outputs={outputs[0]: solph.Flow()},
             conversion_factors={
                 connectors[0]: 1,
-                inputs: electrical_consumption * (1 - peripheral_losses),
                 outputs[0]: 1 - peripheral_losses
             },
         )
@@ -131,11 +130,10 @@ class SolarCollector:
             )
             self.__heat_transformer_dhw = solph.components.Transformer(
                 label=label + 'DHW__' + buildingLabel,
-                inputs={connectors[-1]: solph.Flow(), inputs: solph.Flow()},
+                inputs={connectors[-1]: solph.Flow()},
                 outputs={outputs[-1]: solph.Flow()},
                 conversion_factors={
                     connectors[-1]: 1,
-                    inputs: electrical_consumption * (1 - peripheral_losses),
                     outputs[-1]: 1 - peripheral_losses
                 },
             )
@@ -156,11 +154,10 @@ class SolarCollector:
                 )
                 self.__heat_transformer_T2 = solph.components.Transformer(
                     label=label + 'T2__' + buildingLabel,
-                    inputs={connectors[1]: solph.Flow(), inputs: solph.Flow()},
+                    inputs={connectors[1]: solph.Flow()},
                     outputs={outputs[1]: solph.Flow()},
                     conversion_factors={
                         connectors[1]: 1,
-                        inputs: electrical_consumption * (1 - peripheral_losses),
                         outputs[1]: 1 - peripheral_losses
                     },
                 )
@@ -783,7 +780,8 @@ class GasBoiler(cp.CombinedTransformer):
 
 class GenericCombinedTransformer(cp.CombinedTransformer):
     def __init__(self, label, input, output, efficiency,
-                 capacityMin, capacityMax, epc, base, varc, env_flow, env_capa, dispatchMode):
+                 capacityMin, capacityMax, epc, base, varc, env_flow, env_capa, dispatchMode,
+                 special_constraints_converter_args = None):
         self.__efficiency = efficiency[0]
         outputEff = {}
         for i in range(len(output)):
@@ -800,12 +798,19 @@ class GenericCombinedTransformer(cp.CombinedTransformer):
                         'nonconvex':True,
                         'offset':base,
                         'custom_attributes': {'env_per_capa': env_capa * efficiency[0]}}
+        if special_constraints_converter_args:
+            inputDict = {
+                input: solph.Flow(investment=solph.Investment(**investArgs),
+                                  min=0.3, # 30% of nominal_value
+                                  max=1.0, # 100% of nominal_value
+                                  nonconvex=solph.NonConvex()) #solph.NonConvex(**special_constraints_converter_args)
+            }
+        else:
+            inputDict = {input: solph.Flow(investment=solph.Investment(**investArgs))}
         outputDict = {k: solph.Flow(variable_costs=varc, custom_attributes={'env_per_flow': env_flow}) for k in output}
         super(GenericCombinedTransformer, self).__init__(
             label=label,
-            inputs={
-                input: solph.Flow(investment=solph.Investment(**investArgs) )
-            },
+            inputs=inputDict,
             outputs=outputDict,
             efficiencies=outputEff
                  )

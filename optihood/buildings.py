@@ -11,7 +11,7 @@ from optihood.sinks import SinkRCModel
 from optihood.links import LinkTemperatureDemand
 from optihood._helpers import *
 
-intRate = 0.05
+intRate = 0.04
 
 class Building:
     def __init__(self, label):
@@ -169,10 +169,6 @@ class Building:
         # Create Source objects from table 'commodity sources'
         for i, s in data.iterrows():
             if s["active"]:
-                if mergeLinkBuses and s["from"] in self.__linkBuses:
-                    inputBusLabel = s["from"]
-                else:
-                    inputBusLabel = s["from"] + '__' + self.__buildingLabel
                 outputBuses = [self.__busDict[o + '__' + self.__buildingLabel] for o in s["to"].split(",")]
                 connectBuses = [self.__busDict[c + '__' + self.__buildingLabel] for c in s["connect"].split(",")]
                 if isinstance(s["delta_temp_n"], float) or isinstance(s["delta_temp_n"], int):
@@ -203,10 +199,9 @@ class Building:
                 if 'zenith_angle' not in s.keys():
                     s["zenith_angle"] = np.nan
                 collector=SolarCollector(s["label"], self.__buildingLabel,
-                                                       self.__busDict[inputBusLabel],
                                                        outputBuses,
                                                        connectBuses,
-                                                       float(s["electrical_consumption"]), float(s["peripheral_losses"]), float(s["latitude"]),
+                                                       float(s["peripheral_losses"]), float(s["latitude"]),
                                                        float(s["longitude"]), float(s["tilt"]), s["roof_area"],
                                                        s["zenith_angle"], float(s["azimuth"]),
                                                        float(s["eta_0"]), float(s["a_1"]), float(s["a_2"]), float(s["temp_collector_inlet"]),
@@ -350,7 +345,7 @@ class Building:
                                                               outputs={self.__busDict[outputBusLabel]: solph.Flow()},
                                                       conversion_factors={self.__busDict[outputBusLabel]: float(gs["efficiency"])}))
 
-    def addSource(self, data, data_elimpact, data_elcost, data_natGascost, data_natGasImpact, opt, mergeHeatSourceSink, mergeLinkBuses):
+    def addSource(self, data, data_elimpact, data_elcost, data_natGascost, data_natGasImpact, data_biomassCost, data_biomassImpact, opt, mergeHeatSourceSink, mergeLinkBuses):
         # Create Source objects from table 'commodity sources'
 
         for i, cs in data.iterrows():
@@ -366,12 +361,16 @@ class Building:
                         varCosts = data_elcost["cost"]
                     elif 'naturalGas' in cs['label']:
                         varCosts = data_natGascost["cost"]
+                    elif 'biomass' in cs['label']:
+                        varCosts = data_biomassCost["cost"]
                     else:
                         varCosts = float(cs["variable costs"])
                 elif 'electricity' in cs["label"]:
                     varCosts = data_elimpact["impact"]
                 elif 'naturalGas' in cs["label"]:
                     varCosts = data_natGasImpact["impact"]
+                elif 'biomass' in cs["label"]:
+                    varCosts = data_biomassImpact["impact"]
                 else:
                     varCosts = float(cs["CO2 impact"])
 
@@ -383,6 +382,10 @@ class Building:
                     envImpactPerFlow = data_natGasImpact["impact"]
                     envParameter = data_natGasImpact["impact"]
                     costParameter = data_natGascost["cost"]
+                elif 'biomass' in cs['label']:
+                    envImpactPerFlow = data_biomassImpact["impact"]
+                    envParameter = data_biomassImpact["impact"]
+                    costParameter = data_biomassCost["cost"]
                 else:
                     envImpactPerFlow = float(cs["CO2 impact"])
                     envParameter = float(cs["CO2 impact"])
@@ -681,7 +684,12 @@ class Building:
                   outputBuses,
                   efficiency, capacityMinSH, float(data["capacity_SH"]),
                   self._calculateInvest(data)[0] * (opt == "costs") + envImpactPerCapacity * (opt == "env"),
-                  self._calculateInvest(data)[1] * (opt == "costs"), float(data["heat_impact"]) * (opt == "env"), float(data["heat_impact"]), envImpactPerCapacity, dispatchMode))
+                  self._calculateInvest(data)[1] * (opt == "costs"), float(data["heat_impact"]) * (opt == "env"),
+                  float(data["heat_impact"]), envImpactPerCapacity, dispatchMode
+                  ))
+        #special_constraints_converter_args=True
+        # special_constraints_converter_args={"minimum_uptime": 5}
+        # special_constraints_converter_args = {"minimum_uptime": 5,"initial_status": 1, "startup_costs": 0.00001, "shutdown_costs": 0.00001}
 
         # set technologies, environment and cost parameters
         for i in range(len(outputBuses)):
@@ -753,14 +761,33 @@ class Building:
 
         self.__envParam[chillerLabel] = [float(data["heat_impact"]), 0, envImpactPerCapacity]
 
-    def _addGenericTransformer(self, data):
-        inputBusLabel = data['from']+ '__Building1'
-        outputBusLabels = [b + '__' + self.__buildingLabel for b in data['to'].split(",")]
-        outputDict = {self.__busDict[o]:solph.Flow(variable_costs=0, nominal_value=100000000000, custom_attributes={'env_per_flow': 0}) for o in outputBusLabels}
-        convFactors = {self.__busDict[o]:1 for o in outputBusLabels}
-        self.__nodesList.append(solph.components.Transformer(label=data['label'] + '__Building1',
+    def _addGenericTransformer(self, data, opt, dispatchMode):
+        inputBusLabel = data['from']+ '__' + self.__buildingLabel
+        outputBusLabel = data['to'] + '__' + self.__buildingLabel
+        env_capa = float(data["impact_cap"]) / float(data["lifetime"])
+        base = self._calculateInvest(data)[1] * (opt == "costs")
+        epc = self._calculateInvest(data)[0] * (opt == "costs") + env_capa*(opt == "env")
+        capacityMin = float(data["capacity_min"])
+        capacityMax = float(data["capacity_SH"])
+        if dispatchMode:
+            investArgs = {'ep_costs': epc,
+                          'minimum': capacityMin,
+                          'maximum': capacityMax,
+                          'custom_attributes': {'env_per_capa': env_capa}}
+        else:
+            investArgs = {'ep_costs': epc,
+                          'minimum': capacityMin,
+                          'maximum': capacityMax,
+                          'nonconvex': True,
+                          'offset': base,
+                          'custom_attributes': {'env_per_capa': env_capa}}
+        flowargs = {"variable_costs":0,
+                    "investment": solph.Investment(**investArgs),
+                    "custom_attributes":{'env_per_flow': 0}}
+        convFactors = {self.__busDict[outputBusLabel]:float(data['efficiency'])}
+        self.__nodesList.append(solph.components.Transformer(label=data['label']+ '__' + self.__buildingLabel,
                                                   inputs={self.__busDict[inputBusLabel]: solph.Flow()},
-                                                  outputs=outputDict,
+                                                  outputs={self.__busDict[outputBusLabel]: solph.Flow(**flowargs)},
                                                   conversion_factors=convFactors))
     
     def addTransformer(self, data, operationTemperatures, temperatureAmb, temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode, temperatureLevels):
@@ -782,7 +809,7 @@ class Building:
                     self._addChiller(t, operationTemperatures[0], temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode)
                 else:
                     logging.warning("Transformer label not identified, adding generic transformer component...")
-                    self._addGenericTransformer(t)
+                    self._addGenericTransformer(t, opt, dispatchMode)
 
     def addStorage(self, data, storageParams, ambientTemperature, opt, mergeLinkBuses, dispatchMode, temperatureLevels):
         sList = []

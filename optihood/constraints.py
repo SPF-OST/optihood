@@ -256,6 +256,20 @@ def electricRodCapacityConstaint(om, numBuildings):
     )
     return om
 
+def no_biomass_summer_constraint(om):
+    biomass_in_flows = [(i, o) for (i, o) in om.flows if ("BiomassBoiler" in o.label)]
+    for t in range(3624, 5832):
+        for (inflow, outflow) in biomass_in_flows:
+            expr = (om.flow[inflow, outflow, t] <= 10)
+            setattr(
+                om,
+                f"no_biomass_summer_constr_{t}",
+                pyo.Constraint(expr=expr),
+            )
+
+    return om
+
+
 def totalPVCapacityConstraint(om, numBuildings):
     pvOutFlows = [(i, o) for (i, o) in om.flows if ("pv" in i.label)]
     pvCapacityTotal = 0

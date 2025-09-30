@@ -168,6 +168,11 @@ class EnergyNetworkClass(solph.EnergySystem):
                     [nodesData["natGas_impact"].loc[d] * clusterSize[d] for d in clusterSize.keys()])
                 natGasCost = pd.concat(
                     [nodesData["natGas_cost"].loc[d] * clusterSize[d] for d in clusterSize.keys()])
+            if 'biomass_impact' in nodesData:
+                biomassImpact = pd.concat(
+                    [nodesData["biomass_impact"].loc[d] * clusterSize[d] for d in clusterSize.keys()])
+                biomassCost = pd.concat(
+                    [nodesData["biomass_cost"].loc[d] * clusterSize[d] for d in clusterSize.keys()])
             weatherData = pd.concat([nodesData['weather_data'][
                                          nodesData['weather_data']['time.mm'] == int(d.split('-')[1])][
                                          nodesData['weather_data']['time.dd'] == int(d.split('-')[2])][
@@ -179,6 +184,9 @@ class EnergyNetworkClass(solph.EnergySystem):
             if 'natGas_impact' in nodesData:
                 nodesData["natGas_impact"] = natGasImpact
                 nodesData["natGas_cost"] = natGasCost
+            if 'biomass_impact' in nodesData:
+                nodesData["biomass_impact"] = biomassImpact
+                nodesData["biomass_cost"] = biomassCost
             nodesData["weather_data"] = weatherData
         self._convertNodes(nodesData, opt, mergeLinkBuses, mergeBuses, mergeHeatSourceSink, includeCarbonBenefits,
                            clusterSize)
@@ -272,6 +280,11 @@ class EnergyNetworkClass(solph.EnergySystem):
             natGasImpact = nodesData["commodity_sources"].loc[
                 nodesData["commodity_sources"]["label"] == "naturalGasResource", "CO2 impact"].iloc[0]
 
+        if "biomassResource" in nodesData["commodity_sources"]["label"].values:
+            biomassCost = nodesData["commodity_sources"].loc[nodesData["commodity_sources"]["label"] == "biomassResource", "variable costs"].iloc[0]
+            biomassImpact = nodesData["commodity_sources"].loc[
+                nodesData["commodity_sources"]["label"] == "biomassResource", "CO2 impact"].iloc[0]
+
         demandProfiles = {}  # dictionary of dataframes for each building's demand profiles
 
         if (not os.listdir(demandProfilesPath)) or (not os.path.exists(demandProfilesPath)):
@@ -290,6 +303,46 @@ class EnergyNetworkClass(solph.EnergySystem):
                         nodesData["demandProfiles"][i + 1] = nodesData["demandProfiles"][i + 1][self.timeindex[0]:self.timeindex[-1]]
                     else:  # a building without a demand
                         nodesData["demandProfiles"][i + 1] = None
+
+        if "biomassResource" in nodesData["commodity_sources"]["label"].values:
+            if isinstance(biomassImpact, (int, float)):
+                # for constant impact
+                biomassImpactValue = biomassImpact
+                logging.info("Constant value for biomass impact")
+                nodesData["biomass_impact"] = pd.DataFrame()
+                index = next(iter(nodesData["demandProfiles"]))
+                nodesData["biomass_impact"]["impact"] = (nodesData["demandProfiles"][index].shape[0]) * [
+                    biomassImpactValue]
+                nodesData["biomass_impact"].index = nodesData["demandProfiles"][index].index
+            elif not os.path.exists(biomassImpact):
+                logging.error("Error in biomass impact file path")
+            else:
+                nodesData["biomass_impact"] = pd.read_csv(biomassImpact, delimiter=";")
+                # set datetime index
+                nodesData["biomass_impact"].set_index("timestamp", inplace=True)
+                nodesData["biomass_impact"].index = pd.to_datetime(nodesData["biomass_impact"].index,
+                                                                       format='%d.%m.%Y %H:%M')
+                nodesData["biomass_impact"] = nodesData["biomass_impact"][self.timeindex[0]: self.timeindex[-1]]
+
+            if isinstance(biomassCost, (int, float)):
+                # for constant cost
+                biomassCostValue = biomassCost
+                logging.info("Constant value for biomass cost")
+                nodesData["biomass_cost"] = pd.DataFrame()
+                index = next(iter(nodesData["demandProfiles"]))
+                nodesData["biomass_cost"]["cost"] = (nodesData["demandProfiles"][index].shape[0]) * [
+                    biomassCostValue]
+                nodesData["biomass_cost"].index = nodesData["demandProfiles"][index].index
+            elif not os.path.exists(biomassCost):
+                logging.error("Error in biomass cost file path")
+            else:
+                nodesData["biomass_cost"] = pd.read_csv(biomassCost, delimiter=";")
+                # set datetime index
+                nodesData["biomass_cost"].set_index("timestamp", inplace=True)
+                nodesData["biomass_cost"].index = pd.to_datetime(nodesData["biomass_cost"].index,
+                                                                     format='%d.%m.%Y %H:%M')
+                nodesData["biomass_cost"] = nodesData["biomass_cost"][self.timeindex[0]: self.timeindex[-1]]
+
 
         if isinstance(electricityImpact, (int, float)):
             # for constant impact
@@ -516,7 +569,11 @@ class EnergyNetworkClass(solph.EnergySystem):
                 natGasImpact = data["natGas_impact"]
             else:
                 natGasCost = natGasImpact = None
-            b.addSource(data["commodity_sources"][data["commodity_sources"]["building"] == i], data["electricity_impact"], data["electricity_cost"], natGasCost, natGasImpact, opt, mergeHeatSourceSink, mergeLinkBuses)
+            biomassCost = biomassImpact = None
+            if "biomass_cost" in data:
+                biomassCost = data["biomass_cost"]
+                biomassImpact = data["biomass_impact"]
+            b.addSource(data["commodity_sources"][data["commodity_sources"]["building"] == i], data["electricity_impact"], data["electricity_cost"], natGasCost, natGasImpact, biomassCost, biomassImpact, opt, mergeHeatSourceSink, mergeLinkBuses)
             if i in data["building_model"]:
                 bmdata = data["building_model"][i]
             else:
@@ -588,6 +645,8 @@ class EnergyNetworkClass(solph.EnergySystem):
                 if c.lower() == 'totalpvcapacity':
                     self._optimizationModel = totalPVCapacityConstraint(self._optimizationModel, numberOfBuildings)
                     logging.info(f"Optional constraint {c} successfully added to the optimization model")
+                if c.lower() == 'no_biomass_summer':
+                    self._optimizationModel = no_biomass_summer_constraint(self._optimizationModel)
         # constraint on elRod combined with HPs:
         if not np.isnan(self.__elRodEff):
             self._optimizationModel = electricRodCapacityConstaint(self._optimizationModel, numberOfBuildings)
@@ -893,7 +952,7 @@ class EnergyNetworkClass(solph.EnergySystem):
             # CAPital investment EXpenditure
             self.__capex[buildingLabel] = sum((self.__costParam[i][1] * (capacityTransformers[(i, o)] > 1))             # base investment cost if the technology is implemented
                                               + (capacityTransformers[(i, o)] * self.__costParam[i][0])                 # investment cost per unit capacity
-                                              for i, o in capacityTransformers) + \
+                                              for i, o in capacityTransformers if "dhnPeak" not in i) + \
                                           sum((self.__costParam[x][1] * (capacityStorages[x] > 1))                      # base investment cost if the technology is implemented
                                               + (capacityStorages[x] * self.__costParam[x][0])                          # investment cost per unit capacity
                                               for x in capacityStorages)
@@ -902,6 +961,8 @@ class EnergyNetworkClass(solph.EnergySystem):
             gridBusLabel = "gridBus" + '__' + buildingLabel
             naturalGasSourceLabel = "naturalGasResource" + '__' + buildingLabel
             naturalGasBusLabel = "naturalGasBus" + '__' + buildingLabel
+            biomassSourceLabel = "biomassResource" + '__' + buildingLabel
+            biomassBusLabel = "biomassBus" + '__' + buildingLabel
             if mergeLinkBuses and ("electricity" in self._mergeBuses or "electricityBus" in self._mergeBuses):
                 electricityBusLabel = "electricityBus"
                 excessElectricityBusLabel = "excesselectricityBus"
@@ -920,6 +981,12 @@ class EnergyNetworkClass(solph.EnergySystem):
                 costParamNaturalGas.reset_index(inplace=True, drop=True)
             else:
                 costParamNaturalGas = 0
+
+            if biomassSourceLabel in self.__costParam:
+                costParamBiomass = self.__costParam[biomassSourceLabel].copy()
+                costParamBiomass.reset_index(inplace=True, drop=True)
+            else:
+                costParamBiomass = 0
 
             if "sequences" in solph.views.node(self._optimizationResults, gridBusLabel):
                 if ((electricitySourceLabel, gridBusLabel), "flow") in solph.views.node(self._optimizationResults, gridBusLabel)["sequences"]:
@@ -941,6 +1008,16 @@ class EnergyNetworkClass(solph.EnergySystem):
             else:
                 naturalGasFlow = 0
 
+            if "sequences" in solph.views.node(self._optimizationResults, biomassBusLabel):
+                if ((biomassSourceLabel, biomassBusLabel), "flow") in solph.views.node(self._optimizationResults, biomassBusLabel)["sequences"]:
+                    biomassFlow = solph.views.node(self._optimizationResults, biomassBusLabel)["sequences"][
+                        (biomassSourceLabel, biomassBusLabel), "flow"]
+                    biomassFlow.reset_index(inplace=True, drop=True)
+                else:
+                    biomassFlow = 0
+            else:
+                biomassFlow = 0
+
             # OPeration EXpenditure
             self.__opex[buildingLabel].update({i[0]: sum(
                 solph.views.node(self._optimizationResults, i[1])["sequences"][(i[0], i[1]), "flow"] * self.__costParam[
@@ -956,6 +1033,13 @@ class EnergyNetworkClass(solph.EnergySystem):
                 self.__opex[buildingLabel].update({naturalGasSourceLabel: c})
             else:
                 self.__opex[buildingLabel].update({naturalGasSourceLabel: c.sum()})  # cost of natural gas is added separately based on cost data
+
+            c = costParamBiomass * biomassFlow
+            if isinstance(c, (int, float)):
+                self.__opex[buildingLabel].update({biomassSourceLabel: c})
+            else:
+                self.__opex[buildingLabel].update(
+                    {biomassSourceLabel: c.sum()})  # cost of biomass is added separately based on cost data
 
             # Feed-in electricity cost (value will be in negative to signify monetary gain...)
             if ((mergeLinkBuses and buildingLabel=='Building1') or not mergeLinkBuses) and \
@@ -1072,7 +1156,7 @@ class EnergyNetworkClass(solph.EnergySystem):
                                                                                             t[0])["sequences"][((t[1], t[0]), "flow")] *
                                                                            self.__envParam[t[1]][0] * ('electricityBus' not in t[0]))
                                                                        for t in technologies if t[1] == i)
-                                                                for i, o in capacityTransformers})
+                                                                for i, o in capacityTransformers if "dhnPeak" not in i})
             self.__envImpactTechnologies[buildingLabel].update({x: capacityStorages[x] * self.__envParam[x][2] +
                                                                    sum(sum(
                                                                        solph.views.node(self._optimizationResults,
@@ -1499,6 +1583,11 @@ class EnergyNetworkGroup(EnergyNetworkClass):
                     [nodesData["natGas_impact"].loc[d]*clusterSize[d] for d in clusterSize.keys()])
                 natGasCost = pd.concat(
                     [nodesData["natGas_cost"].loc[d]*clusterSize[d] for d in clusterSize.keys()])
+            if 'biomass_impact' in nodesData:
+                biomassImpact = pd.concat(
+                    [nodesData["biomass_impact"].loc[d]*clusterSize[d] for d in clusterSize.keys()])
+                biomassCost = pd.concat(
+                    [nodesData["biomass_cost"].loc[d]*clusterSize[d] for d in clusterSize.keys()])
             weatherData = pd.concat([nodesData['weather_data'][
                                          nodesData['weather_data']['time.mm'] == int(d.split('-')[1])][
                                          nodesData['weather_data']['time.dd'] == int(d.split('-')[2])][['gls', 'str.diffus', 'tre200h0', 'ground_temp']] for d in clusterSize.keys()])
@@ -1509,6 +1598,9 @@ class EnergyNetworkGroup(EnergyNetworkClass):
             if 'natGas_impact' in nodesData:
                 nodesData["natGas_impact"] = natGasImpact
                 nodesData["natGas_cost"] = natGasCost
+            if 'biomass_impact' in nodesData:
+                nodesData["biomass_impact"] = biomassImpact
+                nodesData["biomass_cost"] = biomassCost
             nodesData["weather_data"] = weatherData
 
         self._convertNodes(nodesData, opt, mergeLinkBuses, mergeBuses, mergeHeatSourceSink, includeCarbonBenefits,
