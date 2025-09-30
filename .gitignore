@@ -180,3 +180,4 @@ cython_debug/
 
 
 *.lcov
+/data/CSVs/pipe_data_others/pipes.csv
