@@ -37,18 +37,20 @@ if __name__ == '__main__':
     # solver specific command line options
     optimizationOptions = {
         "gurobi": {
-            "BarConvTol": 0.5,
-            # The barrier solver terminates when the relative difference between the primal and dual objective values
-            # is less than the specified tolerance (with a GRB_OPTIMAL status)
-            "OptimalityTol": 1e-4,
-            # Reduced costs must all be smaller than OptimalityTol in the improving direction in order for a model to
-            # be declared optimal
-            "MIPGap": 1e-2,
-            # Relative Tolerance between the best integer objective and the objective of the best node remaining
-            "MIPFocus": 2
-            # 1 feasible solution quickly. 2 proving optimality. 3 if the best objective bound is moving very
-            # slowly/focus on the bound "Cutoff": #Indicates that you aren't interested in solutions whose objective
-            # values are worse than the specified value., could be dynamically be used in moo
+            "options":{
+                "BarConvTol": 0.5,
+                # The barrier solver terminates when the relative difference between the primal and dual objective values
+                # is less than the specified tolerance (with a GRB_OPTIMAL status)
+                "OptimalityTol": 1e-4,
+                # Reduced costs must all be smaller than OptimalityTol in the improving direction in order for a model to
+                # be declared optimal
+                "MIPGap": 1e-2,
+                # Relative Tolerance between the best integer objective and the objective of the best node remaining
+                "MIPFocus": 2
+                # 1 feasible solution quickly. 2 proving optimality. 3 if the best objective bound is moving very
+                # slowly/focus on the bound "Cutoff": #Indicates that you aren't interested in solutions whose objective
+                # values are worse than the specified value., could be dynamically be used in moo
+            }
         }
         # add the command line options of the solver here, For example to use CBC add a new item to the dictionary
         # "cbc": {"tee": False}
