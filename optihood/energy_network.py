@@ -420,7 +420,10 @@ class EnergyNetworkClass(solph.EnergySystem):
         # ======================================================
 
         if options is None:
-            options = {"gurobi": {"MIPGap": 0.01}}
+            options = {"gurobi": {"tee": True,
+                                  "options": {"MIPGap": 0.01}},
+                       "cbc": {"tee": True},
+                       "glpk": {"tee": True}}
 
         self._optimizationModel = solph.Model(self)
         logging.info("Optimization model built successfully")
@@ -466,12 +469,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         logging.info("Custom constraints successfully added to the optimization model")
         logging.info("Initiating optimization using {} solver".format(solver))
 
-        if solver == 'glpk':
-            self._optimizationModel.solve(solver=solver)
-        elif solver == 'cbc':
-            self._optimizationModel.solve(solver=solver, solve_kwargs=options[solver])
-        elif solver == 'gurobi':
-            self._optimizationModel.solve(solver=solver, cmdline_options=options[solver])
+        self._optimizationModel.solve(solver=solver, solve_kwargs=options[solver])
 
         # obtain the value of the environmental impact (subject to the limit constraint)
         # the optimization imposes an integral limit constraint on the environmental impacts
