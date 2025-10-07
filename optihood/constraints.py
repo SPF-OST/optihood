@@ -98,7 +98,7 @@ def connectInvestmentRule(om):
     return om
 
 
-def environmentalImpactlimit(om, keyword1, keyword2, limit=None):
+def environmentalImpactlimit(om, keyword1, keyword2, limit):
     """
     Based on: oemof.solph.constraints.emission_limit
     Function to limit the environmental impacts during the multi-objective optimization
@@ -160,11 +160,12 @@ def environmentalImpactlimit(om, keyword1, keyword2, limit=None):
                        storageCapacityDict2)
         ),
     )
-    setattr(
-        om,
-        envImpact + "_constraint",
-        pyo.Constraint(expr=(getattr(om, envImpact) <= limit)),
-    )
+    if limit is not None:
+        setattr(
+            om,
+            envImpact + "_constraint",
+            pyo.Constraint(expr=(getattr(om, envImpact) <= limit)),
+        )
 
     transformerFlowCapacityDictNonConvex.update(transformerFlowCapacityDictConvex)
 
