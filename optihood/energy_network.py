@@ -401,7 +401,7 @@ class EnergyNetworkClass(solph.EnergySystem):
             print(oobj + ":", n.label)
         print("*********************************************************")
 
-    def optimize(self, numberOfBuildings, solver, envImpactlimit=1000000, clusterSize={},
+    def optimize(self, numberOfBuildings, solver, envImpactlimit=None, clusterSize={},
                  options=None,   # solver options
                  optConstraints=None, #optional constraints (implemented for the moment are "roof area"
                  mergeLinkBuses=False):
