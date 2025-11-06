@@ -40,9 +40,9 @@ commands could be used.
 
 3. Install the requirements into the created virtual environment. The requirements.txt file needs Python 3.12. If using another version, use pip tools to compile the provided requirements.in file before installing the requirements:
     ```commandline
-    venv\Scripts\python.exe -m pip install --upgrade pip
-    pip install wheel pip-compile-multi uv
-    uv pip install --no-compile -r requirements/requirements.txt
+    venv\Scripts\python -m pip install --upgrade pip
+    venv\Scripts\python -m pip install wheel pip-compile-multi uv
+    venv\Scripts\python -m uv pip install --no-compile -r requirements/requirements.txt
     ```
     It might be required to install C++ build tools. To do that, click on the link that appears with the error message and follow the instructions (it is the lapack package that is missing). In order to be able to install the missing package, it is required to have a complete Visual Studio instance and installing it with the "Desktop development with C++" workload.
 
@@ -69,8 +69,8 @@ commands could be used.
 
 6. Run the test suite using:
 ```commandline
-    uv pip install --no-compile -r requirements/requirements_dev.txt
-    pytest -v
+    venv\Scripts\python -m uv pip install --no-compile -r requirements/requirements_dev.txt
+    venv\Scripts\python dev-tools/devTools.py --unit "not manual" --keep-results
 ```
 
 7. To upgrade the environment using an updated requirement/requirements.in file:
