@@ -12,8 +12,6 @@ from dash import html, dcc, Input, Output, State, callback, ctx, callback_contex
 from dash.exceptions import PreventUpdate
 import dash_cytoscape as cyto
 import matplotlib.pyplot as plt
-import matplotlib as _mpl
-import numpy as _np
 
 import optihood.Visualizer.scenario_to_visualizer as stv
 import optihood.Visualizer.convert_scenario as _cv
