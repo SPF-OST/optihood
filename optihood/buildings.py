@@ -512,6 +512,10 @@ class Building:
             # default coefficients for geothermal heat pump
             coef_W = [0.1600, -1.2369, 19.9391, 19.3448, 7.1057, -1.4048]
             coef_Q = [13.8978, 114.8358, -9.3634, -179.4227, 342.3363, -12.4969]
+        elif pattern_at_start_followed_by_number(_ent.TransformerTypes.Chiller, label.prefix):
+            # default coefficients for chiller
+            coef_W = [6.534, 6.4908, 0.3555, 2.578, 8.076, -11.005]
+            coef_Q = [79.897, 738.27, -22.540, -1499.7, 2266.1, -462.81]
         if (_ent.HeatPumpCoefficientLabels.coef_W in data) and (_ent.HeatPumpCoefficientLabels.coef_Q in data):
             #comma-separated entries for user-defined coefficients split into a list
             coef_W = [float(c) for c in data[_ent.HeatPumpCoefficientLabels.coef_W].split(",")]
@@ -673,38 +677,6 @@ class Building:
 
         self.__costParam[elRodLabel] = [self._calculateInvest(data)[0], self._calculateInvest(data)[1]]
         self.__envParam[elRodLabel] = [float(data["heat_impact"]), 0, envImpactPerCapacity]
-    
-    def _addChiller(self, data, temperatureSH, temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode):
-        chillerLabel = data["label"] + '__' + self.__buildingLabel
-        if (mergeLinkBuses and data["from"] in self.__linkBuses):
-            inputBusLabel = [data["from"]]
-        else:
-            inputBusLabel = [i + '__' + self.__buildingLabel for i in data["from"].split(",")]
-        inputBuses = [self.__busDict[i] for i in inputBusLabel]
-        if (mergeHeatSourceSink and data["to"] in self.__heatSourceSinkBuses):
-            outputBusLabel = data['to']
-        else:
-            outputBusLabel = data['to']+ '__' + self.__buildingLabel
-        outputBus = self.__busDict[outputBusLabel]
-        envImpactPerCapacity = float(data["impact_cap"]) / float(data["lifetime"])
-        if data["capacity_min"] == 'x':
-            capacityMinSH = float(data["capacity_SH"])
-        else:
-            capacityMinSH = float(data["capacity_min"])
-        self.__nodesList.append(Chiller(label=chillerLabel,
-                          tSH=temperatureSH,
-                          tGround=temperatureGround,
-                          inputBuses=inputBuses,
-                          outputBus= outputBus,
-                          nomEff=float(data['efficiency']), capacityMin=capacityMinSH, capacityMax=float(data["capacity_SH"]),
-                          epc=self._calculateInvest(data)[0] * (opt == "costs") + envImpactPerCapacity*(opt == "env"), base=self._calculateInvest(data)[1] * (opt == "costs"), env_capa=envImpactPerCapacity,
-                          dispatchMode=dispatchMode
-                        ))
-        self.__technologies.append([outputBusLabel, chillerLabel])
-
-        self.__costParam[chillerLabel] = [self._calculateInvest(data)[0], self._calculateInvest(data)[1]]
-
-        self.__envParam[chillerLabel] = [float(data["heat_impact"]), 0, envImpactPerCapacity]
 
     def _addGenericTransformer(self, data):
         inputBusLabel = data['from']+ '__Building1'
@@ -732,7 +704,7 @@ class Building:
                 elif pattern_at_start_followed_by_number("ElectricRod", t["label"]):
                     self._addElectricRod(t, opt, mergeLinkBuses, dispatchMode, temperatureLevels)
                 elif pattern_at_start_followed_by_number("Chiller", t["label"]):
-                    self._addChiller(t, operationTemperatures[0], temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode)
+                    self._addHeatPump(t, [15], temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode)
                 else:
                     logging.warning("Transformer label not identified, adding generic transformer component...")
                     self._addGenericTransformer(t)
@@ -775,7 +747,7 @@ class Building:
                                                             float(s["elec_impact"])*(opt == "env"),
                                                             float(s["elec_impact"]), envImpactPerCapacity, dispatchMode))
 
-                elif ("dhwStorage" in storageLabel or "shStorage" in storageLabel) and not temperatureLevels:
+                elif ("dhwStorage" in storageLabel or "shStorage" in storageLabel or "coolingBufferStorage" in storageLabel) and not temperatureLevels:
                     self.__nodesList.append(ThermalStorage(storageLabel,
                                                            storageParams["stratified_storage"], self.__busDict[inputBusLabel],
                                                            self.__busDict[outputBusLabel],
