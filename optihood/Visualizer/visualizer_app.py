@@ -2,6 +2,8 @@ import json
 import os
 from textwrap import dedent as d
 import typing as _tp
+import pathlib as _pl
+import json as _json
 
 import dash
 from datetime import datetime
@@ -378,7 +380,7 @@ def run_cytoscape_visualizer(
         nodes: _tp.Optional[_tp.Dict[str, _tp.Dict[str, _tp.Union[str, float]]]] = None,
         edges: _tp.Optional[_tp.Dict[str, _tp.Dict[str, _tp.Union[str, float]]]] = None,
         node_layout_file: str = 'saved_layout.json',
-        layout_mode: _tp.Literal["breadthfirst", "circle", "cose", "grid", "random"] = 'breadthfirst'
+        layout_mode: _tp.Literal["breadthfirst", "circle", "cose", "grid", "random", "preset"] = 'breadthfirst'
         ) -> None:
     """
     Method to visualize an energy network.
@@ -403,9 +405,21 @@ def run_cytoscape_visualizer(
 
     layout_mode:
         When no node_layout_file is available yet, the nodes will be distributed automatically using this algorithm.
-        Options are: "breadthfirst", "circle", "cose", "grid", and "random"
+        Options are: "breadthfirst", "circle", "cose", "grid", "random" and "preset". "preset" is used only when
+        node_layout_file exists.
     """
+    if node_layout_file:
+        node_layout_path = _pl.Path(node_layout_file)
+        if node_layout_path.exists():
+            with node_layout_path.open("r") as f:
+                saved_positions = _json.load(f)
 
+            for node in graphData.nodes:
+                node_id = node['data']['id']
+                if node_id in saved_positions:
+                    node['position'] = saved_positions[node_id]
+
+            layout_mode = 'preset'
     app = setup_cytoscape_app(graphData, nodes, edges, node_layout_file, layout_mode)
     app.run(debug=True)
 

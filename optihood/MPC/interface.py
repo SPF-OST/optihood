@@ -198,10 +198,10 @@ class MpcHandler:
         self.time_step_in_minutes = time_step_in_minutes
         self.prediction_window_in_hours = prediction_window_in_hours
 
-    def visualize_example(self):
+    def visualize_example(self, node_layout_file: str = None) -> None:
         converters = _cs.get_converters(self.nodal_data, nr_of_buildings=self.nr_of_buildings)
         graphData = _cs.get_graph_data(converters)
-        _va.run_cytoscape_visualizer(graphData=graphData)
+        _va.run_cytoscape_visualizer(graphData=graphData, node_layout_file=node_layout_file)
 
     def update_network(self, current_time_step, current_state):
         return self._get_network(current_time_step, current_state)
