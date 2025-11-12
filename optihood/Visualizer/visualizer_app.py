@@ -224,6 +224,12 @@ def setup_cytoscape_app(graphData: _tp.Optional[_cv.EnergyNetworkGraphData] = No
                 'line-color': 'crimson',
             }
         },
+        {
+            'selector': f'.{stv.EnergyTypes.cooling.value}',
+            'style': {
+                'line-color': 'dodgerblue',
+            }
+        },
 
     ]
 
