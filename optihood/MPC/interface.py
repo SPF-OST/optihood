@@ -57,7 +57,8 @@ class MpcComponentBasic:
 
 
 class StoragesMPC(MpcComponentBasic):
-    main_labels = [_ent.StorageTypes.shStorage, _ent.StorageTypes.dhwStorage, _ent.StorageTypes.electricalStorage]
+    main_labels = [_ent.StorageTypes.shStorage, _ent.StorageTypes.dhwStorage, _ent.StorageTypes.electricalStorage,
+                   _ent.StorageTypes.coolingBufferStorage]
     sheet_name = _ent.NodeKeys.storages
     default_values = {_ent.StorageLabels.initial_capacity.value: 0.0}
 
