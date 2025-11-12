@@ -230,6 +230,7 @@ class StorageTypes(_enum.StrEnum):
     boreholeGenericStorage = "boreholeGenericStorage"
     aquifierGenericStorage = "aquifierGenericStorage"
     thermalStorage = "thermalStorage"
+    coolingBufferStorage = "coolingBufferStorage"
 
 
 class StratifiedStorageLabels(_enum.StrEnum):

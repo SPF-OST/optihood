@@ -2,6 +2,8 @@ import json
 import os
 from textwrap import dedent as d
 import typing as _tp
+import pathlib as _pl
+import json as _json
 
 import dash
 from datetime import datetime
@@ -10,8 +12,6 @@ from dash import html, dcc, Input, Output, State, callback, ctx, callback_contex
 from dash.exceptions import PreventUpdate
 import dash_cytoscape as cyto
 import matplotlib.pyplot as plt
-import matplotlib as _mpl
-import numpy as _np
 
 import optihood.Visualizer.scenario_to_visualizer as stv
 import optihood.Visualizer.convert_scenario as _cv
@@ -224,6 +224,12 @@ def setup_cytoscape_app(graphData: _tp.Optional[_cv.EnergyNetworkGraphData] = No
                 'line-color': 'crimson',
             }
         },
+        {
+            'selector': f'.{stv.EnergyTypes.cooling.value}',
+            'style': {
+                'line-color': 'dodgerblue',
+            }
+        },
 
     ]
 
@@ -403,9 +409,20 @@ def run_cytoscape_visualizer(
 
     layout_mode:
         When no node_layout_file is available yet, the nodes will be distributed automatically using this algorithm.
-        Options are: "breadthfirst", "circle", "cose", "grid", and "random"
+        Options are: "breadthfirst", "circle", "cose", "grid" and "random".
     """
+    if node_layout_file:
+        node_layout_path = _pl.Path(node_layout_file)
+        if node_layout_path.exists():
+            with node_layout_path.open("r") as f:
+                saved_positions = _json.load(f)
 
+            for node in graphData.nodes:
+                node_id = node['data']['id']
+                if node_id in saved_positions:
+                    node['position'] = saved_positions[node_id]
+
+            layout_mode = 'preset'
     app = setup_cytoscape_app(graphData, nodes, edges, node_layout_file, layout_mode)
     app.run(debug=True)
 

@@ -35,6 +35,7 @@ class EnergyTypes(_enum.StrEnum):
     med_temp_grid = 'med_temp_grid'
     dhw_temp_grid = 'dhw_temp_grid'
     district = 'district'
+    cooling = 'cooling'
     unknown = 'unknown'
 
 
@@ -66,6 +67,7 @@ def get_energy_type(label: str):
         return EnergyTypes.electricity
 
     sh_parts = ["sh", "spaceHeating", "chiller", 'heatSource35']
+    # TODO: check why "chiller" is added to sh_parts
     if any(flag in label for flag in sh_parts):
         return EnergyTypes.space_heating
 
@@ -89,6 +91,10 @@ def get_energy_type(label: str):
     if any(flag in label for flag in oil_parts):
         return EnergyTypes.oil
 
+    cooling_parts = ["cool"]
+    if any(flag in label for flag in cooling_parts):
+        return EnergyTypes.cooling
+
     print(f'Unknown label type found: {label}')
     return EnergyTypes.unknown
 
@@ -96,7 +102,7 @@ def get_energy_type(label: str):
 def get_energy_type_based_on_both_labels(label: str, other_label: str) -> EnergyTypes:
     """ Edges are based on the current node and another (to or from)."""
 
-    transformer_parts = ["HP", "solar", "GasBoiler", "BiomassBoiler", "OilBoiler", "Dummy", "HP_d", "GWHP_d"]
+    transformer_parts = ["HP", "solar", "GasBoiler", "BiomassBoiler", "OilBoiler", "Dummy", "HP_d", "GWHP_d", "Chiller"]
     source_parts = ["Dummy", "wasteheatPotential", "wasteIncineratorPotential"]
     storage_parts = [s.value for s in StorageTypes if s not in [StorageTypes.shStorage, StorageTypes.dhwStorage, StorageTypes.electricalStorage]]
 
