@@ -692,11 +692,11 @@ class Building:
         for i, t in data.iterrows():
             if t["active"]:
                 if pattern_at_start_followed_by_number("HP", t["label"]):
-                    self._addHeatPump(t, operationTemperatures, temperatureAmb, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode)
+                    self._addHeatPump(t, operationTemperatures[0], temperatureAmb, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode)
                 elif pattern_at_start_followed_by_number("GWHP", t["label"]):
-                    self._addHeatPump(t, operationTemperatures, temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode)
+                    self._addHeatPump(t, operationTemperatures[0], temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode)
                 elif t["label"] == "GWHP split":
-                    self._addGeothemalHeatPumpSplit(t, operationTemperatures, temperatureGround, opt, mergeLinkBuses, dispatchMode)
+                    self._addGeothemalHeatPumpSplit(t, operationTemperatures[0], temperatureGround, opt, mergeLinkBuses, dispatchMode)
                 elif "CHP" in t["label"]:
                     self._addCHP(t, len(temperatureAmb), opt, dispatchMode)
                 elif "Boiler" in t["label"]:
@@ -704,7 +704,7 @@ class Building:
                 elif pattern_at_start_followed_by_number("ElectricRod", t["label"]):
                     self._addElectricRod(t, opt, mergeLinkBuses, dispatchMode, temperatureLevels)
                 elif pattern_at_start_followed_by_number("Chiller", t["label"]):
-                    self._addHeatPump(t, [15], temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode)
+                    self._addHeatPump(t, [operationTemperatures[1][1]], np.full(len(temperatureGround), operationTemperatures[1][0]), opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode)
                 else:
                     logging.warning("Transformer label not identified, adding generic transformer component...")
                     self._addGenericTransformer(t)
