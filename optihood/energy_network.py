@@ -274,6 +274,7 @@ class EnergyNetworkClass(solph.EnergySystem):
             self.__temperatureSH = data["stratified_storage"].loc["shStorage", "temp_h"]
             self.__temperatureDHW = data["stratified_storage"].loc["dhwStorage", "temp_h"]
             self.__operationTemperatures = [self.__temperatureSH, self.__temperatureDHW]
+        self._coolingTemperatures = []
         if "coolingBufferStorage" in data["stratified_storage"].index:
             self._temperatureHigh = data["stratified_storage"].loc["coolingBufferStorage", "temp_h"]
             self._temperatureLow = data["stratified_storage"].loc["coolingBufferStorage", "temp_c"]
