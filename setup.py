@@ -25,7 +25,7 @@ def _getInstallRequirements():
 setup(
     name='optihood',
     packages=find_packages(),
-    version='v0.2.02',
+    version='v0.2.2',
     author="Institute for Solar Technology (SPF), OST Rapperswil",
     author_email="neha.dimri@ost.ch",
     description="optihood optimization framework",
