@@ -481,6 +481,13 @@ class Building:
                         )
 
     def _addHeatPump(self, data, operationTempertures, temperature_evap, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode):
+        self._add_hp_or_chiller(data, operationTempertures, temperature_evap, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode, Component=HeatPumpLinear)
+
+    def _add_chiller(self, data, operationTempertures, temperature_evap, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode):
+        self._add_hp_or_chiller(data, operationTempertures, temperature_evap, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode, Component=Chiller)
+
+    def _add_hp_or_chiller(self, data, operationTempertures, temperature_evap, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode,
+                           Component: =HeatPumpLinear):
         label = LabelStringManipulator(data[_ent.TransformerLabels.label] + '__' + self.__buildingLabel)
         from_bus = _ent.TransformerLabels.from_bus
         to_bus = _ent.TransformerLabels.to
@@ -520,7 +527,7 @@ class Building:
             #comma-separated entries for user-defined coefficients split into a list
             coef_W = [float(c) for c in data[_ent.HeatPumpCoefficientLabels.coef_W].split(",")]
             coef_Q = [float(c) for c in data[_ent.HeatPumpCoefficientLabels.coef_Q].split(",")]
-        heatPump = HeatPumpLinear(label.full_name, operationTempertures, temperature_evap,
+        heatPump = Component(label.full_name, operationTempertures, temperature_evap,
                                   coef_W,
                                   coef_Q,
                                   inputBuses,
@@ -704,7 +711,7 @@ class Building:
                 elif pattern_at_start_followed_by_number("ElectricRod", t["label"]):
                     self._addElectricRod(t, opt, mergeLinkBuses, dispatchMode, temperatureLevels)
                 elif pattern_at_start_followed_by_number("Chiller", t["label"]):
-                    self._addHeatPump(t, [operationTemperatures[1][1]], np.full(len(temperatureGround), operationTemperatures[1][0]), opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode)
+                    self._add_chiller(t, [operationTemperatures[1][1]], np.full(len(temperatureGround), operationTemperatures[1][0]), opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode)
                 else:
                     logging.warning("Transformer label not identified, adding generic transformer component...")
                     self._addGenericTransformer(t)
@@ -747,7 +754,7 @@ class Building:
                                                             float(s["elec_impact"])*(opt == "env"),
                                                             float(s["elec_impact"]), envImpactPerCapacity, dispatchMode))
 
-                elif ("dhwStorage" in storageLabel or "shStorage" in storageLabel or "coolingBufferStorage" in storageLabel) and not temperatureLevels:
+                if storageLabel.startswith(["dhwStorage", "shStorage", "coolingBufferStorage"]) and not temperatureLevels:
                     self.__nodesList.append(ThermalStorage(storageLabel,
                                                            storageParams["stratified_storage"], self.__busDict[inputBusLabel],
                                                            self.__busDict[outputBusLabel],

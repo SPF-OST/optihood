@@ -567,6 +567,10 @@ class HeatPumpLinear:
             return []
 
 
+class Chiller(HeatPumpLinear):
+    pass
+
+
 class CHP:
     "Information about the model can be found in combined_pro.py CombinedCHP"
     def __init__(self, buildingLabel, input, output, efficiency,
