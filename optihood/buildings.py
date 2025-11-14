@@ -481,6 +481,18 @@ class Building:
                         )
 
     def _addHeatPump(self, data, operationTempertures, temperature_evap, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode):
+        self._add_hp_or_chiller(data, operationTempertures, temperature_evap, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode, Component=HeatPumpLinear)
+
+    def _add_chiller(self, data, operationTempertures, temperature_evap, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode):
+        self._add_hp_or_chiller(data, operationTempertures, temperature_evap, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode, Component=Chiller)
+
+    def _add_hp_or_chiller(self, data, operationTempertures, temperature_evap, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode,
+                           Component: HeatPumpLinear | Chiller = HeatPumpLinear,
+                           ):
+        """
+        HPs and chillers are implemented the same way.
+        The required class is passed in as a 'Component'
+        """
         label = LabelStringManipulator(data[_ent.TransformerLabels.label] + '__' + self.__buildingLabel)
         from_bus = _ent.TransformerLabels.from_bus
         to_bus = _ent.TransformerLabels.to
@@ -512,11 +524,15 @@ class Building:
             # default coefficients for geothermal heat pump
             coef_W = [0.1600, -1.2369, 19.9391, 19.3448, 7.1057, -1.4048]
             coef_Q = [13.8978, 114.8358, -9.3634, -179.4227, 342.3363, -12.4969]
+        elif pattern_at_start_followed_by_number(_ent.TransformerTypes.Chiller, label.prefix):
+            # default coefficients for chiller
+            coef_W = [6.534, 6.4908, 0.3555, 2.578, 8.076, -11.005]
+            coef_Q = [79.897, 738.27, -22.540, -1499.7, 2266.1, -462.81]
         if (_ent.HeatPumpCoefficientLabels.coef_W in data) and (_ent.HeatPumpCoefficientLabels.coef_Q in data):
             #comma-separated entries for user-defined coefficients split into a list
             coef_W = [float(c) for c in data[_ent.HeatPumpCoefficientLabels.coef_W].split(",")]
             coef_Q = [float(c) for c in data[_ent.HeatPumpCoefficientLabels.coef_Q].split(",")]
-        heatPump = HeatPumpLinear(label.full_name, operationTempertures, temperature_evap,
+        heatPump = Component(label.full_name, operationTempertures, temperature_evap,
                                   coef_W,
                                   coef_Q,
                                   inputBuses,
@@ -673,38 +689,6 @@ class Building:
 
         self.__costParam[elRodLabel] = [self._calculateInvest(data)[0], self._calculateInvest(data)[1]]
         self.__envParam[elRodLabel] = [float(data["heat_impact"]), 0, envImpactPerCapacity]
-    
-    def _addChiller(self, data, temperatureSH, temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode):
-        chillerLabel = data["label"] + '__' + self.__buildingLabel
-        if (mergeLinkBuses and data["from"] in self.__linkBuses):
-            inputBusLabel = [data["from"]]
-        else:
-            inputBusLabel = [i + '__' + self.__buildingLabel for i in data["from"].split(",")]
-        inputBuses = [self.__busDict[i] for i in inputBusLabel]
-        if (mergeHeatSourceSink and data["to"] in self.__heatSourceSinkBuses):
-            outputBusLabel = data['to']
-        else:
-            outputBusLabel = data['to']+ '__' + self.__buildingLabel
-        outputBus = self.__busDict[outputBusLabel]
-        envImpactPerCapacity = float(data["impact_cap"]) / float(data["lifetime"])
-        if data["capacity_min"] == 'x':
-            capacityMinSH = float(data["capacity_SH"])
-        else:
-            capacityMinSH = float(data["capacity_min"])
-        self.__nodesList.append(Chiller(label=chillerLabel,
-                          tSH=temperatureSH,
-                          tGround=temperatureGround,
-                          inputBuses=inputBuses,
-                          outputBus= outputBus,
-                          nomEff=float(data['efficiency']), capacityMin=capacityMinSH, capacityMax=float(data["capacity_SH"]),
-                          epc=self._calculateInvest(data)[0] * (opt == "costs") + envImpactPerCapacity*(opt == "env"), base=self._calculateInvest(data)[1] * (opt == "costs"), env_capa=envImpactPerCapacity,
-                          dispatchMode=dispatchMode
-                        ))
-        self.__technologies.append([outputBusLabel, chillerLabel])
-
-        self.__costParam[chillerLabel] = [self._calculateInvest(data)[0], self._calculateInvest(data)[1]]
-
-        self.__envParam[chillerLabel] = [float(data["heat_impact"]), 0, envImpactPerCapacity]
 
     def _addGenericTransformer(self, data):
         inputBusLabel = data['from']+ '__Building1'
@@ -720,11 +704,11 @@ class Building:
         for i, t in data.iterrows():
             if t["active"]:
                 if pattern_at_start_followed_by_number("HP", t["label"]):
-                    self._addHeatPump(t, operationTemperatures, temperatureAmb, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode)
+                    self._addHeatPump(t, operationTemperatures[0], temperatureAmb, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode)
                 elif pattern_at_start_followed_by_number("GWHP", t["label"]):
-                    self._addHeatPump(t, operationTemperatures, temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode)
+                    self._addHeatPump(t, operationTemperatures[0], temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode)
                 elif t["label"] == "GWHP split":
-                    self._addGeothemalHeatPumpSplit(t, operationTemperatures, temperatureGround, opt, mergeLinkBuses, dispatchMode)
+                    self._addGeothemalHeatPumpSplit(t, operationTemperatures[0], temperatureGround, opt, mergeLinkBuses, dispatchMode)
                 elif "CHP" in t["label"]:
                     self._addCHP(t, len(temperatureAmb), opt, dispatchMode)
                 elif "Boiler" in t["label"]:
@@ -732,7 +716,7 @@ class Building:
                 elif pattern_at_start_followed_by_number("ElectricRod", t["label"]):
                     self._addElectricRod(t, opt, mergeLinkBuses, dispatchMode, temperatureLevels)
                 elif pattern_at_start_followed_by_number("Chiller", t["label"]):
-                    self._addChiller(t, operationTemperatures[0], temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode)
+                    self._add_chiller(t, [operationTemperatures[1][1]], np.full(len(temperatureGround), operationTemperatures[1][0]), opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode)
                 else:
                     logging.warning("Transformer label not identified, adding generic transformer component...")
                     self._addGenericTransformer(t)
@@ -775,7 +759,7 @@ class Building:
                                                             float(s["elec_impact"])*(opt == "env"),
                                                             float(s["elec_impact"]), envImpactPerCapacity, dispatchMode))
 
-                elif ("dhwStorage" in storageLabel or "shStorage" in storageLabel) and not temperatureLevels:
+                if storageLabel.startswith(("dhwStorage", "shStorage", "coolingBufferStorage")) and not temperatureLevels:
                     self.__nodesList.append(ThermalStorage(storageLabel,
                                                            storageParams["stratified_storage"], self.__busDict[inputBusLabel],
                                                            self.__busDict[outputBusLabel],

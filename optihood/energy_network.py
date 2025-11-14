@@ -274,6 +274,12 @@ class EnergyNetworkClass(solph.EnergySystem):
             self.__temperatureSH = data["stratified_storage"].loc["shStorage", "temp_h"]
             self.__temperatureDHW = data["stratified_storage"].loc["dhwStorage", "temp_h"]
             self.__operationTemperatures = [self.__temperatureSH, self.__temperatureDHW]
+        self._coolingTemperatures = []
+        if "coolingBufferStorage" in data["stratified_storage"].index:
+            self._temperatureHigh = data["stratified_storage"].loc["coolingBufferStorage", "temp_h"]
+            self._temperatureLow = data["stratified_storage"].loc["coolingBufferStorage", "temp_c"]
+            self._coolingTemperatures = [self._temperatureLow, self._temperatureHigh]
+
         # Transformers conversion factors input power - output power
         for comp in _ent.TransformerTypes:
             mask = data[_ent.NodeKeys.transformers.value][_ent.TransformerLabels.label.value].str.startswith(comp)
@@ -375,7 +381,7 @@ class EnergyNetworkClass(solph.EnergySystem):
             else:
                 bmdata = {}
             b.addSink(data["demand"][data["demand"]["building"] == i], data["demandProfiles"][i], bmdata, mergeLinkBuses, mergeHeatSourceSink, self._temperatureLevels)
-            b.addTransformer(data["transformers"][data["transformers"]["building"] == i], self.__operationTemperatures, self.__temperatureAmb, self.__temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, self._dispatchMode, self._temperatureLevels)
+            b.addTransformer(data["transformers"][data["transformers"]["building"] == i], [self.__operationTemperatures, self._coolingTemperatures], self.__temperatureAmb, self.__temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, self._dispatchMode, self._temperatureLevels)
             storageList = b.addStorage(data["storages"][data["storages"]["building"] == i], storageParams, self.__temperatureAmb, opt, mergeLinkBuses, self._dispatchMode, self._temperatureLevels)
             b.addSolar(data["solar"][(data["solar"]["building"] == i) & (data["solar"]["label"].str.match(r"^solarCollector(\d+)?$"))], data["weather_data"], opt, mergeLinkBuses, self._dispatchMode, self._temperatureLevels)
             b.addPV(data["solar"][(data["solar"]["building"] == i) & (data["solar"]["label"].str.match(r"^pv(\d+)?$"))], data["weather_data"], opt, self._dispatchMode)
