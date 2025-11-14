@@ -487,7 +487,12 @@ class Building:
         self._add_hp_or_chiller(data, operationTempertures, temperature_evap, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode, Component=Chiller)
 
     def _add_hp_or_chiller(self, data, operationTempertures, temperature_evap, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode,
-                           Component: =HeatPumpLinear):
+                           Component: HeatPumpLinear | Chiller = HeatPumpLinear,
+                           ):
+        """
+        HPs and chillers are implemented the same way.
+        The required class is passed in as a 'Component'
+        """
         label = LabelStringManipulator(data[_ent.TransformerLabels.label] + '__' + self.__buildingLabel)
         from_bus = _ent.TransformerLabels.from_bus
         to_bus = _ent.TransformerLabels.to
@@ -754,7 +759,7 @@ class Building:
                                                             float(s["elec_impact"])*(opt == "env"),
                                                             float(s["elec_impact"]), envImpactPerCapacity, dispatchMode))
 
-                if storageLabel.startswith(["dhwStorage", "shStorage", "coolingBufferStorage"]) and not temperatureLevels:
+                if storageLabel.startswith(("dhwStorage", "shStorage", "coolingBufferStorage")) and not temperatureLevels:
                     self.__nodesList.append(ThermalStorage(storageLabel,
                                                            storageParams["stratified_storage"], self.__busDict[inputBusLabel],
                                                            self.__busDict[outputBusLabel],
