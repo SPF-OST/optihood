@@ -410,11 +410,10 @@ class ProfileAndOtherDataReader:
         # set datetime index
         for i in range(numBuildings):
             demandProfiles[i + 1].timestamp = _pd.to_datetime(demandProfiles[i + 1].timestamp,
-                                                                           format='%Y-%m-%d %H:%M:%S')
+                                                              format='%Y-%m-%d %H:%M:%S')
             demandProfiles[i + 1].set_index("timestamp", inplace=True)
             if not clusterSize:
-                demandProfiles[i + 1] = self.clip_to_time_index(demandProfiles[i + 1],
-                                                                             time_index)
+                demandProfiles[i + 1] = self.clip_to_time_index(demandProfiles[i + 1], time_index)
         if clusterSize:
             demandProfiles = {}
             for i in range(1, numBuildings + 1):
@@ -435,7 +434,7 @@ class ProfileAndOtherDataReader:
         return nodesData
 
     def maybe_add_fixed_source_profiles(self, nodesData, cluster_size, time_index: _pd.DatetimeIndex):
-        if not "fixed" in nodesData["commodity_sources"].columns:
+        if "fixed" not in nodesData["commodity_sources"].columns:
             return nodesData
         if not (nodesData["commodity_sources"]["fixed"].eq(1)).any():
             return nodesData
@@ -458,21 +457,21 @@ class ProfileAndOtherDataReader:
         for filename in _os.listdir(fixed_source_profiles_path):
             fixed_sources_data.update({filename.split(".csv")[0]: _pd.read_csv(_os.path.join(fixed_source_profiles_path, filename), delimiter=";")})
 
-        nodesData["fixed_sources"] = fixed_sources_data
 
         # set datetime index
-        for i in nodesData["fixed_sources"].keys():
-            nodesData["fixed_sources"][i].timestamp = _pd.to_datetime(nodesData["fixed_sources"][i].timestamp,
+        for i in fixed_sources_data.keys():
+            fixed_sources_data[i].timestamp = _pd.to_datetime(fixed_sources_data[i].timestamp,
                                                                            format='%Y-%m-%d %H:%M:%S')
-            nodesData["fixed_sources"][i].set_index("timestamp", inplace=True)
+            fixed_sources_data[i].set_index("timestamp", inplace=True)
             if not cluster_size:
-                nodesData["fixed_sources"][i] = self.clip_to_time_index(nodesData["fixed_sources"][i],
+                fixed_sources_data[i] = self.clip_to_time_index(fixed_sources_data[i],
                                                                              time_index)
         if cluster_size:
             fixed_sources_data = {}
-            for i in nodesData["fixed_sources"].keys():
-                fixed_sources_data[i] = self.cluster_desired_column(nodesData["fixed_sources"][i], cluster_size)
-            nodesData["fixed_sources"] = fixed_sources_data
+            for i in fixed_sources_data.keys():
+                fixed_sources_data[i] = self.cluster_desired_column(fixed_sources_data[i], cluster_size)
+
+        nodesData["fixed_sources"] = fixed_sources_data
 
         return nodesData
 
