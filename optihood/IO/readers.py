@@ -580,14 +580,13 @@ class ProfileAndOtherDataReader:
             raise FileNotFoundError(f"Error in building model parameters file path: {b_model_params_Path}")
 
         bmParamers = _pd.read_csv(b_model_params_Path, delimiter=';')
+        building_data = nodesData["building_model"]
         for i in range(numBuildings):
-            nodesData["building_model"][i + 1] = {}
-            nodesData["building_model"][i + 1]["timeseries"] = _pd.DataFrame()
-            nodesData["building_model"][i + 1]["timeseries"]["tAmb"] = _np.array(
-                nodesData["weather_data"]["tre200h0"])
-            nodesData["building_model"][i + 1]["timeseries"]["IrrH"] = _np.array(
-                nodesData["weather_data"]["gls"]) / 1000  # conversion from W/m2 to kW/m2
-            nodesData["building_model"][i + 1]["timeseries"][f"Qocc"] = internalGains[f'Total (kW) {i + 1}'].values
+            building_data[i + 1] = {}
+            building_data[i + 1]["timeseries"] = _pd.DataFrame()
+            building_data[i + 1]["timeseries"]["tAmb"] = _np.array(nodesData["weather_data"]["tre200h0"])
+            building_data[i + 1]["timeseries"]["IrrH"] = _np.array(nodesData["weather_data"]["gls"]) / 1000  # conversion from W/m2 to kW/m2
+            building_data[i + 1]["timeseries"][f"Qocc"] = internalGains[f'Total (kW) {i + 1}'].values
 
             if "tIndoorDay" in bmParamers.columns:
                 tIndoorDay = float(bmParamers[bmParamers["Building Number"] == (i + 1)]['tIndoorDay'].iloc[0])
@@ -596,14 +595,14 @@ class ProfileAndOtherDataReader:
                               tIndoorNight, tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay,
                               tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay,
                               tIndoorNight, tIndoorNight, tIndoorNight, tIndoorNight] * 365
-                nodesData["building_model"][i + 1]["timeseries"]["tIndoorSet"] = _pd.DataFrame(tIndoorSet).values
+                building_data[i + 1]["timeseries"]["tIndoorSet"] = _pd.DataFrame(tIndoorSet).values
             paramList = ['gAreaWindows', 'rDistribution', 'cDistribution', 'rWall', 'cWall', 'rIndoor',
                          'cIndoor',
                          'qDistributionMin', 'qDistributionMax', 'tIndoorMin', 'tIndoorMax', 'tIndoorInit',
                          'tWallInit', 'tDistributionInit']
 
             for param in paramList:
-                nodesData["building_model"][i + 1][param] = float(
+                building_data[i + 1][param] = float(
                     bmParamers[bmParamers["Building Number"] == (i + 1)][param].iloc[0])
 
         return nodesData
