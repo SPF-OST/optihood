@@ -457,15 +457,13 @@ class ProfileAndOtherDataReader:
         for filename in _os.listdir(fixed_source_profiles_path):
             fixed_sources_data.update({filename.split(".csv")[0]: _pd.read_csv(_os.path.join(fixed_source_profiles_path, filename), delimiter=";")})
 
-
-        # set datetime index
         for i in fixed_sources_data.keys():
             fixed_sources_data[i].timestamp = _pd.to_datetime(fixed_sources_data[i].timestamp,
-                                                                           format='%Y-%m-%d %H:%M:%S')
+                                                              format='%Y-%m-%d %H:%M:%S')
             fixed_sources_data[i].set_index("timestamp", inplace=True)
             if not cluster_size:
-                fixed_sources_data[i] = self.clip_to_time_index(fixed_sources_data[i],
-                                                                             time_index)
+                fixed_sources_data[i] = self.clip_to_time_index(fixed_sources_data[i], time_index)
+
         if cluster_size:
             fixed_sources_data = {}
             for i in fixed_sources_data.keys():
@@ -487,22 +485,23 @@ class ProfileAndOtherDataReader:
             # for constant cost
             natGasCostValue = natGasCost
             _log.info("Constant value for natural gas cost")
-            nodesData["natGas_cost"] = _pd.DataFrame()
-            nodesData["natGas_cost"]["cost"] = (nodesData["demandProfiles"][1].shape[0]) * [natGasCostValue]
-            nodesData["natGas_cost"].index = nodesData["demandProfiles"][1].index
+            df = _pd.DataFrame()
+            df["cost"] = (nodesData["demandProfiles"][1].shape[0]) * [natGasCostValue]
+            df.index = nodesData["demandProfiles"][1].index
         elif not _os.path.exists(natGasCost):
             _log.error("Error in natural gas cost file path")
             raise FileNotFoundError(f"Error in natural gas cost file path: {natGasCost}")
 
         else:
-            nodesData["natGas_cost"] = _pd.read_csv(natGasCost, delimiter=";")
+            df = _pd.read_csv(natGasCost, delimiter=";")
             # set datetime index
-            nodesData["natGas_cost"].set_index("timestamp", inplace=True)
-            nodesData["natGas_cost"].index = _pd.to_datetime(nodesData["natGas_cost"].index, format='%d.%m.%Y %H:%M')
-            nodesData["natGas_cost"] = self.clip_to_time_index(nodesData["natGas_cost"], time_index)
+            df.set_index("timestamp", inplace=True)
+            df.index = _pd.to_datetime(df.index, format='%d.%m.%Y %H:%M')
+            df = self.clip_to_time_index(df, time_index)
         if cluster_size:
-            natGasCost = self.cluster_and_multiply_desired_column(nodesData["natGas_cost"], cluster_size)
-            nodesData["natGas_cost"] = natGasCost
+            df = self.cluster_and_multiply_desired_column(df, cluster_size)
+
+        nodesData["natGas_cost"] = df
 
         return nodesData
 
