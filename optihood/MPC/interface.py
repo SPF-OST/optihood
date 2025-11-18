@@ -278,7 +278,7 @@ class MpcHandler:
         return nodal_data
 
     @staticmethod
-    def clip_profiles(nodal_data: dict, current_time_period: _pd.DatetimeIndex) -> None:
+    def clip_profiles(nodal_data: dict, current_time_period: _pd.DatetimeIndex):
         """Should only be applied on the copy of the initial nodal_data."""
         profs = ent.ProfileTypes
 

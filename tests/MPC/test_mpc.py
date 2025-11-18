@@ -549,8 +549,6 @@ class TestMpcHandler(_ut.TestCase):
         current_time_period = mpc.get_current_time_period(current_time_step)
         current_nodal_data = mpc.clip_profiles(current_nodal_data, current_time_period)
 
-
-
         _os.chdir(cur_dir)
 
         profs = ent.ProfileTypes
@@ -564,7 +562,32 @@ class TestMpcHandler(_ut.TestCase):
         except AssertionError as e:
             errors.append(e)
 
+        try:
+            df = current_nodal_data[profs.weather]
+            assert df.shape == (25, 9)
+            assert str(df.index[0]) == '2018-01-01 02:00:00'
+            assert str(df.index[-1]) == '2018-01-02 02:00:00'
 
+        except AssertionError as e:
+            errors.append(e)
+
+        try:
+            df = current_nodal_data[profs.electricity_impact]
+            assert df.shape == (25, 1)
+            assert str(df.index[0]) == '2018-01-01 02:00:00'
+            assert str(df.index[-1]) == '2018-01-02 02:00:00'
+
+        except AssertionError as e:
+            errors.append(e)
+
+        try:
+            df = current_nodal_data[profs.electricity_cost]
+            assert df.shape == (25, 1)
+            assert str(df.index[0]) == '2018-01-01 02:00:00'
+            assert str(df.index[-1]) == '2018-01-02 02:00:00'
+
+        except AssertionError as e:
+            errors.append(e)
 
         if errors:
             raise ExceptionGroup(f"Found {len(errors)} issues", errors)
