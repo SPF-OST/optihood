@@ -517,26 +517,22 @@ class ProfileAndOtherDataReader:
                 natGasImpact.split('.')[0].replace('-', '').isdigit() and
                 natGasImpact.split('.')[1].replace('-', '').isdigit()
         ):
-            # for constant impact
-            natGasImpactValue = float(natGasImpact)
             _log.info("Constant value for natural gas impact")
-            nodesData["natGas_impact"] = _pd.DataFrame()
-            nodesData["natGas_impact"]["impact"] = (nodesData["demandProfiles"][1].shape[0]) * [
-                natGasImpactValue]
-            nodesData["natGas_impact"].index = nodesData["demandProfiles"][1].index
+            df = _pd.DataFrame()
+            df["impact"] = (nodesData["demandProfiles"][1].shape[0]) * [float(natGasImpact)]
+            df.index = nodesData["demandProfiles"][1].index
         elif not _os.path.exists(natGasImpact):
             _log.error("Error in natural gas impact file path")
             raise FileNotFoundError(f"Error in natural gas impact file path: {natGasImpact}")
         else:
-            nodesData["natGas_impact"] = _pd.read_csv(natGasImpact, delimiter=";")
-            # set datetime index
-            nodesData["natGas_impact"].set_index("timestamp", inplace=True)
-            nodesData["natGas_impact"].index = _pd.to_datetime(nodesData["natGas_impact"].index,
-                                                               format='%d.%m.%Y %H:%M')
-            nodesData["natGas_impact"] = self.clip_to_time_index(nodesData["natGas_impact"], time_index)
+            df = _pd.read_csv(natGasImpact, delimiter=";")
+            df.set_index("timestamp", inplace=True)
+            df.index = _pd.to_datetime(df.index, format='%d.%m.%Y %H:%M')
+            df = self.clip_to_time_index(df, time_index)
         if cluster_size:
-            natGasImpact = self.cluster_and_multiply_desired_column(nodesData["natGas_impact"], cluster_size)
-            nodesData["natGas_impact"] = natGasImpact
+            df = self.cluster_and_multiply_desired_column(df, cluster_size)
+
+        nodesData["natGas_impact"] = df
 
         return nodesData
 
