@@ -214,6 +214,8 @@ class MpcHandler:
         """
         current_nodal_data = self.update_nodal_data(current_state)
         current_time_period = self.get_current_time_period(current_time_step)
+        current_nodal_data = self.clip_profiles(current_nodal_data, current_time_period)
+
         # TODO: allow user to adjust this, or ensure only one exists.
         network = EnergyNetwork(current_time_period)
 
@@ -254,7 +256,8 @@ class MpcHandler:
 
         return system_state
 
-    def update_nodal_data(self, current_state: dict[str, dict[str, float]]) -> dict:
+    def update_nodal_data(self, current_state: dict[str, dict[str, float]]
+                          ) -> dict:
         """Requires self.nodal_data"""
         # TODO: clip profiles?
         # TODO: adjust building model parameters to correct implementation.
@@ -263,12 +266,31 @@ class MpcHandler:
             sheet_name = self.label_to_sheet[label]
             sheet = nodal_data[sheet_name]
             label_column = _ent.CommonLabels.label_unique
+
             if sheet_name == _ent.NodeKeysOptional.building_model_parameters:
                 label_column = _ent.BuildingModelParameters.building_unique
+
             row_index = sheet[label_column] == label
             for column_name, value in inputs.items():
                 # TODO: deal with incompatible dtype. Sometimes int instead of float.
                 sheet.loc[row_index, column_name] = value
+
+        return nodal_data
+
+    @staticmethod
+    def clip_profiles(nodal_data: dict, current_time_period: _pd.DatetimeIndex) -> None:
+        """Should only be applied on the copy of the initial nodal_data."""
+        profs = _ent.ProfileTypes
+        mandatory_profile_sheets = [profs.weather, profs.demandProfiles]
+        non_mandatory_profile_sheets = [profs.internal_gains, profs.fixed_sources, profs.electricity_impact, profs.electricity_cost]
+        for sheet in mandatory_profile_sheets:
+            df = nodal_data[sheet]
+            nodal_data[sheet] = re.ProfileAndOtherDataReader.clip_to_time_index(df, current_time_period)
+
+        for sheet in non_mandatory_profile_sheets:
+            if sheet in nodal_data.keys():
+                df = nodal_data[sheet]
+                nodal_data[sheet] = re.ProfileAndOtherDataReader.clip_to_time_index(df, current_time_period)
 
         return nodal_data
 
