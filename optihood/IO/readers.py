@@ -271,36 +271,42 @@ class ProfileAndOtherDataReader:
             _log.error("Error in weather data file path")
             raise FileNotFoundError(weatherDataPath)
 
-        nodesData["weather_data"] = _pd.read_csv(weatherDataPath, delimiter=";")
+        df = _pd.read_csv(weatherDataPath, delimiter=";")
+        if 'time.MM' not in df.columns:
+            df['time.MM'] = 0
+
         # add a timestamp column to the dataframe
-        for index, row in nodesData['weather_data'].iterrows():
-            time = f"{int(row['time.yy'])}.{int(row['time.mm']):02}.{int(row['time.dd']):02} {int(row['time.hh']
-                                                                                                  ):02}:00:00"
-            nodesData['weather_data'].at[index, 'timestamp'] = _dt.datetime.strptime(time, "%Y.%m.%d  %H:%M:%S")
+        for index, row in df.iterrows():
+            time = (f"{int(row['time.yy'])}.{int(row['time.mm']):02}.{int(row['time.dd']):02} {int(row['time.hh']):02}:"
+                    f"{int(row['time.MM'])}:00")
+            df.at[index, 'timestamp'] = _dt.datetime.strptime(time, "%Y.%m.%d  %H:%M:%S")
             # set datetime index
-        nodesData["weather_data"].timestamp = _pd.to_datetime(nodesData["weather_data"].timestamp,
-                                                              format='%Y.%m.%d %H:%M:%S')
-        nodesData["weather_data"].set_index("timestamp", inplace=True)
+        df.timestamp = _pd.to_datetime(df.timestamp, format='%Y.%m.%d %H:%M:%S')
+        df.set_index("timestamp", inplace=True)
         if not clusterSize:
             # for data with typical years; we might have 2 years if summer of 1st yr and winter of 2nd yr is considered
             # we need to change index if len > 2 years
-            if nodesData["weather_data"].index.year.unique().__len__() > 2:
+            if df.index.year.unique().__len__() > 2:
                 new_index = _pd.to_datetime({
                     'year': time_index.year[0],
-                    'month': nodesData["weather_data"].index.month,
-                    'day': nodesData["weather_data"].index.day,
-                    'hour': nodesData["weather_data"].index.hour})
-                nodesData["weather_data"].index = new_index
-            nodesData["weather_data"] = self.clip_to_time_index(nodesData["weather_data"], time_index)
+                    'month': df.index.month,
+                    'day': df.index.day,
+                    'hour': df.index.hour,
+                    'minute': df.index.minute,
+
+                })
+                df.index = new_index
+            df = self.clip_to_time_index(df, time_index)
 
         if clusterSize:
-            weatherData = _pd.concat([nodesData['weather_data'][
-                                         nodesData['weather_data']['time.mm'] == int(d.split('-')[1])][
-                                         nodesData['weather_data']['time.dd'] == int(d.split('-')[2])][
+            weatherData = _pd.concat([df[
+                                         df['time.mm'] == int(d.split('-')[1])][
+                                         df['time.dd'] == int(d.split('-')[2])][
                                          ['gls', 'str.diffus', 'tre200h0', 'ground_temp']] for d in clusterSize.keys()])
 
-            nodesData["weather_data"] = weatherData
+            df = weatherData
 
+        nodesData["weather_data"] = df
         return nodesData
 
     def add_electricity_cost(self, nodesData, cluster_size, time_index: _pd.DatetimeIndex):
