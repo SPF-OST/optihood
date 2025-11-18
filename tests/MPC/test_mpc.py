@@ -553,10 +553,14 @@ class TestMpcHandler(_ut.TestCase):
 
         _os.chdir(cur_dir)
 
+        profs = ent.ProfileTypes
         errors = []
         try:
-            assert False
-            
+            df = current_nodal_data[profs.demandProfiles][1]
+            assert df.shape == (25, 3)
+            assert str(df.index[0]) == '2018-01-01 02:00:00'
+            assert str(df.index[-1]) == '2018-01-02 02:00:00'
+
         except AssertionError as e:
             errors.append(e)
 

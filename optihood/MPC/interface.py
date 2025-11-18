@@ -6,7 +6,7 @@ import re as _re
 import pandas as _pd
 
 import optihood.energy_network as en
-import optihood.entities as _ent
+import optihood.entities as ent
 from optihood.IO import readers as re
 from optihood.Visualizer import convert_scenario as _cs, visualizer_app as _va
 from optihood.energy_network import OptimizationProperties, EnergyNetworkClass as EnergyNetwork
@@ -25,13 +25,13 @@ class MpcComponentBasic:
 
     def maybe_get_entries_or_defaults(self, nodal_data: dict[str, _pd.DataFrame]) -> dict:
         df = nodal_data[self.sheet_name]
-        obtained_rows = df[_ent.CommonLabels.label].isin(self.main_labels)
+        obtained_rows = df[ent.CommonLabels.label].isin(self.main_labels)
         if not any(obtained_rows):
             return {}
 
         initial_state = {}
         if self.required_entries_not_in_data(df):
-            [initial_state.update({row[_ent.CommonLabels.label_unique]: self.default_values}) for i, row in
+            [initial_state.update({row[ent.CommonLabels.label_unique]: self.default_values}) for i, row in
              df[obtained_rows].iterrows()]
 
             return initial_state
@@ -57,26 +57,26 @@ class MpcComponentBasic:
 
 
 class StoragesMPC(MpcComponentBasic):
-    main_labels = [_ent.StorageTypes.shStorage, _ent.StorageTypes.dhwStorage, _ent.StorageTypes.electricalStorage,
-                   _ent.StorageTypes.coolingBufferStorage]
-    sheet_name = _ent.NodeKeys.storages
-    default_values = {_ent.StorageLabels.initial_capacity.value: 0.0}
+    main_labels = [ent.StorageTypes.shStorage, ent.StorageTypes.dhwStorage, ent.StorageTypes.electricalStorage,
+                   ent.StorageTypes.coolingBufferStorage]
+    sheet_name = ent.NodeKeys.storages
+    default_values = {ent.StorageLabels.initial_capacity.value: 0.0}
 
     @staticmethod
     def required_entries_not_in_data(df) -> bool:
-        return _ent.StorageLabels.initial_capacity not in df.columns
+        return ent.StorageLabels.initial_capacity not in df.columns
 
     @staticmethod
     def get_entries(initial_state: dict, row) -> dict:
-        initial_state[row[_ent.CommonLabels.label_unique]] = {
-            _ent.StorageLabels.initial_capacity.value: row[_ent.StorageLabels.initial_capacity]}
+        initial_state[row[ent.CommonLabels.label_unique]] = {
+            ent.StorageLabels.initial_capacity.value: row[ent.StorageLabels.initial_capacity]}
         return initial_state
 
 
 class IceStorageMPC(MpcComponentBasic):
-    sheet_name = _ent.NodeKeys.storages
-    main_labels = [_ent.IceStorageTypes.iceStorage]
-    default_values = {_ent.StorageLabels.initial_capacity.value: 0.0, _ent.StorageLabels.initial_temp.value: 2.0}
+    sheet_name = ent.NodeKeys.storages
+    main_labels = [ent.IceStorageTypes.iceStorage]
+    default_values = {ent.StorageLabels.initial_capacity.value: 0.0, ent.StorageLabels.initial_temp.value: 2.0}
 
     @staticmethod
     def required_entries_not_in_data(df) -> bool:
@@ -84,13 +84,13 @@ class IceStorageMPC(MpcComponentBasic):
         Thus, the User should always provide all required values.
         When the User misses one, or all, the defaults should be provided instead.
         """
-        return _ent.StorageLabels.initial_capacity not in df.columns and _ent.StorageLabels.initial_temp not in df.columns
+        return ent.StorageLabels.initial_capacity not in df.columns and ent.StorageLabels.initial_temp not in df.columns
 
     @staticmethod
     def get_entries(initial_state: dict, row) -> dict:
-        initial_state[row[_ent.CommonLabels.label_unique]] = {
-            _ent.StorageLabels.initial_capacity.value: row[_ent.StorageLabels.initial_capacity],
-            _ent.StorageLabels.initial_temp.value: row[_ent.StorageLabels.initial_temp],
+        initial_state[row[ent.CommonLabels.label_unique]] = {
+            ent.StorageLabels.initial_capacity.value: row[ent.StorageLabels.initial_capacity],
+            ent.StorageLabels.initial_temp.value: row[ent.StorageLabels.initial_temp],
         }
         return initial_state
 
@@ -100,11 +100,11 @@ class BuildingMPC(MpcComponentBasic):
     This file is declared in the profiles sheet
     As part of MPC, this file should already have been read in before running this.
     """
-    sheet_name = _ent.NodeKeysOptional.building_model_parameters
-    main_labels = [_ent.IceStorageTypes.iceStorage]
-    default_values = {_ent.BuildingModelParameters.tIndoorInit.value: 20.0,
-                      _ent.BuildingModelParameters.tDistributionInit.value: 15.0,
-                      _ent.BuildingModelParameters.tWallInit.value: 25.0,
+    sheet_name = ent.NodeKeysOptional.building_model_parameters
+    main_labels = [ent.IceStorageTypes.iceStorage]
+    default_values = {ent.BuildingModelParameters.tIndoorInit.value: 20.0,
+                      ent.BuildingModelParameters.tDistributionInit.value: 15.0,
+                      ent.BuildingModelParameters.tWallInit.value: 25.0,
                       }
 
     def maybe_get_entries_or_defaults(self, nodal_data: dict[str, _pd.DataFrame]) -> dict:
@@ -115,7 +115,7 @@ class BuildingMPC(MpcComponentBasic):
 
         initial_state = {}
         if self.required_entries_not_in_data(df):
-            [initial_state.update({row[_ent.BuildingModelParameters.building_unique.value]: self.default_values}) for
+            [initial_state.update({row[ent.BuildingModelParameters.building_unique.value]: self.default_values}) for
              i, row in df.iterrows()]
 
             return initial_state
@@ -131,17 +131,17 @@ class BuildingMPC(MpcComponentBasic):
         Thus, the User should always provide all required values.
         When the User misses one, or all, the defaults should be provided instead.
         """
-        return (_ent.BuildingModelParameters.tIndoorInit not in df.columns
-                and _ent.BuildingModelParameters.tDistributionInit not in df.columns
-                and _ent.BuildingModelParameters.tWallInit not in df.columns
+        return (ent.BuildingModelParameters.tIndoorInit not in df.columns
+                and ent.BuildingModelParameters.tDistributionInit not in df.columns
+                and ent.BuildingModelParameters.tWallInit not in df.columns
                 )
 
     @staticmethod
     def get_entries(initial_state: dict, row) -> dict:
-        initial_state[row[_ent.BuildingModelParameters.building_unique]] = {
-            _ent.BuildingModelParameters.tIndoorInit.value: row[_ent.BuildingModelParameters.tIndoorInit],
-            _ent.BuildingModelParameters.tDistributionInit.value: row[_ent.BuildingModelParameters.tDistributionInit],
-            _ent.BuildingModelParameters.tWallInit.value: row[_ent.BuildingModelParameters.tWallInit],
+        initial_state[row[ent.BuildingModelParameters.building_unique]] = {
+            ent.BuildingModelParameters.tIndoorInit.value: row[ent.BuildingModelParameters.tIndoorInit],
+            ent.BuildingModelParameters.tDistributionInit.value: row[ent.BuildingModelParameters.tDistributionInit],
+            ent.BuildingModelParameters.tWallInit.value: row[ent.BuildingModelParameters.tWallInit],
         }
         return initial_state
 
@@ -163,7 +163,7 @@ def prep_mpc_inputs(nodal_data: dict[str, _pd.DataFrame],
     label_to_sheet = {}
     if building_model_parameters is not None:
         MPC_COMPONENTS.append(BuildingMPC)
-        nodal_data[_ent.NodeKeysOptional.building_model_parameters] = building_model_parameters
+        nodal_data[ent.NodeKeysOptional.building_model_parameters] = building_model_parameters
 
     for i, component in enumerate(MPC_COMPONENTS):
         initial_states_for_component = component().maybe_get_entries_or_defaults(nodal_data)
@@ -265,10 +265,10 @@ class MpcHandler:
         for label, inputs in current_state.items():
             sheet_name = self.label_to_sheet[label]
             sheet = nodal_data[sheet_name]
-            label_column = _ent.CommonLabels.label_unique
+            label_column = ent.CommonLabels.label_unique
 
-            if sheet_name == _ent.NodeKeysOptional.building_model_parameters:
-                label_column = _ent.BuildingModelParameters.building_unique
+            if sheet_name == ent.NodeKeysOptional.building_model_parameters:
+                label_column = ent.BuildingModelParameters.building_unique
 
             row_index = sheet[label_column] == label
             for column_name, value in inputs.items():
@@ -280,13 +280,19 @@ class MpcHandler:
     @staticmethod
     def clip_profiles(nodal_data: dict, current_time_period: _pd.DatetimeIndex) -> None:
         """Should only be applied on the copy of the initial nodal_data."""
-        profs = _ent.ProfileTypes
-        mandatory_profile_sheets = [profs.weather, profs.demandProfiles]
-        non_mandatory_profile_sheets = [profs.internal_gains, profs.fixed_sources, profs.electricity_impact, profs.electricity_cost]
+        profs = ent.ProfileTypes
+
+        # each building has its own df of demand profiles
+        dfs = nodal_data[profs.demandProfiles]
+        for key, df in dfs.items():
+            dfs[key] = re.ProfileAndOtherDataReader.clip_to_time_index(df, current_time_period)
+
+        mandatory_profile_sheets = [profs.weather]  # excluding demand profiles.
         for sheet in mandatory_profile_sheets:
             df = nodal_data[sheet]
             nodal_data[sheet] = re.ProfileAndOtherDataReader.clip_to_time_index(df, current_time_period)
 
+        non_mandatory_profile_sheets = [profs.internal_gains, profs.fixed_sources, profs.electricity_impact, profs.electricity_cost]
         for sheet in non_mandatory_profile_sheets:
             if sheet in nodal_data.keys():
                 df = nodal_data[sheet]
