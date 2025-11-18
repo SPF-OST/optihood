@@ -353,27 +353,23 @@ class ProfileAndOtherDataReader:
         )
 
         if isinstance(electricityImpact, (float, int, _np.float64, _np.int64)):
-            # for constant impact
-            electricityImpactValue = electricityImpact
             _log.info("Constant value for electricity impact")
-            nodesData["electricity_impact"] = _pd.DataFrame()
-            nodesData["electricity_impact"]["impact"] = (nodesData["demandProfiles"][1].shape[0]) * [
-                electricityImpactValue]
-            nodesData["electricity_impact"].index = nodesData["demandProfiles"][1].index
+            df = _pd.DataFrame()
+            df["impact"] = (nodesData["demandProfiles"][1].shape[0]) * [electricityImpact]
+            df.index = nodesData["demandProfiles"][1].index
         elif not _os.path.exists(electricityImpact):
             _log.error("Error in electricity impact file path")
             raise FileNotFoundError("Error in electricity impact file path")
         else:
-            nodesData["electricity_impact"] = _pd.read_csv(electricityImpact, delimiter=";")
-            # set datetime index
-            nodesData["electricity_impact"].set_index("timestamp", inplace=True)
-            nodesData["electricity_impact"].index = _pd.to_datetime(nodesData["electricity_impact"].index,
-                                                                    format='%d.%m.%Y %H:%M')
-            nodesData["electricity_impact"] = self.clip_to_time_index(nodesData["electricity_impact"], time_index)
+            df = _pd.read_csv(electricityImpact, delimiter=";")
+            df.set_index("timestamp", inplace=True)
+            df.index = _pd.to_datetime(df.index, format='%d.%m.%Y %H:%M')
+            df = self.clip_to_time_index(df, time_index)
 
         if cluster_size:
-            electricityImpact = self.cluster_and_multiply_desired_column(nodesData["electricity_impact"], cluster_size)
-            nodesData["electricity_impact"] = electricityImpact
+            df = self.cluster_and_multiply_desired_column(df, cluster_size)
+
+        nodesData["electricity_impact"] = df
 
         return nodesData
 
