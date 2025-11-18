@@ -322,26 +322,24 @@ class ProfileAndOtherDataReader:
         # float64 is not an instance of float!!
         if isinstance(electricityCost, (float, int, _np.float64, _np.int64)):
             # for constant cost
-            electricityCostValue = electricityCost
             _log.info("Constant value for electricity cost")
-            nodesData["electricity_cost"] = _pd.DataFrame()
-            nodesData["electricity_cost"]["cost"] = (nodesData["demandProfiles"][1].shape[0]) * [
-                electricityCostValue]
-            nodesData["electricity_cost"].index = nodesData["demandProfiles"][1].index
+            df = _pd.DataFrame()
+            df["cost"] = (nodesData["demandProfiles"][1].shape[0]) * [electricityCost]
+            df.index = nodesData["demandProfiles"][1].index
         elif not _os.path.exists(electricityCost):
             _log.error("Error in electricity cost file path")
             raise FileNotFoundError(electricityCost)
         else:
-            nodesData["electricity_cost"] = _pd.read_csv(electricityCost, delimiter=";")
+            df = _pd.read_csv(electricityCost, delimiter=";")
             # set datetime index
-            nodesData["electricity_cost"].set_index("timestamp", inplace=True)
-            nodesData["electricity_cost"].index = _pd.to_datetime(nodesData["electricity_cost"].index,
-                                                                  format='%d.%m.%Y %H:%M')
-            nodesData["electricity_cost"] = self.clip_to_time_index(nodesData["electricity_cost"], time_index)
+            df.set_index("timestamp", inplace=True)
+            df.index = _pd.to_datetime(df.index, format='%d.%m.%Y %H:%M')
+            df = self.clip_to_time_index(df, time_index)
 
         if cluster_size:
-            electricityCost = self.cluster_and_multiply_desired_column(nodesData["electricity_cost"], cluster_size)
-            nodesData["electricity_cost"] = electricityCost
+            df = self.cluster_and_multiply_desired_column(df, cluster_size)
+
+        nodesData["electricity_cost"] = df
 
         return nodesData
 
@@ -412,21 +410,21 @@ class ProfileAndOtherDataReader:
                 break
             demandProfiles.update({i: _pd.read_csv(_os.path.join(demandProfilesPath, filename), delimiter=";")})
 
-        nodesData["demandProfiles"] = demandProfiles
 
         # set datetime index
         for i in range(numBuildings):
-            nodesData["demandProfiles"][i + 1].timestamp = _pd.to_datetime(nodesData["demandProfiles"][i + 1].timestamp,
+            demandProfiles[i + 1].timestamp = _pd.to_datetime(demandProfiles[i + 1].timestamp,
                                                                            format='%Y-%m-%d %H:%M:%S')
-            nodesData["demandProfiles"][i + 1].set_index("timestamp", inplace=True)
+            demandProfiles[i + 1].set_index("timestamp", inplace=True)
             if not clusterSize:
-                nodesData["demandProfiles"][i + 1] = self.clip_to_time_index(nodesData["demandProfiles"][i + 1],
+                demandProfiles[i + 1] = self.clip_to_time_index(demandProfiles[i + 1],
                                                                              time_index)
         if clusterSize:
             demandProfiles = {}
             for i in range(1, numBuildings + 1):
-                demandProfiles[i] = self.cluster_desired_column(nodesData["demandProfiles"][i], clusterSize)
-            nodesData["demandProfiles"] = demandProfiles
+                demandProfiles[i] = self.cluster_desired_column(demandProfiles[i], clusterSize)
+
+        nodesData["demandProfiles"] = demandProfiles
 
         return nodesData
 
