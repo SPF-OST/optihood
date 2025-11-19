@@ -148,13 +148,20 @@ class ProfileLabels(_enum.StrEnum):
     info = "INFO"
 
 
-class ProfileTypes(_enum.StrEnum):
+class MandatoryProfileTypes(_enum.StrEnum):
     demand = "demand_profiles"  # mandatory
+    # TODO: make demand profiles consistent throughout the code  # pylint: disable=fixme
+    demandProfiles = 'demandProfiles'  # because both implementations exist atm
     weather = "weather_data"  # mandatory
     # TODO: add missing profile types  # pylint: disable=fixme
-    internal_gains = "internal_gains"  # not mandatory
-    building_model_params = "building_model_params"  # not mandatory
-    fixed_sources = "fixed_source_profiles" # not mandatory
+
+
+class NonMandatoryProfileTypes(_enum.StrEnum):
+    internal_gains = "internal_gains"
+    building_model_params = "building_model_params"
+    fixed_sources = "fixed_source_profiles"
+    electricity_impact = 'electricity_impact'
+    electricity_cost = 'electricity_cost'
 
 
 class SolarLabels(_enum.StrEnum):

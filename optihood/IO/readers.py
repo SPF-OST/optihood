@@ -262,7 +262,7 @@ class ProfileAndOtherDataReader:
         weatherDataPath = self.get_values_from_dataframe(
             df=nodesData[ent.NodeKeys.profiles],
             identifier_column=ent.ProfileLabels.name,
-            identifier=ent.ProfileTypes.weather,
+            identifier=ent.MandatoryProfileTypes.weather,
             desired_column=ent.ProfileLabels.path,
             message="Error in weather data file path",
         )
@@ -271,36 +271,42 @@ class ProfileAndOtherDataReader:
             _log.error("Error in weather data file path")
             raise FileNotFoundError(weatherDataPath)
 
-        nodesData["weather_data"] = _pd.read_csv(weatherDataPath, delimiter=";")
+        df = _pd.read_csv(weatherDataPath, delimiter=";")
+        if 'time.MM' not in df.columns:
+            df['time.MM'] = 0
+
         # add a timestamp column to the dataframe
-        for index, row in nodesData['weather_data'].iterrows():
-            time = f"{int(row['time.yy'])}.{int(row['time.mm']):02}.{int(row['time.dd']):02} {int(row['time.hh']
-                                                                                                  ):02}:00:00"
-            nodesData['weather_data'].at[index, 'timestamp'] = _dt.datetime.strptime(time, "%Y.%m.%d  %H:%M:%S")
+        for index, row in df.iterrows():
+            time = (f"{int(row['time.yy'])}.{int(row['time.mm']):02}.{int(row['time.dd']):02} {int(row['time.hh']):02}:"
+                    f"{int(row['time.MM'])}:00")
+            df.at[index, 'timestamp'] = _dt.datetime.strptime(time, "%Y.%m.%d  %H:%M:%S")
             # set datetime index
-        nodesData["weather_data"].timestamp = _pd.to_datetime(nodesData["weather_data"].timestamp,
-                                                              format='%Y.%m.%d %H:%M:%S')
-        nodesData["weather_data"].set_index("timestamp", inplace=True)
+        df.timestamp = _pd.to_datetime(df.timestamp, format='%Y.%m.%d %H:%M:%S')
+        df.set_index("timestamp", inplace=True)
         if not clusterSize:
             # for data with typical years; we might have 2 years if summer of 1st yr and winter of 2nd yr is considered
             # we need to change index if len > 2 years
-            if nodesData["weather_data"].index.year.unique().__len__() > 2:
+            if df.index.year.unique().__len__() > 2:
                 new_index = _pd.to_datetime({
                     'year': time_index.year[0],
-                    'month': nodesData["weather_data"].index.month,
-                    'day': nodesData["weather_data"].index.day,
-                    'hour': nodesData["weather_data"].index.hour})
-                nodesData["weather_data"].index = new_index
-            nodesData["weather_data"] = self.clip_to_time_index(nodesData["weather_data"], time_index)
+                    'month': df.index.month,
+                    'day': df.index.day,
+                    'hour': df.index.hour,
+                    'minute': df.index.minute,
+
+                })
+                df.index = new_index
+            df = self.clip_to_time_index(df, time_index)
 
         if clusterSize:
-            weatherData = _pd.concat([nodesData['weather_data'][
-                                         nodesData['weather_data']['time.mm'] == int(d.split('-')[1])][
-                                         nodesData['weather_data']['time.dd'] == int(d.split('-')[2])][
+            weatherData = _pd.concat([df[
+                                         df['time.mm'] == int(d.split('-')[1])][
+                                         df['time.dd'] == int(d.split('-')[2])][
                                          ['gls', 'str.diffus', 'tre200h0', 'ground_temp']] for d in clusterSize.keys()])
 
-            nodesData["weather_data"] = weatherData
+            df = weatherData
 
+        nodesData["weather_data"] = df
         return nodesData
 
     def add_electricity_cost(self, nodesData, cluster_size, time_index: _pd.DatetimeIndex):
@@ -316,26 +322,24 @@ class ProfileAndOtherDataReader:
         # float64 is not an instance of float!!
         if isinstance(electricityCost, (float, int, _np.float64, _np.int64)):
             # for constant cost
-            electricityCostValue = electricityCost
             _log.info("Constant value for electricity cost")
-            nodesData["electricity_cost"] = _pd.DataFrame()
-            nodesData["electricity_cost"]["cost"] = (nodesData["demandProfiles"][1].shape[0]) * [
-                electricityCostValue]
-            nodesData["electricity_cost"].index = nodesData["demandProfiles"][1].index
+            df = _pd.DataFrame()
+            df["cost"] = (nodesData["demandProfiles"][1].shape[0]) * [electricityCost]
+            df.index = nodesData["demandProfiles"][1].index
         elif not _os.path.exists(electricityCost):
             _log.error("Error in electricity cost file path")
             raise FileNotFoundError(electricityCost)
         else:
-            nodesData["electricity_cost"] = _pd.read_csv(electricityCost, delimiter=";")
+            df = _pd.read_csv(electricityCost, delimiter=";")
             # set datetime index
-            nodesData["electricity_cost"].set_index("timestamp", inplace=True)
-            nodesData["electricity_cost"].index = _pd.to_datetime(nodesData["electricity_cost"].index,
-                                                                  format='%d.%m.%Y %H:%M')
-            nodesData["electricity_cost"] = self.clip_to_time_index(nodesData["electricity_cost"], time_index)
+            df.set_index("timestamp", inplace=True)
+            df.index = _pd.to_datetime(df.index, format='%d.%m.%Y %H:%M')
+            df = self.clip_to_time_index(df, time_index)
 
         if cluster_size:
-            electricityCost = self.cluster_and_multiply_desired_column(nodesData["electricity_cost"], cluster_size)
-            nodesData["electricity_cost"] = electricityCost
+            df = self.cluster_and_multiply_desired_column(df, cluster_size)
+
+        nodesData["electricity_cost"] = df
 
         return nodesData
 
@@ -349,27 +353,23 @@ class ProfileAndOtherDataReader:
         )
 
         if isinstance(electricityImpact, (float, int, _np.float64, _np.int64)):
-            # for constant impact
-            electricityImpactValue = electricityImpact
             _log.info("Constant value for electricity impact")
-            nodesData["electricity_impact"] = _pd.DataFrame()
-            nodesData["electricity_impact"]["impact"] = (nodesData["demandProfiles"][1].shape[0]) * [
-                electricityImpactValue]
-            nodesData["electricity_impact"].index = nodesData["demandProfiles"][1].index
+            df = _pd.DataFrame()
+            df["impact"] = (nodesData["demandProfiles"][1].shape[0]) * [electricityImpact]
+            df.index = nodesData["demandProfiles"][1].index
         elif not _os.path.exists(electricityImpact):
             _log.error("Error in electricity impact file path")
             raise FileNotFoundError("Error in electricity impact file path")
         else:
-            nodesData["electricity_impact"] = _pd.read_csv(electricityImpact, delimiter=";")
-            # set datetime index
-            nodesData["electricity_impact"].set_index("timestamp", inplace=True)
-            nodesData["electricity_impact"].index = _pd.to_datetime(nodesData["electricity_impact"].index,
-                                                                    format='%d.%m.%Y %H:%M')
-            nodesData["electricity_impact"] = self.clip_to_time_index(nodesData["electricity_impact"], time_index)
+            df = _pd.read_csv(electricityImpact, delimiter=";")
+            df.set_index("timestamp", inplace=True)
+            df.index = _pd.to_datetime(df.index, format='%d.%m.%Y %H:%M')
+            df = self.clip_to_time_index(df, time_index)
 
         if cluster_size:
-            electricityImpact = self.cluster_and_multiply_desired_column(nodesData["electricity_impact"], cluster_size)
-            nodesData["electricity_impact"] = electricityImpact
+            df = self.cluster_and_multiply_desired_column(df, cluster_size)
+
+        nodesData["electricity_impact"] = df
 
         return nodesData
 
@@ -386,7 +386,7 @@ class ProfileAndOtherDataReader:
         demandProfilesPath = self.get_values_from_dataframe(
             df=nodesData[ent.NodeKeys.profiles],
             identifier_column=ent.ProfileLabels.name,
-            identifier=ent.ProfileTypes.demand,
+            identifier=ent.MandatoryProfileTypes.demand,
             desired_column=ent.ProfileLabels.path,
             message="Error in the demand profiles path."
         )
@@ -406,21 +406,20 @@ class ProfileAndOtherDataReader:
                 break
             demandProfiles.update({i: _pd.read_csv(_os.path.join(demandProfilesPath, filename), delimiter=";")})
 
-        nodesData["demandProfiles"] = demandProfiles
 
         # set datetime index
         for i in range(numBuildings):
-            nodesData["demandProfiles"][i + 1].timestamp = _pd.to_datetime(nodesData["demandProfiles"][i + 1].timestamp,
-                                                                           format='%Y-%m-%d %H:%M:%S')
-            nodesData["demandProfiles"][i + 1].set_index("timestamp", inplace=True)
+            demandProfiles[i + 1].timestamp = _pd.to_datetime(demandProfiles[i + 1].timestamp,
+                                                              format='%Y-%m-%d %H:%M:%S')
+            demandProfiles[i + 1].set_index("timestamp", inplace=True)
             if not clusterSize:
-                nodesData["demandProfiles"][i + 1] = self.clip_to_time_index(nodesData["demandProfiles"][i + 1],
-                                                                             time_index)
+                demandProfiles[i + 1] = self.clip_to_time_index(demandProfiles[i + 1], time_index)
         if clusterSize:
             demandProfiles = {}
             for i in range(1, numBuildings + 1):
-                demandProfiles[i] = self.cluster_desired_column(nodesData["demandProfiles"][i], clusterSize)
-            nodesData["demandProfiles"] = demandProfiles
+                demandProfiles[i] = self.cluster_desired_column(demandProfiles[i], clusterSize)
+
+        nodesData["demandProfiles"] = demandProfiles
 
         return nodesData
 
@@ -435,7 +434,7 @@ class ProfileAndOtherDataReader:
         return nodesData
 
     def maybe_add_fixed_source_profiles(self, nodesData, cluster_size, time_index: _pd.DatetimeIndex):
-        if not "fixed" in nodesData["commodity_sources"].columns:
+        if "fixed" not in nodesData["commodity_sources"].columns:
             return nodesData
         if not (nodesData["commodity_sources"]["fixed"].eq(1)).any():
             return nodesData
@@ -443,7 +442,7 @@ class ProfileAndOtherDataReader:
         fixed_source_profiles_path = self.get_values_from_dataframe(
             df=nodesData[ent.NodeKeys.profiles],
             identifier_column=ent.ProfileLabels.name,
-            identifier=ent.ProfileTypes.fixed_sources,
+            identifier=ent.NonMandatoryProfileTypes.fixed_sources,
             desired_column=ent.ProfileLabels.path,
             message="Error in the fixed source profiles path."
         )
@@ -458,21 +457,19 @@ class ProfileAndOtherDataReader:
         for filename in _os.listdir(fixed_source_profiles_path):
             fixed_sources_data.update({filename.split(".csv")[0]: _pd.read_csv(_os.path.join(fixed_source_profiles_path, filename), delimiter=";")})
 
-        nodesData["fixed_sources"] = fixed_sources_data
-
-        # set datetime index
-        for i in nodesData["fixed_sources"].keys():
-            nodesData["fixed_sources"][i].timestamp = _pd.to_datetime(nodesData["fixed_sources"][i].timestamp,
-                                                                           format='%Y-%m-%d %H:%M:%S')
-            nodesData["fixed_sources"][i].set_index("timestamp", inplace=True)
+        for i in fixed_sources_data.keys():
+            fixed_sources_data[i].timestamp = _pd.to_datetime(fixed_sources_data[i].timestamp,
+                                                              format='%Y-%m-%d %H:%M:%S')
+            fixed_sources_data[i].set_index("timestamp", inplace=True)
             if not cluster_size:
-                nodesData["fixed_sources"][i] = self.clip_to_time_index(nodesData["fixed_sources"][i],
-                                                                             time_index)
+                fixed_sources_data[i] = self.clip_to_time_index(fixed_sources_data[i], time_index)
+
         if cluster_size:
             fixed_sources_data = {}
-            for i in nodesData["fixed_sources"].keys():
-                fixed_sources_data[i] = self.cluster_desired_column(nodesData["fixed_sources"][i], cluster_size)
-            nodesData["fixed_sources"] = fixed_sources_data
+            for i in fixed_sources_data.keys():
+                fixed_sources_data[i] = self.cluster_desired_column(fixed_sources_data[i], cluster_size)
+
+        nodesData["fixed_sources"] = fixed_sources_data
 
         return nodesData
 
@@ -488,22 +485,23 @@ class ProfileAndOtherDataReader:
             # for constant cost
             natGasCostValue = natGasCost
             _log.info("Constant value for natural gas cost")
-            nodesData["natGas_cost"] = _pd.DataFrame()
-            nodesData["natGas_cost"]["cost"] = (nodesData["demandProfiles"][1].shape[0]) * [natGasCostValue]
-            nodesData["natGas_cost"].index = nodesData["demandProfiles"][1].index
+            df = _pd.DataFrame()
+            df["cost"] = (nodesData["demandProfiles"][1].shape[0]) * [natGasCostValue]
+            df.index = nodesData["demandProfiles"][1].index
         elif not _os.path.exists(natGasCost):
             _log.error("Error in natural gas cost file path")
             raise FileNotFoundError(f"Error in natural gas cost file path: {natGasCost}")
 
         else:
-            nodesData["natGas_cost"] = _pd.read_csv(natGasCost, delimiter=";")
+            df = _pd.read_csv(natGasCost, delimiter=";")
             # set datetime index
-            nodesData["natGas_cost"].set_index("timestamp", inplace=True)
-            nodesData["natGas_cost"].index = _pd.to_datetime(nodesData["natGas_cost"].index, format='%d.%m.%Y %H:%M')
-            nodesData["natGas_cost"] = self.clip_to_time_index(nodesData["natGas_cost"], time_index)
+            df.set_index("timestamp", inplace=True)
+            df.index = _pd.to_datetime(df.index, format='%d.%m.%Y %H:%M')
+            df = self.clip_to_time_index(df, time_index)
         if cluster_size:
-            natGasCost = self.cluster_and_multiply_desired_column(nodesData["natGas_cost"], cluster_size)
-            nodesData["natGas_cost"] = natGasCost
+            df = self.cluster_and_multiply_desired_column(df, cluster_size)
+
+        nodesData["natGas_cost"] = df
 
         return nodesData
 
@@ -519,26 +517,22 @@ class ProfileAndOtherDataReader:
                 natGasImpact.split('.')[0].replace('-', '').isdigit() and
                 natGasImpact.split('.')[1].replace('-', '').isdigit()
         ):
-            # for constant impact
-            natGasImpactValue = float(natGasImpact)
             _log.info("Constant value for natural gas impact")
-            nodesData["natGas_impact"] = _pd.DataFrame()
-            nodesData["natGas_impact"]["impact"] = (nodesData["demandProfiles"][1].shape[0]) * [
-                natGasImpactValue]
-            nodesData["natGas_impact"].index = nodesData["demandProfiles"][1].index
+            df = _pd.DataFrame()
+            df["impact"] = (nodesData["demandProfiles"][1].shape[0]) * [float(natGasImpact)]
+            df.index = nodesData["demandProfiles"][1].index
         elif not _os.path.exists(natGasImpact):
             _log.error("Error in natural gas impact file path")
             raise FileNotFoundError(f"Error in natural gas impact file path: {natGasImpact}")
         else:
-            nodesData["natGas_impact"] = _pd.read_csv(natGasImpact, delimiter=";")
-            # set datetime index
-            nodesData["natGas_impact"].set_index("timestamp", inplace=True)
-            nodesData["natGas_impact"].index = _pd.to_datetime(nodesData["natGas_impact"].index,
-                                                               format='%d.%m.%Y %H:%M')
-            nodesData["natGas_impact"] = self.clip_to_time_index(nodesData["natGas_impact"], time_index)
+            df = _pd.read_csv(natGasImpact, delimiter=";")
+            df.set_index("timestamp", inplace=True)
+            df.index = _pd.to_datetime(df.index, format='%d.%m.%Y %H:%M')
+            df = self.clip_to_time_index(df, time_index)
         if cluster_size:
-            natGasImpact = self.cluster_and_multiply_desired_column(nodesData["natGas_impact"], cluster_size)
-            nodesData["natGas_impact"] = natGasImpact
+            df = self.cluster_and_multiply_desired_column(df, cluster_size)
+
+        nodesData["natGas_impact"] = df
 
         return nodesData
 
@@ -559,7 +553,7 @@ class ProfileAndOtherDataReader:
         internalGainsPath = self.get_values_from_dataframe(
             df=nodesData[ent.NodeKeys.profiles],
             identifier_column=ent.ProfileLabels.name,
-            identifier=ent.ProfileTypes.internal_gains,
+            identifier=ent.NonMandatoryProfileTypes.internal_gains,
             desired_column=ent.ProfileLabels.path,
             message="Error in internal gains file path for the building model."
         )
@@ -577,7 +571,7 @@ class ProfileAndOtherDataReader:
         b_model_params_Path = self.get_values_from_dataframe(
             df=nodesData[ent.NodeKeys.profiles],
             identifier_column=ent.ProfileLabels.name,
-            identifier=ent.ProfileTypes.building_model_params,
+            identifier=ent.NonMandatoryProfileTypes.building_model_params,
             desired_column=ent.ProfileLabels.path,
             message="Error in building model parameters file path."
         )
@@ -586,14 +580,13 @@ class ProfileAndOtherDataReader:
             raise FileNotFoundError(f"Error in building model parameters file path: {b_model_params_Path}")
 
         bmParamers = _pd.read_csv(b_model_params_Path, delimiter=';')
+        building_data = nodesData["building_model"]
         for i in range(numBuildings):
-            nodesData["building_model"][i + 1] = {}
-            nodesData["building_model"][i + 1]["timeseries"] = _pd.DataFrame()
-            nodesData["building_model"][i + 1]["timeseries"]["tAmb"] = _np.array(
-                nodesData["weather_data"]["tre200h0"])
-            nodesData["building_model"][i + 1]["timeseries"]["IrrH"] = _np.array(
-                nodesData["weather_data"]["gls"]) / 1000  # conversion from W/m2 to kW/m2
-            nodesData["building_model"][i + 1]["timeseries"][f"Qocc"] = internalGains[f'Total (kW) {i + 1}'].values
+            building_data[i + 1] = {}
+            building_data[i + 1]["timeseries"] = _pd.DataFrame()
+            building_data[i + 1]["timeseries"]["tAmb"] = _np.array(nodesData["weather_data"]["tre200h0"])
+            building_data[i + 1]["timeseries"]["IrrH"] = _np.array(nodesData["weather_data"]["gls"]) / 1000  # conversion from W/m2 to kW/m2
+            building_data[i + 1]["timeseries"][f"Qocc"] = internalGains[f'Total (kW) {i + 1}'].values
 
             if "tIndoorDay" in bmParamers.columns:
                 tIndoorDay = float(bmParamers[bmParamers["Building Number"] == (i + 1)]['tIndoorDay'].iloc[0])
@@ -602,14 +595,14 @@ class ProfileAndOtherDataReader:
                               tIndoorNight, tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay,
                               tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay,
                               tIndoorNight, tIndoorNight, tIndoorNight, tIndoorNight] * 365
-                nodesData["building_model"][i + 1]["timeseries"]["tIndoorSet"] = _pd.DataFrame(tIndoorSet).values
+                building_data[i + 1]["timeseries"]["tIndoorSet"] = _pd.DataFrame(tIndoorSet).values
             paramList = ['gAreaWindows', 'rDistribution', 'cDistribution', 'rWall', 'cWall', 'rIndoor',
                          'cIndoor',
                          'qDistributionMin', 'qDistributionMax', 'tIndoorMin', 'tIndoorMax', 'tIndoorInit',
                          'tWallInit', 'tDistributionInit']
 
             for param in paramList:
-                nodesData["building_model"][i + 1][param] = float(
+                building_data[i + 1][param] = float(
                     bmParamers[bmParamers["Building Number"] == (i + 1)][param].iloc[0])
 
         return nodesData

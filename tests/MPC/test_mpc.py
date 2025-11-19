@@ -516,3 +516,80 @@ class TestMpcHandler(_ut.TestCase):
         energy_flows = mpc.get_desired_energy_flows(results, desired_flows_with_new_names)
 
         _pd.testing.assert_frame_equal(energy_flows, expected_energy_flows)
+
+    def test_clip_profiles(self):
+        """End2end test for this method.
+        Includes assert of part of nodal_data state relevant for MPC.
+        """
+
+        # Profile data is located relative to example scripts.
+        # Therefore, we need to change directories.
+        cur_dir = _os.getcwd()
+        _os.chdir(xlsh.EXAMPLE_SCRIPT_DIR)
+        input_folder_path = xlsh.ROOT_DATA_DIR / "CSVs" / "MPC_example_CSVs"
+        mpc = mpci.MpcHandler(prediction_window_in_hours=24, time_step_in_minutes=60,
+                              nr_of_buildings=1)
+        mpc.set_full_time_period(2018, 1, 1, 2018, 1, 31)
+
+        mpc.optimization_settings = en.OptimizationProperties(
+            optimization_type="costs",
+            merge_link_buses=False,
+            merge_buses=None,
+            merge_heat_source_sink=False,
+            temperature_levels=False,
+            cluster_size=None,
+            dispatch_mode=True,
+            include_carbon_benefits=False,
+        )
+        example_time_steps = _pd.date_range("2018-01-01 00:00:00", "2018-01-01 02:00:00", freq="60min")
+        current_time_step = example_time_steps[-1]
+
+        system_state = mpc.get_mpc_scenario_from_csv(input_folder_path)
+        current_nodal_data = mpc.update_nodal_data(system_state)
+        current_time_period = mpc.get_current_time_period(current_time_step)
+        current_nodal_data = mpc.clip_profiles(current_nodal_data, current_time_period)
+
+        _os.chdir(cur_dir)
+
+        profs = ent.MandatoryProfileTypes
+        nm_profs = ent.NonMandatoryProfileTypes
+
+        errors = []
+        try:
+            df = current_nodal_data[profs.demandProfiles][1]
+            assert df.shape == (25, 3)
+            assert str(df.index[0]) == '2018-01-01 02:00:00'
+            assert str(df.index[-1]) == '2018-01-02 02:00:00'
+
+        except AssertionError as e:
+            errors.append(e)
+
+        try:
+            df = current_nodal_data[profs.weather]
+            assert df.shape == (25, 9)
+            assert str(df.index[0]) == '2018-01-01 02:00:00'
+            assert str(df.index[-1]) == '2018-01-02 02:00:00'
+
+        except AssertionError as e:
+            errors.append(e)
+
+        try:
+            df = current_nodal_data[nm_profs.electricity_impact]
+            assert df.shape == (25, 1)
+            assert str(df.index[0]) == '2018-01-01 02:00:00'
+            assert str(df.index[-1]) == '2018-01-02 02:00:00'
+
+        except AssertionError as e:
+            errors.append(e)
+
+        try:
+            df = current_nodal_data[nm_profs.electricity_cost]
+            assert df.shape == (25, 1)
+            assert str(df.index[0]) == '2018-01-01 02:00:00'
+            assert str(df.index[-1]) == '2018-01-02 02:00:00'
+
+        except AssertionError as e:
+            errors.append(e)
+
+        if errors:
+            raise ExceptionGroup(f"Found {len(errors)} issues", errors)
