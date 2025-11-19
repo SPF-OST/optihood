@@ -262,7 +262,7 @@ class ProfileAndOtherDataReader:
         weatherDataPath = self.get_values_from_dataframe(
             df=nodesData[ent.NodeKeys.profiles],
             identifier_column=ent.ProfileLabels.name,
-            identifier=ent.ProfileTypes.weather,
+            identifier=ent.MandatoryProfileTypes.weather,
             desired_column=ent.ProfileLabels.path,
             message="Error in weather data file path",
         )
@@ -386,7 +386,7 @@ class ProfileAndOtherDataReader:
         demandProfilesPath = self.get_values_from_dataframe(
             df=nodesData[ent.NodeKeys.profiles],
             identifier_column=ent.ProfileLabels.name,
-            identifier=ent.ProfileTypes.demand,
+            identifier=ent.MandatoryProfileTypes.demand,
             desired_column=ent.ProfileLabels.path,
             message="Error in the demand profiles path."
         )
@@ -442,7 +442,7 @@ class ProfileAndOtherDataReader:
         fixed_source_profiles_path = self.get_values_from_dataframe(
             df=nodesData[ent.NodeKeys.profiles],
             identifier_column=ent.ProfileLabels.name,
-            identifier=ent.ProfileTypes.fixed_sources,
+            identifier=ent.NonMandatoryProfileTypes.fixed_sources,
             desired_column=ent.ProfileLabels.path,
             message="Error in the fixed source profiles path."
         )
@@ -553,7 +553,7 @@ class ProfileAndOtherDataReader:
         internalGainsPath = self.get_values_from_dataframe(
             df=nodesData[ent.NodeKeys.profiles],
             identifier_column=ent.ProfileLabels.name,
-            identifier=ent.ProfileTypes.internal_gains,
+            identifier=ent.NonMandatoryProfileTypes.internal_gains,
             desired_column=ent.ProfileLabels.path,
             message="Error in internal gains file path for the building model."
         )
@@ -571,7 +571,7 @@ class ProfileAndOtherDataReader:
         b_model_params_Path = self.get_values_from_dataframe(
             df=nodesData[ent.NodeKeys.profiles],
             identifier_column=ent.ProfileLabels.name,
-            identifier=ent.ProfileTypes.building_model_params,
+            identifier=ent.NonMandatoryProfileTypes.building_model_params,
             desired_column=ent.ProfileLabels.path,
             message="Error in building model parameters file path."
         )

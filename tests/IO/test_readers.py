@@ -265,7 +265,7 @@ class TestProfileAndOtherDataReader:
 
     def test_add_weather_profiles_raises(self, caplog):
         """unit test"""
-        nodal_data = {ent.NodeKeys.profiles: _pd.DataFrame({ent.ProfileLabels.name: [ent.ProfileTypes.weather],
+        nodal_data = {ent.NodeKeys.profiles: _pd.DataFrame({ent.ProfileLabels.name: [ent.NonMandatoryProfileTypes.weather],
                                                             ent.ProfileLabels.path: ["no_such_path.no_such_suffix"],
                                                             })}
 
@@ -328,7 +328,7 @@ class TestProfileAndOtherDataReader:
 
     def test_add_demand_profiles_raises(self, caplog):
         """unit test"""
-        nodal_data = {ent.NodeKeys.profiles: _pd.DataFrame({ent.ProfileLabels.name: [ent.ProfileTypes.demand],
+        nodal_data = {ent.NodeKeys.profiles: _pd.DataFrame({ent.ProfileLabels.name: [ent.NonMandatoryProfileTypes.demand],
                                                             ent.ProfileLabels.path: ["no_such_path.no_such_suffix"],
                                                             })}
         with caplog.at_level(_log.ERROR):
@@ -375,7 +375,7 @@ class TestProfileAndOtherDataReader:
     def test_add_internal_gains_raises(self, caplog):
         """unit test"""
         nodal_data = {ent.NodeKeys.profiles: _pd.DataFrame(
-            {ent.ProfileLabels.name: [ent.ProfileTypes.internal_gains],
+            {ent.ProfileLabels.name: [ent.NonMandatoryProfileTypes.internal_gains],
              ent.ProfileLabels.path: ["no_such_path.no_such_suffix"],
              })}
 
@@ -387,7 +387,7 @@ class TestProfileAndOtherDataReader:
     def test_add_building_models_raises(self, caplog):
         """unit test"""
         nodal_data = {ent.NodeKeys.profiles: _pd.DataFrame(
-            {ent.ProfileLabels.name: [ent.ProfileTypes.building_model_params],
+            {ent.ProfileLabels.name: [ent.NonMandatoryProfileTypes.building_model_params],
              ent.ProfileLabels.path: ["no_such_path.no_such_suffix"],
              })}
 

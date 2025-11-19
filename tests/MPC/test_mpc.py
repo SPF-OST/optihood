@@ -551,7 +551,9 @@ class TestMpcHandler(_ut.TestCase):
 
         _os.chdir(cur_dir)
 
-        profs = ent.ProfileTypes
+        profs = ent.MandatoryProfileTypes
+        nm_profs = ent.NonMandatoryProfileTypes
+
         errors = []
         try:
             df = current_nodal_data[profs.demandProfiles][1]
@@ -572,7 +574,7 @@ class TestMpcHandler(_ut.TestCase):
             errors.append(e)
 
         try:
-            df = current_nodal_data[profs.electricity_impact]
+            df = current_nodal_data[nm_profs.electricity_impact]
             assert df.shape == (25, 1)
             assert str(df.index[0]) == '2018-01-01 02:00:00'
             assert str(df.index[-1]) == '2018-01-02 02:00:00'
@@ -581,7 +583,7 @@ class TestMpcHandler(_ut.TestCase):
             errors.append(e)
 
         try:
-            df = current_nodal_data[profs.electricity_cost]
+            df = current_nodal_data[nm_profs.electricity_cost]
             assert df.shape == (25, 1)
             assert str(df.index[0]) == '2018-01-01 02:00:00'
             assert str(df.index[-1]) == '2018-01-02 02:00:00'

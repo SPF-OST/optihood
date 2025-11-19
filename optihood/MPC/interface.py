@@ -280,7 +280,8 @@ class MpcHandler:
     @staticmethod
     def clip_profiles(nodal_data: dict, current_time_period: _pd.DatetimeIndex):
         """Should only be applied on the copy of the initial nodal_data."""
-        profs = ent.ProfileTypes
+        profs = ent.MandatoryProfileTypes
+        nm_profs = ent.NonMandatoryProfileTypes
 
         # each building has its own df of demand profiles
         dfs = nodal_data[profs.demandProfiles]
@@ -292,7 +293,7 @@ class MpcHandler:
             df = nodal_data[sheet]
             nodal_data[sheet] = re.ProfileAndOtherDataReader.clip_to_time_index(df, current_time_period)
 
-        non_mandatory_profile_sheets = [profs.internal_gains, profs.fixed_sources, profs.electricity_impact, profs.electricity_cost]
+        non_mandatory_profile_sheets = [nm_profs.internal_gains, nm_profs.fixed_sources, nm_profs.electricity_impact, nm_profs.electricity_cost]
         for sheet in non_mandatory_profile_sheets:
             if sheet in nodal_data.keys():
                 df = nodal_data[sheet]
