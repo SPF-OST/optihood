@@ -260,12 +260,13 @@ class TestProfileAndOtherDataReader:
     @_pt.mark.manual
     def test_add_weather_profiles(self):
         """Integration test without errors"""
+        # TODO: implement test
         ior.ProfileAndOtherDataReader().add_weather_profiles()
         assert False
 
     def test_add_weather_profiles_raises(self, caplog):
         """unit test"""
-        nodal_data = {ent.NodeKeys.profiles: _pd.DataFrame({ent.ProfileLabels.name: [ent.NonMandatoryProfileTypes.weather],
+        nodal_data = {ent.NodeKeys.profiles: _pd.DataFrame({ent.ProfileLabels.name: [ent.MandatoryProfileTypes.weather],
                                                             ent.ProfileLabels.path: ["no_such_path.no_such_suffix"],
                                                             })}
 
@@ -277,6 +278,7 @@ class TestProfileAndOtherDataReader:
     @_pt.mark.manual
     def test_add_electricity_cost(self):
         """Integration test without errors"""
+        # TODO: implement test
         ior.ProfileAndOtherDataReader().add_electricity_cost()
         assert False
 
@@ -294,6 +296,7 @@ class TestProfileAndOtherDataReader:
     @_pt.mark.manual
     def test_add_electricity_impact(self):
         """Integration test without errors"""
+        # TODO: implement test
         ior.ProfileAndOtherDataReader().add_electricity_impact()
         assert False
 
@@ -311,24 +314,27 @@ class TestProfileAndOtherDataReader:
     @_pt.mark.manual
     def test_cluster_desired_column(self):
         """unit test"""
+        # TODO: implement test
         ior.ProfileAndOtherDataReader().cluster_desired_column()
         assert False
 
     @_pt.mark.manual
     def test_cluster_and_multiply_desired_column(self):
         """unit test"""
+        # TODO: implement test
         ior.ProfileAndOtherDataReader().cluster_and_multiply_desired_column()
         assert False
 
     @_pt.mark.manual
     def test_add_demand_profiles(self):
         """Integration test without errors"""
+        # TODO: implement test
         ior.ProfileAndOtherDataReader().add_demand_profiles()
         assert False
 
     def test_add_demand_profiles_raises(self, caplog):
         """unit test"""
-        nodal_data = {ent.NodeKeys.profiles: _pd.DataFrame({ent.ProfileLabels.name: [ent.NonMandatoryProfileTypes.demand],
+        nodal_data = {ent.NodeKeys.profiles: _pd.DataFrame({ent.ProfileLabels.name: [ent.MandatoryProfileTypes.demand],
                                                             ent.ProfileLabels.path: ["no_such_path.no_such_suffix"],
                                                             })}
         with caplog.at_level(_log.ERROR):
@@ -339,6 +345,7 @@ class TestProfileAndOtherDataReader:
     @_pt.mark.manual
     def test_maybe_add_natural_gas(self):
         """Integration test without errors"""
+        # TODO: implement test
         ior.ProfileAndOtherDataReader().maybe_add_natural_gas()
         assert False
 
@@ -369,6 +376,7 @@ class TestProfileAndOtherDataReader:
     @_pt.mark.manual
     def test_maybe_add_building_model_with_internal_gains(self):
         """Integration test without errors"""
+        # TODO: implement test
         ior.ProfileAndOtherDataReader().maybe_add_building_model_with_internal_gains()
         assert False
 
@@ -396,8 +404,11 @@ class TestProfileAndOtherDataReader:
                 ior.ProfileAndOtherDataReader().add_building_models(nodal_data, {},  None)
             assert "Error in building model parameters file path." in caplog.text
 
-    @_pt.mark.manual
     def test_clip_to_time_index(self):
         """unit test"""
-        ior.ProfileAndOtherDataReader().clip_to_time_index()
-        assert False
+        example_time_steps = _pd.date_range("2018-01-01 00:00:00", "2018-01-01 12:00:00", freq="60min")
+        df = _pd.DataFrame(index=example_time_steps)
+        reduced_time_steps = _pd.date_range("2018-01-01 00:00:00", "2018-01-01 02:00:00", freq="60min")
+        df_result = ior.ProfileAndOtherDataReader().clip_to_time_index(df, reduced_time_steps)
+        assert str(df_result.index[-1]) == "2018-01-01 02:00:00"
+        assert len(df_result.index) == 3
