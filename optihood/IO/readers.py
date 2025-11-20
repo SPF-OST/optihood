@@ -77,6 +77,7 @@ class CsvScenarioReader(CsvReader):
             ent.NodeKeys.stratified_storage: paths.stratified_storage,
             ent.NodeKeys.profiles: paths.profiles,
             ent.NodeKeys.links: paths.links,
+            ent.NodeKeys.ice_storage: paths.ice_storage,
         }
 
     def read_scenario(self) -> dict[str, _pd.DataFrame]:
@@ -91,7 +92,7 @@ class CsvScenarioReader(CsvReader):
                 data[key] = self.read(rel_path)
                 # df_current = _pd.read_csv(path)
             except FileNotFoundError as e:
-                if not key == ent.NodeKeys.links:
+                if key not in (ent.NodeKeys.links, ent.NodeKeys.ice_storage):
                     errors.append(e)
 
             # validation_error = self.validate(key, df_current)
