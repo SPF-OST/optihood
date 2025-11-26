@@ -71,8 +71,8 @@ class BusTypes(_enum.StrEnum):
     heatDemandBus = "heatDemandBus"
     lowTSourceBus = "lowTSourceBus"
     lowTSinkBus = "lowTSinkBus"
-    dhHeatInBus = "districtHeatingInBus"
-    dhHeatBus = "districtHeatingBus"
+    dhHeatInBus = "districtHeatInBus"
+    dhHeatBus = "districtHeatBus"
     electricitySourceBusPVT = "elSource_pvt"
 
 
