@@ -45,12 +45,12 @@ commands could be used.
     venv\Scripts\python -m uv pip install --no-compile -r requirements/requirements.txt
     ```
     It might be required to install C++ build tools. To do that, click on the link that appears with the error message and follow the instructions (it is the lapack package that is missing). In order to be able to install the missing package, it is required to have a complete Visual Studio instance and installing it with the "Desktop development with C++" workload.
-
+<!---
 4. Verify the installation of the oemof package and the solver by running the installation test in your virtual environment:
     ```commandline
     oemof_installation_test
     ```
-
+-->
     
     If the installation is successful a message similar to the following would display (the installed solver would be marked as working):
     ```commandline
@@ -65,15 +65,15 @@ commands could be used.
     oemof successfully installed.
     *****************************
     ```
-5. To test whether the installation worked well, you could run a [basic example](https://github.com/SPF-OST/OptiHood/tree/main/data/examples/).
+4. To test whether the installation worked well, you could run a [basic example](https://github.com/SPF-OST/OptiHood/tree/main/data/examples/).
 
-6. Run the test suite using:
+5. Run the test suite using:
 ```commandline
     venv\Scripts\python -m uv pip install --no-compile -r requirements/requirements_dev.txt
     venv\Scripts\python dev-tools/devTools.py --unit "not manual" --keep-results
 ```
 
-7. To upgrade the environment using an updated requirement/requirements.in file:
+6. To upgrade the environment using an updated requirement/requirements.in file:
 ```commandline
     pip-compile-multi --use-cache --backtracking --uv --no-upgrade -d .\requirements\
 ```
