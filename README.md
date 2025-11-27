@@ -50,7 +50,7 @@ commands could be used.
     ```commandline
     oemof_installation_test
     ```
--->
+
     
     If the installation is successful a message similar to the following would display (the installed solver would be marked as working):
     ```commandline
@@ -65,6 +65,8 @@ commands could be used.
     oemof successfully installed.
     *****************************
     ```
+-->
+
 4. To test whether the installation worked well, you could run a [basic example](https://github.com/SPF-OST/OptiHood/tree/main/data/examples/).
 
 5. Run the test suite using:
