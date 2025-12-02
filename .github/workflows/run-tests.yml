@@ -17,7 +17,7 @@ jobs:
 
 
   test:
-    runs-on: [self-hosted, etna]
+    runs-on: [self-hosted, etzel]
     env:
       PY_COLORS: "1"
 
@@ -50,12 +50,13 @@ jobs:
 #      - name: Syntax checking with black
 #        run: venv\Scripts\python dev-tools/devTools.py --black --keep-results
 
-      - name: Generate class and package diagrams
-        run: venv\Scripts\python dev-tools/devTools.py --diagram=pdf --keep-results
-
       - name: Test optimizer license
         id: license
         run: venv\Scripts\python tests/test_examples/test_optimizer.py
+
+      - name: Generate class and package diagrams
+        run: venv\Scripts\python dev-tools/devTools.py --diagram=pdf --keep-results
+
 
       - name: Test with pytest
         run: venv\Scripts\python dev-tools/devTools.py --unit "not manual" --keep-results
@@ -73,7 +74,7 @@ jobs:
           name: test-results-and-coverage-report-windows
           path: test-results
         # Use always() to always run this step to publish test results when there are test failures
-        if: ${{ always() && !cancelled() }}
+        if: ${{ always() && !cancelled() && steps.license.conclusion == 'success' }}
 
 #      - if: github.event_name == 'push' || env.PYTRNSYS_DEPENDENCY_CHANGED == 'true'
 #        name: Trigger build of executable for push
