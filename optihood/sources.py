@@ -38,7 +38,7 @@ class PV(solph.components.Source):
                                      investment=solph.Investment(**investArgs),
                                      variable_costs=varc,
                                      custom_attributes={'env_per_flow':env_flow},
-                                     max=self.pv_electricity
+                                     fix=self.pv_electricity
                                  )}
                                  )
 
