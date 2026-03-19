@@ -44,7 +44,7 @@ class TestHeatPumpLinearOpArgs:
         assert input_flow.nonconvex is None
 
     def test_op_args_flow_routing(self, base_hp_kwargs):
-        base_hp_kwargs["op_args"] = {'min': 0.15}
+        base_hp_kwargs["op_args"] = {'min_flow': 0.15}
         hp = HeatPumpLinear(**base_hp_kwargs)
         elec_bus = base_hp_kwargs["input"][0]
         input_flow = hp._heatpump.inputs[elec_bus]
@@ -53,7 +53,7 @@ class TestHeatPumpLinearOpArgs:
         assert input_flow.min[0] == 0.15
 
     def test_op_args_temporal_routing(self, base_hp_kwargs):
-        base_hp_kwargs["op_args"] = {'min': 0.1, 'minimum_uptime': 3}
+        base_hp_kwargs["op_args"] = {'min_flow': 0.1, 'minimum_uptime': 3}
         hp = HeatPumpLinear(**base_hp_kwargs)
         elec_bus = base_hp_kwargs["input"][0]
         input_flow = hp._heatpump.inputs[elec_bus]

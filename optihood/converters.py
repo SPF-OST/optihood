@@ -9,6 +9,7 @@ from pyomo.core.base.block import ScalarBlock
 from pyomo.environ import BuildAction
 from pyomo.environ import Constraint
 from optihood._helpers import *
+import optihood.entities as _ent
 
 class SolarCollector:
     """
@@ -534,12 +535,13 @@ class HeatPumpLinear:
         }
         if op_args:
             # Separate Flow arguments from NonConvex arguments
-            flow_keys = ['min', 'max']
+            flow_keys = [_ent.TransformerOperationalArgs.MIN_FLOW, _ent.TransformerOperationalArgs.MAX_FLOW]
             nonconvex_args = {}
 
             for key, value in op_args.items():
                 if key in flow_keys:
-                    input_flow_args[key] = value  # Goes to the Flow object
+                    oemof_key = key.replace("_flow", "")
+                    input_flow_args[oemof_key] = value  # Goes to the Flow object
                 else:
                     nonconvex_args[key] = value  # Goes to the NonConvex object
 

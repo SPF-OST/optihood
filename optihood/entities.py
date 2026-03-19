@@ -341,8 +341,8 @@ class TransformerOperationalArgs(_enum.StrEnum):
       Operational parameters for oemof.solph Flow and NonConvex objects,
       which the users can pass
     """
-    MIN = 'min'
-    MAX = 'max'
+    MIN_FLOW = 'min_flow'
+    MAX_FLOW = 'max_flow'
     MINIMUM_UPTIME = 'minimum_uptime'
     MINIMUM_DOWNTIME = 'minimum_downtime'
     INITIAL_STATUS = 'initial_status'
