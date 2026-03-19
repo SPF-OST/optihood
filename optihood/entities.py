@@ -1,7 +1,15 @@
 import enum as _enum
 
 
-class CommonLabels(_enum.StrEnum):
+class StrEnumWithMethods(_enum.StrEnum):
+    """Base class for string enums providing standard utility methods."""
+
+    @classmethod
+    def get_values(cls) -> list[str]:
+        return [member.value for member in cls]
+
+
+class CommonLabels(StrEnumWithMethods):
     label = "label"
     label_unique = "label_unique"
     from_bus = "from"
@@ -13,7 +21,7 @@ class CommonLabels(_enum.StrEnum):
     building = "building"
 
 
-class NodeKeys(_enum.StrEnum):
+class NodeKeys(StrEnumWithMethods):
     links = 'links'
     buses = "buses"
     grid_connection = "grid_connection"
@@ -32,7 +40,7 @@ class NodeKeysOptional:
     building_model_parameters = "building_model_parameters"
 
 
-class CsvInputFilePathsRelative(_enum.StrEnum):
+class CsvInputFilePathsRelative(StrEnumWithMethods):
     buses = "buses.csv"
     grid_connection = "grid_connection.csv"
     commodity_sources = "commodity_sources.csv"
@@ -46,7 +54,7 @@ class CsvInputFilePathsRelative(_enum.StrEnum):
     links = 'links.csv'
 
 
-class BusesLabels(_enum.StrEnum):
+class BusesLabels(StrEnumWithMethods):
     label = CommonLabels.label.value
     building = "building"
     excess = "excess"
@@ -54,7 +62,7 @@ class BusesLabels(_enum.StrEnum):
     active = "active"
 
 
-class BusTypes(_enum.StrEnum):
+class BusTypes(StrEnumWithMethods):
     naturalGasBus = "naturalGasBus"
     gridBus = "gridBus"
     electricityBus = "electricityBus"
@@ -76,7 +84,7 @@ class BusTypes(_enum.StrEnum):
     electricitySourceBusPVT = "elSource_pvt"
 
 
-class CommoditySourcesLabels(_enum.StrEnum):
+class CommoditySourcesLabels(StrEnumWithMethods):
     label = CommonLabels.label.value
     building = "building"
     to = CommonLabels.to.value
@@ -85,12 +93,12 @@ class CommoditySourcesLabels(_enum.StrEnum):
     active = "active"
 
 
-class CommoditySourceTypes(_enum.StrEnum):
+class CommoditySourceTypes(StrEnumWithMethods):
     naturalGasResource = "naturalGasResource"
     electricityResource = "electricityResource"
 
 
-class DemandLabels(_enum.StrEnum):
+class DemandLabels(StrEnumWithMethods):
     label = CommonLabels.label.value
     building = "building"
     active = "active"
@@ -100,13 +108,13 @@ class DemandLabels(_enum.StrEnum):
     building_model = "building model"
 
 
-class DemandTypes(_enum.StrEnum):
+class DemandTypes(StrEnumWithMethods):
     electricityDemand = "electricityDemand"
     spaceHeatingDemand = "spaceHeatingDemand"
     domesticHotWaterDemand = "domesticHotWaterDemand"
 
 
-class GridConnectionLabels(_enum.StrEnum):
+class GridConnectionLabels(StrEnumWithMethods):
     label = CommonLabels.label.value
     building = "building"
     from_bus = CommonLabels.from_bus.value
@@ -114,7 +122,7 @@ class GridConnectionLabels(_enum.StrEnum):
     efficiency = "efficiency"
 
 
-class GridConnectionTypes(_enum.StrEnum):
+class GridConnectionTypes(StrEnumWithMethods):
     gridElectricity = "gridElectricity"
     electricitySource = "electricitySource"
     producedElectricity = "producedElectricity"
@@ -123,7 +131,7 @@ class GridConnectionTypes(_enum.StrEnum):
     spaceHeating = "spaceHeating"
 
 
-class LinksLabels(_enum.StrEnum):
+class LinksLabels(StrEnumWithMethods):
     label = CommonLabels.label.value
     active = "active"
     efficiency = "efficiency"
@@ -132,7 +140,7 @@ class LinksLabels(_enum.StrEnum):
     investment = "investment"
 
 
-class LinksTypes(_enum.StrEnum):
+class LinksTypes(StrEnumWithMethods):
     electricityLink = "electricityLink"
     shLink = "shLink"
     dhwLink = "dhwLink"
@@ -142,13 +150,13 @@ class LinksTypes(_enum.StrEnum):
     dhLink = "dhLink"
 
 
-class ProfileLabels(_enum.StrEnum):
+class ProfileLabels(StrEnumWithMethods):
     name = "name"
     path = "path"
     info = "INFO"
 
 
-class MandatoryProfileTypes(_enum.StrEnum):
+class MandatoryProfileTypes(StrEnumWithMethods):
     demand = "demand_profiles"  # mandatory
     # TODO: make demand profiles consistent throughout the code  # pylint: disable=fixme
     demandProfiles = 'demandProfiles'  # because both implementations exist atm
@@ -156,7 +164,7 @@ class MandatoryProfileTypes(_enum.StrEnum):
     # TODO: add missing profile types  # pylint: disable=fixme
 
 
-class NonMandatoryProfileTypes(_enum.StrEnum):
+class NonMandatoryProfileTypes(StrEnumWithMethods):
     internal_gains = "internal_gains"
     building_model_params = "building_model_params"
     fixed_sources = "fixed_source_profiles"
@@ -164,7 +172,7 @@ class NonMandatoryProfileTypes(_enum.StrEnum):
     electricity_cost = 'electricity_cost'
 
 
-class SolarLabels(_enum.StrEnum):
+class SolarLabels(StrEnumWithMethods):
     label = CommonLabels.label.value
     building = "building"
     active = "active"
@@ -198,12 +206,12 @@ class SolarLabels(_enum.StrEnum):
     zenith_angle = "zenith_angle"
 
 
-class SolarTypes(_enum.StrEnum):
+class SolarTypes(StrEnumWithMethods):
     solarCollector = "solarCollector"
     pv = "pv"
 
 
-class StorageLabels(_enum.StrEnum):
+class StorageLabels(StrEnumWithMethods):
     label = CommonLabels.label.value
     building = "building"
     active = "active"
@@ -227,7 +235,7 @@ class StorageLabels(_enum.StrEnum):
     impact_cap = "impact_cap"
 
 
-class StorageTypes(_enum.StrEnum):
+class StorageTypes(StrEnumWithMethods):
     electricalStorage = "electricalStorage"
     shStorage = "shStorage"
     dhwStorage = "dhwStorage"
@@ -240,7 +248,7 @@ class StorageTypes(_enum.StrEnum):
     coolingBufferStorage = "coolingBufferStorage"
 
 
-class StratifiedStorageLabels(_enum.StrEnum):
+class StratifiedStorageLabels(StrEnumWithMethods):
     label = CommonLabels.label.value
     diameter = "diameter"
     temp_h = "temp_h"
@@ -254,12 +262,12 @@ class StratifiedStorageLabels(_enum.StrEnum):
     alpha_outside = "alpha_outside"
 
 
-class StratifiedStorageTypes(_enum.StrEnum):
+class StratifiedStorageTypes(StrEnumWithMethods):
     dhwStorage = "dhwStorage"
     shStorage = "shStorage"
 
 
-class IceStorageLabels(_enum.StrEnum):
+class IceStorageLabels(StrEnumWithMethods):
     label = CommonLabels.label.value
     max_ice_fraction = "max_ice_fraction"
     rho_fluid = "rho_fluid"
@@ -270,11 +278,11 @@ class IceStorageLabels(_enum.StrEnum):
     outflow_conversion_factor = "outflow_conversion_factor"
 
 
-class IceStorageTypes(_enum.StrEnum):
+class IceStorageTypes(StrEnumWithMethods):
     iceStorage = "iceStorage"
 
 
-class TransformerLabels(_enum.StrEnum):
+class TransformerLabels(StrEnumWithMethods):
     label = CommonLabels.label.value
     building = "building"
     active = "active"
@@ -295,12 +303,13 @@ class TransformerLabels(_enum.StrEnum):
     elec_impact = "elec_impact"
     impact_cap = "impact_cap"
 
-class HeatPumpCoefficientLabels(_enum.StrEnum):
+
+class HeatPumpCoefficientLabels(StrEnumWithMethods):
     coef_W = "coef_W"
     coef_Q = "coef_Q"
 
 
-class TransformerTypes(_enum.StrEnum):
+class TransformerTypes(StrEnumWithMethods):
     # TODO: currently the investment object is applied to the input flow for all transformer types
     # If this changes, we need to split this class into
     # (1) transformers with investment on inflow (this class would then be used while converting input capacities to output capacities)
@@ -315,7 +324,7 @@ class TransformerTypes(_enum.StrEnum):
     Chiller = "Chiller"
 
 
-class BuildingModelParameters(_enum.StrEnum):
+class BuildingModelParameters(StrEnumWithMethods):
     building_unique = "building_unique"
     Building_Number = "Building Number"
     Circuit = "Circuit"
@@ -336,7 +345,8 @@ class BuildingModelParameters(_enum.StrEnum):
     tIndoorDay = "tIndoorDay"
     tIndoorNight = "tIndoorNight"
 
-class TransformerOperationalArgs(_enum.StrEnum):
+
+class TransformerOperationalArgs(StrEnumWithMethods):
     """
       Operational parameters for oemof.solph Flow and NonConvex objects,
       which the users can pass
@@ -348,7 +358,3 @@ class TransformerOperationalArgs(_enum.StrEnum):
     INITIAL_STATUS = 'initial_status'
     STARTUP_COSTS = 'startup_costs'
     SHUTDOWN_COSTS = 'shutdown_costs'
-
-    @classmethod
-    def get_values(cls) -> list:
-        return [member.value for member in cls]

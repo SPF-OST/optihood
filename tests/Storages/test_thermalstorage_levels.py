@@ -52,9 +52,13 @@ class TestThermalStorageUnit:
 
         assert ts.initial_storage_level == 0.2
 
-        assert "clipped" in caplog.text.lower()
-        assert "0.1" in caplog.text
-        assert "0.2" in caplog.text
+        expected_msg = (
+            "Storage 'TS': Initial level 0.1 is outside bounds [0.2, 1]. "
+            "Clipped to 0.2 to prevent solver infeasibility."
+        )
+        assert expected_msg in caplog.text
+
+
 
     def test_storage_defaults(self, dummy_args):
         """Verify that default min_storage_level/max_storage_level are 0 and 1"""

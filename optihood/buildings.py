@@ -532,10 +532,11 @@ class Building:
             #comma-separated entries for user-defined coefficients split into a list
             coef_W = [float(c) for c in data[_ent.HeatPumpCoefficientLabels.coef_W].split(",")]
             coef_Q = [float(c) for c in data[_ent.HeatPumpCoefficientLabels.coef_Q].split(",")]
-        op_args_dict = {}
-        for arg in _ent.TransformerOperationalArgs.get_values():
-            if arg in data and pd.notna(data[arg]):
-                op_args_dict[arg] = data[arg]
+        op_args_dict = {
+            arg: data[arg]
+            for arg in _ent.TransformerOperationalArgs.get_values()
+            if has_valid_value(data, arg)
+        }
         heatPump = Component(label.full_name, operationTempertures, temperature_evap,
                                   coef_W,
                                   coef_Q,
@@ -753,10 +754,9 @@ class Building:
                 self.__costParam[storageLabel] = [self._calculateInvest(s)[0], self._calculateInvest(s)[1]]
                 self.__envParam[storageLabel] = [float(s["heat_impact"]), float(s["elec_impact"]), envImpactPerCapacity]
                 #TODO: Add min_storage_level and max_storage_level to entities
-                min_lvl = s['min_storage_level'] if ('min_storage_level' in s
-                                                     and pd.notna(s['min_storage_level'])) else 0
-                max_lvl = s['max_storage_level'] if ('max_storage_level' in s
-                                                     and pd.notna(s['max_storage_level'])) else 1
+                min_lvl = s['min_storage_level'] if has_valid_value(s, 'min_storage_level') else 0
+                max_lvl = s['max_storage_level'] if has_valid_value(s, 'max_storage_level') else 1
+
                 if "electricalStorage" in storageLabel:
                     self.__nodesList.append(ElectricalStorage(self.__buildingLabel, self.__busDict[inputBusLabel],
                                                               self.__busDict[outputBusLabel], float(s["capacity loss"]),

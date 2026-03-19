@@ -508,8 +508,6 @@ class HeatPumpLinear:
     def __init__(self, label, operationTemperatures, temperatureLow, coef_W, coef_Q, input, output,
                  capacityMin, capacityMax, nomEff,
                  epc, base, varc, env_flow, env_capa, dispatchMode, op_args=None):
-        if op_args is None:
-            op_args = {}
         outputTemperatures = {}
         for i in range(len(output)):
             outputTemperatures[output[i]] = operationTemperatures[i]
@@ -536,15 +534,27 @@ class HeatPumpLinear:
         if op_args:
             # Separate Flow arguments from NonConvex arguments
             flow_keys = [_ent.TransformerOperationalArgs.MIN_FLOW, _ent.TransformerOperationalArgs.MAX_FLOW]
+            non_convex_keys = [
+                _ent.TransformerOperationalArgs.MINIMUM_UPTIME,
+                _ent.TransformerOperationalArgs.MINIMUM_DOWNTIME,
+                _ent.TransformerOperationalArgs.INITIAL_STATUS,
+                _ent.TransformerOperationalArgs.STARTUP_COSTS,
+                _ent.TransformerOperationalArgs.SHUTDOWN_COSTS
+            ]
             nonconvex_args = {}
 
             for key, value in op_args.items():
                 if key in flow_keys:
                     oemof_key = key.replace("_flow", "")
                     input_flow_args[oemof_key] = value  # Goes to the Flow object
-                else:
+                elif key in non_convex_keys:
                     nonconvex_args[key] = value  # Goes to the NonConvex object
-
+                else:
+                    raise ValueError(
+                        f"HeatPumpLinear '{label}': Parameter '{key}' is not recognized. "
+                        f"Please check your scenario file headers. Allowed flow keys: {flow_keys}. "
+                        f"Allowed non-convex keys: {non_convex_keys}."
+                    )
             input_flow_args['nonconvex'] = solph.NonConvex(**nonconvex_args)
 
         inputDict = {input[0]: solph.Flow(**input_flow_args)}

@@ -15,7 +15,6 @@ class TestHeatPumpLinearOpArgs:
         return {
             "label": "HP",
             "operationTemperatures": [35],
-            # FIX: Use a numpy array to simulate a timeseries, so len() and sum() work
             "temperatureLow": np.array([10.0, 12.0, 10.0]),
             "input": [elec_bus],
             "output": [sh_bus],

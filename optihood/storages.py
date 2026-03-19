@@ -67,7 +67,7 @@ class ThermalStorage(solph.components.GenericStorage):
         if initial_storage < min_storage_level or initial_storage > max_storage_level:
             clipped_level = max(min_storage_level, min(max_storage_level, initial_storage))
             logging.warning(
-                f"Storage '{label}': Initial level {initial_storage} is outside bounds "
+                f"Storage '{storageLabel}': Initial level {initial_storage} is outside bounds "
                 f"[{min_storage_level}, {max_storage_level}]. "
                 f"Clipped to {clipped_level} to prevent solver infeasibility."
             )
