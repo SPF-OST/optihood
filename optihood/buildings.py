@@ -532,6 +532,10 @@ class Building:
             #comma-separated entries for user-defined coefficients split into a list
             coef_W = [float(c) for c in data[_ent.HeatPumpCoefficientLabels.coef_W].split(",")]
             coef_Q = [float(c) for c in data[_ent.HeatPumpCoefficientLabels.coef_Q].split(",")]
+        op_args_dict = {}
+        for arg in _ent.TransformerOperationalArgs.get_values():
+            if arg in data and pd.notna(data[arg]):
+                op_args_dict[arg] = data[arg]
         heatPump = Component(label.full_name, operationTempertures, temperature_evap,
                                   coef_W,
                                   coef_Q,
@@ -541,7 +545,8 @@ class Building:
                                   self._calculateInvest(data)[0] * (opt == "costs") + envImpactPerCapacity*(opt == "env"),
                                   self._calculateInvest(data)[1] * (opt == "costs"),
                                   float(data[_ent.TransformerLabels.heat_impact]) * (opt == "env"),
-                                  float(data[_ent.TransformerLabels.heat_impact]), envImpactPerCapacity, dispatchMode)
+                                  float(data[_ent.TransformerLabels.heat_impact]), envImpactPerCapacity, dispatchMode,
+                                  op_args_dict)
 
         self.__nodesList.append(heatPump.getHP("sh"))
 

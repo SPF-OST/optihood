@@ -335,3 +335,20 @@ class BuildingModelParameters(_enum.StrEnum):
     tWallInit = "tWallInit"
     tIndoorDay = "tIndoorDay"
     tIndoorNight = "tIndoorNight"
+
+class TransformerOperationalArgs(_enum.StrEnum):
+    """
+      Operational parameters for oemof.solph Flow and NonConvex objects,
+      which the users can pass
+    """
+    MIN = 'min'
+    MAX = 'max'
+    MINIMUM_UPTIME = 'minimum_uptime'
+    MINIMUM_DOWNTIME = 'minimum_downtime'
+    INITIAL_STATUS = 'initial_status'
+    STARTUP_COSTS = 'startup_costs'
+    SHUTDOWN_COSTS = 'shutdown_costs'
+
+    @classmethod
+    def get_values(cls) -> list:
+        return [member.value for member in cls]
