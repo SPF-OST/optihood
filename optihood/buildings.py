@@ -526,8 +526,8 @@ class Building:
             coef_Q = [13.8978, 114.8358, -9.3634, -179.4227, 342.3363, -12.4969]
         elif pattern_at_start_followed_by_number(_ent.TransformerTypes.Chiller, label.prefix):
             # default coefficients for chiller
-            coef_W = [6.534, 6.4908, 0.3555, 2.578, 8.076, -11.005]
-            coef_Q = [79.897, 738.27, -22.540, -1499.7, 2266.1, -462.81]
+            coef_W = [1.374297, 50.24932, -0.52687, 65.72373, -48.9331, -66.0379]
+            coef_Q = [29.28804, -1.76244, 313.227, -396.091, -422.075, 1029.683]
         if (_ent.HeatPumpCoefficientLabels.coef_W in data) and (_ent.HeatPumpCoefficientLabels.coef_Q in data):
             #comma-separated entries for user-defined coefficients split into a list
             coef_W = [float(c) for c in data[_ent.HeatPumpCoefficientLabels.coef_W].split(",")]
