@@ -506,7 +506,9 @@ class HeatPumpLinear:
     """
     def __init__(self, label, operationTemperatures, temperatureLow, coef_W, coef_Q, input, output,
                  capacityMin, capacityMax, nomEff,
-                 epc, base, varc, env_flow, env_capa, dispatchMode):
+                 epc, base, varc, env_flow, env_capa, dispatchMode, op_args=None):
+        if op_args is None:
+            op_args = {}
         outputTemperatures = {}
         for i in range(len(output)):
             outputTemperatures[output[i]] = operationTemperatures[i]
@@ -527,7 +529,23 @@ class HeatPumpLinear:
             'custom_attributes' : {'env_per_capa': env_capa * nomEff}}
         outputDict = {k: solph.Flow(variable_costs=varc,
                           custom_attributes={'env_per_flow': env_flow}, ) for k in output}
-        inputDict = {input[0]: solph.Flow(investment=solph.Investment(**investArgs))}
+        input_flow_args = {
+            'investment': solph.Investment(**investArgs)
+        }
+        if op_args:
+            # Separate Flow arguments from NonConvex arguments
+            flow_keys = ['min', 'max']
+            nonconvex_args = {}
+
+            for key, value in op_args.items():
+                if key in flow_keys:
+                    input_flow_args[key] = value  # Goes to the Flow object
+                else:
+                    nonconvex_args[key] = value  # Goes to the NonConvex object
+
+            input_flow_args['nonconvex'] = solph.NonConvex(**nonconvex_args)
+
+        inputDict = {input[0]: solph.Flow(**input_flow_args)}
         if len(input) > 1:
             # Two input HP, second input is for Q evaporator
             inputDict.update({input[1]: solph.Flow()})
