@@ -10,7 +10,7 @@ class TestThermalStorageUnit:
 
     @pytest.fixture
     def dummy_args(self):
-        mock_stratified_df = pd.DataFrame(
+        dummy_stratified_df = pd.DataFrame(
             {
                 'temp_h': [60],
                 'temp_c': [20],
