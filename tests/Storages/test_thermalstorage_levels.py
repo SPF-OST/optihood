@@ -27,7 +27,7 @@ class TestThermalStorageUnit:
         )
 
         return {
-            'stratifiedStorageParams': mock_stratified_df,
+            'stratifiedStorageParams': dummy_stratified_df,
             'volume_cost': 0,
             'base': 0,
             'varc': 0,
