@@ -54,12 +54,12 @@ class ElectricalStorage(solph.components.GenericStorage):
         )
 
 class ThermalStorage(solph.components.GenericStorage):
-    def __init__(self, label_str, stratifiedStorageParams, input, output, initial_storage, min, max, volume_cost, base,
+    def __init__(self, label_str, stratifiedStorageParams, input, output, initial_storage, capacity_min, capacity_max, volume_cost, base,
                  varc, env_flow, env_cap, dispatchMode, is_tank = True, rho= 1, c=4.186,
                  min_storage_level=0, max_storage_level=1):
         label = LabelStringManipulator(label_str)
         loss_rate, fixed_losses_relative, fixed_losses_absolute, capacity_min, capacity_max, epc, env_capa = \
-            self._precalculate(stratifiedStorageParams,label,min,max,volume_cost,env_cap, is_tank=
+            self._precalculate(stratifiedStorageParams,label,capacity_min,capacity_max,volume_cost,env_cap, is_tank=
             is_tank, rho=rho, c=c)
         storageLabel = label.strip_trailing_digits_from_prefix()
 
@@ -110,7 +110,7 @@ class ThermalStorage(solph.components.GenericStorage):
             investment=solph.Investment(**investArgs),
         )
 
-    def _precalculate(self, data, label,min,max,volume_cost,env_cap, is_tank, rho, c):
+    def _precalculate(self, data, label,capacity_min,capacity_max,volume_cost,env_cap, is_tank, rho, c):
         label_prefix = label.prefix
         if is_tank:
             tempH = data.at[label_prefix, 'temp_h']
@@ -163,8 +163,8 @@ class ThermalStorage(solph.components.GenericStorage):
                     fixed_losses_absolute = u_value*(temp_h - temp_env)*1e-6 #convert Wh to MWh
                 L_to_kWh = c * rho * (temp_h - temp_env) / 3600  # converts L data to kWh data for oemof GenericStorage class
 
-        capacity_min = min * L_to_kWh
-        capacity_max = max * L_to_kWh
+        capacity_min = capacity_min  * L_to_kWh
+        capacity_max = capacity_max * L_to_kWh
         epc = volume_cost / L_to_kWh
         env_capa = env_cap / L_to_kWh
 
