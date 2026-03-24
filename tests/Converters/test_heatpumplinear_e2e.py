@@ -11,18 +11,24 @@ class TestHeatPumpLinearE2E:
 
     ATOL = 1e-4
 
-    @pytest.fixture(scope="class")
-    def optimized_network(self):
-        """Runs the optimization once for the 24-hour scenario"""
+    @pytest.fixture(scope="class", params=["excel", "csv"])
+    def optimized_network(self, request):
+        """Runs the optimization for the 24-hour scenario using both Excel and CSV inputs."""
         base_path = Path(__file__).parent / "data" / "test_heatpumplinear_integration"
-        excel_path = base_path / "scenario.xls"
 
         time_index = pd.date_range('2018-01-01 00:00:00', periods=24, freq='H')
         network = EnergyNetwork(time_index)
-        network.setFromExcel(str(excel_path), numberOfBuildings=1)
+
+        if request.param == "excel":
+            excel_path = base_path / "scenario.xls"
+            network.setFromExcel(str(excel_path), numberOfBuildings=1)
+
+        elif request.param == "csv":
+            csv_path = base_path / "scenario_csvs"
+            network.set_from_csv(csv_path, nr_of_buildings=1)
 
         network.optimize(solver="gurobi", numberOfBuildings=1)
-        assert network.results is not None, "Optimization failed to return results!"
+        assert network.results is not None, f"Optimization failed for {request.param} input."
 
         return network
 
