@@ -11,7 +11,7 @@ class TestHeatPumpLinearOpArgsIntegration:
         base_path = Path(__file__).parent / "data" / "test_heatpumplinear_integration"
         excel_path = base_path / "scenario.xls"
 
-        time_index = pd.date_range('2018-01-01 00:00:00', periods=3, freq='H')
+        time_index = pd.date_range('2018-01-01 00:00:00', periods=24, freq='H')
         network = EnergyNetwork(time_index)
 
         network.setFromExcel(str(excel_path), numberOfBuildings=1)
