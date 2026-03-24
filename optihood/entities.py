@@ -351,10 +351,31 @@ class TransformerOperationalArgs(StrEnumWithMethods):
       Operational parameters for oemof.solph Flow and NonConvex objects,
       which the users can pass
     """
+    # --- Flow Args ---
     MIN_FLOW = 'min_flow'
     MAX_FLOW = 'max_flow'
+
+    # --- NonConvex Args ---
     MINIMUM_UPTIME = 'minimum_uptime'
     MINIMUM_DOWNTIME = 'minimum_downtime'
     INITIAL_STATUS = 'initial_status'
     STARTUP_COSTS = 'startup_costs'
     SHUTDOWN_COSTS = 'shutdown_costs'
+
+    @classmethod
+    def get_flow_args(cls) -> list['TransformerOperationalArgs']:
+        """Returns only the parameters for the Flow object"""
+        return [cls.MIN_FLOW, cls.MAX_FLOW]
+
+    @classmethod
+    def get_nonconvex_args(cls) -> list['TransformerOperationalArgs']:
+        """Returns only the parameters for the NonConvex object"""
+        return [
+            cls.MINIMUM_UPTIME, cls.MINIMUM_DOWNTIME,
+            cls.INITIAL_STATUS, cls.STARTUP_COSTS, cls.SHUTDOWN_COSTS
+        ]
+
+    @classmethod
+    def get_int_keys(cls) -> list['TransformerOperationalArgs']:
+        """Returns the specific parameters that must be cast to integers."""
+        return [cls.MINIMUM_UPTIME, cls.MINIMUM_DOWNTIME, cls.INITIAL_STATUS]

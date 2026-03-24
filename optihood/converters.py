@@ -533,15 +533,12 @@ class HeatPumpLinear:
         }
         if op_args:
             # Separate Flow arguments from NonConvex arguments
-            flow_keys = [_ent.TransformerOperationalArgs.MIN_FLOW, _ent.TransformerOperationalArgs.MAX_FLOW]
-            non_convex_keys = [
-                _ent.TransformerOperationalArgs.MINIMUM_UPTIME,
-                _ent.TransformerOperationalArgs.MINIMUM_DOWNTIME,
-                _ent.TransformerOperationalArgs.INITIAL_STATUS,
-                _ent.TransformerOperationalArgs.STARTUP_COSTS,
-                _ent.TransformerOperationalArgs.SHUTDOWN_COSTS
-            ]
+            flow_keys = _ent.TransformerOperationalArgs.get_flow_args()
+            non_convex_keys = _ent.TransformerOperationalArgs.get_nonconvex_args()
             nonconvex_args = {}
+
+            int_params = _ent.TransformerOperationalArgs.get_int_keys()
+            op_args.update({p: int(op_args[p]) for p in int_params if p in op_args})
 
             for key, value in op_args.items():
                 if key in flow_keys:
