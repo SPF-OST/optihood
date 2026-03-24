@@ -10,7 +10,7 @@ class TestThermalStorageIntegration:
         base_path = Path(__file__).parent / "data" / "test_storage_integration"
         excel_path = base_path / "scenario.xls"
 
-        time_index = pd.date_range('2018-01-01 00:00:00', periods=3, freq='H')
+        time_index = pd.date_range('2018-01-01 00:00:00', periods=24, freq='H')
         network = EnergyNetwork(time_index)
 
         network.setFromExcel(str(excel_path), numberOfBuildings=1)
@@ -22,7 +22,7 @@ class TestThermalStorageIntegration:
         if storage_node is None:
             pytest.fail(f"Storage node not found! Available: {[str(n.label) for n in oemof_nodes]}")
 
-        assert storage_node.min_storage_level[0] == 0.1, "Excel min_storage_level was not applied!"
-        assert storage_node.max_storage_level[0] == 0.9, "Excel max_storage_level was not applied!"
+        assert storage_node.min_storage_level[0] == 0.1, "min_storage_level from scenario file was not applied!"
+        assert storage_node.max_storage_level[0] == 0.9, "max_storage_level from scenario file was not applied!"
 
-        assert storage_node.initial_storage_level == 0.1
+        assert storage_node.initial_storage_level == 0.5, "initial capacity from scenario file was not applied!"
