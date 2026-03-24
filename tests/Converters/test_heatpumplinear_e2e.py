@@ -15,9 +15,8 @@ class TestHeatPumpLinearE2E:
     def optimized_network(self):
         """Runs the optimization once for the 24-hour scenario"""
         base_path = Path(__file__).parent / "data" / "test_heatpumplinear_integration"
-        excel_path = base_path / "scenario.xls"  # Make sure this file has 24 hours of data!
+        excel_path = base_path / "scenario.xls"
 
-        # 24 periods to give the minimum_uptime=4 constraint room to work
         time_index = pd.date_range('2018-01-01 00:00:00', periods=24, freq='H')
         network = EnergyNetwork(time_index)
         network.setFromExcel(str(excel_path), numberOfBuildings=1)
@@ -36,7 +35,7 @@ class TestHeatPumpLinearE2E:
         hp_node = next(n for n in optimized_network.nodes if "HP" in str(n.label))
         input_bus = list(hp_node.inputs.keys())[0]
 
-        # 2. Extract the flow using the processed results dictionary
+        # Extract the flow using the processed results dictionary
         flow_values = oemof_results[(input_bus, hp_node)]['sequences']['flow'].values
 
         # ---------------------------------------------------------
