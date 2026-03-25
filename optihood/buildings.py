@@ -753,9 +753,9 @@ class Building:
                 # set technologies, environment and cost parameters
                 self.__costParam[storageLabel] = [self._calculateInvest(s)[0], self._calculateInvest(s)[1]]
                 self.__envParam[storageLabel] = [float(s["heat_impact"]), float(s["elec_impact"]), envImpactPerCapacity]
-                #TODO: Add min_storage_level and max_storage_level to entities
-                min_lvl = s['min_storage_level'] if has_valid_value(s, 'min_storage_level') else 0
-                max_lvl = s['max_storage_level'] if has_valid_value(s, 'max_storage_level') else 1
+
+                min_lvl = s[_ent.StorageLabels.min_storage_level] if has_valid_value(s, _ent.StorageLabels.min_storage_level) else 0
+                max_lvl = s[_ent.StorageLabels.max_storage_level] if has_valid_value(s, _ent.StorageLabels.max_storage_level) else 1
 
                 if "electricalStorage" in storageLabel:
                     self.__nodesList.append(ElectricalStorage(self.__buildingLabel, self.__busDict[inputBusLabel],

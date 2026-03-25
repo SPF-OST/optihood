@@ -212,6 +212,7 @@ class SolarTypes(StrEnumWithMethods):
 
 
 class StorageLabels(StrEnumWithMethods):
+    # --- Mandatory Labels ---
     label = CommonLabels.label.value
     building = "building"
     active = "active"
@@ -233,6 +234,26 @@ class StorageLabels(StrEnumWithMethods):
     heat_impact = "heat_impact"
     elec_impact = "elec_impact"
     impact_cap = "impact_cap"
+
+    # --- Optional Labels ---
+    min_storage_level = "min_storage_level"
+    max_storage_level = "max_storage_level"
+
+    @classmethod
+    def get_mandatory_labels(cls) -> list['StorageLabels']:
+        """Returns only the mandatory labels"""
+        return [cls.label, cls.building, cls.active, cls.from_bus, cls.to, cls.efficiency_inflow,
+                cls.efficiency_outflow, cls.initial_capacity, cls.initial_temp,
+                cls.capacity_min, cls.capacity_max, cls.capacity_loss, cls.lifetime, cls.maintenance,
+                cls.installation, cls.planification, cls.invest_base, cls.invest_cap,
+                cls.heat_impact, cls.elec_impact, cls.impact_cap,]
+
+    @classmethod
+    def get_optional_labels(cls) -> list['StorageLabels']:
+        """Returns only the optional labels"""
+        return [
+            cls.min_storage_level, cls.max_storage_level
+        ]
 
 
 class StorageTypes(StrEnumWithMethods):
