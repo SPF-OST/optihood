@@ -1125,9 +1125,13 @@ class EnergyNetworkClass(solph.EnergySystem):
             "SH": "shStorage",
             "DHW": "dhwStorage",
             "Pit": "pitStorage",
+            "PitGeneric": "pitGenericStorage",
             "Borehole": "boreholeStorage",
+            "BoreholeGeneric": "boreholeGenericStorage",
             "Aquifer": "aquiferStorage",
+            "AquiferGeneric": "aquiferGenericStorage",
             "Tank": "tankStorage",
+            "TankGeneric": "tankGenericStorage",
             "Battery": "electricalStorage"
         }
 
