@@ -194,6 +194,7 @@ class SolarLabels(_enum.StrEnum):
 class SolarTypes(_enum.StrEnum):
     solarCollector = "solarCollector"
     pv = "pv"
+    pvt = "pvt"
 
 
 class StorageLabels(_enum.StrEnum):

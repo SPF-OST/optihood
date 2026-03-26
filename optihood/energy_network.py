@@ -1007,6 +1007,12 @@ class EnergyNetworkClass(solph.EnergySystem):
             _ent.TransformerTypes.OilBoiler.value: "Oil Boiler",
         }
 
+        solar_types = {
+            f"heatSource_SH{_ent.SolarTypes.solarCollector.value}": "Solar Thermal Collector",
+            _ent.SolarTypes.pv.value: "PV",
+            f"heatSource_SH{_ent.SolarTypes.pvt.value}": "PVT Collector"
+        }
+
 
         for b in range(len(self.__buildings)):
             buildingLabel = "Building" + str(b + 1)
@@ -1033,18 +1039,25 @@ class EnergyNetworkClass(solph.EnergySystem):
                             if transformer_prefix == _ent.TransformerTypes.GWHP.value and False:
                                 print("     Annual COP = {:.1f}".format(self.__annualCopGWHP[buildingLabel]))
 
-            if ("heatSource_SHsolarCollector__" + buildingLabel, "solarConnectBusSH__" + buildingLabel) in capacitiesInvestedTransformers:
-                invest = capacitiesInvestedTransformers[("heatSource_SHsolarCollector__" + buildingLabel, "solarConnectBusSH__" + buildingLabel)]
-                if invest > 0.05:
-                    print("Invested in {:.1f} m² SolarCollector.".format(invest))
-            if ("pv__" + buildingLabel, "electricityProdBus__" + buildingLabel) in capacitiesInvestedTransformers:
-                invest = capacitiesInvestedTransformers[("pv__" + buildingLabel, "electricityProdBus__" + buildingLabel)]
-                if invest > 0.05:
-                    print("Invested in {:.1f} kWp  PV.".format(invest))
-            if ("heatSource_SHpvt__" + buildingLabel, "pvtConnectBusSH__" + buildingLabel) in capacitiesInvestedTransformers:
-                invest = capacitiesInvestedTransformers[("heatSource_SHpvt__" + buildingLabel, "pvtConnectBusSH__" + buildingLabel)]
-                if invest > 0.05:
-                    print("Invested in {:.1f} m² PVT collector.".format(invest))
+            for key, invest in capacitiesInvestedTransformers.items():
+                if invest > 0.05 and key[0].endswith("__" + buildingLabel):
+                    for solar_prefix, label_base in solar_types.items():
+                        if key[0].startswith(solar_prefix):
+                            if _ent.SolarTypes.solarCollector.value in solar_prefix and "solarConnectBusSH" not in key[1]:
+                                continue
+                            if _ent.SolarTypes.pv.value in solar_prefix and "electricityProdBus" not in key[1]:
+                                continue
+                            if _ent.SolarTypes.pvt.value in solar_prefix and "pvtConnectBusSH" not in key[1]:
+                                continue
+
+                            # Extract suffix (e.g., "1" in "pv1__Building1")
+                            middle = key[0][len(solar_prefix):-len("__" + buildingLabel)]
+                            suffix = middle if middle.isdigit() else ""
+                            label = f"{label_base} {suffix}".strip()
+
+                            unit = "kWp" if solar_prefix == _ent.SolarTypes.pv.value else "m²"
+
+                            print(f"Invested in {invest:.1f} {unit} {label}.")
 
             for key, invest in capacitiesInvestedStorages.items():
                 if invest > 0.05 and key.endswith("__" + buildingLabel):
