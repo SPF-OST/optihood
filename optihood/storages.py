@@ -75,6 +75,11 @@ class ThermalStorage(solph.components.GenericStorage):
                 'offset':base,
                 'custom_attributes': {'env_per_capa': env_capa}}
 
+        # True for STES
+        # Quick fix for simulations
+        # TODO: refactor with entities.py
+        balanced = storageLabel.startswith(("pit", "borehole", "aquifer", "tankGeneric"))
+
         super(ThermalStorage, self).__init__(
             label=label.full_name,
             inputs={
@@ -92,7 +97,7 @@ class ThermalStorage(solph.components.GenericStorage):
             outflow_conversion_factor=stratifiedStorageParams.at[storageLabel, 'outflow_conversion_factor'],
             invest_relation_input_capacity=1,
             invest_relation_output_capacity=1,
-            balanced=False,
+            balanced=balanced,
             investment=solph.Investment(**investArgs),
         )
 
