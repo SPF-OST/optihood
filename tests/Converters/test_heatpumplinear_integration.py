@@ -4,6 +4,7 @@ from pathlib import Path
 from oemof.solph._options import NonConvex
 
 from optihood.energy_network import EnergyNetworkIndiv as EnergyNetwork
+import tests.xls_helpers as xlsh
 
 
 class TestHeatPumpLinearOpArgsIntegration:
@@ -26,6 +27,11 @@ class TestHeatPumpLinearOpArgsIntegration:
         input_bus = list(hp_node.inputs.keys())[0]
         flow = hp_node.inputs[input_bus]
 
-        assert flow.min[0] == 0.25
-        assert isinstance(flow.nonconvex, NonConvex)
-        assert flow.nonconvex.minimum_uptime == 4
+        errors = []
+        xlsh.check_condition(errors, flow.min[0] == 0.25, f"Expected min 0.25, got {flow.min[0]}")
+        xlsh.check_condition(errors, isinstance(flow.nonconvex, NonConvex), "Expected NonConvex object")
+        xlsh.check_condition(errors, flow.nonconvex.minimum_uptime == 4,
+                                f"Expected uptime 4, got {flow.nonconvex.minimum_uptime}")
+
+        if errors:
+            raise ExceptionGroup(f"found {len(errors)} issues in excel to oemof pipeline:", errors)

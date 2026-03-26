@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from optihood.energy_network import EnergyNetworkIndiv as EnergyNetwork
-
+import tests.xls_helpers as xlsh
 
 class TestThermalStorageIntegration:
     def test_storage_excel_to_node_pipeline(self):
@@ -22,7 +22,14 @@ class TestThermalStorageIntegration:
         if storage_node is None:
             pytest.fail(f"Storage node not found! Available: {[str(n.label) for n in oemof_nodes]}")
 
-        assert storage_node.min_storage_level[0] == 0.1, "min_storage_level from scenario file was not applied!"
-        assert storage_node.max_storage_level[0] == 0.9, "max_storage_level from scenario file was not applied!"
+        errors = []
 
-        assert storage_node.initial_storage_level == 0.5, "initial capacity from scenario file was not applied!"
+        xlsh.check_condition(errors, storage_node.min_storage_level[0] == 0.1,
+                             "min_storage_level from scenario file was not applied!")
+        xlsh.check_condition(errors, storage_node.max_storage_level[0] == 0.9,
+                             "max_storage_level from scenario file was not applied!")
+        xlsh.check_condition(errors, storage_node.initial_storage_level == 0.5,
+                             "initial capacity from scenario file was not applied!")
+
+        if errors:
+            raise ExceptionGroup(f"found {len(errors)} issues in node pipeline:", errors)

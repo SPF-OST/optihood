@@ -4,7 +4,7 @@ from oemof.solph import Bus
 from oemof.solph._options import NonConvex
 
 from optihood.converters import HeatPumpLinear
-
+import tests.xls_helpers as xlsh
 
 class TestHeatPumpLinearOpArgs:
 
@@ -40,7 +40,10 @@ class TestHeatPumpLinearOpArgs:
         elec_bus = base_hp_kwargs["input"][0]
         input_flow = hp._heatpump.inputs[elec_bus]
 
-        assert input_flow.nonconvex is None
+        errors = []
+        xlsh.check_condition(errors, input_flow.nonconvex is None, "Expected nonconvex to be None")
+        if errors:
+            raise ExceptionGroup(f"found {len(errors)} issues:", errors)
 
     def test_op_args_flow_routing(self, base_hp_kwargs):
         base_hp_kwargs["op_args"] = {'min_flow': 0.15}
@@ -48,8 +51,11 @@ class TestHeatPumpLinearOpArgs:
         elec_bus = base_hp_kwargs["input"][0]
         input_flow = hp._heatpump.inputs[elec_bus]
 
-        assert isinstance(input_flow.nonconvex, NonConvex)
-        assert input_flow.min[0] == 0.15
+        errors = []
+        xlsh.check_condition(errors, isinstance(input_flow.nonconvex, NonConvex), "Expected NonConvex object")
+        xlsh.check_condition(errors, input_flow.min[0] == 0.15, f"Expected min[0] to be 0.15, got {input_flow.min[0]}")
+        if errors:
+            raise ExceptionGroup(f"found {len(errors)} issues:", errors)
 
     def test_op_args_temporal_routing(self, base_hp_kwargs):
         base_hp_kwargs["op_args"] = {'min_flow': 0.1, 'minimum_uptime': 3}
@@ -57,6 +63,9 @@ class TestHeatPumpLinearOpArgs:
         elec_bus = base_hp_kwargs["input"][0]
         input_flow = hp._heatpump.inputs[elec_bus]
 
-        assert input_flow.min[0] == 0.1
-        assert isinstance(input_flow.nonconvex, NonConvex)
-        assert input_flow.nonconvex.minimum_uptime == 3
+        errors = []
+        xlsh.check_condition(errors, input_flow.min[0] == 0.1, f"Expected min[0] to be 0.1, got {input_flow.min[0]}")
+        xlsh.check_condition(errors, isinstance(input_flow.nonconvex, NonConvex), "Expected NonConvex object")
+        xlsh.check_condition(errors, input_flow.nonconvex.minimum_uptime == 3, f"Expected minimum_uptime 3, got {input_flow.nonconvex.minimum_uptime}")
+        if errors:
+            raise ExceptionGroup(f"found {len(errors)} issues:", errors)

@@ -4,7 +4,7 @@ import pandas as pd
 from oemof.solph import Bus
 
 from optihood.storages import ThermalStorage
-
+import tests.xls_helpers as xlsh
 
 class TestThermalStorageUnit:
 
@@ -38,6 +38,7 @@ class TestThermalStorageUnit:
 
     def test_initial_level_clipping_low(self, dummy_args, caplog):
         """Test that initial_storage is clipped up to min_storage_level"""
+        errors = []
         with caplog.at_level(logging.WARNING):
             ts = ThermalStorage(
                 label_str='TS__1',
@@ -50,18 +51,20 @@ class TestThermalStorageUnit:
                 min_storage_level=0.2
             )
 
-        assert ts.initial_storage_level == 0.2
+        xlsh.check_condition(errors, ts.initial_storage_level == 0.2, f"Expected 0.2, got {ts.initial_storage_level}")
 
         expected_msg = (
             "Storage 'TS': Initial level 0.1 is outside bounds [0.2, 1]. "
             "Clipped to 0.2 to prevent solver infeasibility."
         )
-        assert expected_msg in caplog.text
+        xlsh.check_condition(errors, expected_msg in caplog.text, "Warning message not found in caplog")
 
-
+        if errors:
+            raise ExceptionGroup(f"found {len(errors)} issues:", errors)
 
     def test_storage_defaults(self, dummy_args):
         """Verify that default min_storage_level/max_storage_level are 0 and 1"""
+        errors = []
         ts = ThermalStorage(
             label_str='TS__1',
             input=Bus(label='in_bus'),
@@ -72,5 +75,10 @@ class TestThermalStorageUnit:
             **dummy_args
         )
 
-        assert ts.min_storage_level[0] == 0
-        assert ts.max_storage_level[0] == 1
+        xlsh.check_condition(errors, ts.min_storage_level[0] == 0,
+                             f"Expected min level 0, got {ts.min_storage_level[0]}")
+        xlsh.check_condition(errors, ts.max_storage_level[0] == 1,
+                             f"Expected max level 1, got {ts.max_storage_level[0]}")
+
+        if errors:
+            raise ExceptionGroup(f"found {len(errors)} issues:", errors)

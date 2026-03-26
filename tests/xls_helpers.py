@@ -5,6 +5,7 @@ import subprocess as _sp
 import sys as _sys
 import typing as _tp
 import unittest as _ut
+import pytest as _pt
 
 import matplotlib as _mpl
 import pandas as _pd
@@ -17,6 +18,9 @@ TEST_RESULTS_DIR = ROOT_DIR / "results"
 ROOT_DATA_DIR = ROOT_DIR / "data"
 EXAMPLE_SCRIPT_DIR = ROOT_DATA_DIR / "examples"
 EXAMPLE_RESULTS_DIR = ROOT_DATA_DIR / "results"
+
+INPUT_FORMATS = ["excel", "csv"]
+ATOL = 1e-4
 
 
 def get_current_file_dir(file) -> _pl.Path:
@@ -190,3 +194,90 @@ def import_example_script(dir_path: _pl.Path, file_name: str):
     """
     _sys.path.append(str(dir_path))
     return _ilib.import_module(file_name)
+
+def plot_series_and_differences(series_new: _pd.Series, series_expected: _pd.Series, series_name: str):
+    # =======
+    # The following is needed to plot the differences as part of a pycharm test run.
+    _mpl.use("QtAgg")
+    # =======
+    fig, axs = _plt.subplots(3, 1)
+    series_new.plot(ax=axs[0])
+    series_expected.plot(ax=axs[1])
+
+    if series_new.shape == series_expected.shape:
+        # avoids str - str errors
+        try:
+            series_diff = series_new - series_expected
+            series_diff.plot(ax=axs[2])
+        except TypeError:
+            pass  # Skip plotting difference if types are incompatible
+    else:
+        series_name += " SHAPE MISMATCH!"
+
+    axs[0].set_title(f"Series name: {series_name}")
+
+
+def compare_series(
+        series_new: _pd.Series,
+        series_expected: _pd.Series,
+        name: str,
+        errors: list,
+        abs_tolerance: _tp.Optional[float] = None,
+        rel_tolerance: _tp.Optional[float] = None,
+        manual_test: bool = False
+):
+    try:
+        if abs_tolerance and rel_tolerance:
+            _pd.testing.assert_series_equal(series_new, series_expected, atol=abs_tolerance, rtol=rel_tolerance,
+                                            check_exact=False)
+        elif abs_tolerance:
+            _pd.testing.assert_series_equal(series_new, series_expected, atol=abs_tolerance, check_exact=False)
+        elif rel_tolerance:
+            _pd.testing.assert_series_equal(series_new, series_expected, rtol=rel_tolerance, check_exact=False)
+        else:
+            _pd.testing.assert_series_equal(series_new, series_expected, check_exact=True)
+    except AssertionError as current_error:
+        errors.append(current_error)
+        if manual_test:
+            plot_series_and_differences(series_new, series_expected, name)
+
+
+def define_and_optimize_network(
+    input_type: str,
+    base_path: _pl.Path,
+    time_index: _pd.DatetimeIndex,
+    nr_of_buildings: int = 1,
+    excel_filename: str = "scenario.xls",
+    csv_dirname: str = "scenario_csvs",
+    dispatch_mode: bool = False,
+    solver: str = "gurobi"
+):
+    """
+    This helper function is used in pytest fixtures in E2E tests
+    """
+    # lazy import to avoid loading the energy_network during pytest collection for tests that don't require optimization
+    import optihood.energy_network as oh_en
+    network = oh_en.EnergyNetworkIndiv(time_index)
+
+    if input_type == "excel":
+        excel_path = base_path / excel_filename
+        network.setFromExcel(str(excel_path), numberOfBuildings=nr_of_buildings, dispatchMode=dispatch_mode)
+    elif input_type == "csv":
+        csv_path = base_path / csv_dirname
+        network.set_from_csv(csv_path, nr_of_buildings=nr_of_buildings, dispatchMode=dispatch_mode)
+
+    network.optimize(solver=solver, numberOfBuildings=nr_of_buildings)
+
+    # Explicitly failing the fixture aborts the dependent tests cleanly with a clear message
+    if network.results is None:
+        _pt.fail(f"Dependent tests aborted: Optimization solver failed to find a solution for {input_type} input.")
+
+    return network
+
+
+def check_condition(errors: list, condition: bool, error_message: str):
+    """Evaluates a condition and appends an AssertionError to the list if it fails"""
+    try:
+        assert condition, error_message
+    except AssertionError as e:
+        errors.append(e)
