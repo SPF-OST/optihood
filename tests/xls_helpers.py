@@ -277,7 +277,7 @@ def define_and_optimize_network(
 
 def check_condition(errors: list, condition: bool, error_message: str):
     """Evaluates a condition and appends an AssertionError to the list if it fails"""
-    try:
-        assert condition, error_message
-    except AssertionError as e:
-        errors.append(e)
+    if not condition:
+        # We instantiate the error but don't 'raise' it here.
+        # This prevents the helper function from appearing in the traceback!
+        errors.append(AssertionError(error_message))
