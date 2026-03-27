@@ -24,12 +24,18 @@ class TestThermalStorageIntegration:
 
         errors = []
 
-        xlsh.check_condition(errors, storage_node.min_storage_level[0] == 0.1,
-                             "min_storage_level from scenario file was not applied!")
-        xlsh.check_condition(errors, storage_node.max_storage_level[0] == 0.9,
-                             "max_storage_level from scenario file was not applied!")
-        xlsh.check_condition(errors, storage_node.initial_storage_level == 0.5,
-                             "initial capacity from scenario file was not applied!")
+        expected_min_storage_level = 0.1
+        expected_max_storage_level = 0.9
+        expected_initial_storage_level = 0.5
+        xlsh.check_condition(errors, storage_node.min_storage_level[0] == expected_min_storage_level,
+                             "min_storage_level from scenario file was not applied! "
+                             f"Expected {expected_min_storage_level}, got {storage_node.min_storage_level[0]} instead.")
+        xlsh.check_condition(errors, storage_node.max_storage_level[0] == expected_max_storage_level,
+                             "max_storage_level from scenario file was not applied! "
+                             f"Expected {expected_max_storage_level}, got {storage_node.max_storage_level[0]} instead.")
+        xlsh.check_condition(errors, storage_node.initial_storage_level == expected_initial_storage_level,
+                             "initial capacity from scenario file was not applied!"
+                             f"Expected {expected_initial_storage_level}, got {storage_node.initial_storage_level} instead.")
 
         if errors:
             raise ExceptionGroup(f"found {len(errors)} issues in node pipeline:", errors)
