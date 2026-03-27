@@ -526,12 +526,17 @@ class Building:
             coef_Q = [13.8978, 114.8358, -9.3634, -179.4227, 342.3363, -12.4969]
         elif pattern_at_start_followed_by_number(_ent.TransformerTypes.Chiller, label.prefix):
             # default coefficients for chiller
-            coef_W = [6.534, 6.4908, 0.3555, 2.578, 8.076, -11.005]
-            coef_Q = [79.897, 738.27, -22.540, -1499.7, 2266.1, -462.81]
+            coef_W = [1.374297, 50.24932, -0.52687, 65.72373, -48.9331, -66.0379]
+            coef_Q = [29.28804, -1.76244, 313.227, -396.091, -422.075, 1029.683]
         if (_ent.HeatPumpCoefficientLabels.coef_W in data) and (_ent.HeatPumpCoefficientLabels.coef_Q in data):
             #comma-separated entries for user-defined coefficients split into a list
             coef_W = [float(c) for c in data[_ent.HeatPumpCoefficientLabels.coef_W].split(",")]
             coef_Q = [float(c) for c in data[_ent.HeatPumpCoefficientLabels.coef_Q].split(",")]
+        op_args_dict = {
+            arg: data[arg]
+            for arg in _ent.TransformerOperationalArgs.get_values()
+            if has_valid_value(data, arg)
+        }
         heatPump = Component(label.full_name, operationTempertures, temperature_evap,
                                   coef_W,
                                   coef_Q,
@@ -541,7 +546,8 @@ class Building:
                                   self._calculateInvest(data)[0] * (opt == "costs") + envImpactPerCapacity*(opt == "env"),
                                   self._calculateInvest(data)[1] * (opt == "costs"),
                                   float(data[_ent.TransformerLabels.heat_impact]) * (opt == "env"),
-                                  float(data[_ent.TransformerLabels.heat_impact]), envImpactPerCapacity, dispatchMode)
+                                  float(data[_ent.TransformerLabels.heat_impact]), envImpactPerCapacity, dispatchMode,
+                                  op_args_dict)
 
         self.__nodesList.append(heatPump.getHP("sh"))
 
@@ -748,6 +754,9 @@ class Building:
                 self.__costParam[storageLabel] = [self._calculateInvest(s)[0], self._calculateInvest(s)[1]]
                 self.__envParam[storageLabel] = [float(s["heat_impact"]), float(s["elec_impact"]), envImpactPerCapacity]
 
+                min_lvl = s[_ent.StorageLabels.min_storage_level] if has_valid_value(s, _ent.StorageLabels.min_storage_level) else 0
+                max_lvl = s[_ent.StorageLabels.max_storage_level] if has_valid_value(s, _ent.StorageLabels.max_storage_level) else 1
+
                 if "electricalStorage" in storageLabel:
                     self.__nodesList.append(ElectricalStorage(self.__buildingLabel, self.__busDict[inputBusLabel],
                                                               self.__busDict[outputBusLabel], float(s["capacity loss"]),
@@ -767,7 +776,10 @@ class Building:
                                                         float(s["capacity max"]),
                                                         self._calculateInvest(s)[0]*(opt == "costs") + envImpactPerCapacity*(opt == "env"),
                                                         self._calculateInvest(s)[1]*(opt == "costs"), float(s["heat_impact"])*(opt == "env"),
-                                                        float(s["heat_impact"]), envImpactPerCapacity, dispatchMode))
+                                                        float(s["heat_impact"]), envImpactPerCapacity, dispatchMode,
+                                                           min_storage_level=min_lvl,
+                                                           max_storage_level=max_lvl,
+                                                           ))
                 elif "pitStorage" in storageLabel and not temperatureLevels:
                     self.__nodesList.append(ThermalStoragePit(storageLabel,
                                                            storageParams["stratified_storage"], self.__busDict[inputBusLabel],
@@ -834,7 +846,9 @@ class Building:
                                        opt == "env"),
                            self._calculateInvest(s)[1] * (opt == "costs"),
                            float(s["heat_impact"]) * (opt == "env"),
-                           float(s["heat_impact"]), envImpactPerCapacity, dispatchMode, is_tank))
+                           float(s["heat_impact"]), envImpactPerCapacity, dispatchMode, is_tank,
+                           min_storage_level=min_lvl,
+                           max_storage_level=max_lvl,))
                 else:
                     logging.error("One of the following issues were encountered: (i) Storage label not identified. Storage label"
                                   "should contain one of the following strings: [electricalStorage, dhwStorage, shStorage, thermalStorage, "

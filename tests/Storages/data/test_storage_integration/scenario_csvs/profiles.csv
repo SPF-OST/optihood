@@ -1,0 +1,3 @@
+name,path,INFO
+demand_profiles,tests/Converters/data/test_heatpumplinear_integration/demand_profiles,path to the folder containing demand profiles
+weather_data,tests/Converters/data/test_heatpumplinear_integration/weather.csv,path to weather data file

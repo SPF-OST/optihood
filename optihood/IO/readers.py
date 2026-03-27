@@ -611,3 +611,25 @@ class ProfileAndOtherDataReader:
     @staticmethod
     def clip_to_time_index(df: _pd.DataFrame, time_index: _pd.DatetimeIndex):
         return df[time_index[0]:time_index[-1]]
+
+
+def convert_excel_to_csvs(excel_file_path: str | _pl.Path, output_folder: str | _pl.Path) -> None:
+    """
+    Prepares CSV scenario from a given Excel scenario
+    Reads an optihood scenario Excel file and saves each sheet as a separate CSV file.
+    """
+    excel_path = _pl.Path(excel_file_path)
+    out_dir = _pl.Path(output_folder)
+
+    if not excel_path.exists():
+        raise FileNotFoundError(f"Could not find the Excel file: {excel_path}")
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    _log.info(f"Converting {excel_path.name} to CSVs in {out_dir.name}...")
+
+    all_sheets = _pd.read_excel(excel_path, sheet_name=None)
+
+    for sheet_name, df in all_sheets.items():
+        csv_file_path = out_dir / f"{sheet_name}.csv"
+        df.to_csv(csv_file_path, index=False)
+

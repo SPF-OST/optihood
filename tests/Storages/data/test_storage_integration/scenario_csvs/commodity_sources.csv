@@ -1,0 +1,3 @@
+label,building,to,variable costs,CO2 impact,active
+naturalGasResource,1,naturalGasBus,0.087,0.228,1
+electricityResource,1,gridBus,0.204,tests/Converters/data/test_heatpumplinear_integration/electricity_impact.csv,1

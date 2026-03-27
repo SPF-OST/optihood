@@ -9,6 +9,7 @@ from pyomo.core.base.block import ScalarBlock
 from pyomo.environ import BuildAction
 from pyomo.environ import Constraint
 from optihood._helpers import *
+import optihood.entities as _ent
 
 class SolarCollector:
     """
@@ -506,7 +507,7 @@ class HeatPumpLinear:
     """
     def __init__(self, label, operationTemperatures, temperatureLow, coef_W, coef_Q, input, output,
                  capacityMin, capacityMax, nomEff,
-                 epc, base, varc, env_flow, env_capa, dispatchMode):
+                 epc, base, varc, env_flow, env_capa, dispatchMode, op_args=None):
         outputTemperatures = {}
         for i in range(len(output)):
             outputTemperatures[output[i]] = operationTemperatures[i]
@@ -527,7 +528,33 @@ class HeatPumpLinear:
             'custom_attributes' : {'env_per_capa': env_capa * nomEff}}
         outputDict = {k: solph.Flow(variable_costs=varc,
                           custom_attributes={'env_per_flow': env_flow}, ) for k in output}
-        inputDict = {input[0]: solph.Flow(investment=solph.Investment(**investArgs))}
+        input_flow_args = {
+            'investment': solph.Investment(**investArgs)
+        }
+        if op_args:
+            # Separate Flow arguments from NonConvex arguments
+            flow_keys = _ent.TransformerOperationalArgs.get_flow_args()
+            non_convex_keys = _ent.TransformerOperationalArgs.get_nonconvex_args()
+            nonconvex_args = {}
+
+            int_params = _ent.TransformerOperationalArgs.get_int_keys()
+            op_args.update({p: int(op_args[p]) for p in int_params if p in op_args})
+
+            for key, value in op_args.items():
+                if key in flow_keys:
+                    oemof_key = key.replace("_flow", "")
+                    input_flow_args[oemof_key] = value  # Goes to the Flow object
+                elif key in non_convex_keys:
+                    nonconvex_args[key] = value  # Goes to the NonConvex object
+                else:
+                    raise ValueError(
+                        f"HeatPumpLinear '{label}': Parameter '{key}' is not recognized. "
+                        f"Please check your scenario file headers. Allowed flow keys: {flow_keys}. "
+                        f"Allowed non-convex keys: {non_convex_keys}."
+                    )
+            input_flow_args['nonconvex'] = solph.NonConvex(**nonconvex_args)
+
+        inputDict = {input[0]: solph.Flow(**input_flow_args)}
         if len(input) > 1:
             # Two input HP, second input is for Q evaporator
             inputDict.update({input[1]: solph.Flow()})
