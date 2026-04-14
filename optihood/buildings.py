@@ -722,7 +722,8 @@ class Building:
                 elif pattern_at_start_followed_by_number("ElectricRod", t["label"]):
                     self._addElectricRod(t, opt, mergeLinkBuses, dispatchMode, temperatureLevels)
                 elif pattern_at_start_followed_by_number("Chiller", t["label"]):
-                    self._add_chiller(t, [operationTemperatures[1][1]], np.full(len(temperatureGround), operationTemperatures[1][0]), opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode)
+                    self._add_chiller(t, [operationTemperatures[1][0]], temperatureAmb, opt, mergeLinkBuses,
+                                       mergeHeatSourceSink, dispatchMode)
                 else:
                     logging.warning("Transformer label not identified, adding generic transformer component...")
                     self._addGenericTransformer(t)
