@@ -711,8 +711,14 @@ class Building:
             if t["active"]:
                 if pattern_at_start_followed_by_number("HP", t["label"]):
                     self._addHeatPump(t, operationTemperatures[0], temperatureAmb, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode)
+                    # The param operationTemperatures should match the Tcond_out of HP
+                    # temperatureAmb is Tevap_in for the air-source heat pump
+                    # Expected order of temperatures is Tcond_out, Tevap_in for HP (see HP model documentation)
                 elif pattern_at_start_followed_by_number("GWHP", t["label"]):
                     self._addHeatPump(t, operationTemperatures[0], temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode)
+                    # The param operationTemperatures should match the Tcond_out of GWHP
+                    # temperatureGround is Tevap_in for the ground-source heat pump (GWHP)
+                    # Expected order of temperatures is Tcond_out, Tevap_in for HP (see HP model documentation)
                 elif t["label"] == "GWHP split":
                     self._addGeothemalHeatPumpSplit(t, operationTemperatures[0], temperatureGround, opt, mergeLinkBuses, dispatchMode)
                 elif "CHP" in t["label"]:
@@ -724,6 +730,9 @@ class Building:
                 elif pattern_at_start_followed_by_number("Chiller", t["label"]):
                     self._add_chiller(t, [operationTemperatures[1][0]], temperatureAmb, opt, mergeLinkBuses,
                                        mergeHeatSourceSink, dispatchMode)
+                    # The param operationTemperatures should match the Tevap_out of chiller
+                    # temperatureAmb is Tcond_in for the chiller
+                    # Expected order of temperatures is Tevap_out, Tcond_in for Chiller (see HP model documentation)
                 else:
                     logging.warning("Transformer label not identified, adding generic transformer component...")
                     self._addGenericTransformer(t)
