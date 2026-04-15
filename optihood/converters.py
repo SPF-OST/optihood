@@ -1,13 +1,11 @@
-import oemof.solph as solph
 import numpy as np
-import pandas as pd
 import pvlib
-import optihood.combined_prod as cp
+from typing import Union
+
+import oemof.solph as solph
 from oemof.thermal.solar_thermal_collector import flat_plate_precalc
-from oemof.solph._plumbing import sequence as solph_sequence
-from pyomo.core.base.block import ScalarBlock
-from pyomo.environ import BuildAction
-from pyomo.environ import Constraint
+
+import optihood.combined_prod as cp
 from optihood._helpers import *
 import optihood.entities as _ent
 
@@ -564,7 +562,25 @@ class HeatPumpLinear:
                                             efficiencies=self.cop)
 
     @staticmethod
-    def _calculate_cop(t_high, t_low, coef_W, coef_Q):
+    def _calculate_cop(
+            t_high: Union[float, np.ndarray],
+            t_low: Union[float, np.ndarray],
+            coef_W: list[float],
+            coef_Q: list[float]
+    ) -> Union[float, np.ndarray]:
+        """
+        Calculates the Coefficient of Performance (COP) or Energy Efficiency Ratio (EER)
+        This function uses a bi-quadratic performance curve to estimate the output (heating or cooling)
+        and power consumption of a Heat Pump (HP) or Chiller
+
+        :param t_high: Tcond_out for HP, Tevap_out for Chiller
+        :param t_low: Tevap_in for HP, Tcond_in for Chiller
+        :param coef_W: Bi-quadratic curve coefficients for W
+        :param coef_Q: Bi-quadratic curve coefficients for Q_cond in case of HP or Q_evap in case of Chiller
+
+        :return: The resulting COP of HP or EER of Chiller
+
+        """
         t_low_K = t_low / 273.15
         t_high_K = t_high / 273.15
         QCondenser = (
