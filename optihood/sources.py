@@ -75,7 +75,7 @@ class PV(solph.components.Source):
                    a5=0.04277774, a6=9.692792, a7=-1.885868, a8=6.6):
 
         temp_cell = a1 + a2 * temp_amb + a3 * i_H_t
-        pvPower = np.maximum(0, (a4*i_H_t + a5)*temp_cell + a6*i_H_t + a7) / a8
+        pvPower = np.maximum(1e-4, (a4*i_H_t + a5)*temp_cell + a6*i_H_t + a7) / a8
         return pvPower
 
     def getPV(self):
