@@ -1042,12 +1042,18 @@ class EnergyNetworkClass(solph.EnergySystem):
                     {biomassSourceLabel: c.sum()})  # cost of biomass is added separately based on cost data
 
             # Feed-in electricity cost (value will be in negative to signify monetary gain...)
-            if ((mergeLinkBuses and buildingLabel=='Building1') or not mergeLinkBuses) and \
-                    (((electricityBusLabel, excessElectricityBusLabel), "flow") in solph.views.node(self._optimizationResults, electricityBusLabel)["sequences"]):
-                self.__feedIn[buildingLabel] = sum(solph.views.node(self._optimizationResults, electricityBusLabel)
-                                                   ["sequences"][(electricityBusLabel, excessElectricityBusLabel), "flow"]) * self.__costParam[excessElectricityBusLabel]
+            node_data = solph.views.node(self._optimizationResults, electricityBusLabel)
+            if (
+                ((mergeLinkBuses and buildingLabel == 'Building1') or not mergeLinkBuses)
+                and "sequences" in node_data
+                and ((electricityBusLabel, excessElectricityBusLabel), "flow") in node_data["sequences"]
+            ):
+                self.__feedIn[buildingLabel] = (
+                        sum(node_data["sequences"][(electricityBusLabel, excessElectricityBusLabel), "flow"])
+                        * self.__costParam[excessElectricityBusLabel])
             else: # in case of merged links feed in for all buildings except Building1 is set to 0 (to avoid repetition)
                 self.__feedIn[buildingLabel] = 0
+
             if mergeLinkBuses and ("electricity" in self._mergeBuses or "electricityInBus" in self._mergeBuses):
                 elInBusLabel = 'electricityInBus'
             else:

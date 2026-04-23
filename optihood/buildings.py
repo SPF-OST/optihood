@@ -501,14 +501,8 @@ class Building:
         else:
             inputBusLabel = [i + '__' + self.__buildingLabel for i in data["from"].split(",")]
         inputBuses = [self.__busDict[i] for i in inputBusLabel]
-        outputBuses = []
-        outputSHBusLabel = data["to"].split(",")[0] + '__' + self.__buildingLabel
-        outputDHWBusLabel = data["to"].split(",")[1] + '__' + self.__buildingLabel
-        outputBuses.append(self.__busDict[outputSHBusLabel])
-        outputBuses.append(self.__busDict[outputDHWBusLabel])
-        if temperatureLevels:
-            outputBusLabel3 = data["to"].split(",")[2] + '__' + self.__buildingLabel  # outputSHBusLabel, outputDHWBusLabel, outputBusLabel3 are in the order of increasing temperatures
-            outputBuses.append(self.__busDict[outputBusLabel3])
+        outputBusLabels = [i + '__' + self.__buildingLabel for i in data["to"].split(",")]
+        outputBuses = [self.__busDict[i] for i in outputBusLabels]
         envImpactPerCapacity = float(data["impact_cap"]) / float(data["lifetime"])
         if data["capacity_min"] == 'x':
             capacityMinSH = float(data["capacity_SH"])
@@ -527,10 +521,7 @@ class Building:
         self.__nodesList.append(heatPump.getHP("sh"))
 
         # set technologies, environment and cost parameters
-        self.__technologies.append([outputDHWBusLabel, hpSHLabel])
-        self.__technologies.append([outputSHBusLabel, hpSHLabel])
-        if temperatureLevels:
-            self.__technologies.append([outputBusLabel3, hpSHLabel])
+        self.__technologies.extend([[o, hpSHLabel] for o in outputBusLabels])
 
         self.__costParam[hpSHLabel] = [self._calculateInvest(data)[0], self._calculateInvest(data)[1]]
 
@@ -550,14 +541,8 @@ class Building:
         else:
             inputBusLabel = [i + '__' + self.__buildingLabel for i in data["from"].split(",")]
         inputBuses = [self.__busDict[i] for i in inputBusLabel]
-        outputBuses = []
-        outputSHBusLabel = data["to"].split(",")[0] + '__' + self.__buildingLabel
-        outputDHWBusLabel = data["to"].split(",")[1] + '__' + self.__buildingLabel
-        outputBuses.append(self.__busDict[outputSHBusLabel])
-        outputBuses.append(self.__busDict[outputDHWBusLabel])
-        if temperatureLevels:
-            outputBusLabel3 = data["to"].split(",")[2] + '__' + self.__buildingLabel  # outputSHBusLabel, outputDHWBusLabel, outputBusLabel3 are in the order of increasing temperatures
-            outputBuses.append(self.__busDict[outputBusLabel3])
+        outputBusLabels = [i + '__' + self.__buildingLabel for i in data["to"].split(",")]
+        outputBuses = [self.__busDict[i] for i in outputBusLabels]
         envImpactPerCapacity = float(data["impact_cap"]) / float(data["lifetime"])
         if data["capacity_min"] == 'x':
             capacityMinSH = float(data["capacity_SH"])
@@ -575,8 +560,7 @@ class Building:
         self.__nodesList.append(geothermalheatPump.getHP("sh"))
 
         # set technologies, environment and cost parameters
-        self.__technologies.append([outputDHWBusLabel, gwhpSHLabel])
-        self.__technologies.append([outputSHBusLabel, gwhpSHLabel])
+        self.__technologies.extend([[o, gwhpSHLabel] for o in outputBusLabels])
 
         self.__costParam[gwhpSHLabel] = [self._calculateInvest(data)[0], self._calculateInvest(data)[1]]
 
