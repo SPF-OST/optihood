@@ -87,6 +87,11 @@ class ThermalStorage(solph.components.GenericStorage):
                 'offset':base,
                 'custom_attributes': {'env_per_capa': env_capa}}
 
+        # True for STES
+        # Quick fix for simulations
+        # TODO: refactor with entities.py
+        balanced = storageLabel.startswith(("pit", "borehole", "aquifer", "tankGeneric"))
+
         super(ThermalStorage, self).__init__(
             label=label.full_name,
             inputs={
@@ -106,7 +111,7 @@ class ThermalStorage(solph.components.GenericStorage):
             outflow_conversion_factor=stratifiedStorageParams.at[storageLabel, 'outflow_conversion_factor'],
             invest_relation_input_capacity=1,
             invest_relation_output_capacity=1,
-            balanced=False,
+            balanced=balanced,
             investment=solph.Investment(**investArgs),
         )
 
@@ -133,7 +138,7 @@ class ThermalStorage(solph.components.GenericStorage):
             time_increment =1
             # TODO: refactor into functions
             if 'GenericStorage' in label_prefix:
-                typical_losses = {'tank': 0.10, 'pit': 0.20, 'borehole': 0.15, 'aquifier': 0.001}
+                typical_losses = {'tank': 0.00011, 'pit': 0.00011, 'borehole': 0.00011, 'aquifier': 0.00011}
                 try:
                     loss_rate = next(value for key, value in typical_losses.items() if key in label_prefix)
                 except StopIteration:

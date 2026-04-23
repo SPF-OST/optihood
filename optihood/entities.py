@@ -79,8 +79,8 @@ class BusTypes(StrEnumWithMethods):
     heatDemandBus = "heatDemandBus"
     lowTSourceBus = "lowTSourceBus"
     lowTSinkBus = "lowTSinkBus"
-    dhHeatInBus = "districtHeatingInBus"
-    dhHeatBus = "districtHeatingBus"
+    dhHeatInBus = "districtHeatInBus"
+    dhHeatBus = "districtHeatBus"
     electricitySourceBusPVT = "elSource_pvt"
 
 
@@ -209,6 +209,7 @@ class SolarLabels(StrEnumWithMethods):
 class SolarTypes(StrEnumWithMethods):
     solarCollector = "solarCollector"
     pv = "pv"
+    pvt = "pvt"
 
 
 class StorageLabels(StrEnumWithMethods):
