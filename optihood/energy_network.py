@@ -579,7 +579,10 @@ class EnergyNetworkClass(solph.EnergySystem):
             else:
                 bmdata = {}
             if any(data["demand"]["building"] == i):
-                b.addSink(data["demand"][data["demand"]["building"] == i], data["demandProfiles"][i], bmdata, mergeLinkBuses, mergeHeatSourceSink, self._temperatureLevels)
+                demand_profiles_data = None
+                if (data["demand"][data["demand"]["building"] == i]["fixed"] == 1).any():
+                    demand_profiles_data = data["demandProfiles"][i]
+                b.addSink(data["demand"][data["demand"]["building"] == i], demand_profiles_data, bmdata, mergeLinkBuses, mergeHeatSourceSink, self._temperatureLevels)
             b.addTransformer(data["transformers"][data["transformers"]["building"] == i], self.__operationTemperatures, self.__temperatureAmb, self.__temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, self._dispatchMode, self._temperatureLevels)
             storageList = b.addStorage(data["storages"][data["storages"]["building"] == i], storageParams, self.__temperatureAmb, opt, mergeLinkBuses, self._dispatchMode, self._temperatureLevels)
             b.addSolar(data["solar"][(data["solar"]["building"] == i) & (data["solar"]["label"] == "solarCollector")], data["weather_data"], opt, mergeLinkBuses, self._dispatchMode, self._temperatureLevels)
@@ -1065,67 +1068,6 @@ class EnergyNetworkClass(solph.EnergySystem):
                 shOutputLabel = "shSourceBus__"
                 dhwOutputLabel = "dhwStorageBus__"
 
-            # HP flows
-            if ("HP__" + buildingLabel, shOutputLabel + buildingLabel) in capacityTransformers:
-                if capacityTransformers[("HP__" + buildingLabel, shOutputLabel + buildingLabel)] > 1e-3:
-                    self.__elHP[buildingLabel] = sum(
-                        solph.views.node(self._optimizationResults, elInBusLabel)["sequences"][
-                            (elInBusLabel, 'HP__'+buildingLabel), 'flow'])
-                    self.__shHP[buildingLabel] = sum(
-                        solph.views.node(self._optimizationResults, 'HP__' + buildingLabel)["sequences"][
-                            ('HP__' + buildingLabel, shOutputLabel + buildingLabel), 'flow'])
-                    for i in range(len(self.__operationTemperatures)-2):
-                        self.__intermediateOpTempsHP[buildingLabel] = sum(
-                            solph.views.node(self._optimizationResults, 'HP__' + buildingLabel)["sequences"][
-                                ('HP__' + buildingLabel, f"heatStorageBus{i+1}__{buildingLabel}"), 'flow'])
-                    self.__dhwHP[buildingLabel] = sum(
-                        solph.views.node(self._optimizationResults, 'HP__' + buildingLabel)["sequences"][
-                            ('HP__' + buildingLabel, dhwOutputLabel + buildingLabel), 'flow'])
-                    self.__annualCopHP[buildingLabel] = (self.__shHP[buildingLabel] + self.__dhwHP[buildingLabel]) / (
-                        self.__elHP[buildingLabel] + 1e-6)
-                else:
-                    self.__annualCopHP[buildingLabel] = 0
-
-            # GWHP flows
-            if ("GWHP__" + buildingLabel, shOutputLabel + buildingLabel) in capacityTransformers:
-                if capacityTransformers[("GWHP__" + buildingLabel, shOutputLabel + buildingLabel)] > 1e-3:
-                    self.__elGWHP[buildingLabel] = sum(
-                        solph.views.node(self._optimizationResults, elInBusLabel)["sequences"][
-                            (elInBusLabel, 'GWHP__' + buildingLabel), 'flow'])
-                    self.__shGWHP[buildingLabel] = sum(
-                        solph.views.node(self._optimizationResults, 'GWHP__' + buildingLabel)["sequences"][
-                            ('GWHP__' + buildingLabel, shOutputLabel + buildingLabel), 'flow'])
-                    for i in range(len(self.__operationTemperatures)-2):
-                        self.__intermediateOpTempsGWHP[buildingLabel] = sum(
-                            solph.views.node(self._optimizationResults, 'GWHP__' + buildingLabel)["sequences"][
-                                ('GWHP__' + buildingLabel, f"heatStorageBus{i+1}__{buildingLabel}"), 'flow'])
-                    self.__dhwGWHP[buildingLabel] = sum(
-                        solph.views.node(self._optimizationResults, 'GWHP__' + buildingLabel)["sequences"][
-                            ('GWHP__' + buildingLabel, dhwOutputLabel + buildingLabel), 'flow'])
-                    self.__annualCopGWHP[buildingLabel] = (self.__shGWHP[buildingLabel] + self.__dhwGWHP[buildingLabel]) / (
-                            self.__elGWHP[buildingLabel] + 1e-6)
-                else:
-                    self.__annualCopGWHP[buildingLabel] = 0
-            else:       # splitted GSHP ( at the moment this only works at 2 temperature levels)
-                self.__annualCopGWHP[buildingLabel] = []
-                if (f"GWHP{str(self.__temperatureSH)}__" + buildingLabel, shOutputLabel + buildingLabel) in capacityTransformers:
-                    self.__elGWHP[buildingLabel] = sum(
-                        solph.views.node(self._optimizationResults, elInBusLabel)["sequences"][
-                            (elInBusLabel, f"GWHP{str(self.__temperatureSH)}__" + buildingLabel), 'flow'])
-                    self.__shGWHP[buildingLabel] = sum(
-                        solph.views.node(self._optimizationResults, f"GWHP{str(self.__temperatureSH)}__" + buildingLabel)["sequences"][
-                            (f"GWHP{str(self.__temperatureSH)}__" + buildingLabel, shOutputLabel + buildingLabel), 'flow'])
-                    self.__annualCopGWHP[buildingLabel].append((self.__shGWHP[buildingLabel]) / (self.__elGWHP[buildingLabel] + 1e-6))
-                if (f"GWHP{str(self.__temperatureDHW)}__" + buildingLabel, dhwOutputLabel + buildingLabel) in capacityTransformers:
-                    self.__elGWHP[buildingLabel] = sum(
-                        solph.views.node(self._optimizationResults, elInBusLabel)["sequences"][
-                            (elInBusLabel, f"GWHP{str(self.__temperatureDHW)}__" + buildingLabel), 'flow'])
-                    self.__dhwGWHP[buildingLabel] = sum(
-                        solph.views.node(self._optimizationResults, f"GWHP{str(self.__temperatureDHW)}__" + buildingLabel)["sequences"][
-                            (f"GWHP{str(self.__temperatureDHW)}__" + buildingLabel, dhwOutputLabel + buildingLabel), 'flow'])
-                    self.__annualCopGWHP[buildingLabel].append((self.__dhwGWHP[
-                        buildingLabel]) / (self.__elGWHP[buildingLabel] + 1e-6))
-
             if electricitySourceLabel in self.__envParam:
                 envParamGridElectricity = self.__envParam[electricitySourceLabel].copy()
                 envParamGridElectricity.reset_index(inplace=True, drop=True)
@@ -1239,14 +1181,12 @@ class EnergyNetworkClass(solph.EnergySystem):
                 if investSH > 0.05:
                     should_print_header = True
                     output_lines.append("{:.1f} kW HP.".format(investSH))
-                    output_lines.append("     Annual COP = {:.1f}".format(self.__annualCopHP[buildingLabel]))
 
             if ("GWHP__" + buildingLabel, shOutputLabel + buildingLabel) in capacitiesInvestedTransformers:
                 investSH = capacitiesInvestedTransformers[("GWHP__" + buildingLabel, shOutputLabel + buildingLabel)]
                 if investSH > 0.05:
                     should_print_header = True
                     output_lines.append("{:.1f} kW GWHP.".format(investSH))
-                    output_lines.append("     Annual COP = {:.1f}".format(self.__annualCopGWHP[buildingLabel]))
 
             if (f"GWHP{str(self.__temperatureSH)}__" + buildingLabel,
                 shOutputLabel + buildingLabel) in capacitiesInvestedTransformers:
@@ -1255,7 +1195,6 @@ class EnergyNetworkClass(solph.EnergySystem):
                 if investSH > 0.05:
                     should_print_header = True
                     output_lines.append("{:.1f} kW GWHP{}.".format(investSH, str(self.__temperatureSH)))
-                    output_lines.append("     Annual COP = {:.1f}".format(self.__annualCopGWHP[buildingLabel][0]))
 
             if (f"GWHP{str(self.__temperatureDHW)}__" + buildingLabel,
                 "dhwStorageBus__" + buildingLabel) in capacitiesInvestedTransformers:
@@ -1264,7 +1203,6 @@ class EnergyNetworkClass(solph.EnergySystem):
                 if investSH > 0.05:
                     should_print_header = True
                     output_lines.append("{:.1f} kW GWHP{}.".format(investSH, str(self.__temperatureDHW)))
-                    output_lines.append("     Annual COP = {:.1f}".format(self.__annualCopGWHP[buildingLabel][1]))
 
             if ("ElectricRod__" + buildingLabel, shOutputLabel + buildingLabel) in capacitiesInvestedTransformers:
                 investSH = capacitiesInvestedTransformers[

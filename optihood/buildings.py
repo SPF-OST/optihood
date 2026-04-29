@@ -395,7 +395,29 @@ class Building:
                 flowargs = {'variable_costs':varCosts,
                             'custom_attributes': {'env_per_flow': envImpactPerFlow},}
                 if "potential" in cs["label"].lower():
-                    flowargs.update({'full_load_time_max': cs["full_load_time_max"], "nominal_value": cs["nominal_value"]})
+                    flowargs.update(
+                        {'full_load_time_max': cs["full_load_time_max"], "nominal_value": cs["nominal_value"]})
+
+                if "summed_max" in cs and pd.notna(cs["summed_max"]):
+                    flowargs['summed_max'] = float(cs["summed_max"])
+
+                if ("max_limit_series" in cs and pd.notna(cs["max_limit_series"])
+                        and isinstance(cs["max_limit_series"], str) and cs["max_limit_series"].strip()): # .strip() ignores accidental spacebar entries
+                    filepath = cs["max_limit_series"]
+                    try:
+                        max_df = pd.read_csv(filepath)
+                        if "max" in max_df.columns:
+                            flowargs['max'] = max_df["max"].values
+                            # oemof requires 'nominal_value' to be set when 'max' is an array.
+                            # If it hasn't already been set,
+                            # set it to 1 so the CSV values are treated as absolute limits.
+                            if 'nominal_value' not in flowargs:
+                                flowargs['nominal_value'] = 1
+                        else:
+                            print(f"Warning: 'max' column not found in {filepath}. Ignoring max_limit_series.")
+                    except FileNotFoundError:
+                        print(f"Warning: max_limit_series file not found at {filepath}. Ignoring.")
+
                 self.__nodesList.append(solph.components.Source(
                     label=sourceLabel,
                     outputs={self.__busDict[outputBusLabel]: solph.Flow(**flowargs)}))
@@ -462,29 +484,55 @@ class Building:
                         for col in timeseries.columns.values:
                             if col == de["label"]:
                                 inflow_args["fix"] = timeseries[col]
-                                if temperatureLevels and "," in de["from"]:
-                                    demandInputLabel = col + "Bus" + '__' + self.__buildingLabel
-                                    bus = solph.Bus(label=demandInputLabel)
-                                    self.__nodesList.append(bus)
-                                    self.__busDict[demandInputLabel] = bus
-                        if temperatureLevels and "," in de["from"]:
-                            inputDummyBusDict = {self.__busDict[k]: solph.Flow() for k in inputBusLabel}
-                            self.__nodesList.append(LinkTemperatureDemand(
-                                label="dummy_"+sinkLabel,
+
+                    if "summed_min" in de and pd.notna(de["summed_min"]):
+                        inflow_args['summed_min'] = float(de["summed_min"])
+
+                    if "max_limit_series" in de and pd.notna(de["max_limit_series"]) and isinstance(
+                            de["max_limit_series"], str) and de["max_limit_series"].strip():
+                        filepath = de["max_limit_series"].strip()
+                        try:
+                            max_df = pd.read_csv(filepath)
+                            if "max" in max_df.columns:
+                                inflow_args['max'] = max_df["max"].values
+
+                                # oemof strictly requires 'nominal_value' to be set when using a 'max' array.
+                                # If it wasn't set by fixed=1 above, set it to 1.
+                                if 'nominal_value' not in inflow_args:
+                                    inflow_args['nominal_value'] = 1
+                            else:
+                                print(f"Warning: 'max' column not found in {filepath}. Ignoring max_limit_series.")
+                        except FileNotFoundError:
+                            print(f"Warning: max_limit_series file not found at {filepath}. Ignoring.")
+
+                    if temperatureLevels and "," in de["from"]:
+                        demandInputLabel = de["label"] + "Bus" + '__' + self.__buildingLabel
+
+                        # Check if bus already exists before adding it
+                        if demandInputLabel not in self.__busDict:
+                            bus = solph.Bus(label=demandInputLabel)
+                            self.__nodesList.append(bus)
+                            self.__busDict[demandInputLabel] = bus
+
+                        inputDummyBusDict = {self.__busDict[k]: solph.Flow() for k in inputBusLabel}
+                        self.__nodesList.append(
+                            LinkTemperatureDemand(  # Assuming LinkTemperatureDemand is a custom class in your script
+                                label="dummy_" + sinkLabel,
                                 inputs=inputDummyBusDict,
                                 outputs={self.__busDict[demandInputLabel]: solph.Flow()},
                                 conversion_factors={k: weights[k] for k in inputDummyBusDict}
                             ))
-                            inputBusDict = {self.__busDict[demandInputLabel]: solph.Flow(**inflow_args)}
-                        else:
-                            inputBusDict = {self.__busDict[inputBusLabel]: solph.Flow(**inflow_args)}
-                        # create sink
-                        self.__nodesList.append(
+                        inputBusDict = {self.__busDict[demandInputLabel]: solph.Flow(**inflow_args)}
+                    else:
+                        inputBusDict = {self.__busDict[inputBusLabel]: solph.Flow(**inflow_args)}
+
+                    # Create sink
+                    self.__nodesList.append(
                         solph.components.Sink(
-                                label=sinkLabel,
-                                inputs=inputBusDict,
-                            )
+                            label=sinkLabel,
+                            inputs=inputBusDict,
                         )
+                    )
 
     def _addHeatPump(self, data, operationTempertures, temperatureAmb, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode, temperatureLevels):
         hpSHLabel = data["label"] + '__' + self.__buildingLabel
@@ -508,11 +556,23 @@ class Building:
             capacityMinSH = float(data["capacity_SH"])
         else:
             capacityMinSH = float(data["capacity_min"])
-
+        cop_filepath = data.get("COP")
+        user_cop = None
+        if pd.notna(cop_filepath) and isinstance(cop_filepath, str) and cop_filepath.strip():
+            try:
+                cop_df = pd.read_csv(cop_filepath)
+                user_cop = [cop_df["cop"].values]
+            except FileNotFoundError:
+                print(f"Warning: COP file not found at {cop_filepath}. Defaulting to calculated COP.")
+                user_cop = None
+            except KeyError:
+                print(f"Warning: The column 'cop' was not found in {cop_filepath}. Defaulting to calculated COP.")
+                user_cop = None
         heatPump = HeatPumpLinear(self.__buildingLabel, operationTempertures, temperatureAmb,
                                   inputBuses,
                                   outputBuses,
                                   capacityMinSH, float(data["capacity_SH"]),float(data["efficiency"]),
+                                  user_cop,
                                   self._calculateInvest(data)[0] * (opt == "costs") + envImpactPerCapacity*(opt == "env"),
                                   self._calculateInvest(data)[1] * (opt == "costs"),
                                   float(data["heat_impact"]) * (opt == "env"),
@@ -548,10 +608,23 @@ class Building:
             capacityMinSH = float(data["capacity_SH"])
         else:
             capacityMinSH = float(data["capacity_min"])
+        cop_filepath = data.get("COP")
+        user_cop = None
+        if pd.notna(cop_filepath) and isinstance(cop_filepath, str) and cop_filepath.strip():
+            try:
+                cop_df = pd.read_csv(cop_filepath)
+                user_cop = [cop_df["cop"].values]
+            except FileNotFoundError:
+                print(f"Warning: COP file not found at {cop_filepath}. Defaulting to calculated COP.")
+                user_cop = None
+            except KeyError:
+                print(f"Warning: The column 'cop' was not found in {cop_filepath}. Defaulting to calculated COP.")
+                user_cop = None
         geothermalheatPump = GeothermalHeatPumpLinear(self.__buildingLabel, operationTempertures, temperatureAmb,
                                   inputBuses,
                                   outputBuses,
                                   capacityMinSH, float(data["capacity_SH"]),float(data["efficiency"]),
+                                  user_cop,
                                   self._calculateInvest(data)[0] * (opt == "costs") + envImpactPerCapacity*(opt == "env"),
                                   self._calculateInvest(data)[1] * (opt == "costs"),
                                   float(data["heat_impact"]) * (opt == "env"),

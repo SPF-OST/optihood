@@ -496,12 +496,16 @@ class PVT:
 class HeatPumpLinear:
     "Information about the model can be found in combined_pro.py CombinedTransformer"
     def __init__(self, buildingLabel, operationTemperatures, temperatureLow, input, output,
-                 capacityMin, capacityMax, nomEff,
+                 capacityMin, capacityMax, nomEff, cop,
                  epc, base, varc, env_flow, env_capa, dispatchMode):
         outputTemperatures = {}
         for i in range(len(output)):
             outputTemperatures[output[i]] = operationTemperatures[i]
-        self.__cop = {o:self._calculateCop(t, temperatureLow) for o,t in outputTemperatures.items()}
+        if cop is None:
+            self.__cop = {o: self._calculateCop(t, temperatureLow) for o, t in outputTemperatures.items()}
+        else:
+            # cop is passed as a list of arrays matching the 'output' list
+            self.__cop = {output[i]: cop[i] for i in range(len(output))}
         self.avgCopSh = (sum(self.__cop[output[0]])/len(self.__cop[output[0]])) # cop at lowest temperature, i.e. temperature of space heating
         self.nominalEff = nomEff
         if dispatchMode:
@@ -554,12 +558,17 @@ class HeatPumpLinear:
 class GeothermalHeatPumpLinear:
     "Information about the model can be found in combined_pro.py CombinedTransformer"
     def __init__(self, buildingLabel, operationTemperatures, temperatureLow, input, output,
-                 capacityMin, capacityMax, nomEff,
+                 capacityMin, capacityMax, nomEff, cop,
                  epc, base, varc, env_flow, env_capa, dispatchMode):
         outputTemperatures = {}
         for i in range(len(output)):
             outputTemperatures[output[i]] = operationTemperatures[i]
-        self.__cop = {o: self._calculateCop(t, temperatureLow) for o, t in outputTemperatures.items()}
+        if cop is None:
+            self.__cop = {o: self._calculateCop(t, temperatureLow) for o, t in outputTemperatures.items()}
+        else:
+            # cop is passed as a list of arrays matching the 'output' list
+            self.__cop = {output[i]: cop[i] for i in range(len(output))}
+
         self.avgCopSh = (sum(self.__cop[output[0]]) / len(self.__cop[output[0]]))  # cop at lowest temperature, i.e. temperature of space heating
         self.nominalEff = nomEff
         if dispatchMode:
