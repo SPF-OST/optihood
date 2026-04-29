@@ -84,6 +84,29 @@ class CombinedTransformerBlock(ScalarBlock):
             rule=_second_input_relation_rule
         )
 
+        def _thermal_limit_rule(block):
+            """Constrains total thermal output based on optimized electrical capacity."""
+            for t in m.TIMESTEPS:
+                for g in group:
+                    # 1. Calculate the total thermal output (SH + DHW) for this timestep
+                    total_heat = sum(m.flow[g, g.outputs_ordered[i], t] for i in range(len(g.efficiency_sq)))
+
+                    # 2. Grab the optimizer's chosen electrical capacity (the Investment variable)
+                    invested_elec = m.InvestmentFlowBlock.invest[g.inflow, g]
+
+                    # 3. Determine the design COP, explicitly filtering out the 0.001 "off" state dummy values
+                    design_cop = min(val for val in g.efficiency_sq[0] if val > 0.001)
+
+                    # 4. Enforce the limit: Output cannot exceed Installed Electrical Size * Design COP
+                    block.thermal_limit.add((g, t), (total_heat <= invested_elec * design_cop))
+
+        self.thermal_limit = Constraint(
+            group, m.TIMESTEPS, noruleinit=True
+        )
+        self.thermal_limit_build = BuildAction(
+            rule=_thermal_limit_rule
+        )
+
 
 class CombinedCHP(solph_components.Transformer):
     r"""
