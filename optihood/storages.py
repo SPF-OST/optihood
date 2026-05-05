@@ -72,6 +72,10 @@ class ThermalStorage(solph.components.GenericStorage):
                 'offset':base,
                 'custom_attributes': {'env_per_capa': env_capa}}
 
+        balanced_soc=False
+        if initial_storage > 0:
+            balanced_soc=True
+
         super(ThermalStorage, self).__init__(
             label=label,
             inputs={
@@ -89,7 +93,7 @@ class ThermalStorage(solph.components.GenericStorage):
             outflow_conversion_factor=stratifiedStorageParams.at[storageLabel, 'outflow_conversion_factor'],
             invest_relation_input_capacity=1,
             invest_relation_output_capacity=1,
-            balanced=False,
+            balanced=balanced_soc,
             investment=solph.Investment(**investArgs),
         )
 
