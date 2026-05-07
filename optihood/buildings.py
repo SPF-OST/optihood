@@ -517,16 +517,17 @@ class Building:
         else:
             capacityMinSH = float(data[_ent.TransformerLabels.capacity_min])
 
-        cop_filepath = data.get(_ent.HeatPumpCoefficientLabels.COP)
         user_cop = None
-        if pd.notna(cop_filepath) and isinstance(cop_filepath, str) and cop_filepath.strip():
-            try:
-                cop_df = pd.read_csv(cop_filepath)
-                user_cop = [cop_df["cop"].values]
-            except FileNotFoundError:
-                print(f"Warning: COP file not found at {cop_filepath}. Defaulting to calculated COP.")
-            except KeyError:
-                print(f"Warning: The column 'cop' was not found in {cop_filepath}. Defaulting to calculated COP.")
+        if _ent.HeatPumpCoefficientLabels.COP in data:
+            cop_filepath = data.get(_ent.HeatPumpCoefficientLabels.COP)
+            if pd.notna(cop_filepath) and isinstance(cop_filepath, str) and cop_filepath.strip():
+                try:
+                    cop_df = pd.read_csv(cop_filepath)
+                    user_cop = [cop_df["cop"].values]
+                except FileNotFoundError:
+                    print(f"Warning: COP file not found at {cop_filepath}. Defaulting to calculated COP.")
+                except KeyError:
+                    print(f"Warning: The column 'cop' was not found in {cop_filepath}. Defaulting to calculated COP.")
 
         # Determine coefficients ONLY if a valid COP file was NOT found
         coef_W, coef_Q = None, None
