@@ -526,7 +526,7 @@ class HeatPumpLinear:
             self.cop = {o:self._calculate_cop(t, temperatureLow, coef_W, coef_Q) for o,t in outputTemperatures.items()}
         else:
             # cop is passed as a list of arrays matching the 'output' list
-            self.__cop = {output[i]: cop[i] for i in range(len(output))}
+            self.cop = {output[i]: cop[i] for i in range(len(output))}
 
         self.avgCopSh = (sum(self.cop[output[0]])/len(self.cop[output[0]])) # cop at lowest temperature, i.e. temperature of space heating
         self.nominalEff = nomEff
