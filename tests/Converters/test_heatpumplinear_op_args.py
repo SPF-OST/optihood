@@ -23,6 +23,7 @@ class TestHeatPumpLinearOpArgs:
             "capacityMin": 0,
             "capacityMax": 100,
             "nomEff": 3.0,
+            "cop": None,
             "epc": 100,
             "base": 500,
             "varc": 0.05,
