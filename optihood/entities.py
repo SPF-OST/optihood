@@ -328,6 +328,7 @@ class TransformerLabels(StrEnumWithMethods):
 class HeatPumpCoefficientLabels(StrEnumWithMethods):
     coef_W = "coef_W"
     coef_Q = "coef_Q"
+    COP = "COP"
 
 
 class TransformerTypes(StrEnumWithMethods):

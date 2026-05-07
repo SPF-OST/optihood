@@ -503,13 +503,31 @@ class HeatPumpLinear:
     Generic linear heat pump model.
     Allows the user to input the necessary coefficients for COP calculation.
     """
+    #TODO: Check all the optional parameters to make testing easier (default to None)
     def __init__(self, label, operationTemperatures, temperatureLow, coef_W, coef_Q, input, output,
-                 capacityMin, capacityMax, nomEff,
+                 capacityMin, capacityMax, nomEff, cop,
                  epc, base, varc, env_flow, env_capa, dispatchMode, op_args=None):
+
+        # TODO: Refactor - Implement factory method for component
+        # Move the following parameter-parsing logic into a class method
+        # (e.g., `Component.from_data_dict(label, data, ...)`).
+        # Goal: Encapsulate data extraction so the main script stays clean
+        # and the `Component.__init__` method only handles variable assignment
+
+        if cop is None and (coef_W is None or coef_Q is None):
+            raise ValueError(f"Component '{label}' must be provided with either '{_ent.HeatPumpCoefficientLabels.COP}' or both "
+                             f"'{_ent.HeatPumpCoefficientLabels.coef_W}' and '{_ent.HeatPumpCoefficientLabels.coef_Q}'")
+
         outputTemperatures = {}
         for i in range(len(output)):
             outputTemperatures[output[i]] = operationTemperatures[i]
-        self.cop = {o:self._calculate_cop(t, temperatureLow, coef_W, coef_Q) for o,t in outputTemperatures.items()}
+
+        if cop is None:
+            self.cop = {o:self._calculate_cop(t, temperatureLow, coef_W, coef_Q) for o,t in outputTemperatures.items()}
+        else:
+            # cop is passed as a list of arrays matching the 'output' list
+            self.__cop = {output[i]: cop[i] for i in range(len(output))}
+
         self.avgCopSh = (sum(self.cop[output[0]])/len(self.cop[output[0]])) # cop at lowest temperature, i.e. temperature of space heating
         self.nominalEff = nomEff
         if dispatchMode:
