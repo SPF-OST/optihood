@@ -526,12 +526,13 @@ class HeatPumpLinear:
             self.cop = {o:self._calculate_cop(t, temperatureLow, coef_W, coef_Q) for o,t in outputTemperatures.items()}
         else:
             # cop is passed as a list of arrays matching the 'output' list
-            self.cop = {output[i]: cop[i] for i in range(len(output))}
+            # TODO: adjust this to deal with multiple buses.
+            self.cop = {output[i]: cop[0] for i in range(len(output))}
 
         self.avgCopSh = (sum(self.cop[output[0]])/len(self.cop[output[0]])) # cop at lowest temperature, i.e. temperature of space heating
         self.nominalEff = nomEff
         if dispatchMode:
-            investArgs = {'ep_costs' : epc * nomEff,
+            investArgs = {'ep_costs': epc * nomEff,
             'minimum' : capacityMin / nomEff,
             'maximum' : capacityMax / nomEff,
             'custom_attributes': {'env_per_capa': env_capa * nomEff}}
