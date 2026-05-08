@@ -523,7 +523,7 @@ class Building:
             if pd.notna(cop_filepath) and isinstance(cop_filepath, str) and cop_filepath.strip():
                 try:
                     cop_df = pd.read_csv(cop_filepath)
-                    user_cop = [cop_df["cop"].values]
+                    user_cop = [cop_df[_ent.HeatPumpCoefficientLabels.COP].values]
                 except FileNotFoundError:
                     print(f"Warning: COP file not found at {cop_filepath}. Defaulting to calculated COP.")
                 except KeyError:
