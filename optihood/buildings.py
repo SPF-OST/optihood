@@ -786,15 +786,27 @@ class Building:
                 max_lvl = s[_ent.StorageLabels.max_storage_level] if has_valid_value(s, _ent.StorageLabels.max_storage_level) else 1
 
                 if "electricalStorage" in storageLabel:
-                    self.__nodesList.append(ElectricalStorage(self.__buildingLabel, self.__busDict[inputBusLabel],
-                                                              self.__busDict[outputBusLabel], float(s["capacity loss"]),
-                                                            float(s["initial capacity"]), float(s["efficiency inflow"]),
-                                                            float(s["efficiency outflow"]), float(s["capacity min"]),
-                                                            float(s["capacity max"]),
-                                                            self._calculateInvest(s)[0]*(opt == "costs") + envImpactPerCapacity*(opt == "env"),
-                                                            self._calculateInvest(s)[1]*(opt == "costs"),
-                                                            float(s["elec_impact"])*(opt == "env"),
-                                                            float(s["elec_impact"]), envImpactPerCapacity, dispatchMode))
+                    self.__nodesList.append(
+                        ElectricalStorage(
+                            self.__buildingLabel,
+                            self.__busDict[inputBusLabel],
+                            self.__busDict[outputBusLabel],
+                            float(s["capacity loss"]),
+                            float(s["initial capacity"]),
+                            float(s["efficiency inflow"]),
+                            float(s["efficiency outflow"]),
+                            float(s["capacity min"]),
+                            float(s["capacity max"]),
+                            self._calculateInvest(s)[0]*(opt == "costs") + envImpactPerCapacity*(opt == "env"),
+                            self._calculateInvest(s)[1]*(opt == "costs"),
+                            float(s["elec_impact"])*(opt == "env"),
+                            float(s["elec_impact"]),
+                            envImpactPerCapacity,
+                            dispatchMode,
+                            min_storage_level=min_lvl,
+                            max_storage_level=max_lvl,
+                        )
+                    )
 
                 elif storageLabel.startswith(("dhwStorage", "shStorage", "coolingBufferStorage")) and not temperatureLevels:
                     self.__nodesList.append(ThermalStorage(storageLabel,
