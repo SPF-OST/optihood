@@ -527,7 +527,8 @@ class Building:
                 except FileNotFoundError:
                     print(f"Warning: COP file not found at {cop_filepath}. Defaulting to calculated COP.")
                 except KeyError:
-                    print(f"Warning: The column 'cop' was not found in {cop_filepath}. Defaulting to calculated COP.")
+                    print(f"Warning: The column '{_ent.HeatPumpCoefficientLabels.COP.value}' was not found in "
+                          f"{cop_filepath}. Defaulting to calculated COP.")
 
         # Determine coefficients ONLY if a valid COP file was NOT found
         coef_W, coef_Q = None, None
