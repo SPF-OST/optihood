@@ -20,28 +20,50 @@ import numpy as np
 
 class ElectricalStorage(solph.components.GenericStorage):
     def __init__(self, buildingLabel, input, output, loss_rate, initial_storage, efficiency_in, efficiency_out,
-                 capacity_min, capacity_max, epc, base, varc, env_flow, env_capa, dispatchMode):
+                 capacity_min, capacity_max, epc, base, varc, env_flow, env_capa, dispatchMode,
+                 min_storage_level=0, max_storage_level=1
+                 ):
+        label = "electricalStorage"+'__'+buildingLabel
+
         if dispatchMode:
-            investArgs = {'minimum':capacity_min,
-                    'maximum':capacity_max,
-                    'ep_costs':epc,
-                    'custom_attributes': {'env_per_capa': env_capa}}
+            investArgs = {
+                'minimum': capacity_min,
+                'maximum': capacity_max,
+                'ep_costs': epc,
+                'custom_attributes': {'env_per_capa': env_capa}
+            }
         else:
-            investArgs = {'minimum':capacity_min,
-                    'maximum':capacity_max,
-                    'ep_costs':epc,
-                    'existing':0,
-                    'nonconvex':True,
-                    'offset':base,
-                    'custom_attributes': {'env_per_capa': env_capa}}
+            investArgs = {
+                'minimum': capacity_min,
+                'maximum': capacity_max,
+                'ep_costs': epc,
+                'existing': 0,
+                'nonconvex': True,
+                'offset': base,
+                'custom_attributes': {'env_per_capa': env_capa}
+            }
+
+        # Ensure initial storage level is within the bounds to prevent solver crashes
+        if initial_storage < min_storage_level or initial_storage > max_storage_level:
+            # TODO: maybe make this into a common method, or have this be part of a parent class for storages.
+            clipped_level = max(min_storage_level, min(max_storage_level, initial_storage))
+            logging.warning(
+                f"Storage '{label}': Initial level {initial_storage} is outside bounds "
+                f"[{min_storage_level}, {max_storage_level}]. "
+                f"Clipped to {clipped_level} to prevent solver infeasibility."
+            )
+            initial_storage = clipped_level
+
         super(ElectricalStorage, self).__init__(
-            label="electricalStorage"+'__'+buildingLabel,
+            label=label,
             inputs={
                 input: solph.Flow(investment=solph.Investment(ep_costs=0)),
             },
             outputs={
-                output: solph.Flow(investment=solph.Investment(ep_costs=0), variable_costs=varc, custom_attributes=
-                {'env_per_flow':env_flow} )
+                output: solph.Flow(investment=solph.Investment(ep_costs=0),
+                                   variable_costs=varc,
+                                   custom_attributes={'env_per_flow': env_flow}
+                                   )
             },
             loss_rate=loss_rate,
             initial_storage_level=initial_storage,
@@ -52,6 +74,7 @@ class ElectricalStorage(solph.components.GenericStorage):
             invest_relation_output_capacity=efficiency_out,
             investment=solph.Investment(**investArgs),
         )
+
 
 class ThermalStorage(solph.components.GenericStorage):
     def __init__(self, label_str, stratifiedStorageParams, input, output, initial_storage, capacity_min, capacity_max, volume_cost, base,

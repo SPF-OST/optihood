@@ -516,22 +516,41 @@ class Building:
             capacityMinSH = float(data[_ent.TransformerLabels.capacity_SH])
         else:
             capacityMinSH = float(data[_ent.TransformerLabels.capacity_min])
-        if pattern_at_start_followed_by_number(_ent.TransformerTypes.HP, label.prefix):
-            # default coefficients for air-source heat pump
-            coef_W = [0.66610, -2.2365, 15.541, 25.705, -17.407, 3.8145]
-            coef_Q = [11.833, 96.504, 14.496, -50.064, 161.02, -133.60]
-        elif pattern_at_start_followed_by_number(_ent.TransformerTypes.GWHP, label.prefix):
-            # default coefficients for geothermal heat pump
-            coef_W = [0.1600, -1.2369, 19.9391, 19.3448, 7.1057, -1.4048]
-            coef_Q = [13.8978, 114.8358, -9.3634, -179.4227, 342.3363, -12.4969]
-        elif pattern_at_start_followed_by_number(_ent.TransformerTypes.Chiller, label.prefix):
-            # default coefficients for chiller
-            coef_W = [1.374297, 50.24932, -0.52687, 65.72373, -48.9331, -66.0379]
-            coef_Q = [29.28804, -1.76244, 313.227, -396.091, -422.075, 1029.683]
-        if (_ent.HeatPumpCoefficientLabels.coef_W in data) and (_ent.HeatPumpCoefficientLabels.coef_Q in data):
-            #comma-separated entries for user-defined coefficients split into a list
-            coef_W = [float(c) for c in data[_ent.HeatPumpCoefficientLabels.coef_W].split(",")]
-            coef_Q = [float(c) for c in data[_ent.HeatPumpCoefficientLabels.coef_Q].split(",")]
+
+        user_cop = None
+        if _ent.HeatPumpCoefficientLabels.COP in data:
+            cop_filepath = data.get(_ent.HeatPumpCoefficientLabels.COP)
+            if pd.notna(cop_filepath) and isinstance(cop_filepath, str) and cop_filepath.strip():
+                try:
+                    cop_df = pd.read_csv(cop_filepath)
+                    user_cop = [cop_df[_ent.HeatPumpCoefficientLabels.COP].values]
+                except FileNotFoundError:
+                    print(f"Warning: COP file not found at {cop_filepath}. Defaulting to calculated COP.")
+                except KeyError:
+                    print(f"Warning: The column '{_ent.HeatPumpCoefficientLabels.COP.value}' was not found in "
+                          f"{cop_filepath}. Defaulting to calculated COP.")
+
+        # Determine coefficients ONLY if a valid COP file was NOT found
+        coef_W, coef_Q = None, None
+
+        if user_cop is None:
+            # User defined coefficients
+            if (_ent.HeatPumpCoefficientLabels.coef_W in data) and (_ent.HeatPumpCoefficientLabels.coef_Q in data):
+                coef_W = [float(c) for c in data[_ent.HeatPumpCoefficientLabels.coef_W].split(",")]
+                coef_Q = [float(c) for c in data[_ent.HeatPumpCoefficientLabels.coef_Q].split(",")]
+
+            # Fallback to defaults based on the component type
+            else:
+                if pattern_at_start_followed_by_number(_ent.TransformerTypes.HP, label.prefix):
+                    coef_W = [0.66610, -2.2365, 15.541, 25.705, -17.407, 3.8145]
+                    coef_Q = [11.833, 96.504, 14.496, -50.064, 161.02, -133.60]
+                elif pattern_at_start_followed_by_number(_ent.TransformerTypes.GWHP, label.prefix):
+                    coef_W = [0.1600, -1.2369, 19.9391, 19.3448, 7.1057, -1.4048]
+                    coef_Q = [13.8978, 114.8358, -9.3634, -179.4227, 342.3363, -12.4969]
+                elif pattern_at_start_followed_by_number(_ent.TransformerTypes.Chiller, label.prefix):
+                    coef_W = [1.374297, 50.24932, -0.52687, 65.72373, -48.9331, -66.0379]
+                    coef_Q = [29.28804, -1.76244, 313.227, -396.091, -422.075, 1029.683]
+
         op_args_dict = {
             arg: data[arg]
             for arg in _ent.TransformerOperationalArgs.get_values()
@@ -542,7 +561,7 @@ class Building:
                                   coef_Q,
                                   inputBuses,
                                   outputBuses,
-                                  capacityMinSH, float(data[_ent.TransformerLabels.capacity_SH]),float(data[_ent.TransformerLabels.efficiency]),
+                                  capacityMinSH, float(data[_ent.TransformerLabels.capacity_SH]),float(data[_ent.TransformerLabels.efficiency]), user_cop,
                                   self._calculateInvest(data)[0] * (opt == "costs") + envImpactPerCapacity*(opt == "env"),
                                   self._calculateInvest(data)[1] * (opt == "costs"),
                                   float(data[_ent.TransformerLabels.heat_impact]) * (opt == "env"),
@@ -768,15 +787,27 @@ class Building:
                 max_lvl = s[_ent.StorageLabels.max_storage_level] if has_valid_value(s, _ent.StorageLabels.max_storage_level) else 1
 
                 if "electricalStorage" in storageLabel:
-                    self.__nodesList.append(ElectricalStorage(self.__buildingLabel, self.__busDict[inputBusLabel],
-                                                              self.__busDict[outputBusLabel], float(s["capacity loss"]),
-                                                            float(s["initial capacity"]), float(s["efficiency inflow"]),
-                                                            float(s["efficiency outflow"]), float(s["capacity min"]),
-                                                            float(s["capacity max"]),
-                                                            self._calculateInvest(s)[0]*(opt == "costs") + envImpactPerCapacity*(opt == "env"),
-                                                            self._calculateInvest(s)[1]*(opt == "costs"),
-                                                            float(s["elec_impact"])*(opt == "env"),
-                                                            float(s["elec_impact"]), envImpactPerCapacity, dispatchMode))
+                    self.__nodesList.append(
+                        ElectricalStorage(
+                            self.__buildingLabel,
+                            self.__busDict[inputBusLabel],
+                            self.__busDict[outputBusLabel],
+                            float(s["capacity loss"]),
+                            float(s["initial capacity"]),
+                            float(s["efficiency inflow"]),
+                            float(s["efficiency outflow"]),
+                            float(s["capacity min"]),
+                            float(s["capacity max"]),
+                            self._calculateInvest(s)[0]*(opt == "costs") + envImpactPerCapacity*(opt == "env"),
+                            self._calculateInvest(s)[1]*(opt == "costs"),
+                            float(s["elec_impact"])*(opt == "env"),
+                            float(s["elec_impact"]),
+                            envImpactPerCapacity,
+                            dispatchMode,
+                            min_storage_level=min_lvl,
+                            max_storage_level=max_lvl,
+                        )
+                    )
 
                 elif storageLabel.startswith(("dhwStorage", "shStorage", "coolingBufferStorage")) and not temperatureLevels:
                     self.__nodesList.append(ThermalStorage(storageLabel,
