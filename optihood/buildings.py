@@ -10,6 +10,7 @@ from optihood.storages import *
 from optihood.sinks import SinkRCModel
 from optihood.links import LinkTemperatureDemand
 from optihood._helpers import *
+import optihood.entities as _ent
 
 intRate = 0.04
 
@@ -568,6 +569,13 @@ class Building:
             except KeyError:
                 print(f"Warning: The column 'cop' was not found in {cop_filepath}. Defaulting to calculated COP.")
                 user_cop = None
+
+        op_args_dict = {
+            arg: data[arg]
+            for arg in _ent.TransformerOperationalArgs.get_values()
+            if has_valid_value(data, arg)
+        }
+
         heatPump = HeatPumpLinear(self.__buildingLabel, operationTempertures, temperatureAmb,
                                   inputBuses,
                                   outputBuses,
@@ -576,7 +584,8 @@ class Building:
                                   self._calculateInvest(data)[0] * (opt == "costs") + envImpactPerCapacity*(opt == "env"),
                                   self._calculateInvest(data)[1] * (opt == "costs"),
                                   float(data["heat_impact"]) * (opt == "env"),
-                                  float(data["heat_impact"]), envImpactPerCapacity, dispatchMode)
+                                  float(data["heat_impact"]), envImpactPerCapacity, dispatchMode,
+                                  op_args_dict)
 
         self.__nodesList.append(heatPump.getHP("sh"))
 
@@ -620,6 +629,13 @@ class Building:
             except KeyError:
                 print(f"Warning: The column 'cop' was not found in {cop_filepath}. Defaulting to calculated COP.")
                 user_cop = None
+
+        op_args_dict = {
+            arg: data[arg]
+            for arg in _ent.TransformerOperationalArgs.get_values()
+            if has_valid_value(data, arg)
+        }
+
         geothermalheatPump = GeothermalHeatPumpLinear(self.__buildingLabel, operationTempertures, temperatureAmb,
                                   inputBuses,
                                   outputBuses,
@@ -628,7 +644,8 @@ class Building:
                                   self._calculateInvest(data)[0] * (opt == "costs") + envImpactPerCapacity*(opt == "env"),
                                   self._calculateInvest(data)[1] * (opt == "costs"),
                                   float(data["heat_impact"]) * (opt == "env"),
-                                  float(data["heat_impact"]), envImpactPerCapacity, dispatchMode)
+                                  float(data["heat_impact"]), envImpactPerCapacity, dispatchMode,
+                                  op_args_dict)
 
         self.__nodesList.append(geothermalheatPump.getHP("sh"))
 
