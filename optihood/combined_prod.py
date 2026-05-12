@@ -91,8 +91,13 @@ class CombinedTransformerBlock(ScalarBlock):
                     # 1. Calculate the total thermal output (SH + DHW) for this timestep
                     total_heat = sum(m.flow[g, g.outputs_ordered[i], t] for i in range(len(g.efficiency_sq)))
 
-                    # 2. Grab the optimizer's chosen electrical capacity (the Investment variable)
-                    invested_elec = m.InvestmentFlowBlock.invest[g.inflow, g]
+                    # 2. Grab the optimizer's chosen electrical capacity (checking both standard and nonconvex blocks)
+                    if hasattr(m, "InvestNonConvexFlowBlock") and (g.inflow, g) in m.InvestNonConvexFlowBlock.invest:
+                        invested_elec = m.InvestNonConvexFlowBlock.invest[g.inflow, g]
+                    elif hasattr(m, "InvestmentFlowBlock") and (g.inflow, g) in m.InvestmentFlowBlock.invest:
+                        invested_elec = m.InvestmentFlowBlock.invest[g.inflow, g]
+                    else:
+                        raise KeyError(f"Investment variable for '{g.label}' could not be found in either InvestmentFlowBlock or InvestNonConvexFlowBlock.")
 
                     # 3. Determine the design COP, explicitly filtering out the 0.001 "off" state dummy values
                     design_cop = min(val for val in g.efficiency_sq[0] if val > 0.001)
