@@ -757,6 +757,41 @@ class EnergyNetworkClass(solph.EnergySystem):
                 df[f"mIceStor_prev_B{bNo}"] = mIceStor_prev
         df.to_csv(filename, sep=';', index=False)
 
+    def _calculate_soc_storages(self):
+        # Create a mapping between storage content names and their corresponding storage types
+        storage_mapping = {
+            "SH": "shStorage",
+            "DHW": "dhwStorage",
+            "Pit": "pitStorage",
+            "PitGeneric": "pitGenericStorage",
+            "Borehole": "boreholeStorage",
+            "BoreholeGeneric": "boreholeGenericStorage",
+            "Aquifer": "aquiferStorage",
+            "AquiferGeneric": "aquiferGenericStorage",
+            "Tank": "tankStorage",
+            "TankGeneric": "tankGenericStorage",
+            "Battery": "electricalStorage"
+        }
+
+        for i in range(1, self.__noOfBuildings + 1):
+            building_label = f"Building{i}"
+            if self._temperatureLevels:
+                self.calcStateofCharge("thermalStorage", building_label)
+            else:
+                if not hasattr(self, "_storage_content"):
+                    self._storage_content = {}
+                for storage_type in storage_mapping.values():
+                    for group_key in self.groups:
+                        if not isinstance(group_key, str):
+                            continue
+                        # Check: starts with storage_type, ends with __BuildingX, and only digits (or nothing) in between
+                        if group_key.endswith(f"__{building_label}") and group_key.startswith(storage_type):
+                            # Extract the part after storage_type and before __BuildingX
+                            suffix = group_key[len(storage_type):group_key.index(f"__{building_label}")]
+                            if suffix == "" or suffix.isdigit():
+                                storage_instance = group_key.split("__")[0]
+                                self.calcStateofCharge(storage_instance, building_label)
+
     def saveUnprocessedResults(self, resultFile=None):
         busLabelList = []
         result = {}
@@ -766,6 +801,13 @@ class EnergyNetworkClass(solph.EnergySystem):
         for i in busLabelList:
             if "sequences" in solph.views.node(self._optimizationResults, i):
                 result[i] = pd.DataFrame.from_dict(solph.views.node(self._optimizationResults, i)["sequences"])
+        # calculate storage content
+        self._calculate_soc_storages()
+        # add storage content for each building to the result
+        for b in self.__buildings:
+            buildingLabel = b.getBuildingLabel()
+            if buildingLabel in self._storageContent:
+                result["storage_content__" + buildingLabel] = self._storageContent[buildingLabel]
         if resultFile is not None:
             with pd.ExcelWriter(resultFile) as writer:
                 for i in result:
@@ -1139,11 +1181,12 @@ class EnergyNetworkClass(solph.EnergySystem):
 
     def calcStateofCharge(self, type, building):
         if "thermalStorage" in type:
-            for i,temperature in enumerate(self.__operationTemperatures):
+            for i, temperature in enumerate(self.__operationTemperatures):
                 thermal_type = type + str(temperature)[:2]
                 if thermal_type + '__' + building in self.groups:
                     storage = self.groups[thermal_type + '__' + building]
-                    self._storageContent.setdefault(building, {})[thermal_type] = self._optimizationResults[(storage, None)]["sequences"]
+                    self._storageContent.setdefault(building, {})[thermal_type] = \
+                    self._optimizationResults[(storage, None)]["sequences"]
                 if temperature == self.__operationTemperatures[-1]:
                     lists = np.array(list(self._storageContent[building].values()))
                     # Calculate the sum of corresponding elements in the arrays
@@ -1151,8 +1194,15 @@ class EnergyNetworkClass(solph.EnergySystem):
                     self._storageContent[building][thermal_type][f'Overall_storage_content_{building}'] = sums
         elif type + '__' + building in self.groups:
             storage = self.groups[type + '__' + building]
-            self._storageContent[building] = self._optimizationResults[(storage, None)]["sequences"]
-        return self._storageContent
+            if building not in self._storageContent:
+                self._storageContent[building] = self._optimizationResults[(storage, None)]["sequences"]
+            else:
+                self._storageContent[building] = pd.concat(
+                    [self._storageContent[building], self._optimizationResults[(storage, None)]["sequences"]],
+                    axis=1)
+            building_number = int(building.replace("Building", ""))
+            new_col_name = f"{type}__B{building_number:03d}_storage_content"
+            self._storageContent[building].rename(columns={"storage_content": new_col_name}, inplace=True)
 
     def printInvestedCapacities(self, capacitiesInvestedTransformers, capacitiesInvestedStorages,
                                 capacities_invested_pipes):
