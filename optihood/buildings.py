@@ -911,6 +911,9 @@ class Building:
                 self.__costParam[storageLabel] = [self._calculateInvest(s)[0], self._calculateInvest(s)[1]]
                 self.__envParam[storageLabel] = [float(s["heat_impact"]), float(s["elec_impact"]), envImpactPerCapacity]
 
+                min_lvl = s[_ent.StorageLabels.min_storage_level] if has_valid_value(s,_ent.StorageLabels.min_storage_level) else 0
+                max_lvl = s[_ent.StorageLabels.max_storage_level] if has_valid_value(s,_ent.StorageLabels.max_storage_level) else 1
+
                 if s["label"] == "electricalStorage":
                     self.__nodesList.append(ElectricalStorage(self.__buildingLabel, self.__busDict[inputBusLabel],
                                                               self.__busDict[outputBusLabel], float(s["capacity loss"]),
@@ -930,7 +933,10 @@ class Building:
                                                         float(s["capacity max"]),
                                                         self._calculateInvest(s)[0]*(opt == "costs") + envImpactPerCapacity*(opt == "env"),
                                                         self._calculateInvest(s)[1]*(opt == "costs"), float(s["heat_impact"])*(opt == "env"),
-                                                        float(s["heat_impact"]), envImpactPerCapacity, dispatchMode))
+                                                        float(s["heat_impact"]), envImpactPerCapacity, dispatchMode,
+                                                           min_storage_level=min_lvl,
+                                                           max_storage_level=max_lvl,
+                                                           ))
                 elif s["label"] == "thermalStorage" and temperatureLevels:
                     storage = ThermalStorageTemperatureLevels(storageLabel,
                                storageParams["stratified_storage"], inputBuses,
@@ -978,7 +984,10 @@ class Building:
                                        opt == "env"),
                            self._calculateInvest(s)[1] * (opt == "costs"),
                            float(s["heat_impact"]) * (opt == "env"),
-                           float(s["heat_impact"]), envImpactPerCapacity, dispatchMode, is_tank))
+                           float(s["heat_impact"]), envImpactPerCapacity, dispatchMode, is_tank),
+                            min_storage_level=min_lvl,
+                            max_storage_level=max_lvl,
+                            )
                 else:
                     logging.error("One of the following issues were encountered: (i) Storage label not identified. Storage label"
                                   "should either match one of the following: electricalStorage, dhwStorage, shStorage or thermalStorage,"
