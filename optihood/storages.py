@@ -52,12 +52,26 @@ class ElectricalStorage(solph.components.GenericStorage):
         )
 
 class ThermalStorage(solph.components.GenericStorage):
-    def __init__(self, label, stratifiedStorageParams, input, output, initial_storage, min, max, volume_cost, base,
-                 varc, env_flow, env_cap, dispatchMode, is_tank = True, rho= 1, c=4.186):
-        u_value, loss_rate, fixed_losses_relative, fixed_losses_absolute, capacity_min, capacity_max, epc, env_capa = \
-            self._precalculate(stratifiedStorageParams,label.split("__")[0],min,max,volume_cost,env_cap, is_tank=
-            is_tank, rho=rho, c=c)
+    def __init__(self, label, stratifiedStorageParams, input, output, initial_storage, capacity_min, capacity_max, volume_cost, base,
+                 varc, env_flow, env_cap, dispatchMode, is_tank = True, rho= 1, c=4.186,
+                 min_storage_level=0, max_storage_level=1):
         storageLabel = label.split("__")[0]
+
+        loss_rate, fixed_losses_relative, fixed_losses_absolute, capacity_min, capacity_max, epc, env_capa = \
+            self._precalculate(stratifiedStorageParams,storageLabel,capacity_min,capacity_max,volume_cost,env_cap, is_tank=
+            is_tank, rho=rho, c=c)
+
+
+        # Ensure initial storage level is within the bounds to prevent solver crashes
+        if initial_storage < min_storage_level or initial_storage > max_storage_level:
+            clipped_level = max(min_storage_level, min(max_storage_level, initial_storage))
+            logging.warning(
+                f"Storage '{storageLabel}': Initial level {initial_storage} is outside bounds "
+                f"[{min_storage_level}, {max_storage_level}]. "
+                f"Clipped to {clipped_level} to prevent solver infeasibility."
+            )
+            initial_storage = clipped_level
+
         if dispatchMode:
             investArgs={'minimum':capacity_min,
                 'maximum':capacity_max,
@@ -87,6 +101,8 @@ class ThermalStorage(solph.components.GenericStorage):
             },
             loss_rate=loss_rate,
             initial_storage_level=initial_storage,
+            min_storage_level=min_storage_level,
+            max_storage_level=max_storage_level,
             fixed_losses_relative=fixed_losses_relative,
             fixed_losses_absolute=fixed_losses_absolute,
             inflow_conversion_factor=stratifiedStorageParams.at[storageLabel, 'inflow_conversion_factor'],
@@ -97,7 +113,7 @@ class ThermalStorage(solph.components.GenericStorage):
             investment=solph.Investment(**investArgs),
         )
 
-    def _precalculate(self, data, label,min,max,volume_cost,env_cap, is_tank, rho, c):
+    def _precalculate(self, data, label,capacity_min,capacity_max,volume_cost,env_cap, is_tank, rho, c):
         if is_tank:
             tempH = data.at[label, 'temp_h']
             tempC = data.at[label, 'temp_c']
@@ -115,8 +131,6 @@ class ThermalStorage(solph.components.GenericStorage):
                 data.at[label, 'temp_env'])
 
             L_to_kWh = c * rho * (tempH - tempC) / 3600  # converts L data to kWh data for oemof GenericStorage class
-
-
         else:
             temp_h = data.at[label, 'temp_h']
             temp_c = data.at[label, 'temp_c']
@@ -141,12 +155,12 @@ class ThermalStorage(solph.components.GenericStorage):
                 fixed_losses_absolute = u_value*(temp_h - temp_env)*1e-6 #convert Wh to MWh
             L_to_kWh = c * rho * (temp_h - temp_env) / 3600  # converts L data to kWh data for oemof GenericStorage class
 
-        capacity_min = min * L_to_kWh
-        capacity_max = max * L_to_kWh
+        capacity_min = capacity_min  * L_to_kWh
+        capacity_max = capacity_max * L_to_kWh
         epc = volume_cost / L_to_kWh
         env_capa = env_cap / L_to_kWh
 
-        return u_value, loss_rate, fixed_losses_relative, fixed_losses_absolute, capacity_min, capacity_max, epc, env_capa
+        return loss_rate, fixed_losses_relative, fixed_losses_absolute, capacity_min, capacity_max, epc, env_capa
 
 
 class ThermalStorageTemperatureLevels:
