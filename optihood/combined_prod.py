@@ -92,9 +92,17 @@ class CombinedTransformerBlock(ScalarBlock):
                     total_heat = sum(m.flow[g, g.outputs_ordered[i], t] for i in range(len(g.efficiency_sq)))
 
                     # 2. Grab the optimizer's chosen electrical capacity (checking both standard and nonconvex blocks)
-                    if hasattr(m, "InvestNonConvexFlowBlock") and (g.inflow, g) in m.InvestNonConvexFlowBlock.invest:
+                    if (
+                            hasattr(m, "InvestNonConvexFlowBlock")
+                            and hasattr(m.InvestNonConvexFlowBlock, "invest")
+                            and (g.inflow, g) in m.InvestNonConvexFlowBlock.invest
+                    ):
                         invested_elec = m.InvestNonConvexFlowBlock.invest[g.inflow, g]
-                    elif hasattr(m, "InvestmentFlowBlock") and (g.inflow, g) in m.InvestmentFlowBlock.invest:
+                    elif (
+                            hasattr(m, "InvestmentFlowBlock")
+                            and hasattr(m.InvestmentFlowBlock, "invest")
+                            and (g.inflow, g) in m.InvestmentFlowBlock.invest
+                    ):
                         invested_elec = m.InvestmentFlowBlock.invest[g.inflow, g]
                     else:
                         raise KeyError(f"Investment variable for '{g.label}' could not be found in either InvestmentFlowBlock or InvestNonConvexFlowBlock.")
