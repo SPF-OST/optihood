@@ -73,6 +73,7 @@ class CsvScenarioReader(CsvReader):
             ent.NodeKeys.solar: paths.solar,
             ent.NodeKeys.transformers: paths.transformers,
             ent.NodeKeys.demand: paths.demand,
+            ent.NodeKeys.ice_storage: paths.ice_storage,
             ent.NodeKeys.storages: paths.storages,
             ent.NodeKeys.stratified_storage: paths.stratified_storage,
             ent.NodeKeys.profiles: paths.profiles,
