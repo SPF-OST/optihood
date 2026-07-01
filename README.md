@@ -22,7 +22,7 @@ is recommended, although other solvers like CBC, GLPK, Cplex could also be used.
 
 ## Installation
 
-As of now, optihood is available as an open source code and needs to be installed from source. Please follow the
+As of now, optihood is available as open-source code and needs to be installed from source. Please follow the
 instructions mentioned below to complete the installation. The commands given below are suited for the Windows platform
 and should be run from within the optihood directory in a Command Prompt. For other platforms, similar alternative
 commands could be used.
