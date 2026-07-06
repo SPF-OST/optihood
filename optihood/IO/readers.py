@@ -484,7 +484,7 @@ class ProfileAndOtherDataReader:
         cop_profiles_data = {}
 
         for _, transformer in nodesData[ent.NodeKeys.transformers].iterrows():
-            if transformer[ent.TransformerLabels.label] not in [ent.TransformerTypes.HP, ent.TransformerTypes.GWHP]:
+            if transformer[ent.TransformerLabels.label] not in [ent.TransformerTypes.HP, ent.TransformerTypes.GWHP, ent.TransformerTypes.Chiller]:
                 continue
 
             cop_filepath = transformer.get(ent.HeatPumpCoefficientLabels.COP)
