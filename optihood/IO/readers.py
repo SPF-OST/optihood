@@ -499,33 +499,29 @@ class ProfileAndOtherDataReader:
                 _log.error("Error in COP profile file path")
                 raise FileNotFoundError(f"Error in COP profile file path: {cop_filepath}")
 
-            cop_data = _pd.read_csv(cop_filepath)
-
-            if "timestamp" in cop_data.columns:
-                cop_data.timestamp = _pd.to_datetime(
-                    cop_data.timestamp,
-                    format="%Y-%m-%d %H:%M:%S",
-                )
-                cop_data.set_index("timestamp", inplace=True)
-            else:
-                if len(cop_data) != len(time_index):
-                    raise ValueError(
-                        f"COP profile file {cop_filepath} has {len(cop_data)} rows, "
-                        f"but the time index has {len(time_index)} entries. "
-                    )
-
-                cop_data.index = time_index
-
-            if not cluster_size:
-                cop_data = self.clip_to_time_index(cop_data, time_index)
-
-            if cluster_size:
-                cop_data = self.cluster_desired_column(cop_data, cluster_size)
-
             building_label = "Building" + str(int(transformer[ent.TransformerLabels.building]))
             transformer_label = transformer[ent.TransformerLabels.label] + "__" + building_label
 
-            cop_profiles_data[transformer_label] = cop_data
+            cop_profiles_data[transformer_label] = _pd.read_csv(cop_filepath)
+            cop_profiles_data[transformer_label].timestamp = _pd.to_datetime(
+                cop_profiles_data[transformer_label].timestamp,
+                format='%Y-%m-%d %H:%M:%S'
+            )
+
+            cop_profiles_data[transformer_label].set_index("timestamp", inplace=True)
+
+            if not cluster_size:
+                cop_profiles_data[transformer_label] = self.clip_to_time_index(
+                    cop_profiles_data[transformer_label],
+                    time_index
+                )
+
+        if cluster_size:
+            for i in cop_profiles_data.keys():
+                cop_profiles_data[i] = self.cluster_desired_column(
+                    cop_profiles_data[i],
+                    cluster_size
+                )
 
         if cop_profiles_data:
             nodesData[ent.NonMandatoryProfileTypes.cop_profiles] = cop_profiles_data
