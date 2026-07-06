@@ -394,7 +394,14 @@ class MpcHandler:
 
     def set_full_time_period(self, start_year: int, start_month: int, start_day: int, end_year: int, end_month: int,
                              end_day: int) -> None:
-        """Prepares date time indices starting at 00:00:00 on the start day and ending at the last timestep on the end day."""
+        """Prepares datetime index for the MPC simulation period.
+
+        The index starts at 00:00:00 on the start day and ends at the last
+        time step of the end day. The end day must include the prediction
+        horizon after the final MPC simulation time step.
+
+        For example, if the MPC runs until 31.12.2026 23:40:00 and uses a
+        24-hour prediction horizon, the end day should be set one day later."""
         end_time = _pd.Timestamp(f"{end_year}-{end_month}-{end_day} 00:00:00") \
                    + _pd.Timedelta(days=1) \
                    - _pd.Timedelta(minutes=self.time_step_in_minutes)
