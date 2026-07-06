@@ -237,6 +237,8 @@ class ProfileAndOtherDataReader:
         nodal_data = self.maybe_add_building_model_with_internal_gains(nodal_data, num_buildings, cluster_size,
                                                                        time_index)
         nodal_data = self.maybe_add_fixed_source_profiles(nodal_data, cluster_size, time_index)
+        nodal_data = self.maybe_add_cop_profiles(nodal_data, cluster_size, time_index)
+
         # ====================================================
 
         _log.info(f"Data from file {file_or_folder_path} imported.")
@@ -472,6 +474,61 @@ class ProfileAndOtherDataReader:
                 fixed_sources_data[i] = self.cluster_desired_column(fixed_sources_data[i], cluster_size)
 
         nodesData["fixed_sources"] = fixed_sources_data
+
+        return nodesData
+
+    def maybe_add_cop_profiles(self, nodesData, cluster_size, time_index: _pd.DatetimeIndex):
+        if ent.HeatPumpCoefficientLabels.COP not in nodesData[ent.NodeKeys.transformers].columns:
+            return nodesData
+
+        cop_profiles_data = {}
+
+        for _, transformer in nodesData[ent.NodeKeys.transformers].iterrows():
+            if transformer[ent.TransformerLabels.label] not in [ent.TransformerTypes.HP, ent.TransformerTypes.GWHP]:
+                continue
+
+            cop_filepath = transformer.get(ent.HeatPumpCoefficientLabels.COP)
+
+            if not _pd.notna(cop_filepath):
+                continue
+
+            if not isinstance(cop_filepath, str):
+                continue
+
+            if not _os.path.exists(cop_filepath):
+                _log.error("Error in COP profile file path")
+                raise FileNotFoundError(f"Error in COP profile file path: {cop_filepath}")
+
+            cop_data = _pd.read_csv(cop_filepath)
+
+            if "timestamp" in cop_data.columns:
+                cop_data.timestamp = _pd.to_datetime(
+                    cop_data.timestamp,
+                    format="%Y-%m-%d %H:%M:%S",
+                )
+                cop_data.set_index("timestamp", inplace=True)
+            else:
+                if len(cop_data) != len(time_index):
+                    raise ValueError(
+                        f"COP profile file {cop_filepath} has {len(cop_data)} rows, "
+                        f"but the time index has {len(time_index)} entries. "
+                    )
+
+                cop_data.index = time_index
+
+            if not cluster_size:
+                cop_data = self.clip_to_time_index(cop_data, time_index)
+
+            if cluster_size:
+                cop_data = self.cluster_desired_column(cop_data, cluster_size)
+
+            building_label = "Building" + str(int(transformer[ent.TransformerLabels.building]))
+            transformer_label = transformer[ent.TransformerLabels.label] + "__" + building_label
+
+            cop_profiles_data[transformer_label] = cop_data
+
+        if cop_profiles_data:
+            nodesData[ent.NonMandatoryProfileTypes.cop_profiles] = cop_profiles_data
 
         return nodesData
 

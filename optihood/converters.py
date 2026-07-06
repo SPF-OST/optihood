@@ -526,8 +526,21 @@ class HeatPumpLinear:
             self.cop = {o:self._calculate_cop(t, temperatureLow, coef_W, coef_Q) for o,t in outputTemperatures.items()}
         else:
             # cop is passed as a list of arrays matching the 'output' list
-            # TODO: adjust this to deal with multiple buses.
-            self.cop = {output[i]: cop[0] for i in range(len(output))}
+
+            # one cop profile is used for all output buses
+            if len(cop) == 1:
+                self.cop = {output[i]: cop[0] for i in range(len(output))}
+
+            # one cop profile per output bus
+            elif len(cop) == len(output):
+                self.cop = {output[i]: cop[i] for i in range(len(output))}
+
+            else:
+                raise ValueError(
+                    f"Component '{label}' received {len(cop)} COP profiles for "
+                    f"{len(output)} output buses. Provide either one COP profile or "
+                    "one COP profile per output bus."
+                )
 
         self.avgCopSh = (sum(self.cop[output[0]])/len(self.cop[output[0]])) # cop at lowest temperature, i.e. temperature of space heating
         self.nominalEff = nomEff

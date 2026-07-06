@@ -170,6 +170,7 @@ class NonMandatoryProfileTypes(StrEnumWithMethods):
     fixed_sources = "fixed_source_profiles"
     electricity_impact = 'electricity_impact'
     electricity_cost = 'electricity_cost'
+    cop_profiles = "cop_profiles"
 
 
 class SolarLabels(StrEnumWithMethods):

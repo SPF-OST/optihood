@@ -381,7 +381,10 @@ class EnergyNetworkClass(solph.EnergySystem):
             else:
                 bmdata = {}
             b.addSink(data["demand"][data["demand"]["building"] == i], data["demandProfiles"][i], bmdata, mergeLinkBuses, mergeHeatSourceSink, self._temperatureLevels)
-            b.addTransformer(data["transformers"][data["transformers"]["building"] == i], [self.__operationTemperatures, self._coolingTemperatures], self.__temperatureAmb, self.__temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, self._dispatchMode, self._temperatureLevels)
+            cop_profiles_data = None
+            if "cop_profiles" in data:
+                cop_profiles_data = {k: v for k, v in data["cop_profiles"].items() if buildingLabel in k}
+            b.addTransformer(data["transformers"][data["transformers"]["building"] == i], [self.__operationTemperatures, self._coolingTemperatures], self.__temperatureAmb, self.__temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, self._dispatchMode, self._temperatureLevels, cop_profiles_data)
             storageList = b.addStorage(data["storages"][data["storages"]["building"] == i], storageParams, self.__temperatureAmb, opt, mergeLinkBuses, self._dispatchMode, self._temperatureLevels)
             b.addSolar(data["solar"][(data["solar"]["building"] == i) & (data["solar"]["label"].str.match(r"^solarCollector(\d+)?$"))], data["weather_data"], opt, mergeLinkBuses, self._dispatchMode, self._temperatureLevels)
             b.addPV(data["solar"][(data["solar"]["building"] == i) & (data["solar"]["label"].str.match(r"^pv(\d+)?$"))], data["weather_data"], opt, self._dispatchMode)

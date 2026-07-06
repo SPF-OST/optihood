@@ -299,6 +299,11 @@ class MpcHandler:
                 df = nodal_data[sheet]
                 nodal_data[sheet] = re.ProfileAndOtherDataReader.clip_to_time_index(df, current_time_period)
 
+        # cop_profiles is a dict of df
+        if nm_profs.cop_profiles in nodal_data.keys():
+            for label, df in nodal_data[nm_profs.cop_profiles].items():
+                nodal_data[nm_profs.cop_profiles][label] = re.ProfileAndOtherDataReader.clip_to_time_index(df, current_time_period)
+
         return nodal_data
 
     def get_desired_energy_flows(self, results: dict[str: _pd.DataFrame], desired_flows_with_new_names: dict[str, str]) -> _pd.DataFrame:
