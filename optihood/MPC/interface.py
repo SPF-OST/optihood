@@ -394,9 +394,12 @@ class MpcHandler:
 
     def set_full_time_period(self, start_year: int, start_month: int, start_day: int, end_year: int, end_month: int,
                              end_day: int) -> None:
-        """Prepares date time indices starting at 00:00:00 on the start day and ending at 23:00:00 on the end day."""
+        """Prepares date time indices starting at 00:00:00 on the start day and ending at the last timestep on the end day."""
+        end_time = _pd.Timestamp(f"{end_year}-{end_month}-{end_day} 00:00:00") \
+                   + _pd.Timedelta(days=1) \
+                   - _pd.Timedelta(minutes=self.time_step_in_minutes)
         self.time_period_full = _pd.date_range(f"{start_year}-{start_month}-{start_day} 00:00:00",
-                                               f"{end_year}-{end_month}-{end_day} 23:00:00",
+                                               end_time,
                                                freq=f"{str(self.time_step_in_minutes)}min")
 
     def get_current_time_period(self, current_time_period_start: _pd.DatetimeIndex) -> _pd.DatetimeIndex:
