@@ -29,7 +29,10 @@ class LabelStringManipulator:
 
 
 def create_label_string(component_label: str, building_nr: str | float) -> LabelStringManipulator:
-    building_label = "Building" + str(int(building_nr))
+    if "Building" in building_nr:
+        building_label = building_nr
+    else:
+        building_label = "Building" + str(int(building_nr))
     label = component_label + _LABEL_SEPARATOR + str(building_label)
     return LabelStringManipulator(label)
 

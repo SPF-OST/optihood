@@ -493,10 +493,7 @@ class Building:
         HPs and chillers are implemented the same way.
         The required class is passed in as a 'Component'
         """
-        label = hlpr.LabelStringManipulator(data[_ent.TransformerLabels.label] + '__' + self.__buildingLabel)
-
-        raise ValueError(self.__buildingLabel)
-        1/0
+        label = hlpr.create_label_string(data[_ent.TransformerLabels.label], self.__buildingLabel)
         from_bus = _ent.TransformerLabels.from_bus
         to_bus = _ent.TransformerLabels.to
         if mergeLinkBuses and data[from_bus] in self.__linkBuses:
