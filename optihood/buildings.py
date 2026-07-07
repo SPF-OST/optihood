@@ -525,6 +525,16 @@ class Building:
                 label.full_name,
             )
 
+        has_coef_W = has_valid_value(data, _ent.HeatPumpCoefficientLabels.coef_W)
+        has_coef_Q = has_valid_value(data, _ent.HeatPumpCoefficientLabels.coef_Q)
+        if user_cop is not None and (has_coef_W or has_coef_Q):
+            logging.warning(
+                f"Component '{label.full_name}' has both the COP profile and COP calculation "
+                "coefficients defined. The COP profile will be used; "
+                f"'{_ent.HeatPumpCoefficientLabels.coef_W}' and "
+                f"'{_ent.HeatPumpCoefficientLabels.coef_Q}' will be ignored."
+            )
+
         # Determine coefficients ONLY if a valid COP file was NOT found
         coef_W, coef_Q = None, None
 
@@ -903,6 +913,21 @@ class Building:
 
     @staticmethod
     def _get_user_cop_from_profile(cop_df, outputBusLabels, label):
+        """Get user-defined COP profiles from a COP profile DataFrame.
+
+            Three COP profile formats are supported:
+            - A single column named "COP", which is used for all output buses.
+            - One column per full output bus label, e.g. "spaceHeatingBus__Building1".
+            - One column per shortened output bus label, e.g. "spaceHeatingBus".
+
+            Returns
+            -------
+            list
+                A list of COP time series arrays. If a single "COP" column is provided,
+                the list contains one array. If separate columns are provided per output
+                bus, the list contains one array per output bus.
+
+            """
         cop_column = _ent.HeatPumpCoefficientLabels.COP.value
 
         if cop_column in cop_df.columns:
@@ -913,7 +938,7 @@ class Building:
             return [cop_df[bus].values for bus in outputBusLabels]
 
         # if shortened output bus labels, e.g. spaceHeatingBus, are used in cop file
-        short_output_bus_labels = [bus.split("__")[0] for bus in outputBusLabels]
+        short_output_bus_labels = [LabelStringManipulator(bus).prefix for bus in outputBusLabels]
 
         if all(bus in cop_df.columns for bus in short_output_bus_labels):
             return [cop_df[bus].values for bus in short_output_bus_labels]
@@ -921,7 +946,8 @@ class Building:
 
         raise ValueError(
             f"COP profile for '{label}' cannot be matched to the output buses "
-            f"{outputBusLabels}. The COP file should contain either a '{cop_column}' "
+            f"{outputBusLabels}. Received {len(cop_df.columns)} COP profile column(s) for {len(outputBusLabels)} output bus(es). "
+            f"The COP file should contain either a '{cop_column}' "
             "column, one column per full output bus label or one column per shortened output "
             "bus label."
         )

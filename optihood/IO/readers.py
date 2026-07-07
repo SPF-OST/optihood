@@ -10,6 +10,7 @@ import numpy as _np
 import pandas as _pd
 
 import optihood.entities as ent
+import optihood._helpers as hlpr
 
 
 # TODO: extract other stuff from set_using_nodal_data.
@@ -481,27 +482,42 @@ class ProfileAndOtherDataReader:
         if ent.HeatPumpCoefficientLabels.COP not in nodesData[ent.NodeKeys.transformers].columns:
             return nodesData
 
+        # cop_profiles_data Stores COP profile data for each heat pump/chiller transformer.
+        # Keys are full transformer labels, e.g. "HP__Building1" or "GWHP1__Building2".
+        # Values are DataFrames read from the corresponding COP profile files.
+        # Supported COP profile formats are:
+        # - one "COP" column used for all output buses,
+        # - one column per full output bus label, e.g. "spaceHeatingBus__Building1",
+        # - one column per raw output bus label, e.g. "spaceHeatingBus".
         cop_profiles_data = {}
 
         for _, transformer in nodesData[ent.NodeKeys.transformers].iterrows():
-            if transformer[ent.TransformerLabels.label] not in [ent.TransformerTypes.HP, ent.TransformerTypes.GWHP, ent.TransformerTypes.Chiller]:
+            building_label = "Building" + str(int(transformer[ent.TransformerLabels.building]))
+            label = hlpr.LabelStringManipulator(transformer[ent.TransformerLabels.label] + "__" + building_label)
+
+            if label.strip_trailing_digits_from_prefix() not in [
+                ent.TransformerTypes.HP,
+                ent.TransformerTypes.GWHP,
+                ent.TransformerTypes.Chiller,
+            ]:
                 continue
 
             cop_filepath = transformer.get(ent.HeatPumpCoefficientLabels.COP)
 
-            if not _pd.notna(cop_filepath):
-                continue
-
-            if not isinstance(cop_filepath, str):
+            # The COP column is used only for COP profile file paths
+            # Non-string values, such as numeric fixed COP values, are not supported and ignored
+            if not (_pd.notna(cop_filepath) and isinstance(cop_filepath, str)):
+                _log.warning(
+                    f"The COP value {cop_filepath} for '{transformer[ent.TransformerLabels.label]}' is ignored. "
+                    f"COP values must be non-empty strings containing a valid file path."
+                )
                 continue
 
             if not _os.path.exists(cop_filepath):
-                _log.error("Error in COP profile file path")
+                _log.error(f"Error in COP profile file path: {cop_filepath}")
                 raise FileNotFoundError(f"Error in COP profile file path: {cop_filepath}")
 
-            building_label = "Building" + str(int(transformer[ent.TransformerLabels.building]))
-            transformer_label = transformer[ent.TransformerLabels.label] + "__" + building_label
-
+            transformer_label = label.full_name
             cop_profiles_data[transformer_label] = _pd.read_csv(cop_filepath)
             cop_profiles_data[transformer_label].timestamp = _pd.to_datetime(
                 cop_profiles_data[transformer_label].timestamp,

@@ -515,8 +515,11 @@ class HeatPumpLinear:
         # and the `Component.__init__` method only handles variable assignment
 
         if cop is None and (coef_W is None or coef_Q is None):
-            raise ValueError(f"Component '{label}' must be provided with either '{_ent.HeatPumpCoefficientLabels.COP}' or both "
-                             f"'{_ent.HeatPumpCoefficientLabels.coef_W}' and '{_ent.HeatPumpCoefficientLabels.coef_Q}'")
+            raise ValueError(f"Component '{label}' could not be initialized. "
+                             f"No COP profile '{_ent.HeatPumpCoefficientLabels.COP}' was provided and "
+                             f"the COP calculation coefficients '{_ent.HeatPumpCoefficientLabels.coef_W}' and '{_ent.HeatPumpCoefficientLabels.coef_Q}' "
+                             f"are incomplete. This is likely an internal configuration error: either default coefficients are missing, "
+                             f"or coefficient handling failed before initializing HeatPumpLinear.")
 
         outputTemperatures = {}
         for i in range(len(output)):
@@ -537,8 +540,8 @@ class HeatPumpLinear:
 
             else:
                 raise ValueError(
-                    f"Component '{label}' received {len(cop)} COP profiles for "
-                    f"{len(output)} output buses. Provide either one COP profile or "
+                    f"Component '{label}' received {len(cop)} COP profile(s) for "
+                    f"{len(output)} output bus(es). Provide either one COP profile or "
                     "one COP profile per output bus."
                 )
 
