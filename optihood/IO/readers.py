@@ -492,10 +492,9 @@ class ProfileAndOtherDataReader:
         cop_profiles_data = {}
 
         for _, transformer in nodesData[ent.NodeKeys.transformers].iterrows():
-            building_label = "Building" + str(int(transformer[ent.TransformerLabels.building]))
-            label = hlpr.LabelStringManipulator(transformer[ent.TransformerLabels.label] + "__" + building_label)
+            label = hlpr.create_label_string(transformer[ent.TransformerLabels.label], transformer[ent.TransformerLabels.building])
 
-            if label.strip_trailing_digits_from_prefix() not in [
+            if label.component_name not in [
                 ent.TransformerTypes.HP,
                 ent.TransformerTypes.GWHP,
                 ent.TransformerTypes.Chiller,

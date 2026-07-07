@@ -5,8 +5,8 @@ from optihood.sources import PV
 from optihood.storages import *
 from optihood.sinks import SinkRCModel
 from optihood.links import LinkTemperatureDemand
-from optihood._helpers import *
 import optihood.entities as _ent
+import optihood._helpers as hlpr
 
 intRate = 0.05
 
@@ -493,7 +493,10 @@ class Building:
         HPs and chillers are implemented the same way.
         The required class is passed in as a 'Component'
         """
-        label = LabelStringManipulator(data[_ent.TransformerLabels.label] + '__' + self.__buildingLabel)
+        label = hlpr.LabelStringManipulator(data[_ent.TransformerLabels.label] + '__' + self.__buildingLabel)
+
+        raise ValueError(self.__buildingLabel)
+        1/0
         from_bus = _ent.TransformerLabels.from_bus
         to_bus = _ent.TransformerLabels.to
         if mergeLinkBuses and data[from_bus] in self.__linkBuses:
@@ -525,8 +528,8 @@ class Building:
                 label.full_name,
             )
 
-        has_coef_W = has_valid_value(data, _ent.HeatPumpCoefficientLabels.coef_W)
-        has_coef_Q = has_valid_value(data, _ent.HeatPumpCoefficientLabels.coef_Q)
+        has_coef_W = hlpr.has_valid_value(data, _ent.HeatPumpCoefficientLabels.coef_W)
+        has_coef_Q = hlpr.has_valid_value(data, _ent.HeatPumpCoefficientLabels.coef_Q)
         if user_cop is not None and (has_coef_W or has_coef_Q):
             logging.warning(
                 f"Component '{label.full_name}' has both the COP profile and COP calculation "
@@ -546,20 +549,20 @@ class Building:
 
             # Fallback to defaults based on the component type
             else:
-                if pattern_at_start_followed_by_number(_ent.TransformerTypes.HP, label.prefix):
+                if hlpr.pattern_at_start_followed_by_number(_ent.TransformerTypes.HP, label.prefix):
                     coef_W = [0.66610, -2.2365, 15.541, 25.705, -17.407, 3.8145]
                     coef_Q = [11.833, 96.504, 14.496, -50.064, 161.02, -133.60]
-                elif pattern_at_start_followed_by_number(_ent.TransformerTypes.GWHP, label.prefix):
+                elif hlpr.pattern_at_start_followed_by_number(_ent.TransformerTypes.GWHP, label.prefix):
                     coef_W = [0.1600, -1.2369, 19.9391, 19.3448, 7.1057, -1.4048]
                     coef_Q = [13.8978, 114.8358, -9.3634, -179.4227, 342.3363, -12.4969]
-                elif pattern_at_start_followed_by_number(_ent.TransformerTypes.Chiller, label.prefix):
+                elif hlpr.pattern_at_start_followed_by_number(_ent.TransformerTypes.Chiller, label.prefix):
                     coef_W = [1.374297, 50.24932, -0.52687, 65.72373, -48.9331, -66.0379]
                     coef_Q = [29.28804, -1.76244, 313.227, -396.091, -422.075, 1029.683]
 
         op_args_dict = {
             arg: data[arg]
             for arg in _ent.TransformerOperationalArgs.get_values()
-            if has_valid_value(data, arg)
+            if hlpr.has_valid_value(data, arg)
         }
         heatPump = Component(label.full_name, operationTempertures, temperature_evap,
                                   coef_W,
@@ -733,12 +736,12 @@ class Building:
     def addTransformer(self, data, operationTemperatures, temperatureAmb, temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode, temperatureLevels, cop_profiles=None):
         for i, t in data.iterrows():
             if t["active"]:
-                if pattern_at_start_followed_by_number("HP", t["label"]):
+                if hlpr.pattern_at_start_followed_by_number("HP", t["label"]):
                     self._addHeatPump(t, operationTemperatures[0], temperatureAmb, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode, cop_profiles)
                     # The param operationTemperatures should match the Tcond_out of HP
                     # temperatureAmb is Tevap_in for the air-source heat pump
                     # Expected order of temperatures is Tcond_out, Tevap_in for HP (see HP model documentation)
-                elif pattern_at_start_followed_by_number("GWHP", t["label"]):
+                elif hlpr.pattern_at_start_followed_by_number("GWHP", t["label"]):
                     self._addHeatPump(t, operationTemperatures[0], temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode, cop_profiles)
                     # The param operationTemperatures should match the Tcond_out of GWHP
                     # temperatureGround is Tevap_in for the ground-source heat pump (GWHP)
@@ -749,9 +752,9 @@ class Building:
                     self._addCHP(t, len(temperatureAmb), opt, dispatchMode)
                 elif "Boiler" in t["label"]:
                     self._addBoiler(t, opt, dispatchMode)
-                elif pattern_at_start_followed_by_number("ElectricRod", t["label"]):
+                elif hlpr.pattern_at_start_followed_by_number("ElectricRod", t["label"]):
                     self._addElectricRod(t, opt, mergeLinkBuses, dispatchMode, temperatureLevels)
-                elif pattern_at_start_followed_by_number("Chiller", t["label"]):
+                elif hlpr.pattern_at_start_followed_by_number("Chiller", t["label"]):
                     self._add_chiller(t, [operationTemperatures[1][0]], temperatureAmb, opt, mergeLinkBuses,
                                        mergeHeatSourceSink, dispatchMode, cop_profiles)
                     # The param operationTemperatures should match the Tevap_out of chiller
@@ -764,7 +767,7 @@ class Building:
     def addStorage(self, data, storageParams, ambientTemperature, opt, mergeLinkBuses, dispatchMode, temperatureLevels):
         sList = []
         for i, s in data.iterrows():
-                label = LabelStringManipulator(s["label"]+'__'+self.__buildingLabel)
+                label = hlpr.LabelStringManipulator(s["label"]+'__'+self.__buildingLabel)
                 storageLabel = label.full_name
                 label_prefix_without_digits = label.strip_trailing_digits_from_prefix()
                 if temperatureLevels and "thermalStorage" in storageLabel:
@@ -788,8 +791,8 @@ class Building:
                 self.__costParam[storageLabel] = [self._calculateInvest(s)[0], self._calculateInvest(s)[1]]
                 self.__envParam[storageLabel] = [float(s["heat_impact"]), float(s["elec_impact"]), envImpactPerCapacity]
 
-                min_lvl = s[_ent.StorageLabels.min_storage_level] if has_valid_value(s, _ent.StorageLabels.min_storage_level) else 0
-                max_lvl = s[_ent.StorageLabels.max_storage_level] if has_valid_value(s, _ent.StorageLabels.max_storage_level) else 1
+                min_lvl = s[_ent.StorageLabels.min_storage_level] if hlpr.has_valid_value(s, _ent.StorageLabels.min_storage_level) else 0
+                max_lvl = s[_ent.StorageLabels.max_storage_level] if hlpr.has_valid_value(s, _ent.StorageLabels.max_storage_level) else 1
 
                 if "electricalStorage" in storageLabel:
                     self.__nodesList.append(
@@ -938,7 +941,7 @@ class Building:
             return [cop_df[bus].values for bus in outputBusLabels]
 
         # if shortened output bus labels, e.g. spaceHeatingBus, are used in cop file
-        short_output_bus_labels = [LabelStringManipulator(bus).prefix for bus in outputBusLabels]
+        short_output_bus_labels = [hlpr.LabelStringManipulator(bus).prefix for bus in outputBusLabels]
 
         if all(bus in cop_df.columns for bus in short_output_bus_labels):
             return [cop_df[bus].values for bus in short_output_bus_labels]
