@@ -412,3 +412,26 @@ class TestProfileAndOtherDataReader:
         df_result = ior.ProfileAndOtherDataReader().clip_to_time_index(df, reduced_time_steps)
         assert str(df_result.index[-1]) == "2018-01-01 02:00:00"
         assert len(df_result.index) == 3
+
+    @_pt.mark.manual
+    def test_maybe_add_cop_profiles(self):
+        """Integration test without errors"""
+        # TODO: implement test
+        ior.ProfileAndOtherDataReader().maybe_add_cop_profiles(...)
+        assert False
+
+    @_pt.mark.manual
+    def test_maybe_add_cop_profiles_raises(self, caplog):
+        """Unit test"""
+        nodal_data = {ent.NodeKeys.transformers: _pd.DataFrame(
+            {
+                ent.TransformerLabels.label: ent.TransformerTypes.HP,
+                ent.TransformerLabels.building: "1",
+                ent.HeatPumpCoefficientLabels.COP: "no_such_file"
+             }, index=[0])}
+
+        with caplog.at_level(_log.ERROR):
+            with _pt.raises(FileNotFoundError):
+                ior.ProfileAndOtherDataReader().maybe_add_cop_profiles(nodal_data, {},  None)
+            assert "Error in COP profile file path:" in caplog.text
+

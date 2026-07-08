@@ -492,7 +492,8 @@ class ProfileAndOtherDataReader:
         cop_profiles_data = {}
 
         for _, transformer in nodesData[ent.NodeKeys.transformers].iterrows():
-            label = hlpr.create_label_string(transformer[ent.TransformerLabels.label], transformer[ent.TransformerLabels.building])
+            building_label = hlpr.create_building_label(transformer[ent.TransformerLabels.building])
+            label = hlpr.create_label_string(transformer[ent.TransformerLabels.label], building_label)
 
             if label.component_name not in [
                 ent.TransformerTypes.HP,
