@@ -5,11 +5,8 @@ import optihood._helpers as hlpr
 
 @_pt.mark.parametrize("component_label, building_info, expected_full_name, expected_building, expected_component_name",
                       [
-                          ("Chiller1", 1, "Chiller__Building1", "Building1", "Chiller"),
-                          ("Chiller1", "2", "Chiller__Building2", "Building2", "Chiller"),
-                          ("HeatPump2", "Building3", "HeatPump__Building3", "Building3", "Chiller"),
-                          ("Chiller", "stuff", "Chiller__Building1", "Building1", "Chiller"),
-                          ("Chiller", 1.3, "Chiller__Building1", "Building1", "Chiller"),
+                          ("Chiller1", "Building1", "Chiller1__Building1", "Building1", "Chiller"),
+                          ("HeatPump2", "Building3", "HeatPump2__Building3", "Building3", "HeatPump"),
                       ])
 def test_create_label_string(component_label, building_info, expected_full_name, expected_building,
                              expected_component_name
@@ -36,6 +33,19 @@ def test_create_label_string(component_label, building_info, expected_full_name,
         assert label.prefix == component_label
     except AssertionError as e:
         errors.append(e)
+
+    if errors:
+        raise ExceptionGroup(f"Found {len(errors)} issues: ", errors)
+
+
+@_pt.mark.parametrize("component_label, building_info", [
+    ("Chiller", "stuff"),
+    ("Chiller", 1.3),
+    ("Chiller", 2),
+])
+def test_create_label_string_raises(component_label, building_info):
+    with _pt.raises(ValueError):
+        hlpr.create_label_string(component_label, building_info)
 
 
 @_pt.mark.parametrize("building_info, expected_label", [
