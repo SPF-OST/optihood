@@ -496,8 +496,6 @@ class PVT:
             return []
 
 
-
-
 class HeatPumpLinear:
     """
     Generic linear heat pump model.
@@ -515,18 +513,20 @@ class HeatPumpLinear:
         # and the `Component.__init__` method only handles variable assignment
 
         if cop is None and (coef_W is None or coef_Q is None):
-            raise ValueError(f"Component '{label}' could not be initialized. "
-                             f"No COP profile '{_ent.HeatPumpCoefficientLabels.COP}' was provided and "
-                             f"the COP calculation coefficients '{_ent.HeatPumpCoefficientLabels.coef_W}' and '{_ent.HeatPumpCoefficientLabels.coef_Q}' "
-                             f"are incomplete. This is likely an internal configuration error: either default coefficients are missing, "
-                             f"or coefficient handling failed before initializing HeatPumpLinear.")
+            raise ValueError(
+                f"Component '{label}' could not be initialized. No COP profile '{_ent.HeatPumpCoefficientLabels.COP}' "
+                f"was provided and the COP calculation coefficients '{_ent.HeatPumpCoefficientLabels.coef_W}' and "                             
+                f"'{_ent.HeatPumpCoefficientLabels.coef_Q}'  are incomplete. This is likely an internal configuration "
+                f"error: either default coefficients are missing, or coefficient handling failed before initializing "
+                f"{self.__class__.__name__}."
+            )
 
         outputTemperatures = {}
         for i in range(len(output)):
             outputTemperatures[output[i]] = operationTemperatures[i]
 
         if cop is None:
-            self.cop = {o:self._calculate_cop(t, temperatureLow, coef_W, coef_Q) for o,t in outputTemperatures.items()}
+            self.cop = {o: self._calculate_cop(t, temperatureLow, coef_W, coef_Q) for o, t in outputTemperatures.items()}
         else:
             # cop is passed as a list of arrays matching the 'output' list
 
@@ -545,22 +545,25 @@ class HeatPumpLinear:
                     "one COP profile per output bus."
                 )
 
-        self.avgCopSh = (sum(self.cop[output[0]])/len(self.cop[output[0]])) # cop at lowest temperature, i.e. temperature of space heating
+        # cop at lowest temperature, i.e. temperature of space heating
+        self.avgCopSh = (sum(self.cop[output[0]])/len(self.cop[output[0]]))
         self.nominalEff = nomEff
         if dispatchMode:
             investArgs = {'ep_costs': epc * nomEff,
-            'minimum' : capacityMin / nomEff,
-            'maximum' : capacityMax / nomEff,
-            'custom_attributes': {'env_per_capa': env_capa * nomEff}}
+                          'minimum': capacityMin / nomEff,
+                          'maximum': capacityMax / nomEff,
+                          'custom_attributes': {'env_per_capa': env_capa * nomEff}
+                          }
         else:
-            investArgs = {'ep_costs' : epc * nomEff,
-            'minimum' : capacityMin / nomEff,
-            'maximum' : capacityMax / nomEff,
-            'nonconvex': True,
-            'offset' : base,
-            'custom_attributes' : {'env_per_capa': env_capa * nomEff}}
+            investArgs = {'ep_costs': epc * nomEff,
+                          'minimum': capacityMin / nomEff,
+                          'maximum': capacityMax / nomEff,
+                          'nonconvex': True,
+                          'offset': base,
+                          'custom_attributes': {'env_per_capa': env_capa * nomEff}
+                          }
         outputDict = {k: solph.Flow(variable_costs=varc,
-                          custom_attributes={'env_per_flow': env_flow}, ) for k in output}
+                                    custom_attributes={'env_per_flow': env_flow}, ) for k in output}
         input_flow_args = {
             'investment': solph.Investment(**investArgs)
         }
@@ -591,10 +594,12 @@ class HeatPumpLinear:
         if len(input) > 1:
             # Two input HP, second input is for Q evaporator
             inputDict.update({input[1]: solph.Flow()})
-        self._heatpump = cp.CombinedTransformer(label=label,
-                                            inputs=inputDict,
-                                            outputs=outputDict,
-                                            efficiencies=self.cop)
+        self._heatpump = cp.CombinedTransformer(
+            label=label,
+            inputs=inputDict,
+            outputs=outputDict,
+            efficiencies=self.cop
+        )
 
     @staticmethod
     def _calculate_cop(
