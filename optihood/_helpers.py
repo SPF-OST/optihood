@@ -32,13 +32,27 @@ class LabelStringManipulator:
         return self.strip_trailing_digits_from_prefix()
 
 
-def create_label_string(component_label: str, building_nr: str | float) -> LabelStringManipulator:
-    if "Building" in building_nr:
-        building_label = building_nr
+def create_label_string(component_label: str, building_info: str | float) -> LabelStringManipulator:
+    if isinstance(building_info, str) and "Building" in building_info:
+        building_label = building_info
     else:
-        building_label = "Building" + str(int(building_nr))
+        try:
+            building_label = "Building" + str(int(building_info))
+        except Exception as e:
+            raise Exception(f"Received unexpected type for the building_info: {building_info} has type "
+                            f"{type(building_info)}") from e
     label = component_label + _LABEL_SEPARATOR + str(building_label)
     return LabelStringManipulator(label)
+
+
+def create_building_label(building_info: str | int) -> str:
+    """Method to create consistent building labels."""
+    try:
+        building_nr = str(int(building_info))
+    except Exception as e:
+        raise ValueError(f"received incorrect building info: {building_info}") from e
+
+    return "Building" + building_nr
 
 
 def has_valid_value(s: dict, label: str) -> bool:
