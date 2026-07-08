@@ -299,6 +299,11 @@ class MpcHandler:
                 df = nodal_data[sheet]
                 nodal_data[sheet] = re.ProfileAndOtherDataReader.clip_to_time_index(df, current_time_period)
 
+        # cop_profiles is a dict of df
+        if nm_profs.cop_profiles in nodal_data.keys():
+            for label, df in nodal_data[nm_profs.cop_profiles].items():
+                nodal_data[nm_profs.cop_profiles][label] = re.ProfileAndOtherDataReader.clip_to_time_index(df, current_time_period)
+
         return nodal_data
 
     def get_desired_energy_flows(self, results: dict[str: _pd.DataFrame], desired_flows_with_new_names: dict[str, str]) -> _pd.DataFrame:
@@ -389,9 +394,19 @@ class MpcHandler:
 
     def set_full_time_period(self, start_year: int, start_month: int, start_day: int, end_year: int, end_month: int,
                              end_day: int) -> None:
-        """Prepares date time indices starting at 00:00:00 on the start day and ending at 23:00:00 on the end day."""
+        """Prepares datetime index for the MPC simulation period.
+
+        The index starts at 00:00:00 on the start day and ends at the last
+        time step of the end day. The end day must include the prediction
+        horizon after the final MPC simulation time step.
+
+        For example, if the MPC runs until 31.12.2026 23:40:00 and uses a
+        24-hour prediction horizon, the end day should be set one day later."""
+        end_time = _pd.Timestamp(f"{end_year}-{end_month}-{end_day} 00:00:00") \
+                   + _pd.Timedelta(days=1) \
+                   - _pd.Timedelta(minutes=self.time_step_in_minutes)
         self.time_period_full = _pd.date_range(f"{start_year}-{start_month}-{start_day} 00:00:00",
-                                               f"{end_year}-{end_month}-{end_day} 23:00:00",
+                                               end_time,
                                                freq=f"{str(self.time_step_in_minutes)}min")
 
     def get_current_time_period(self, current_time_period_start: _pd.DatetimeIndex) -> _pd.DatetimeIndex:

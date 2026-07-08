@@ -10,6 +10,7 @@ import numpy as _np
 import pandas as _pd
 
 import optihood.entities as ent
+import optihood._helpers as hlpr
 
 
 # TODO: extract other stuff from set_using_nodal_data.
@@ -237,6 +238,8 @@ class ProfileAndOtherDataReader:
         nodal_data = self.maybe_add_building_model_with_internal_gains(nodal_data, num_buildings, cluster_size,
                                                                        time_index)
         nodal_data = self.maybe_add_fixed_source_profiles(nodal_data, cluster_size, time_index)
+        nodal_data = self.maybe_add_cop_profiles(nodal_data, cluster_size, time_index)
+
         # ====================================================
 
         _log.info(f"Data from file {file_or_folder_path} imported.")
@@ -472,6 +475,71 @@ class ProfileAndOtherDataReader:
                 fixed_sources_data[i] = self.cluster_desired_column(fixed_sources_data[i], cluster_size)
 
         nodesData["fixed_sources"] = fixed_sources_data
+
+        return nodesData
+
+    def maybe_add_cop_profiles(self, nodesData, cluster_size, time_index: _pd.DatetimeIndex):
+        if ent.HeatPumpCoefficientLabels.COP not in nodesData[ent.NodeKeys.transformers].columns:
+            return nodesData
+
+        # cop_profiles_data Stores COP profile data for each heat pump/chiller transformer.
+        # Keys are full transformer labels, e.g. "HP__Building1" or "GWHP1__Building2".
+        # Values are DataFrames read from the corresponding COP profile files.
+        # Supported COP profile formats are:
+        # - one "COP" column used for all output buses,
+        # - one column per full output bus label, e.g. "spaceHeatingBus__Building1",
+        # - one column per raw output bus label, e.g. "spaceHeatingBus".
+        cop_profiles_data = {}
+
+        for _, transformer in nodesData[ent.NodeKeys.transformers].iterrows():
+            label = hlpr.create_label_string(transformer[ent.TransformerLabels.label], transformer[ent.TransformerLabels.building])
+
+            if label.component_name not in [
+                ent.TransformerTypes.HP,
+                ent.TransformerTypes.GWHP,
+                ent.TransformerTypes.Chiller,
+            ]:
+                continue
+
+            cop_filepath = transformer.get(ent.HeatPumpCoefficientLabels.COP)
+
+            # The COP column is used only for COP profile file paths
+            # Non-string values, such as numeric fixed COP values, are not supported and ignored
+            if not (_pd.notna(cop_filepath) and isinstance(cop_filepath, str)):
+                _log.warning(
+                    f"The COP value {cop_filepath} for '{transformer[ent.TransformerLabels.label]}' is ignored. "
+                    f"COP values must be non-empty strings containing a valid file path."
+                )
+                continue
+
+            if not _os.path.exists(cop_filepath):
+                _log.error(f"Error in COP profile file path: {cop_filepath}")
+                raise FileNotFoundError(f"Error in COP profile file path: {cop_filepath}")
+
+            transformer_label = label.full_name
+            cop_profiles_data[transformer_label] = _pd.read_csv(cop_filepath)
+            cop_profiles_data[transformer_label].timestamp = _pd.to_datetime(
+                cop_profiles_data[transformer_label].timestamp,
+                format='%Y-%m-%d %H:%M:%S'
+            )
+
+            cop_profiles_data[transformer_label].set_index("timestamp", inplace=True)
+
+            if not cluster_size:
+                cop_profiles_data[transformer_label] = self.clip_to_time_index(
+                    cop_profiles_data[transformer_label],
+                    time_index
+                )
+
+        if cluster_size:
+            for i in cop_profiles_data.keys():
+                cop_profiles_data[i] = self.cluster_desired_column(
+                    cop_profiles_data[i],
+                    cluster_size
+                )
+
+        if cop_profiles_data:
+            nodesData[ent.NonMandatoryProfileTypes.cop_profiles] = cop_profiles_data
 
         return nodesData
 

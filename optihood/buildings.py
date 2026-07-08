@@ -5,8 +5,8 @@ from optihood.sources import PV
 from optihood.storages import *
 from optihood.sinks import SinkRCModel
 from optihood.links import LinkTemperatureDemand
-from optihood._helpers import *
 import optihood.entities as _ent
+import optihood._helpers as hlpr
 
 intRate = 0.05
 
@@ -480,20 +480,20 @@ class Building:
                             )
                         )
 
-    def _addHeatPump(self, data, operationTempertures, temperature_evap, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode):
-        self._add_hp_or_chiller(data, operationTempertures, temperature_evap, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode, Component=HeatPumpLinear)
+    def _addHeatPump(self, data, operationTempertures, temperature_evap, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode, cop_profiles=None):
+        self._add_hp_or_chiller(data, operationTempertures, temperature_evap, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode, Component=HeatPumpLinear, cop_profiles=cop_profiles)
 
-    def _add_chiller(self, data, operationTempertures, temperature_evap, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode):
-        self._add_hp_or_chiller(data, operationTempertures, temperature_evap, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode, Component=Chiller)
+    def _add_chiller(self, data, operationTempertures, temperature_evap, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode, cop_profiles=None):
+        self._add_hp_or_chiller(data, operationTempertures, temperature_evap, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode, Component=Chiller, cop_profiles=cop_profiles)
 
     def _add_hp_or_chiller(self, data, operationTempertures, temperature_evap, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode,
-                           Component: HeatPumpLinear | Chiller = HeatPumpLinear,
+                           Component: HeatPumpLinear | Chiller = HeatPumpLinear, cop_profiles=None
                            ):
         """
         HPs and chillers are implemented the same way.
         The required class is passed in as a 'Component'
         """
-        label = LabelStringManipulator(data[_ent.TransformerLabels.label] + '__' + self.__buildingLabel)
+        label = hlpr.create_label_string(data[_ent.TransformerLabels.label], self.__buildingLabel)
         from_bus = _ent.TransformerLabels.from_bus
         to_bus = _ent.TransformerLabels.to
         if mergeLinkBuses and data[from_bus] in self.__linkBuses:
@@ -518,17 +518,22 @@ class Building:
             capacityMinSH = float(data[_ent.TransformerLabels.capacity_min])
 
         user_cop = None
-        if _ent.HeatPumpCoefficientLabels.COP in data:
-            cop_filepath = data.get(_ent.HeatPumpCoefficientLabels.COP)
-            if pd.notna(cop_filepath) and isinstance(cop_filepath, str) and cop_filepath.strip():
-                try:
-                    cop_df = pd.read_csv(cop_filepath)
-                    user_cop = [cop_df[_ent.HeatPumpCoefficientLabels.COP].values]
-                except FileNotFoundError:
-                    print(f"Warning: COP file not found at {cop_filepath}. Defaulting to calculated COP.")
-                except KeyError:
-                    print(f"Warning: The column '{_ent.HeatPumpCoefficientLabels.COP.value}' was not found in "
-                          f"{cop_filepath}. Defaulting to calculated COP.")
+        if cop_profiles is not None and label.full_name in cop_profiles:
+            user_cop = self._get_user_cop_from_profile(
+                cop_profiles[label.full_name],
+                outputBusLabels,
+                label.full_name,
+            )
+
+        has_coef_W = hlpr.has_valid_value(data, _ent.HeatPumpCoefficientLabels.coef_W)
+        has_coef_Q = hlpr.has_valid_value(data, _ent.HeatPumpCoefficientLabels.coef_Q)
+        if user_cop is not None and (has_coef_W or has_coef_Q):
+            logging.warning(
+                f"Component '{label.full_name}' has both the COP profile and COP calculation "
+                "coefficients defined. The COP profile will be used; "
+                f"'{_ent.HeatPumpCoefficientLabels.coef_W}' and "
+                f"'{_ent.HeatPumpCoefficientLabels.coef_Q}' will be ignored."
+            )
 
         # Determine coefficients ONLY if a valid COP file was NOT found
         coef_W, coef_Q = None, None
@@ -541,20 +546,20 @@ class Building:
 
             # Fallback to defaults based on the component type
             else:
-                if pattern_at_start_followed_by_number(_ent.TransformerTypes.HP, label.prefix):
+                if hlpr.pattern_at_start_followed_by_number(_ent.TransformerTypes.HP, label.prefix):
                     coef_W = [0.66610, -2.2365, 15.541, 25.705, -17.407, 3.8145]
                     coef_Q = [11.833, 96.504, 14.496, -50.064, 161.02, -133.60]
-                elif pattern_at_start_followed_by_number(_ent.TransformerTypes.GWHP, label.prefix):
+                elif hlpr.pattern_at_start_followed_by_number(_ent.TransformerTypes.GWHP, label.prefix):
                     coef_W = [0.1600, -1.2369, 19.9391, 19.3448, 7.1057, -1.4048]
                     coef_Q = [13.8978, 114.8358, -9.3634, -179.4227, 342.3363, -12.4969]
-                elif pattern_at_start_followed_by_number(_ent.TransformerTypes.Chiller, label.prefix):
+                elif hlpr.pattern_at_start_followed_by_number(_ent.TransformerTypes.Chiller, label.prefix):
                     coef_W = [1.374297, 50.24932, -0.52687, 65.72373, -48.9331, -66.0379]
                     coef_Q = [29.28804, -1.76244, 313.227, -396.091, -422.075, 1029.683]
 
         op_args_dict = {
             arg: data[arg]
             for arg in _ent.TransformerOperationalArgs.get_values()
-            if has_valid_value(data, arg)
+            if hlpr.has_valid_value(data, arg)
         }
         heatPump = Component(label.full_name, operationTempertures, temperature_evap,
                                   coef_W,
@@ -725,16 +730,16 @@ class Building:
                                                   outputs=outputDict,
                                                   conversion_factors=convFactors))
     
-    def addTransformer(self, data, operationTemperatures, temperatureAmb, temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode, temperatureLevels):
+    def addTransformer(self, data, operationTemperatures, temperatureAmb, temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode, temperatureLevels, cop_profiles=None):
         for i, t in data.iterrows():
             if t["active"]:
-                if pattern_at_start_followed_by_number("HP", t["label"]):
-                    self._addHeatPump(t, operationTemperatures[0], temperatureAmb, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode)
+                if hlpr.pattern_at_start_followed_by_number("HP", t["label"]):
+                    self._addHeatPump(t, operationTemperatures[0], temperatureAmb, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode, cop_profiles)
                     # The param operationTemperatures should match the Tcond_out of HP
                     # temperatureAmb is Tevap_in for the air-source heat pump
                     # Expected order of temperatures is Tcond_out, Tevap_in for HP (see HP model documentation)
-                elif pattern_at_start_followed_by_number("GWHP", t["label"]):
-                    self._addHeatPump(t, operationTemperatures[0], temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode)
+                elif hlpr.pattern_at_start_followed_by_number("GWHP", t["label"]):
+                    self._addHeatPump(t, operationTemperatures[0], temperatureGround, opt, mergeLinkBuses, mergeHeatSourceSink, dispatchMode, cop_profiles)
                     # The param operationTemperatures should match the Tcond_out of GWHP
                     # temperatureGround is Tevap_in for the ground-source heat pump (GWHP)
                     # Expected order of temperatures is Tcond_out, Tevap_in for HP (see HP model documentation)
@@ -744,11 +749,11 @@ class Building:
                     self._addCHP(t, len(temperatureAmb), opt, dispatchMode)
                 elif "Boiler" in t["label"]:
                     self._addBoiler(t, opt, dispatchMode)
-                elif pattern_at_start_followed_by_number("ElectricRod", t["label"]):
+                elif hlpr.pattern_at_start_followed_by_number("ElectricRod", t["label"]):
                     self._addElectricRod(t, opt, mergeLinkBuses, dispatchMode, temperatureLevels)
-                elif pattern_at_start_followed_by_number("Chiller", t["label"]):
+                elif hlpr.pattern_at_start_followed_by_number("Chiller", t["label"]):
                     self._add_chiller(t, [operationTemperatures[1][0]], temperatureAmb, opt, mergeLinkBuses,
-                                       mergeHeatSourceSink, dispatchMode)
+                                       mergeHeatSourceSink, dispatchMode, cop_profiles)
                     # The param operationTemperatures should match the Tevap_out of chiller
                     # temperatureAmb is Tcond_in for the chiller
                     # Expected order of temperatures is Tevap_out, Tcond_in for Chiller (see HP model documentation)
@@ -759,7 +764,7 @@ class Building:
     def addStorage(self, data, storageParams, ambientTemperature, opt, mergeLinkBuses, dispatchMode, temperatureLevels):
         sList = []
         for i, s in data.iterrows():
-                label = LabelStringManipulator(s["label"]+'__'+self.__buildingLabel)
+                label = hlpr.create_label_string(s["label"], self.__buildingLabel)
                 storageLabel = label.full_name
                 label_prefix_without_digits = label.strip_trailing_digits_from_prefix()
                 if temperatureLevels and "thermalStorage" in storageLabel:
@@ -783,8 +788,8 @@ class Building:
                 self.__costParam[storageLabel] = [self._calculateInvest(s)[0], self._calculateInvest(s)[1]]
                 self.__envParam[storageLabel] = [float(s["heat_impact"]), float(s["elec_impact"]), envImpactPerCapacity]
 
-                min_lvl = s[_ent.StorageLabels.min_storage_level] if has_valid_value(s, _ent.StorageLabels.min_storage_level) else 0
-                max_lvl = s[_ent.StorageLabels.max_storage_level] if has_valid_value(s, _ent.StorageLabels.max_storage_level) else 1
+                min_lvl = s[_ent.StorageLabels.min_storage_level] if hlpr.has_valid_value(s, _ent.StorageLabels.min_storage_level) else 0
+                max_lvl = s[_ent.StorageLabels.max_storage_level] if hlpr.has_valid_value(s, _ent.StorageLabels.max_storage_level) else 1
 
                 if "electricalStorage" in storageLabel:
                     self.__nodesList.append(
@@ -905,3 +910,43 @@ class Building:
         perCapacity = m * data["invest_cap"] + economics.annuity(c * data["invest_cap"], data["lifetime"], intRate)
         base = m * data["invest_base"] + economics.annuity(c * data["invest_base"], data["lifetime"], intRate)
         return perCapacity, base
+
+    @staticmethod
+    def _get_user_cop_from_profile(cop_df, outputBusLabels, label):
+        """Get user-defined COP profiles from a COP profile DataFrame.
+
+            Three COP profile formats are supported:
+            - A single column named "COP", which is used for all output buses.
+            - One column per full output bus label, e.g. "spaceHeatingBus__Building1".
+            - One column per shortened output bus label, e.g. "spaceHeatingBus".
+
+            Returns
+            -------
+            list
+                A list of COP time series arrays. If a single "COP" column is provided,
+                the list contains one array. If separate columns are provided per output
+                bus, the list contains one array per output bus.
+
+            """
+        cop_column = _ent.HeatPumpCoefficientLabels.COP.value
+
+        if cop_column in cop_df.columns:
+            return [cop_df[cop_column].values]
+
+        # if full output bus labels, e.g. spaceHeatingBus__Building1, are used in cop file
+        if all(bus in cop_df.columns for bus in outputBusLabels):
+            return [cop_df[bus].values for bus in outputBusLabels]
+
+        # if shortened output bus labels, e.g. spaceHeatingBus, are used in cop file
+        short_output_bus_labels = [hlpr.LabelStringManipulator(bus).prefix for bus in outputBusLabels]
+
+        if all(bus in cop_df.columns for bus in short_output_bus_labels):
+            return [cop_df[bus].values for bus in short_output_bus_labels]
+
+        raise ValueError(
+            f"COP profile for '{label}' cannot be matched to the output buses "
+            f"{outputBusLabels}. Received {len(cop_df.columns)} COP profile column(s) for {len(outputBusLabels)} output bus(es). "
+            f"The COP file should contain either a '{cop_column}' "
+            "column, one column per full output bus label or one column per shortened output "
+            "bus label."
+        )
