@@ -358,7 +358,7 @@ class TestProfileAndOtherDataReader:
 
         with caplog.at_level(_log.ERROR):
             with _pt.raises(FileNotFoundError):
-                ior.ProfileAndOtherDataReader().add_natural_gas_impact(nodal_data, {},  None)
+                ior.ProfileAndOtherDataReader().add_natural_gas_impact(nodal_data, {}, None)
             assert "Error in natural gas impact file path" in caplog.text
 
     def test_maybe_add_natural_gas_cost_raises(self, caplog):
@@ -370,7 +370,7 @@ class TestProfileAndOtherDataReader:
 
         with caplog.at_level(_log.ERROR):
             with _pt.raises(FileNotFoundError):
-                ior.ProfileAndOtherDataReader().add_natural_gas_costs(nodal_data, {},  None)
+                ior.ProfileAndOtherDataReader().add_natural_gas_costs(nodal_data, {}, None)
             assert "Error in natural gas cost file path" in caplog.text
 
     @_pt.mark.manual
@@ -389,7 +389,7 @@ class TestProfileAndOtherDataReader:
 
         with caplog.at_level(_log.ERROR):
             with _pt.raises(FileNotFoundError):
-                ior.ProfileAndOtherDataReader().add_internal_gains(nodal_data, {},  None)
+                ior.ProfileAndOtherDataReader().add_internal_gains(nodal_data, {}, None)
             assert "Error in internal gains file path for the building model." in caplog.text
 
     def test_add_building_models_raises(self, caplog):
@@ -401,7 +401,7 @@ class TestProfileAndOtherDataReader:
 
         with caplog.at_level(_log.ERROR):
             with _pt.raises(FileNotFoundError):
-                ior.ProfileAndOtherDataReader().add_building_models(nodal_data, {},  None)
+                ior.ProfileAndOtherDataReader().add_building_models(nodal_data, {}, None)
             assert "Error in building model parameters file path." in caplog.text
 
     def test_clip_to_time_index(self):
@@ -413,14 +413,42 @@ class TestProfileAndOtherDataReader:
         assert str(df_result.index[-1]) == "2018-01-01 02:00:00"
         assert len(df_result.index) == 3
 
-    @_pt.mark.manual
-    def test_maybe_add_cop_profiles(self):
-        """Integration test without errors"""
-        # TODO: implement test
-        ior.ProfileAndOtherDataReader().maybe_add_cop_profiles(...)
-        assert False
+    def test_maybe_add_single_cop_profile_single(self):
+        """
+        Integration test without errors.
 
-    @_pt.mark.manual
+        Provided file includes a single COP column.
+        """
+        input_file_path = _pl.Path(__file__).parent / "input_data" / "cop_001.csv"
+        nodal_data = {ent.NodeKeys.transformers: _pd.DataFrame(
+            {
+                ent.TransformerLabels.label: ent.TransformerTypes.HP,
+                ent.TransformerLabels.building: "1",
+                ent.HeatPumpCoefficientLabels.COP: str(input_file_path)
+            }, index=[0])
+        }
+        reduced_time_steps = _pd.date_range("2024-01-01 00:00:00", "2024-01-01 02:00:00", freq="60min")
+        nodal_data = ior.ProfileAndOtherDataReader().maybe_add_cop_profiles(nodal_data, {}, reduced_time_steps)
+        cop_profiles = nodal_data[ent.NonMandatoryProfileTypes.cop_profiles]
+
+        errors = []
+        try:
+            assert len(cop_profiles.keys()) == 1
+        except AssertionError as e:
+            errors.append(e)
+
+        try:
+            cop_data = cop_profiles["HP__Building1"][ent.HeatPumpCoefficientLabels.COP]
+            _ut.TestCase().assertListEqual(
+                list(cop_data), [5.97765441224433, 5.97765441224433, 5.97765441224433, 6.00327294119265,
+                                 6.0353353379665, 6.06154660728058, 6.08089925801413]
+            )
+        except Exception as e:
+            errors.append(e)
+
+        if errors:
+            raise ExceptionGroup(f"Found {len(errors)} issues: ", errors)
+
     def test_maybe_add_cop_profiles_raises(self, caplog):
         """Unit test"""
         nodal_data = {ent.NodeKeys.transformers: _pd.DataFrame(
@@ -428,10 +456,9 @@ class TestProfileAndOtherDataReader:
                 ent.TransformerLabels.label: ent.TransformerTypes.HP,
                 ent.TransformerLabels.building: "1",
                 ent.HeatPumpCoefficientLabels.COP: "no_such_file"
-             }, index=[0])}
+            }, index=[0])}
 
         with caplog.at_level(_log.ERROR):
             with _pt.raises(FileNotFoundError):
-                ior.ProfileAndOtherDataReader().maybe_add_cop_profiles(nodal_data, {},  None)
+                ior.ProfileAndOtherDataReader().maybe_add_cop_profiles(nodal_data, {}, None)
             assert "Error in COP profile file path:" in caplog.text
-
