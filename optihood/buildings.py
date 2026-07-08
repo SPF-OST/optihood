@@ -764,7 +764,7 @@ class Building:
     def addStorage(self, data, storageParams, ambientTemperature, opt, mergeLinkBuses, dispatchMode, temperatureLevels):
         sList = []
         for i, s in data.iterrows():
-                label = hlpr.LabelStringManipulator(s["label"]+'__'+self.__buildingLabel)
+                label = hlpr.create_label_string(s["label"], self.__buildingLabel)
                 storageLabel = label.full_name
                 label_prefix_without_digits = label.strip_trailing_digits_from_prefix()
                 if temperatureLevels and "thermalStorage" in storageLabel:
@@ -942,7 +942,6 @@ class Building:
 
         if all(bus in cop_df.columns for bus in short_output_bus_labels):
             return [cop_df[bus].values for bus in short_output_bus_labels]
-
 
         raise ValueError(
             f"COP profile for '{label}' cannot be matched to the output buses "

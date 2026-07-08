@@ -10,6 +10,7 @@ warnings.filterwarnings("ignore", category=FutureWarning, module="oemof")
 
 
 def pattern_at_start_followed_by_number(pattern: str, label: str) -> Optional[Match[str]]:
+    """ TODO: this function should be replaced with LabelStringManipulator.component_name"""
     return re.match(fr"^{pattern}(\d+)?$", label)
 
 
@@ -22,10 +23,13 @@ class LabelStringManipulator:
         splitted_label = label.split(_LABEL_SEPARATOR)
         self.prefix = splitted_label[0]
         self.building = splitted_label[1]
-        self.component_name = self.strip_trailing_digits_from_prefix()
 
     def strip_trailing_digits_from_prefix(self):
         return self.prefix.rstrip("0123456789")
+
+    @property
+    def component_name(self):
+        return self.strip_trailing_digits_from_prefix()
 
 
 def create_label_string(component_label: str, building_nr: str | float) -> LabelStringManipulator:
