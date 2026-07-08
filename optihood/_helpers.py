@@ -33,14 +33,14 @@ class LabelStringManipulator:
 
 
 def create_label_string(component_label: str, building_label: str) -> LabelStringManipulator:
-    if isinstance(building_label, str) and "Building" in building_label:
-        building_label = building_label
-    else:
+    if not isinstance(building_label, str) or "Building" not in building_label:
         raise ValueError(
             f"\nReceived unexpected building_label: {building_label} with type {type(building_label)}. "
             f"\nPlease, use {create_building_label.__name__} to create the building label."
         )
+
     label = component_label + _LABEL_SEPARATOR + str(building_label)
+
     return LabelStringManipulator(label)
 
 
