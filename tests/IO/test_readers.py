@@ -413,7 +413,7 @@ class TestProfileAndOtherDataReader:
         assert str(df_result.index[-1]) == "2018-01-01 02:00:00"
         assert len(df_result.index) == 3
 
-    def test_maybe_add_single_cop_profile_single(self):
+    def test_maybe_add_cop_profile_single(self):
         """
         Integration test without errors.
 
