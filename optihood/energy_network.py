@@ -13,13 +13,9 @@ from oemof.tools import logger
 import optihood.IO.writers as _wr
 import optihood.entities as _ent
 import optihood.IO.readers as read
+import optihood._helpers as hlpr
 
-try:
-    import matplotlib.pyplot as plt
-except ImportError:
-    plt = None
-
-from optihood.buildings import Building
+import optihood.buildings as bui
 from optihood.constraints import *
 from optihood._helpers import *
 from optihood.links import Link
@@ -350,7 +346,7 @@ class EnergyNetworkClass(solph.EnergySystem):
 
     def _addBuildings(self, data, opt, mergeLinkBuses, mergeBuses, mergeHeatSourceSink, includeCarbonBenefits, clusterSize):
         numberOfBuildings = max(data["buses"]["building"])
-        self.__buildings = [Building('Building' + str(i + 1)) for i in range(numberOfBuildings)]
+        self.__buildings = [bui.Building(hlpr.create_building_label(i + 1)) for i in range(numberOfBuildings)]
         storageParams = {}
         for s in [_ent.NodeKeys.stratified_storage.value, _ent.NodeKeys.ice_storage.value]:
             if s in data:
