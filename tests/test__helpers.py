@@ -58,10 +58,11 @@ def test_create_building_label(building_info, expected_label):
     assert label == expected_label
 
 
-@_pt.mark.parametrize("building_info, expected_label", [
-    ("1.3", "error"),
-    ("Building2", "error"),
+@_pt.mark.parametrize("building_info", [
+    1.3,
+    "1.3",
+    "Building2",
 ])
-def test_create_building_label_raises(building_info, expected_label):
+def test_create_building_label_raises(building_info):
     with _pt.raises(ValueError):
         hlpr.create_building_label(building_info)

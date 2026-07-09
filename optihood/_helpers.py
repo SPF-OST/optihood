@@ -47,7 +47,8 @@ def create_label_string(component_label: str, building_label: str) -> LabelStrin
 def create_building_label(building_info: str | int) -> str:
     """Method to create consistent building labels."""
     try:
-        building_nr = str(int(building_info))
+        building_nr = str(int(str(building_info)))
+        # int("1.3") fails, while int(1.3) returns 1.
     except Exception as e:
         raise ValueError(f"received incorrect building info: {building_info}") from e
 
