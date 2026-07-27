@@ -596,7 +596,7 @@ class GeothermalHeatPumpLinear:
             self.__cop = {output[i]: cop[i] for i in range(len(output))}
 
         self.avgCopSh = (sum(self.__cop[output[0]]) / len(self.__cop[output[0]]))  # cop at lowest temperature, i.e. temperature of space heating
-        #nomEff = min(val for val in self.__cop[output[0]] if val > 0.001)
+        nomEff = min(val for val in self.__cop[output[0]] if val > 0.001)
         self.nominalEff = nomEff
         if dispatchMode:
             investArgs= {'ep_costs':epc*nomEff,
