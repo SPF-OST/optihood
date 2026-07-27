@@ -42,13 +42,11 @@ class PV(solph.components.Source):
                                  )}
                                  )
 
-    def computePvSolarPosition(self, irradiance_diffuse, irradiance_global, latitude, longitude, pv_azimuth, pv_tilt,
-                               temp_amb_pv):
+    def computePvSolarPosition(self, irradiance_diffuse, irradiance_global, latitude, longitude, pv_azimuth, pv_tilt):
         data = pd.DataFrame(
             {
                 'ghi': irradiance_global,
                 'dhi': irradiance_diffuse,
-                'temp_amb': temp_amb_pv
             }
         )
         solposition = pvlib.solarposition.get_solarposition(
