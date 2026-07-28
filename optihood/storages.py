@@ -599,7 +599,7 @@ class IceStorageBlock(ScalarBlock):
             for g in group:
                 for t in m.TIMESTEPS:
                     lhs = self.fIce[g,t]
-                    rhs = self.mIceStor[g,t]/g.massWaterMax     # division is most likely not allowed!!
+                    rhs = self.mIceStor[g,t]/g.massWaterMax
                     block.ice_fraction.add((g, t), (lhs == rhs))
 
         self.ice_fraction = Constraint(group, m.TIMESTEPS, noruleinit=True)
@@ -661,7 +661,7 @@ class IceStorageBlock(ScalarBlock):
         self.ice_state_2_build = BuildAction(rule=_ice_state_rule_2)
 
         # def _max_heating_energy_rule(block):
-        #     """rule for calculating the mass of ice in each timestep"""
+        #     """rule for calculating the max allowed heating power"""
         #     for g in group:
         #         for t in m.TIMESTEPS:
         #             lhs1 = m.flow[i[g], g, t]
