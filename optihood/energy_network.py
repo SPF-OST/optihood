@@ -555,6 +555,8 @@ class EnergyNetworkClass(solph.EnergySystem):
                              k[0].label.endswith(f"Building{bNo}")]
             fIce = [v for k, v in self._optimizationModel.IceStorageBlock.fIce.get_values().items() if
                      k[0].label.endswith(f"Building{bNo}")]
+            soc = [v for k, v in self._optimizationModel.IceStorageBlock.soc.get_values().items() if
+                   k[0].label.endswith(f"Building{bNo}")]
             iceStatus = [v for k, v in self._optimizationModel.IceStorageBlock.iceStatus.get_values().items() if
                              k[0].label.endswith(f"Building{bNo}")]
             tStor_prev = [v for k, v in self._optimizationModel.IceStorageBlock.tStor_prev.get_values().items() if
@@ -566,6 +568,7 @@ class EnergyNetworkClass(solph.EnergySystem):
                 df[f"tStor_B{bNo}"] = tStor
                 df[f"mIceStor_B{bNo}"] = mIceStor
                 df[f"fIce_B{bNo}"] = fIce
+                df[f"soc_B{bNo}"] = soc
                 df[f"iceStatus_prev_B{bNo}"] = iceStatus
                 df[f"tStor_prev_B{bNo}"] = tStor_prev
                 df[f"mIceStor_prev_B{bNo}"] = mIceStor_prev
