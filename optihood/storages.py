@@ -652,7 +652,7 @@ class IceStorageBlock(ScalarBlock):
             """When iceStatus = 0 (sensible regime, tStor > 0), force ice mass to zero.
                When iceStatus = 1, storage_balance rule fixes mIceStor."""
             for g in group:
-                M_ice = g.fMax * g.massWaterMax
+                M_ice = g.fMax * g.massWaterMax     # set to the maximum permitted mass of ice
                 for t in m.TIMESTEPS:
                     lhs = self.mIceStor[g, t]
                     rhs = M_ice * self.iceStatus[g, t]
