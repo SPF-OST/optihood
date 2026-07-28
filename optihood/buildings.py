@@ -858,6 +858,10 @@ class Building:
                     else:
                         initial_ice_frac = 0
 
+                    ice_row = storageParams["ice_storage"].loc[label_prefix_without_digits]
+                    t_soc_ref = float(ice_row["t_soc_ref"]) if "t_soc_ref" in ice_row and not np.isnan(
+                        ice_row["t_soc_ref"]) else 7.0
+
                     self.__nodesList.append(
                         IceStorage(label=storageLabel,
                                    input=self.__busDict[inputBusLabel],
@@ -872,7 +876,9 @@ class Building:
                                    Tamb=ambientTemperature,
                                    UAtank=float(storageParams["ice_storage"].at[label_prefix_without_digits, "UA_tank"]),
                                    inflow_conversion_factor=float(storageParams["ice_storage"].at[label_prefix_without_digits, "inflow_conversion_factor"]),
-                                   outflow_conversion_factor=float(storageParams["ice_storage"].at[label_prefix_without_digits, "outflow_conversion_factor"])
+                                   outflow_conversion_factor=float(storageParams["ice_storage"].at[label_prefix_without_digits, "outflow_conversion_factor"]),
+                                   t_soc_ref = t_soc_ref,
+                                   soc_min=min_lvl
                                    )
                     )
 

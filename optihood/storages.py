@@ -438,16 +438,24 @@ class IceStorage(on.Node):
     output: output bus of the ice storage node
     tStorInit: initial temperature of the ice storage [°C]
     fMax: maximum allowed ice fraction in the ice storage
+    fIceInit: initial ice fraction in the ice storage, expressed as a fraction of
+            the maximum water mass; must be in [0, 1]
     rho: density of water [kg/m3]
     V: Volume of the ice storage [m3]
     hfluid: latent heat of fusion of water [kJ/kg]
     cp: specific heat capacity of water [kJ/(kg.°C)]
-    T_amb: ambient temperature time-series [°C]
-    UA_tank: heat loss coefficient of the ice storage tank [kW/°C]
+    Tamb: ambient temperature time-series [°C]
+    UAtank: heat loss coefficient of the ice storage tank [kW/°C]
     inflow_conversion_factor: efficiency of heat exchanger at the inlet of the ice storage
     outflow_conversion_factor: efficiency of heat exchanger at the outlet of the ice storage
+    soc_min: minimum allowed state of charge, as a fraction of full-charge capacity (latent + sensible)
+            the storage cannot be discharged below this level. Defaults to 0. Must be in [0, 1] and
+            not exceed the initial state of charge.
+    t_soc_ref: reference temperature [°C] at which the state of charge equals 0
+               (fully discharged, no ice). Defaults to 7.0. Must be > 0.
     """
-    def __init__(self, label, input, output, tStorInit, fIceInit, fMax, rho, V, hfluid, cp, Tamb, UAtank, inflow_conversion_factor, outflow_conversion_factor):
+    def __init__(self, label, input, output, tStorInit, fIceInit, fMax, rho, V, hfluid, cp, Tamb, UAtank,
+                 inflow_conversion_factor, outflow_conversion_factor, t_soc_ref=7.0, soc_min=0):
         if tStorInit < 0:
             raise ValueError("The initial temperature of ice storage should be greater than or equal to 0°C.")
         self.tStorInit = tStorInit
@@ -466,6 +474,21 @@ class IceStorage(on.Node):
         self.UAtank = UAtank
         self.inflow_conversion_factor = inflow_conversion_factor
         self.outflow_conversion_factor = outflow_conversion_factor
+        if t_soc_ref <= 0:
+            raise ValueError("tSocRef must be > 0 °C (the reference temperature at which SOC = 0).")
+        self.t_soc_ref = t_soc_ref  # temperature [°C] at which SOC = 0 (fully discharged)
+        # full charge = max ice + tank cooled from tSocRef down to 0 °C
+        self.soc_capacity = hfluid * fMax * rho * V + cp * rho * V * self.t_soc_ref
+        soc_init = (hfluid * fIceInit * rho * V
+                    + cp * rho * V * (self.t_soc_ref - tStorInit)) / self.soc_capacity
+        if soc_min < 0 or soc_min > 1:
+            raise ValueError("socMin is a fraction and must be within [0, 1].")
+        if soc_min > soc_init:
+            raise ValueError(
+                f"socMin ({soc_min:.3f}) exceeds initial SOC ({soc_init:.3f}); "
+                "the store starts below the reserve, and is therefore infeasible at t=0."
+            )
+        self.soc_min = soc_min
 
         """if dispatchMode:
             investArgs={'minimum':capacity_min,
@@ -532,6 +555,8 @@ class IceStorageBlock(ScalarBlock):
         self.fIce = Var(self.icestorages, m.TIMESTEPS, within=NonNegativeReals, bounds=(0,1))
         # binary variable defining the status of ice formation in the storage
         self.iceStatus = Var(self.icestorages, m.TIMESTEPS, within=Binary)
+        # state of charge as a fraction (latent + sensible), 0 at tSocRef, 1 at full ice
+        self.soc = Var(self.icestorages, m.TIMESTEPS, within=Reals)
 
         # for linearization of non-linear constraints with big M method
         M_temp = 90
@@ -657,6 +682,26 @@ class IceStorageBlock(ScalarBlock):
 
         self.ice_state_2 = Constraint(group, m.TIMESTEPS, noruleinit=True)
         self.ice_state_2_build = BuildAction(rule=_ice_state_rule_2)
+
+        def _soc_definition_rule(block):
+            for g in group:
+                for t in m.TIMESTEPS:
+                    lhs = self.soc[g, t]
+                    rhs = (g.hf * self.mIceStor[g, t]
+                           + g.rho * g.V * g.cp * (g.t_soc_ref - self.tStor[g, t])) / g.soc_capacity
+                    block.soc_definition.add((g, t), (lhs == rhs))
+
+        self.soc_definition = Constraint(group, m.TIMESTEPS, noruleinit=True)
+        self.soc_definition_build = BuildAction(rule=_soc_definition_rule)
+
+        def _min_soc_rule(block):
+            """Minimum state of charge: storage cannot be discharged below socMin."""
+            for g in group:
+                for t in m.TIMESTEPS:
+                    block.min_soc.add((g, t), (self.soc[g, t] >= g.soc_min))
+
+        self.min_soc = Constraint(group, m.TIMESTEPS, noruleinit=True)
+        self.min_soc_build = BuildAction(rule=_min_soc_rule)
 
         # def _max_heating_energy_rule(block):
         #     """rule for calculating the max allowed heating power"""
