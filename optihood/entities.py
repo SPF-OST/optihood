@@ -298,6 +298,7 @@ class IceStorageLabels(StrEnumWithMethods):
     UA_tank = "UA_tank"
     inflow_conversion_factor = "inflow_conversion_factor"
     outflow_conversion_factor = "outflow_conversion_factor"
+    t_soc_ref = "t_soc_ref"
 
 
 class IceStorageTypes(StrEnumWithMethods):
