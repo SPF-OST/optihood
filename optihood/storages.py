@@ -623,20 +623,18 @@ class IceStorageBlock(ScalarBlock):
         self.storage_balance = Constraint(group, m.TIMESTEPS, noruleinit=True)
         self.storage_balance_build = BuildAction(rule=_storage_balance_rule)
 
-        def _mass_ice_rule(block):
-            """rule for calculating the mass of ice in each timestep"""
+        def _no_ice_when_sensible_rule(block):
+            """When iceStatus = 0 (sensible regime, tStor > 0), force ice mass to zero.
+               When iceStatus = 1, storage_balance rule fixes mIceStor."""
             for g in group:
+                M_ice = g.fMax * g.massWaterMax
                 for t in m.TIMESTEPS:
                     lhs = self.mIceStor[g, t]
-                    rhs = self.iceStatus[g, t]*(self.mIceStor_prev[g, t] +
-                                                (((m.flow[g, o[g], t]/g.outflow_conversion_factor)*m.timeincrement[t]
-                                                  - m.flow[i[g], g, t]*g.inflow_conversion_factor*m.timeincrement[t]
-                                                  + g.UAtank*(self.tStor_prev[g, t] - g.Tamb[t]) * m.timeincrement[t]
-                                                  - g.rho*g.V*g.cp*self.tStor_prev[g, t])/g.hf))
-                    block.mass_ice.add((g, t), (lhs == rhs))
+                    rhs = M_ice * self.iceStatus[g, t]
+                    block.no_ice_when_sensible.add((g, t), (lhs <= rhs))
 
-        self.mass_ice = Constraint(group, m.TIMESTEPS, noruleinit=True)
-        self.mass_ice_build = BuildAction(rule=_mass_ice_rule)
+        self.no_ice_when_sensible = Constraint(group, m.TIMESTEPS, noruleinit=True)
+        self.no_ice_when_sensible_build = BuildAction(rule=_no_ice_when_sensible_rule)
 
         def _ice_state_rule_1(block):
             """rule for calculating the mass of ice in each timestep"""
