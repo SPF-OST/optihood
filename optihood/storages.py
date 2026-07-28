@@ -534,7 +534,7 @@ class IceStorageBlock(ScalarBlock):
         self.iceStatus = Var(self.icestorages, m.TIMESTEPS, within=Binary)
 
         # for linearization of non-linear constraints with big M method
-        M = 2000
+        M_temp = 90
         epsilon = 0.000001
 
         #  ************* CONSTRAINTS *****************************
@@ -643,7 +643,7 @@ class IceStorageBlock(ScalarBlock):
             for g in group:
                 for t in m.TIMESTEPS:
                     lhs = self.tStor[g,t]
-                    rhs = M*(1-self.iceStatus[g,t])
+                    rhs = M_temp*(1-self.iceStatus[g,t])
                     block.ice_state_1.add((g, t), (lhs <= rhs))
 
         self.ice_state_1 = Constraint(group, m.TIMESTEPS, noruleinit=True)
