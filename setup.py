@@ -12,7 +12,7 @@ with open("README.md", "r") as fh:
 
 def _getInstallRequirements():
     requirementsFile = (
-            _pl.Path(__file__).parent / "requirements" / "requirements.in"
+            _pl.Path(__file__).parent / "requirements" / "requirements.txt"
     )
     lines = requirementsFile.read_text().split("\n")
     requirements = [l for l in lines if l.strip() and not l.startswith("#")]
