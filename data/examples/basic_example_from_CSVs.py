@@ -70,28 +70,28 @@ if __name__ == '__main__':
     # initialize parameters
     numberOfBuildings = 4
     optimizationType = "env"  # set as "env" for environmental optimization
-    #
-    # # create an energy network and set the network parameters from an excel file
-    # network = EnergyNetwork(timePeriod)
-    # network.set_from_csv(inputFilePath, numberOfBuildings, opt=optimizationType)
-    #
-    # if visualize_network:
-    #     network.visualize_network(node_layout_file, nr_of_buildings=numberOfBuildings)
-    #     exit()
-    #
-    # # optimize the energy network
-    # limit, capacitiesTransformers, capacitiesStorages = network.optimize(solver='gurobi', numberOfBuildings=numberOfBuildings)
-    #
-    # # print optimization outputs i.e. costs, environmental impact and capacities selected for different components (with investment optimization)
-    # network.printInvestedCapacities(capacitiesTransformers, capacitiesStorages)
-    # network.printCosts()
-    # network.printEnvImpacts()
-    # network.printMetaresults()
-    #
-    # # save results
-    # if not os.path.exists(resultFilePath):
-    #     os.makedirs(resultFilePath)
-    # network.exportToExcel(os.path.join(resultFilePath, resultFileName))
+
+    # create an energy network and set the network parameters from an excel file
+    network = EnergyNetwork(timePeriod)
+    network.set_from_csv(inputFilePath, numberOfBuildings, opt=optimizationType)
+
+    if visualize_network:
+        network.visualize_network(node_layout_file, nr_of_buildings=numberOfBuildings)
+        exit()
+
+    # optimize the energy network
+    limit, capacitiesTransformers, capacitiesStorages = network.optimize(solver='gurobi', numberOfBuildings=numberOfBuildings)
+
+    # print optimization outputs i.e. costs, environmental impact and capacities selected for different components (with investment optimization)
+    network.printInvestedCapacities(capacitiesTransformers, capacitiesStorages)
+    network.printCosts()
+    network.printEnvImpacts()
+    network.printMetaresults()
+
+    # save results
+    if not os.path.exists(resultFilePath):
+        os.makedirs(resultFilePath)
+    network.exportToExcel(os.path.join(resultFilePath, resultFileName))
 
     # Plot the results when running this script.
     if len(sys.argv) == 1:
