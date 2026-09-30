@@ -75,6 +75,10 @@ if __name__ == '__main__':
     network = EnergyNetwork(timePeriod)
     network.set_from_csv(inputFilePath, numberOfBuildings, opt=optimizationType)
 
+    # save results
+    if not os.path.exists(resultFilePath):
+        os.makedirs(resultFilePath)
+
     if visualize_network:
         network.visualize_network(node_layout_file, nr_of_buildings=numberOfBuildings)
         exit()
@@ -88,9 +92,6 @@ if __name__ == '__main__':
     network.printEnvImpacts()
     network.printMetaresults()
 
-    # save results
-    if not os.path.exists(resultFilePath):
-        os.makedirs(resultFilePath)
     network.exportToExcel(os.path.join(resultFilePath, resultFileName))
 
     # Plot the results when running this script.
