@@ -66,3 +66,13 @@ def test_create_building_label(building_info, expected_label):
 def test_create_building_label_raises(building_info):
     with _pt.raises(ValueError):
         hlpr.create_building_label(building_info)
+
+
+@_pt.mark.parametrize("label, expected", [
+    ("gasBoiler_B1", 1),
+    ("exEl_B2", 2),
+    ("Q_el_B003", 3),
+    ("solarCollectorSH__Building1", 1),
+])
+def test_int_at_end_of_string(label, expected):
+    assert hlpr.int_at_end_of_string(label) == expected
