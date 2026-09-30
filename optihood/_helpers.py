@@ -14,6 +14,15 @@ def pattern_at_start_followed_by_number(pattern: str, label: str) -> Optional[Ma
     return re.match(fr"^{pattern}(\d+)?$", label)
 
 
+def int_at_end_of_string(label: str) -> int:
+    """ TODO: this function should be replaced with LabelStringManipulator.building_nr"""
+    match = re.search(r'(\d+)$', label)
+    if not match:
+        raise ValueError(f"Label does not have a nr at the end: {label}")
+
+    return int(match.group(1))
+
+
 _LABEL_SEPARATOR = "__"
 
 
