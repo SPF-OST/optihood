@@ -68,6 +68,7 @@ commands could be used.
 -->
 
 4. To test whether the installation worked well, you could run a [basic example](https://github.com/SPF-OST/OptiHood/tree/main/data/examples/).
+   We recommend starting with `basic_example_from_CSVs.py`.
 
 5. Run the test suite using:
 ```commandline
