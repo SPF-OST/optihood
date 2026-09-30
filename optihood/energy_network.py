@@ -18,6 +18,7 @@ import optihood.buildings as bui
 from optihood.constraints import *
 from optihood.links import Link
 import optihood.IO.readers as _re
+from optihood.Visualizer import convert_scenario as _cs, visualizer_app as _va
 
 # TODO: define nr_of_buildings once  # pylint: disable=fixme
 
@@ -140,6 +141,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         self._dispatchMode = False
         self._c = 4.186 #default value for water in kJ/(kg K)
         self._rho = 1. #default value for water in kg/L
+        self.nodal_data = None # Needed for the visualizer
         _pl.Path(".\\log_files").mkdir(parents=True, exist_ok=True)
         screen_format = "%(asctime)s-%(levelname)s:  %(message)s"
         logger.define_logging(screen_format=screen_format, logpath=os.getcwd(), logfile=f'.\\log_files\\optihood_{datetime.now().strftime("%d.%m.%Y %H.%M.%S")}.log')
@@ -161,6 +163,7 @@ class EnergyNetworkClass(solph.EnergySystem):
 
         nodesData = other_data_reader.read_profiles_and_other_data(initial_nodal_data, filePath, numberOfBuildings, clusterSize,
                                                                    self.timeindex)
+        self.nodal_data = nodesData
         self.set_using_nodal_data(clusterSize, filePath, includeCarbonBenefits, nodesData, mergeBuses,
                                   mergeHeatSourceSink, mergeLinkBuses, numberOfBuildings, opt)
 
@@ -1253,8 +1256,14 @@ class EnergyNetworkClass(solph.EnergySystem):
         other_data_reader = read.ProfileAndOtherDataReader()
         nodal_data = other_data_reader.read_profiles_and_other_data(initial_nodal_data, input_data_dir, nr_of_buildings,
                                                                     clusterSize, self.timeindex)
+        self.nodal_data = nodal_data
         self.set_using_nodal_data(clusterSize, input_data_dir, includeCarbonBenefits, nodal_data, mergeBuses,
                                   mergeHeatSourceSink, mergeLinkBuses, nr_of_buildings, opt)
+
+    def visualize_network(self, node_layout_file: _pl.Path, nr_of_buildings):
+        converters = _cs.get_converters(self.nodal_data, nr_of_buildings=nr_of_buildings)
+        graph_data = _cs.get_graph_data(converters)
+        _va.run_cytoscape_visualizer(graphData=graph_data, node_layout_file=node_layout_file)
 
     @staticmethod
     def check_dir_path(dir_path: _pl.Path):
@@ -1305,7 +1314,7 @@ class EnergyNetworkGroup(EnergyNetworkClass):
         other_data_reader = read.ProfileAndOtherDataReader()
         nodesData = other_data_reader.read_profiles_and_other_data(initial_nodal_data, filePath, numberOfBuildings, clusterSize,
                                                                    self.timeindex)
-
+        self.nodal_data = nodesData
         self.set_using_nodal_data(clusterSize, filePath, includeCarbonBenefits, nodesData, mergeBuses,
                                   mergeHeatSourceSink, mergeLinkBuses, numberOfBuildings, opt, grouped_network=True)
 
@@ -1327,6 +1336,7 @@ class EnergyNetworkGroup(EnergyNetworkClass):
         other_data_reader = read.ProfileAndOtherDataReader()
         nodal_data = other_data_reader.read_profiles_and_other_data(initial_nodal_data, input_data_dir, nr_of_buildings,
                                                                     clusterSize, self.timeindex)
+        self.nodal_data = nodal_data
         self.set_using_nodal_data(clusterSize, input_data_dir, includeCarbonBenefits, nodal_data, mergeBuses,
                                   mergeHeatSourceSink, mergeLinkBuses, nr_of_buildings, opt, grouped_network=True)
 
