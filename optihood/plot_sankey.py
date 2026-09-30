@@ -9,6 +9,7 @@ import plotly.graph_objects as go
 
 from optihood.plot_functions import getData
 from optihood.labelDict import labelDictGenerator, positionDictGenerator
+import optihood._helpers as hlp
 
 
 def addCapacities(nodes, dataDict, buildings, UseLabelDict, labelDict, mergedLinks):
@@ -166,7 +167,7 @@ def createSankeyData(dataDict, keys, UseLabelDict, labelDict, PositionDict, buil
                                 temp = (PositionDict[posKey][1]) / len(buildings) + buildingNumber / len(buildings)
                                 y.append(temp)
                             else:
-                                buildingNumber=buildings.index(int(targetNodeName.split('_')[-1][1:]))
+                                buildingNumber = buildings.index(hlp.int_at_end_of_string(targetNodeName))
                                 temp = (PositionDict[posKey][1]) / len(buildings) + (buildingNumber) / len(buildings)
                                 y.append(temp)
                 targets.append(nodes.index(targetNodeName))
