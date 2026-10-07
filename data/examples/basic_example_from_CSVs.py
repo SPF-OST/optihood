@@ -69,7 +69,7 @@ if __name__ == '__main__':
 
     # initialize parameters
     numberOfBuildings = 4
-    optimizationType = "env"  # set as "env" for environmental optimization
+    optimizationType = "costs"  # set as "env" for environmental optimization
 
     # create an energy network and set the network parameters from an excel file
     network = EnergyNetwork(timePeriod)
