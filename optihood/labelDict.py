@@ -1,7 +1,7 @@
 def labelDictGenerator(numBuildings, labels, optimType, mergedLinks):
     base = {"electricityLink":"elLink", "shLink":"shLink", "dhwLink":"dhwLink", "naturalGasResource":"natGas", "naturalGasBus":"natGas", "qSource":"qSource", "heatSourceBus":"hSB", "gridBus":"grid", "pv":"pv", "electricityResource":"grid", "gridElectricity":"grid", "GasBoiler":"gasBoiler",
     "CHP":"CHP", "electricityBus":"prodEl", "electricityProdBus":"localEl", "producedElectricity":"prodEl", "electricitySource":"localEl", "electricalStorage":"Bat", "excesselectricityBus":"exEl",
-    "excessshDemandBus":"exSh", "electricityInBus":"usedEl", "HP":"HP", "GWHP":"GWHP", "GWHP35":"GWHP35", "GWHP60":"GWHP60", "solarCollector":"solar", "solarConnectBus":"solar","heat_solarCollector":"solar", "excess_solarheat":"exSolar",
+    "excessshDemandBus":"exSh", "electricityInBus":"usedEl", "HP":"HP", "GWHP":"GWHP", "GWHP35":"GWHP35", "GWHP60":"GWHP60", "solarCollector":"solar", "heatSource_SHsolarCollector": "solar", "solarConnectBus":"solar","heat_solarCollector":"solar", "excess_solarheat":"exSolar",
     "shSource":"prodSH","shSourceBus":"prodSH", "spaceHeatingBus":"shBus", "spaceHeating":"shBus", "shStorage":"shStor", "shDemandBus":"shBus", "dhwStorageBus":"dhwStor", "dhwStorage":"dhwStor", "domesticHotWaterBus":"dhwBus",
     "domesticHotWater":"dhwBus", "dhwDemandBus":"dhwBus", "electricityDemand":"Q_el", "emobilityDemand":"Q_mob", "spaceHeatingDemand":"Q_sh", "domesticHotWaterDemand":"Q_dhw", "excessshSourceBus":"exSh",
     "ElectricRod":"ElectricRod"}

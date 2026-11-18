@@ -439,13 +439,10 @@ class Building:
                         if buildingModelParams[param] != '' and param != 'tIndoorMin':
                             args.update({param:buildingModelParams[param]})
                         elif param == 'tIndoorMin':
-                            tIndoorNight = 20
-                            tIndoorDay = 22
-                            tlow = [tIndoorNight, tIndoorNight, tIndoorNight, tIndoorNight, tIndoorNight, tIndoorNight,
-                                  tIndoorNight, tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay,
-                                  tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay, tIndoorDay,
-                                  tIndoorNight, tIndoorNight, tIndoorNight, tIndoorNight]*365
-                            args.update({'tIndoorMin': np.array(tlow)})
+                            n_steps = len(buildingModelParams["timeseries"])
+                            t_min = float(buildingModelParams["tIndoorMin"])
+                            args.update({"tIndoorMin": np.full(n_steps, t_min)})
+
                     self.__nodesList.append(SinkRCModel(**args))
                 else:
                     # set static inflow values, if any
