@@ -147,6 +147,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         logger.define_logging(screen_format=screen_format, logpath=os.getcwd(), logfile=f'.\\log_files\\optihood_{datetime.now().strftime("%d.%m.%Y %H.%M.%S")}.log')
         logging.info("Initializing the energy network")
         super(EnergyNetworkClass, self).__init__(timeindex=timestamp, infer_last_interval=True)
+        self._time_step_hours = (timestamp[1] - timestamp[0]).total_seconds() / 3600         # Duration of one timestep in hours (automatically from timePeriod) -> otherwise outputs factor 4 to big when changing from 1h to 15 min!!
 
     def setFromExcel(self, filePath, numberOfBuildings, clusterSize={}, opt="costs", mergeLinkBuses=False, mergeBuses=None, mergeHeatSourceSink=False, dispatchMode=False, includeCarbonBenefits=False):
         self.check_file_path(filePath)
@@ -338,15 +339,30 @@ class EnergyNetworkClass(solph.EnergySystem):
         """
         self._transformer_sh_output_flow = {}
         for i, r in energy_conversion_tech_data.iterrows():
-            dict_key = f"{r[_ent.TransformerLabels.label]}__Building{r[_ent.TransformerLabels.building]}"
+            # Ensure building number is an integer
+            building = int(r[_ent.TransformerLabels.building])
+            # Create transformer dictionary key
+            dict_key = (
+                f"{r[_ent.TransformerLabels.label]}"
+                f"__Building{building}"
+            )
+
+            # Determine corresponding space heating output bus
             if r[_ent.TransformerLabels.label].startswith(_ent.TransformerTypes.CHP):
-                sh_output_bus_label = f"{r[_ent.TransformerLabels.to].split(",")[1]}__Building{r[_ent.TransformerLabels.building]}"
+                sh_output_bus_label = (
+                    f"{r[_ent.TransformerLabels.to].split(',')[1]}"
+                    f"__Building{building}"
+                )
             else:
-                sh_output_bus_label = f"{r[_ent.TransformerLabels.to].split(",")[0]}__Building{r[_ent.TransformerLabels.building]}"
+                sh_output_bus_label = (
+                    f"{r[_ent.TransformerLabels.to].split(',')[0]}"
+                    f"__Building{building}"
+                )
+
             self._transformer_sh_output_flow[dict_key] = sh_output_bus_label
 
     def _addBuildings(self, data, opt, mergeLinkBuses, mergeBuses, mergeHeatSourceSink, includeCarbonBenefits, clusterSize):
-        numberOfBuildings = max(data["buses"]["building"])
+        numberOfBuildings = int(max(data["buses"]["building"]))
         self.__buildings = [bui.Building(hlpr.create_building_label(i + 1)) for i in range(numberOfBuildings)]
         storageParams = {}
         for s in [_ent.NodeKeys.stratified_storage.value, _ent.NodeKeys.ice_storage.value]:
@@ -475,6 +491,7 @@ class EnergyNetworkClass(solph.EnergySystem):
         logging.info("Custom constraints successfully added to the optimization model")
         logging.info("Initiating optimization using {} solver".format(solver))
 
+        self._optimizationModel.write(r"C:\Users\LucaG\FlexiZev-Leg_SA_clean\debug_model.lp",io_options={"symbolic_solver_labels": True}) ##DEBUG BUILDING MODEL: export file to find buggy equation
         self._optimizationModel.solve(solver=solver, solve_kwargs=options[solver])
 
         # obtain the value of the environmental impact (subject to the limit constraint)
@@ -731,6 +748,9 @@ class EnergyNetworkClass(solph.EnergySystem):
             self._optimizationResults[flow]['sequences'] = extrapolated_results
 
     def _calculateResultsPerBuilding(self, mergeLinkBuses):
+
+        dt = self._time_step_hours
+
         for b in self.__buildings:
             buildingLabel = b.getBuildingLabel()
             capacityTransformers = self.__capacitiesTransformersBuilding[buildingLabel]
@@ -792,24 +812,24 @@ class EnergyNetworkClass(solph.EnergySystem):
             # OPeration EXpenditure
             self.__opex[buildingLabel].update({i[0]: sum(
                 solph.views.node(self._optimizationResults, i[1])["sequences"][(i[0], i[1]), "flow"] * self.__costParam[
-                    i[0]]) for i in inputs})
+                    i[0]]) * dt for i in inputs})
             c = costParamGridElectricity * gridElectricityFlow
             if isinstance(c, (int, float)):
-                self.__opex[buildingLabel].update({electricitySourceLabel:c})
+                self.__opex[buildingLabel].update({electricitySourceLabel:c * dt})
             else:
-                self.__opex[buildingLabel].update({electricitySourceLabel: c.sum()})  # cost of grid electricity is added separately based on cost data
+                self.__opex[buildingLabel].update({electricitySourceLabel: c.sum() * dt})  # cost of grid electricity is added separately based on cost data
 
             c = costParamNaturalGas * naturalGasFlow
             if isinstance(c, (int, float)):
-                self.__opex[buildingLabel].update({naturalGasSourceLabel: c})
+                self.__opex[buildingLabel].update({naturalGasSourceLabel: c * dt})
             else:
-                self.__opex[buildingLabel].update({naturalGasSourceLabel: c.sum()})  # cost of natural gas is added separately based on cost data
+                self.__opex[buildingLabel].update({naturalGasSourceLabel: c.sum() * dt})  # cost of natural gas is added separately based on cost data
 
             # Feed-in electricity cost (value will be in negative to signify monetary gain...)
             if ((mergeLinkBuses and buildingLabel=='Building1') or not mergeLinkBuses) and \
                     (((electricityBusLabel, excessElectricityBusLabel), "flow") in solph.views.node(self._optimizationResults, electricityBusLabel)["sequences"]):
                 self.__feedIn[buildingLabel] = sum(solph.views.node(self._optimizationResults, electricityBusLabel)
-                                                   ["sequences"][(electricityBusLabel, excessElectricityBusLabel), "flow"]) * self.__costParam[excessElectricityBusLabel]
+                                                   ["sequences"][(electricityBusLabel, excessElectricityBusLabel), "flow"]) * self.__costParam[excessElectricityBusLabel] * dt
             else: # in case of merged links feed in for all buildings except Building1 is set to 0 (to avoid repetition)
                 self.__feedIn[buildingLabel] = 0
             if mergeLinkBuses and ("electricity" in self._mergeBuses or "electricityInBus" in self._mergeBuses):
@@ -906,18 +926,18 @@ class EnergyNetworkClass(solph.EnergySystem):
                 envParamNaturalGas = 0
 
             # Environmental impact due to inputs (natural gas, electricity, etc...)
-            self.__envImpactInputs[buildingLabel].update({i[0]: sum(solph.views.node(self._optimizationResults, i[1])["sequences"][(i[0], i[1]), "flow"] * self.__envParam[i[0]]) for i in inputs})
+            self.__envImpactInputs[buildingLabel].update({i[0]: sum(solph.views.node(self._optimizationResults, i[1])["sequences"][(i[0], i[1]), "flow"] * self.__envParam[i[0]]) * dt for i in inputs})
             c = envParamGridElectricity * gridElectricityFlow
             if isinstance(c, (int, float)):
-                self.__envImpactInputs[buildingLabel].update({electricitySourceLabel: c})
+                self.__envImpactInputs[buildingLabel].update({electricitySourceLabel: c * dt})
             else:
-                self.__envImpactInputs[buildingLabel].update({electricitySourceLabel: c.sum()})  # impact of grid electricity is added separately based on LCA data
+                self.__envImpactInputs[buildingLabel].update({electricitySourceLabel: c.sum() * dt})  # impact of grid electricity is added separately based on LCA data
 
             c = envParamNaturalGas * naturalGasFlow
             if isinstance(c, (int, float)):
-                self.__envImpactInputs[buildingLabel].update({naturalGasSourceLabel: c})
+                self.__envImpactInputs[buildingLabel].update({naturalGasSourceLabel: c * dt})
             else:
-                self.__envImpactInputs[buildingLabel].update({naturalGasSourceLabel: c.sum()})  # impact of natural gas is added separately
+                self.__envImpactInputs[buildingLabel].update({naturalGasSourceLabel: c.sum() * dt})  # impact of natural gas is added separately
 
             # Environmental impact due to technologies (converters, storages)
             # calculated by adding both environmental impact per capacity and per flow (electrical flow or heat flow)
@@ -928,7 +948,7 @@ class EnergyNetworkClass(solph.EnergySystem):
                                                                            solph.views.node(self._optimizationResults,
                                                                                             t[0])["sequences"][((t[1], t[0]), "flow")] *
                                                                            self.__envParam[t[1]][0] * ('electricityBus' not in t[0]))
-                                                                       for t in technologies if t[1] == i)
+                                                                       for t in technologies if t[1] == i) * dt
                                                                 for i, o in capacityTransformers})
             self.__envImpactTechnologies[buildingLabel].update({x: capacityStorages[x] * self.__envParam[x][2] +
                                                                    sum(sum(
@@ -938,7 +958,7 @@ class EnergyNetworkClass(solph.EnergySystem):
                                                                        solph.views.node(self._optimizationResults,
                                                                                         t[0])["sequences"][((t[1], t[0]), "flow")] *
                                                                        self.__envParam[t[1]][0] * ('electricityBus' not in t[0]))
-                                                                       for t in technologies if t[1] == x)
+                                                                       for t in technologies if t[1] == x) * dt
                                                                 for x in capacityStorages if "thermalStorage" not in x})
             if self._temperatureLevels:
                 impactThermalStorage = 0
@@ -953,7 +973,7 @@ class EnergyNetworkClass(solph.EnergySystem):
                                                                                         t[0])["sequences"][((t[1], t[0]), "flow")] *
                                                                        self.__envParam["thermalStorage__"+x.split("__")[1]][0] * ('electricityBus' not in t[0]))
                                                                        for t in technologies if (x.split("__")[0] in t[1].split("__")[0]
-                                                                                                 and x.split("__")[1] == t[1].split("__")[1]))
+                                                                                                 and x.split("__")[1] == t[1].split("__")[1])) * dt
                         self.__envImpactTechnologies[buildingLabel].update({x: impactThermalStorage})
 
     def printMetaresults(self):
